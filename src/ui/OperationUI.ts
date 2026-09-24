@@ -145,7 +145,7 @@ export class OperationUI {
       this.hud.querySelector('.primary-intent')!.addEventListener('click',()=>{const spec=primary?.spec,zone=spec&&'zone' in spec?r?.zones.find(z=>z.id===spec.zone):r?.zones.find(z=>z.id==='contested');const target=zone?.center??op.objectives[1]??op.objectives[0];if(target)this.actions.focus(target);});
     }
     const remaining=Math.max(0,Math.ceil(op.duration-op.elapsed));
-    this.hud.querySelector('.operation-topline b')!.textContent=op.duration?`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`:'OPEN FRONT';
+    this.hud.querySelector('.operation-topline b')!.textContent=op.duration?`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`:'NO TIME LIMIT';
     this.hud.querySelector('.intent-status')!.textContent=op.status!=='active'?op.reason:`${this.able('player')} personnel able · ${op.runtime?.phase??'operation active'}`;
   }
 }
