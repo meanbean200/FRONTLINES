@@ -20,7 +20,8 @@ export function validCampaignSystems(s:BattlefieldState):boolean {
     if(['convoy','shuttle'].includes(m.stage)&&!s.living!.trucks.some(t=>t.id===m.truckId&&(t.faction??'player')===m.side&&t.role===m.stage))return false;
     if(m.stage==='arrived'&&(!nonnegative(m.arrivedAt)||RESOURCES.some(key=>m.stock[key]!==0)))return false;
   }
-  for(const side of ['player','enemy'] as const)if(r.reserve[side]+r.manifests.filter(m=>m.side===side&&!m.returning).length!==48)return false;
+  const initialReserve=s.operation?.setup?.advanced?.reserves??48;
+  for(const side of ['player','enemy'] as const)if(r.reserve[side]+r.manifests.filter(m=>m.side===side&&!m.returning).length!==initialReserve)return false;
   for(const t of s.living!.trucks)if(r.manifests.filter(m=>m.truckId===t.id&&m.stage!=='arrived').length>8)return false;
   return true;
 }

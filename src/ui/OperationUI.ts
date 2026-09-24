@@ -1,11 +1,12 @@
 import type { BattlefieldState, Vec2 } from '../core/types';
 import { MODE_INFO, factionOf, type GameMode } from '../operations/types';
-import {OPERATION_IDS,OPERATION_DEFINITIONS,isOperationId,forceSize} from '../operations/OperationDefinitions';
-import {placeOperation} from '../operations/OperationPlacement';
-const escape=(value:string):string=>value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
+import {defaultBattleSetup,resolveBattleSetup,validBattleSetup,applyPreset,type BattleSetup,type ResolvedBattleSetup} from '../operations/BattleSetup';
+import {readSetupPresets,saveSetupPreset,type SavedSetup} from '../persistence/SetupPresets';
+import {renderBattleSetup,renderBattleBriefing,readBattleForm,escapeText as escape} from './BattleSetupView';
 
 interface OperationActions {
-  start: (mode: GameMode,seed:number) => void;
+  start: (setup:ResolvedBattleSetup) => void;
+  legacyStart:(mode:GameMode,seed:number)=>void;
   load: () => boolean;
   save: () => boolean;
   hasSave: () => boolean;
@@ -20,8 +21,9 @@ export class OperationUI {
   private readonly hud = document.createElement('section');
   private readonly menuButton = document.createElement('button');
   private started = false;
-  private chosen: GameMode = 'breakthrough';
-  private sectorSeed=1944;
+  private setup:BattleSetup=defaultBattleSetup();
+  private pending?:ResolvedBattleSetup;
+  private advancedOpen=false;
   private lastRender = 0;
   private resultShown = false;
   private choosing = true;
@@ -36,7 +38,7 @@ export class OperationUI {
     this.menuButton.className = 'operation-menu-button'; this.menuButton.textContent = 'MENU'; this.menuButton.title = 'Pause and menu [Esc]';
     document.body.append(this.dialog); document.querySelector('#ui-root')!.append(this.hud, this.menuButton);
     this.menuButton.addEventListener('click', () => this.open(false));
-    this.dialog.addEventListener('cancel', e => { e.preventDefault(); if (this.started) this.close(); });
+    this.dialog.addEventListener('cancel', e => { e.preventDefault(); if(this.pending){this.pending=undefined;this.renderMenu();}else if (this.started) this.close(); });
     window.addEventListener('keydown', e => {
       if (e.code !== 'Escape' || e.repeat || document.documentElement.dataset.replay || document.documentElement.dataset.help || document.documentElement.dataset.fieldMap) return;
       // Drawing gets its own first Escape. A second Escape opens the menu.
@@ -59,38 +61,96 @@ export class OperationUI {
   private open(choose: boolean): void {
     if (document.documentElement.dataset.replay) return;
     this.choosing = choose || !this.started;
+    this.pending=undefined;
     document.documentElement.dataset.menu = 'open';
     window.dispatchEvent(new Event('frontlines-menu'));
     this.renderMenu(); if (!this.dialog.open) this.dialog.showModal();
   }
   private close(): void { if(this.graphicsLost)return;this.dialog.close(); delete document.documentElement.dataset.menu;this.graphicsNotice=''; }
   stateRestored(): void { this.started = true; this.resultShown = false; this.close(); }
+  private localPresets():SavedSetup[] {try{return readSetupPresets(localStorage);}catch{return [];}}
+  private status(message:string):void {const p=this.dialog.querySelector<HTMLParagraphElement>('.menu-status')!;p.hidden=false;p.textContent=message;}
+  private launch(setup:ResolvedBattleSetup):void {
+    if(this.graphicsLost)return;
+    try{this.actions.start(setup);this.setup=structuredClone(setup);this.started=true;this.resultShown=false;this.pending=undefined;this.close();}
+    catch(error){this.status(`Could not prepare this sector. ${error instanceof Error?error.message:'Try another seed.'}`);}
+  }
+  private captureSetup():boolean {
+    const form=this.dialog.querySelector<HTMLFormElement>('#quick-battle-form');
+    if(!form?.reportValidity())return false;
+    const setup=readBattleForm(this.dialog,this.setup);
+    if(!validBattleSetup(setup)){this.status('Check the battle settings and seed.');return false;}
+    this.setup=setup;return true;
+  }
   private renderMenu(): void {
-    const state = this.getState(), op = state.operation, result = this.started && op && op.status !== 'active' && !this.choosing;
-    const briefing=isOperationId(this.chosen)?placeOperation(this.chosen,this.sectorSeed):undefined;
-    const primary=briefing?.objectives.find(o=>o.priority==='primary'&&o.side==='player');
-    const definition=isOperationId(this.chosen)?OPERATION_DEFINITIONS[this.chosen]:undefined;
-    this.dialog.innerHTML = `
-      <div class="menu-landscape" aria-hidden="true"><span>OPERATIONS SHEET · 4 × 4 KM</span><div class="menu-contours"></div><p>${escape(briefing?.locations[0].name??'FIELD EXERCISE')}<br><b>SECTOR ${this.sectorSeed}</b></p><div class="menu-route"><i>→</i><i>Ⅱ</i><i>↗</i></div></div>
-      <div class="menu-content"><div class="menu-eyebrow">FIELD COMMAND / 1944-INSPIRED</div>
-      <h1>FRONT<span>LINES</span></h1><p class="menu-subtitle">Ground is won by squads.<br>It is held by people.</p>
-      ${result ? `<section class="after-action"><small>AFTER ACTION</small><h2>${op.status === 'victory' ? 'Sector secured.' : 'Operation ended.'}</h2><p>${escape(op.reason)}</p><div class="result-stats"><span>${this.able('player')} / ${op.initialPlayer}<small>ABLE TROOPS</small></span><span>${Math.floor(op.elapsed / 60)}m ${Math.floor(op.elapsed % 60)}s<small>OPERATION TIME</small></span></div>${op.runtime?`<ul>${op.runtime.objectives.filter(o=>o.side==='player'&&o.priority==='optional').map(o=>`<li>${escape(o.title)} — ${op.runtime!.progress.find(p=>p.id===o.id)?.complete?'secured':'not secured'}</li>`).join('')}</ul>`:''}</section>` : ''}
-      ${this.choosing ? `<div class="mode-cards operations-v2-choices" aria-label="Choose game mode">${([...OPERATION_IDS,'sandbox'] as GameMode[]).map(mode => `<button class="mode-card ${this.chosen === mode ? 'chosen' : ''}" data-mode-choice="${mode}" aria-pressed="${this.chosen === mode}"><span>${MODE_INFO[mode].tag}<b>${MODE_INFO[mode].duration}</b></span><strong>${MODE_INFO[mode].title}</strong></button>`).join('')}</div><p class="mode-description">${MODE_INFO[this.chosen].description}</p>${briefing?`<section class="operation-briefing"><small>PRIMARY</small><strong>${escape(primary!.title)}</strong><details><summary>Optional terrain & supplies</summary>${briefing.objectives.filter(o=>o.priority==='optional').map(o=>`<p>${escape(o.title)} · finite supply cache</p>`).join('')}</details><p>${forceSize(definition!.forces.player)} personnel · ${definition!.forces.player.rifles} rifle squads · engineers, MG, mortar & medical support${definition!.persistent?' · 48 reserve personnel':''}</p></section>`:`<p class="mode-hint">${MODE_INFO[this.chosen].hint}</p>`}<label class="sector-seed">Sector seed <input id="sector-seed" type="number" min="1" max="2147483647" value="${this.sectorSeed}" step="1"></label><button class="menu-primary" id="launch-operation">${this.chosen === 'sandbox' ? 'Enter sandbox' : 'Begin operation'} <span>→</span></button>${this.started ? '<p class="menu-save-note">Starting fresh replaces this unsaved session. Your saved campaign stays untouched.</p>' : ''}` : ''}
-      <div class="menu-secondary">${this.started ? `<button id="resume-session">${result ? 'Inspect battlefield' : 'Resume'} <kbd>Esc</kbd></button>` : ''}${!this.choosing ? '<button id="choose-operation">New operation</button>' : ''}${this.actions.hasSave() ? '<button id="continue-save">Load saved campaign</button>' : ''}${this.started ? '<button id="save-session">Save current session</button>' : ''}</div>
-      <p class="menu-status" role="status" hidden></p><div class="menu-settings"><label>Rendering <select id="menu-quality"><option value="balanced">Balanced</option><option value="low">Performance</option><option value="high">High</option></select></label><span>Simulation paused while this menu is open</span></div>
-      <footer class="menu-footer">Select a squad · right-drag a route · H to hold · T to draw a defensive frontage<br>Spot enemies before engaging. Night, cover, tiredness and suppression limit sight. Town caches are finite; stop near the flag to resupply.</footer></div>`;
-    this.dialog.querySelectorAll<HTMLButtonElement>('[data-mode-choice]').forEach(button => button.addEventListener('click', () => { this.chosen = button.dataset.modeChoice as GameMode; this.renderMenu(); this.dialog.querySelector<HTMLButtonElement>(`[data-mode-choice="${this.chosen}"]`)!.focus(); }));
-    this.dialog.querySelector<HTMLInputElement>('#sector-seed')?.addEventListener('change',e=>{const value=Number((e.target as HTMLInputElement).value);if(Number.isSafeInteger(value)&&value>=1&&value<=2147483647)this.sectorSeed=value;this.renderMenu();});
-    this.dialog.querySelector('#launch-operation')?.addEventListener('click', () => { if(this.graphicsLost)return;try{this.actions.start(this.chosen,this.sectorSeed);this.started=true;this.resultShown=false;this.close();}catch(error){const status=this.dialog.querySelector<HTMLParagraphElement>('.menu-status')!;status.hidden=false;status.textContent=`Could not prepare this sector. ${error instanceof Error?error.message:'Try another seed.'}`;} });
-    this.dialog.querySelector('#resume-session')?.addEventListener('click', () => this.close());
-    this.dialog.querySelector('#choose-operation')?.addEventListener('click', () => this.open(true));
-    this.dialog.querySelector('#continue-save')?.addEventListener('click', () => { if(this.graphicsLost)return;if (this.actions.load()) this.stateRestored(); else {const status=this.dialog.querySelector<HTMLParagraphElement>('.menu-status')!;status.hidden=false;status.textContent=this.actions.loadError?.()||'Could not load that save. This session and the saved file have been left untouched.';} });
-    this.dialog.querySelector('#save-session')?.addEventListener('click', () => {const saved=this.actions.save();this.renderMenu();const status=this.dialog.querySelector<HTMLParagraphElement>('.menu-status')!;status.hidden=false;status.textContent=saved?'Session saved.':'Save failed · previous save preserved';});
+    const state=this.getState(),op=state.operation,result=this.started&&op&&op.status!=='active'&&!this.choosing;
+    const presets=this.localPresets();
+    this.dialog.classList.add('quick-battle-menu');
+    this.dialog.innerHTML=`
+      <aside class="menu-landscape" aria-hidden="true"><span>FIELD COMMAND / 1944</span><div class="menu-contours"></div>
+      <div class="quick-brand">FRONT<br>LINES<small>THE OPERATIONS TABLE</small></div>
+      <p>Complex battlefield.<br>Clear orders.<b>4 × 4 KM · NORTHWEST EUROPE</b></p></aside>
+      <div class="menu-content">
+      ${this.choosing?(this.pending?renderBattleBriefing(this.pending):renderBattleSetup(this.setup,this.advancedOpen,presets)):
+        `<div class="setup-title"><div><small>${result?'AFTER ACTION':'FIELD COMMAND'}</small><h2>${result?(op.status==='victory'?'Sector secured.':'Operation ended.'):'Operation paused'}</h2></div></div>
+        ${result?`<p class="after-action-reason">${escape(op.reason)}</p><div class="result-stats"><span>${this.able('player')} / ${op.initialPlayer}<small>ABLE TROOPS</small></span><span>${Math.floor(op.elapsed/60)}m ${Math.floor(op.elapsed%60)}s<small>OPERATION TIME</small></span></div>`:`<p class="pause-intent">${op?escape(MODE_INFO[op.mode].title):'Living battlefield'} · your current session is paused.</p>`}
+        <div class="pause-actions"><button class="menu-primary" id="resume-session">${result?'Inspect battlefield':'Resume operation'} <kbd>Esc</kbd></button>
+        ${op?.setup?'<button id="rematch-operation">Rematch <small>Same seed and settings</small></button><button id="change-settings">Change settings</button>':''}
+        <button id="choose-operation">New battle</button></div>`}
+      ${this.choosing&&this.started?'<p class="menu-save-note">Beginning a new battle replaces this unsaved session. Your saved campaign stays untouched.</p>':''}
+      <p class="menu-status" role="status" hidden></p>
+      <div class="menu-secondary">${this.choosing&&this.started?'<button id="resume-session">Return to current battle</button>':''}${this.actions.hasSave()?'<button id="continue-save">Load saved campaign</button>':''}${this.started?'<button id="save-session">Save current session</button>':''}${this.choosing&&!this.pending?'<button id="sandbox-session">Peaceful sandbox</button>':''}</div>
+      <div class="menu-settings"><label>Rendering <select id="menu-quality"><option value="balanced">Balanced</option><option value="low">Performance</option><option value="high">High</option></select></label><span>Simulation paused while this menu is open</span></div></div>`;
+    this.dialog.querySelectorAll<HTMLButtonElement>('[data-mode-choice]').forEach(button=>button.addEventListener('click',()=>{
+      if(!this.captureSetup())return;this.setup.operation=button.dataset.modeChoice as BattleSetup['operation'];this.renderMenu();
+      this.dialog.querySelector<HTMLButtonElement>(`[data-mode-choice="${this.setup.operation}"]`)!.focus();
+    }));
+    this.dialog.querySelector('.advanced-setup')?.addEventListener('toggle',e=>{this.advancedOpen=(e.target as HTMLDetailsElement).open;});
+    this.dialog.querySelector('#quick-battle-form')?.addEventListener('change',e=>{
+      const el=e.target as HTMLInputElement,focus=el.id;
+      if(focus==='setup-preset'||focus==='local-preset'||focus==='preset-name')return;
+      if(!this.captureSetup())return;this.renderMenu();this.dialog.querySelector<HTMLElement>(`#${focus}`)?.focus();
+    });
+    this.dialog.querySelector('#quick-battle-form')?.addEventListener('submit',e=>{
+      e.preventDefault();if(!this.captureSetup()||this.graphicsLost)return;
+      const random=crypto.getRandomValues(new Uint32Array(1))[0]%2147483647+1;
+      this.pending=resolveBattleSetup(this.setup,random);this.renderMenu();this.dialog.querySelector<HTMLButtonElement>('#begin-operation')!.focus();
+    });
+    this.dialog.querySelector('#begin-operation')?.addEventListener('click',()=>{if(this.pending)this.launch(this.pending);});
+    this.dialog.querySelector('#back-to-setup')?.addEventListener('click',()=>{this.pending=undefined;this.renderMenu();});
+    this.dialog.querySelector('#setup-preset')?.addEventListener('change',e=>{
+      const id=(e.target as HTMLSelectElement).value;if(id==='custom'||!this.captureSetup())return;
+      this.setup=applyPreset(this.setup,id);this.renderMenu();
+    });
+    this.dialog.querySelector('#local-preset')?.addEventListener('change',e=>{
+      const value=(e.target as HTMLSelectElement).value;if(value==='')return;
+      const row=presets[Number(value)];if(row){this.setup=structuredClone(row.setup);this.renderMenu();this.status(`Loaded settings: ${row.name}`);}
+    });
+    this.dialog.querySelector('#save-setup')?.addEventListener('click',()=>{
+      if(!this.captureSetup())return;const name=this.dialog.querySelector<HTMLInputElement>('#preset-name')!.value;
+      try{saveSetupPreset(localStorage,name,this.setup);this.renderMenu();this.status(`Saved local setup: ${name.trim()}`);}
+      catch(error){this.status(error instanceof Error?error.message:'Local storage unavailable. Settings were not saved.');}
+    });
+    this.dialog.querySelector('#preset-name')?.addEventListener('keydown',e=>{
+      if((e as KeyboardEvent).key==='Enter'){e.preventDefault();this.dialog.querySelector<HTMLButtonElement>('#save-setup')!.click();}
+    });
+    this.dialog.querySelector('#resume-session')?.addEventListener('click',()=>this.close());
+    this.dialog.querySelector('#choose-operation')?.addEventListener('click',()=>{this.setup=defaultBattleSetup();this.advancedOpen=false;this.open(true);});
+    this.dialog.querySelector('#change-settings')?.addEventListener('click',()=>{this.setup=structuredClone(op!.setup!);this.open(true);});
+    this.dialog.querySelector('#rematch-operation')?.addEventListener('click',()=>{
+      this.setup=structuredClone(op!.setup!);this.choosing=true;this.pending=structuredClone(op!.setup!);this.renderMenu();
+    });
+    this.dialog.querySelector('#sandbox-session')?.addEventListener('click',()=>{if(this.graphicsLost)return;try{this.actions.legacyStart('sandbox',1944);this.started=true;this.resultShown=false;this.close();}catch(error){this.status(String(error));}});
+    this.dialog.querySelector('#continue-save')?.addEventListener('click',()=>{
+      if(this.graphicsLost)return;if(this.actions.load())this.stateRestored();
+      else this.status(this.actions.loadError?.()||'Could not load that save. This session and the saved file are untouched.');
+    });
+    this.dialog.querySelector('#save-session')?.addEventListener('click',()=>{const saved=this.actions.save();this.renderMenu();this.status(saved?'Session saved.':'Save failed · previous save preserved');});
     const quality=this.dialog.querySelector<HTMLSelectElement>('#menu-quality')!;quality.value=this.quality;
     quality.addEventListener('change',()=>{this.quality=quality.value;this.actions.quality(this.quality);});
-    for(const control of this.dialog.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('#launch-operation,#resume-session,#continue-save,#menu-quality'))control.disabled=this.graphicsLost;
-    if(this.graphicsNotice){const status=this.dialog.querySelector<HTMLParagraphElement>('.menu-status')!;status.hidden=false;status.textContent=this.graphicsNotice;}
-    else if(this.actions.saveNotice?.()){const status=this.dialog.querySelector<HTMLParagraphElement>('.menu-status')!;status.hidden=false;status.textContent=this.actions.saveNotice();}
+    for(const control of this.dialog.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('#launch-operation,#begin-operation,#resume-session,#continue-save,#sandbox-session,#menu-quality'))control.disabled=this.graphicsLost;
+    if(this.graphicsNotice)this.status(this.graphicsNotice);
+    else if(this.actions.saveNotice?.())this.status(this.actions.saveNotice());
   }
   private able(faction: 'player' | 'enemy'): number {
     const state = this.getState(), ids = new Set(state.squads.filter(s => factionOf(s) === faction).map(s => s.id));

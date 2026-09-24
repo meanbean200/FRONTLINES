@@ -29,6 +29,7 @@ export interface Objective extends Vec2 {
   cacheId: number;
 }
 export interface OperationState {
+  setup?:import('./BattleSetup').ResolvedBattleSetup;
   runtime?:import('./OperationalTypes').OperationRuntime;
   version: 1;
   mode: OperationMode;

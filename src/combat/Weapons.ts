@@ -1,4 +1,5 @@
 import type {BattlefieldState,SoldierState,Vec2} from '../core/types';
+import {armyFor} from '../operations/BattleSetup';
 export type WeaponId='m1'|'bar'|'kar98k'|'mg42'|'smg'|'crew-mg';
 export interface WeaponDefinition {id:WeaponId;name:string;range:number;magazine:number;reload:number;interval:number;burst:number;burstGap:number;spread:number;setup:number;crew:number}
 export interface WeaponState {id:WeaponId;loaded:number;reloadUntil:number;setupUntil:number;burstLeft:number;position:Vec2;effectiveUntil?:number;effectivePoint?:Vec2}
@@ -13,7 +14,7 @@ export const WEAPONS:Record<WeaponId,WeaponDefinition>={
 /** Loaded rounds are a subset of carried ammo, never a second inventory. */
 export function equipWeapon(state:BattlefieldState,s:SoldierState,role?:WeaponId):WeaponState {
   const combat=s.combat??={shotSequence:0};if(combat.weapon)return combat.weapon;
-  const q=state.squads.find(q=>q.id===s.squadId)!,i=q.soldierIds.indexOf(s.id),enemy=q.faction==='enemy';
+  const q=state.squads.find(q=>q.id===s.squadId)!,i=q.soldierIds.indexOf(s.id),enemy=armyFor(state,q.faction??'player')==='german';
   const id:WeaponId=role??(q.kind==='machinegun'&&i===0?'crew-mg':q.kind==='rifle'&&i===1?(enemy?'mg42':'bar'):q.kind==='rifle'&&i===7?'smg':enemy?'kar98k':'m1');
   return combat.weapon={id,loaded:Math.min(WEAPONS[id].magazine,Math.floor(s.carried?.ammo??0)),reloadUntil:0,setupUntil:state.elapsed+WEAPONS[id].setup,burstLeft:0,position:{x:s.x,z:s.z}};
 }

@@ -6,6 +6,15 @@ import {trenchDraft} from './TrenchDraft';
 import {fieldIcon} from './FieldSymbols';
 
 describe('field command presentation is truthful and read only',()=>{
+  it('discloses one meaningful formation warning instead of permanent stat meters',()=>{
+    const state=createOperation('advance'),q=state.squads[0],ids=new Set([q.id]);
+    expect(selectionReadout(state,ids)!.warning).toBe('');
+    const people=state.soldiers.filter(s=>s.squadId===q.id);for(const s of people)s.carried!.ammo=5;
+    expect(selectionReadout(state,ids)!.warning).toBe('LOW AMMO');people[0].needs!.life='incapacitated';
+    expect(selectionReadout(state,ids)!.warning).toBe('CASUALTIES');
+    for(const s of people)s.combat={shotSequence:0,reaction:'pinned'};
+    expect(selectionReadout(state,ids)!.warning).toBe('PINNED');
+  });
   it('reports actual strength, rounds and state, without exposing an enemy selection',()=>{
     const state=createOperation('advance'),q=state.squads[0],s=state.soldiers.find(s=>s.squadId===q.id)!;
     s.needs!.life='incapacitated';s.carried!.ammo=99;

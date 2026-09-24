@@ -1,16 +1,29 @@
 import type {BattlefieldState} from '../core/types';
 import {isOperationId} from './OperationDefinitions';
 import {placeOperation} from './OperationPlacement';
+import {validBattleSetup} from './BattleSetup';
+
+/** V8/libm versions may differ by a few ULPs on generated road curves. Keep
+ * serialized coordinates, permit only sub-nanometre coordinate differences,
+ * and still reject changed topology, dimensions, objectives or configuration. */
+function sameDefinition(a:unknown,b:unknown,key=''):boolean {
+  if(a===b)return true;
+  if(typeof a==='number'&&typeof b==='number'&&(key==='x'||key==='z'))return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=1e-9;
+  if(!a||!b||typeof a!=='object'||typeof b!=='object'||Array.isArray(a)!==Array.isArray(b))return false;
+  const left=a as Record<string,unknown>,right=b as Record<string,unknown>,keys=Object.keys(left);
+  return keys.length===Object.keys(right).length&&keys.every(k=>Object.hasOwn(right,k)&&sameDefinition(left[k],right[k],k));
+}
 
 /** Static mission data is reproducible from version/id/seed. Reject edited geometry,
  * missing objectives and incompatible definitions instead of inventing a continuation. */
 export function validOperationalRuntime(state:BattlefieldState):boolean {
   const op=state.operation!,r=op.runtime;
-  if(!r)return !isOperationId(op.mode);
+  if(!r)return op.setup===undefined&&!isOperationId(op.mode);
   if(r.version!==2||!isOperationId(r.definitionId)||op.mode!==r.definitionId||r.seed!==state.seed)return false;
   if(!Array.isArray(op.objectives))return false;
-  const expected=placeOperation(r.definitionId,r.seed);
-  for(const key of ['front','zones','locations','routes','reinforcements','objectives','victory'] as const)if(JSON.stringify(r[key])!==JSON.stringify(expected[key]))return false;
+  if(op.setup!==undefined&&(!validBattleSetup(op.setup,true)||op.setup.operation!==op.mode||op.setup.seed!==state.seed))return false;
+  const expected=placeOperation(r.definitionId,r.seed,op.setup);
+  for(const key of ['front','zones','locations','routes','reinforcements','objectives','victory'] as const)if(!sameDefinition(r[key],expected[key]))return false;
   const nonnegative=(n:unknown):n is number=>typeof n==='number'&&Number.isFinite(n)&&n>=0;
   const phases=['preparation','contact','engagement','exploitation','consolidation','withdrawal'];
   if(!phases.includes(r.phase)||!nonnegative(r.phaseSince)||r.phaseSince>op.elapsed+.001||!nonnegative(r.lastEvaluation)||r.lastEvaluation>op.elapsed+.001||!nonnegative(r.nextEvaluation)||r.nextEvaluation>op.elapsed+1.001)return false;

@@ -3,15 +3,17 @@ import {hash2D} from '../core/random';
 import {SETTLEMENTS} from '../terrain/WorldFeatures';
 import {ROADS,pointOnRoad,roadRoute} from '../terrain/WorldLayout';
 import {OPERATION_DEFINITIONS} from './OperationDefinitions';
+import {configuredDefinition,type ResolvedBattleSetup} from './BattleSetup';
 import {atDepth,frontDepth} from './OperationGeometry';
 import type {DeploymentZone,OperationId,OperationRuntime,OperationalObjective,StrategicLocation} from './OperationalTypes';
 
 /** Terrain-feature placement. Orientation and lateral lanes vary with the sector seed.
  * Zones express intent, never movement barriers or compulsory squad waypoints. */
-export function placeOperation(id:OperationId,seed:number):OperationRuntime {
-  const d=OPERATION_DEFINITIONS[id],angle=Math.floor(hash2D(seed,29,177)*4)*Math.PI/2;
-  const forward={x:Math.round(Math.cos(angle)),z:Math.round(Math.sin(angle))};
-  const front={origin:{x:0,z:0},forward,right:{x:-forward.z,z:forward.x},beltDepth:d.deployment.enemy};
+export function placeOperation(id:OperationId,seed:number,setup?:ResolvedBattleSetup):OperationRuntime {
+  const d=setup?configuredDefinition(id,setup):OPERATION_DEFINITIONS[id],direction=setup?.advanced.direction??'auto';
+  const angle=(direction==='auto'?Math.floor(hash2D(seed,29,177)*4):['east','south','west','north'].indexOf(direction))*Math.PI/2;
+  const forward={x:Math.round(Math.cos(angle))||0,z:Math.round(Math.sin(angle))||0};
+  const front={origin:{x:0,z:0},forward,right:{x:-forward.z||0,z:forward.x},beltDepth:d.deployment.enemy};
   const zones:DeploymentZone[]=[];
   const zone=(id:string,name:string,center:Vec2,halfWidth:number,halfDepth:number)=>{zones.push({id,name,center,halfWidth,halfDepth,forward:{...forward}});return id;};
   for(const side of ['player','enemy'] as const){const sign=side==='player'?-1:1;
@@ -28,7 +30,7 @@ export function placeOperation(id:OperationId,seed:number):OperationRuntime {
   const locations:StrategicLocation[]=middle.map((p,i)=>({id:`site-${i}`,name:p.name,kind:'village',position:{x:p.x,z:p.z},zoneId:zone(`site-${i}`,p.name,p,p.r+55,p.r+55)}));
   const roads=ROADS.filter(r=>r.axis===(forward.x?'x':'z'));
   const main=roads[Math.floor(hash2D(seed,91,43)*roads.length)];
-  const reinforcements=(['player','enemy'] as const).map(side=>{const sign=(side==='player'?-1:1)*(forward.x||forward.z);return {side,rear:pointOnRoad(main,sign*1680),entry:pointOnRoad(main,sign*1980),reserve:d.persistent?48:0,intervalHours:24,releaseLimit:d.persistent?8:0};});
+  const reinforcements=(['player','enemy'] as const).map(side=>{const sign=(side==='player'?-1:1)*(forward.x||forward.z);return {side,rear:pointOnRoad(main,sign*1680),entry:pointOnRoad(main,sign*1980),reserve:d.persistent?(setup?.advanced.reserves??48):0,intervalHours:24,releaseLimit:d.persistent?8:0};});
   const routes=reinforcements.flatMap(source=>roads.map((road,i)=>{
     const sign=(source.side==='player'?1:-1)*(forward.x||forward.z),destination=pointOnRoad(road,sign*1400);
     // Each road is an alternative, not another mandatory checkpoint.

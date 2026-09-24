@@ -3,7 +3,7 @@ import {hash2D} from '../core/random';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {lineOfFire} from './Visibility';
 import {factionOf,type Contact,type OperationMode} from './types';
-import {OPERATION_DEFINITIONS} from './OperationDefinitions';
+import {configuredDefinition} from './BattleSetup';
 import type {OperationalKnowledge} from './OperationalCommander';
 
 export const ENEMY_AI_VERSION=1;
@@ -41,7 +41,7 @@ export function observeEnemy(state:BattlefieldState):EnemyObservation {
     // Flag ownership is public to both players. Enemy-owned caches are finite friendly stock.
     objectives:op.runtime?[]:op.objectives.map(o=>({id:o.id,x:o.x,z:o.z,radius:o.radius,owner:o.owner,contested:o.contested,ammo:o.owner==='enemy'?(state.living!.crates.find(c=>c.id===o.cacheId)?.stock.ammo??0):0}))};
   if(op.runtime){
-    const r=op.runtime,d=OPERATION_DEFINITIONS[r.definitionId];
+    const r=op.runtime,d=configuredDefinition(r.definitionId,op.setup);
     observation.objectives=op.objectives.map(site=>{
       const present=observation.squads.some(q=>distance(q,site)<160),reported=observation.contacts.some(c=>distance(c,site)<180);
       return {id:site.id,x:site.x,z:site.z,radius:180,owner:present&&!reported?'enemy':reported?'player':'neutral',contested:present&&reported,

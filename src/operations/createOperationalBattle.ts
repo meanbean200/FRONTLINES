@@ -13,18 +13,21 @@ import {placeOperation} from './OperationPlacement';
 import {atDepth} from './OperationGeometry';
 import type {OperationId} from './OperationalTypes';
 import type {Faction} from './types';
+import {configuredDefinition,validBattleSetup,type ResolvedBattleSetup} from './BattleSetup';
 
 /** Shared force/deployment builder; no mission-specific soldier or combat behavior. */
-export function createOperationalBattle(id:OperationId,seed=1944):BattlefieldState {
+export function createOperationalBattle(id:OperationId,seed=1944,setup?:ResolvedBattleSetup):BattlefieldState {
   if(!Number.isSafeInteger(seed)||seed<1||seed>2147483647)throw new Error('Sector seed must be an integer from 1 to 2147483647');
+  if(setup&&(!validBattleSetup(setup,true)||setup.seed!==seed||setup.operation!==id))throw new Error('Invalid battle setup');
   const state=createBattlefield(seed);state.soldiers=[];state.squads=[];state.trenches=[];state.craters=[];
-  const definition=OPERATION_DEFINITIONS[id],runtime=placeOperation(id,seed);
+  const definition=setup?configuredDefinition(id,setup):OPERATION_DEFINITIONS[id],runtime=placeOperation(id,seed,setup);
   const terrain=new TerrainSystem(state),navigation=new SquadNavigation(terrain),construction=new TrenchSystem(state);
   const prepared=new Map<Faction,number[]>(),groups=new Map<number,number[]>();
   const pathAt=(p:Vec2)=>[-60,-30,0,30,60].map((n,i)=>({x:p.x+runtime.front.right.x*n+runtime.front.forward.x*(i%2*5),z:p.z+runtime.front.right.z*n+runtime.front.forward.z*(i%2*5)}));
   for(const side of definition.prepared){
     const ids:number[]=[];
-    for(const lateral of [-600,0,600]){
+    const sectors=setup?Math.max(3,Math.ceil(forceSize(definition.forces[side])/25)):3;
+    for(const lateral of Array.from({length:sectors},(_,i)=>(i/(sectors-1)-.5)*1200)){
       let chosen:Vec2[]|undefined;
       for(let n=0;n<180&&!chosen;n++){
         const center=atDepth(runtime.front,definition.deployment[side]+(n%9-4)*22,lateral+Math.floor(n/9)*12-100),path=pathAt(center);
@@ -43,7 +46,7 @@ export function createOperationalBattle(id:OperationId,seed=1944):BattlefieldSta
     const support:[SquadKind,number,string,number][]=[['engineer',8,'Pioneer team',f.engineers],['machinegun',3,'Machine-gun team',f.machineguns],['mortar',3,'Mortar team',f.mortars],['medical',2,'Medical section',f.medics]];
     const roster:[SquadKind,number,string][]=[...Array.from({length:f.rifles},(_,i)=>['rifle',8,names[i]??`Rifle ${i+1}`] as [SquadKind,number,string]),...support.flatMap(([kind,size,name,count])=>Array.from({length:count},(_,i)=>[kind,size,count>1?`${name} ${i+1}`:name] as [SquadKind,number,string]))];
     for(const [i,[kind,count,name]] of roster.entries()){
-      const tId=prepared.get(side)?.[i%3],t=state.trenches.find(t=>t.id===tId);
+      const trenchIds=prepared.get(side),tId=trenchIds?.[i%trenchIds.length],t=state.trenches.find(t=>t.id===tId);
       const p=navigation.freeDestination(t?t.points[2]:atDepth(runtime.front,definition.deployment[side]+Math.floor(i/4)*45,(i%4-1.5)*95));
       const q=addSquad(state,kind,count,p.x,p.z,side==='enemy'?`Opposing ${name}`:name);q.faction=side;
       if(tId)groups.get(tId)!.push(q.id);
@@ -66,7 +69,7 @@ export function createOperationalBattle(id:OperationId,seed=1944):BattlefieldSta
   const garrisons=new GarrisonSystem(state,terrain,navigation,construction);
   for(const [side,trenchIds] of prepared)for(const [index,trenchId] of trenchIds.entries()){
     const ids=groups.get(trenchId)!,component=garrisons.network.component(trenchId)!;
-    const positions=garrisons.network.samples(component,4).filter(p=>terrain.coverAt(p.x,p.z)==='trench');
+    const positions=garrisons.network.samples(component,setup?3:4).filter(p=>terrain.coverAt(p.x,p.z)==='trench');
     const people=state.soldiers.filter(s=>ids.includes(s.squadId));
     for(const [i,s] of people.entries()){if(!positions[i])throw new Error('Prepared sector capacity exceeded');Object.assign(s,positions[i]);s.cover='trench';}
     for(const q of state.squads.filter(q=>ids.includes(q.id))){const people=state.soldiers.filter(s=>s.squadId===q.id);q.x=people.reduce((n,p)=>n+p.x,0)/people.length;q.z=people.reduce((n,p)=>n+p.z,0)/people.length;}
@@ -84,8 +87,26 @@ export function createOperationalBattle(id:OperationId,seed=1944):BattlefieldSta
   });
   state.operation={version:1,mode:id,runtime,status:'active',elapsed:0,duration:definition.defenseSeconds,score:0,targetScore:1,nextCombat:0,nextOrders:3,objectives,
     initialPlayer:forceSize(definition.forces.player),initialEnemy:forceSize(definition.forces.enemy),shots:0,hits:0,reason:'',casualtyRules:true,supportRules:true};
+  if(setup){state.operation.setup=structuredClone(setup);applyInitialOptions(state,setup);}
   if(definition.persistent){state.operation.campaign={playerTrench:prepared.get('player')![0],enemyTrench:prepared.get('enemy')![0],nextRaid:0,raidSquads:[],returnAt:0,phase:'preparing',playerHold:0,enemyHold:0};initializeReplacements(state);}
   // Clear separation is an invariant, not a camera trick hiding nearby enemies.
   if(state.squads.some(a=>a.faction==='player'&&state.squads.some(b=>b.faction==='enemy'&&distance(a,b)<600)))throw new Error('Deployment zones overlap');
   return state;
+}
+
+function applyInitialOptions(state:BattlefieldState,setup:ResolvedBattleSetup):void {
+  const w=state.living!,a=setup.advanced;
+  w.campaignHours={dawn:6,day:8,dusk:18,night:22}[a.time];
+  const stocks=[w.rearStock,w.enemySupply!.stock,...w.garrisons.flatMap(g=>[g.cache,g.forwardStock]),...w.crates.map(c=>c.stock),...state.soldiers.map(s=>s.carried!)];
+  for(const stock of stocks)for(const key of RESOURCES){
+    const before=stock[key];
+    if(a.supply==='low')stock[key]=Math.floor(stock[key]*.5);
+    if(!a.smoke&&(key==='smokeGrenades'||key==='mortarSmoke')||!a.mortars&&(key==='mortarHE'||key==='mortarSmoke'))stock[key]=0;
+    w.ledger.initial[key]+=stock[key]-before;
+  }
+  for(const key of RESOURCES){
+    if(a.supply==='low')w.logistics!.manifest[key]=Math.floor(w.logistics!.manifest[key]*.5);
+    if(!a.smoke&&(key==='smokeGrenades'||key==='mortarSmoke')||!a.mortars&&(key==='mortarHE'||key==='mortarSmoke'))w.logistics!.manifest[key]=0;
+  }
+  for(const s of state.soldiers)s.ammunition=s.carried!.ammo;
 }

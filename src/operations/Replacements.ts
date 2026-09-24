@@ -18,7 +18,8 @@ export interface ReplacementSystem {
 export function initializeReplacements(state:BattlefieldState):void {
   const c=state.operation?.campaign;if(!c||c.replacements)return;
   const next=state.living!.campaignHours+24;
-  c.replacements={reserve:{player:48,enemy:48},nextAt:{player:next,enemy:next},establishment:state.squads.map(q=>({squadId:q.id,strength:q.soldierIds.length})),manifests:[]};
+  const reserve=state.operation?.setup?.advanced.reserves??48;
+  c.replacements={reserve:{player:reserve,enemy:reserve},nextAt:{player:next,enemy:next},establishment:state.squads.map(q=>({squadId:q.id,strength:q.soldierIds.length})),manifests:[]};
 }
 /** Called immediately before truck motion, so loading and unloading are real timed handoffs. */
 export function stepReplacements(state:BattlefieldState,dt:number):void {

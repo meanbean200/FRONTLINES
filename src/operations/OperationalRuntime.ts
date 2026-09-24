@@ -4,7 +4,7 @@ import {transfer} from '../garrison/Inventory';
 import {factionOf,type Faction} from './types';
 import {COMBAT_KINDS,type ObjectiveSpec,type OperationRuntime,type OperationalPhase,type OperationalRoute} from './OperationalTypes';
 import {corridorDistance,frontDepth,inZone} from './OperationGeometry';
-import {OPERATION_DEFINITIONS} from './OperationDefinitions';
+import {configuredDefinition} from './BattleSetup';
 
 export function operationalForces(state:BattlefieldState):Record<Faction,SoldierState[]>{
   const squads=new Map(state.squads.map(q=>[q.id,q]));
@@ -70,7 +70,7 @@ export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSys
   }
   const finish=(status:'victory'|'defeat',reason:string)=>{op.status=status;op.reason=reason;state.simSpeed=0;};
   const primary=r.objectives.find(o=>o.side==='player'&&o.priority==='primary')!,progress=r.progress.find(p=>p.id===primary.id)!;
-  const definition=OPERATION_DEFINITIONS[r.definitionId];
+  const definition=configuredDefinition(r.definitionId,op.setup);
   // Dead personnel, not sleeping or temporarily pinned men, determine irrecoverable loss.
   const combatSquads=new Set(state.squads.filter(q=>q.faction!=='enemy'&&COMBAT_KINDS.includes(q.kind)).map(q=>q.id));
   const survivors=state.soldiers.filter(s=>combatSquads.has(s.squadId)&&s.needs?.life!=='dead').length;
@@ -82,7 +82,7 @@ export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSys
   if(progress.failed)finish('defeat','A viable enemy force established sustained access into your rear.');
   else if((survivors<required||survivingSquads<requiredSquads)&&!pending)finish('defeat','Too few surviving combat personnel or formations remain to carry out the operation.');
   else for(const condition of r.victory){
-    const other=condition.side==='player'?'enemy':'player',initial=OPERATION_DEFINITIONS[r.definitionId].forces[other];
+    const other=condition.side==='player'?'enemy':'player',initial=definition.forces[other];
     const effective=forces[other].length/Math.max(1,initial.rifles*8+initial.machineguns*3);
     if(condition.objectives.every(id=>r.progress.find(p=>p.id===id)?.complete)&&(condition.opponentEffectivenessBelow===undefined||effective<=condition.opponentEffectivenessBelow)){
       finish(condition.side==='player'?'victory':'defeat',condition.side==='player'?`${definition.title}: the operational objective is secured.`:'The opposing force achieved its operational objective.');break;

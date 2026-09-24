@@ -14,8 +14,12 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>)
   const order=orders.size>1?'Mixed orders':names[[...orders][0]]??'Following orders';
   const activities=new Map<string,number>();for(const s of able)activities.set(s.action,(activities.get(s.action)??0)+1);
   const activity=[...activities].sort((a,b)=>b[1]-a[1])[0]?.[0]??'Out of action';
+  const warning=able.length&&able.filter(s=>s.combat?.reaction==='pinned').length>=Math.ceil(able.length/2)?'PINNED':
+    people.some(s=>s.needs?.life==='incapacitated')?'CASUALTIES':
+    able.length&&able.reduce((n,s)=>n+(s.carried?.ammo??s.ammunition),0)<able.length*10?'LOW AMMO':
+    state.living?.garrisons.some(g=>g.squadIds.some(id=>selected.has(id))&&['decision','hold','recover'].includes(g.cutoff))?'SUPPLY SHORTAGE':'';
   return {name:squads.length===1?first.name:`${squads.length} squads`,role:squads.length===1?roleName[first.kind]:'Selected formation',kind:first.kind,
-    able:able.length,total:people.length,order,activity,ammo:Math.floor(able.reduce((n,s)=>n+(s.carried?.ammo??s.ammunition),0)),
+    able:able.length,total:people.length,order,activity,warning,ammo:Math.floor(able.reduce((n,s)=>n+(s.carried?.ammo??s.ammunition),0)),
     morale:mean(able,s=>s.morale),suppression:mean(able,s=>s.suppression),fatigue:mean(able,s=>s.fatigue),
     covered:living.filter(s=>s.cover==='trench'||s.building?.stage==='station'||s.building?.stage==='inside').length,living:living.length,
     down:people.filter(s=>s.needs?.life==='incapacitated').length,dead:people.filter(s=>s.needs?.life==='dead').length,

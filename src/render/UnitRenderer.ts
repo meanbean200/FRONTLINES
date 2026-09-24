@@ -5,6 +5,7 @@ import {bodyFloor,playerVisibleEnemies} from '../operations/Visibility';
 import {isWalkingAction} from '../core/SoldierActions';
 import {soldierGeometry,legGeometry,weaponGeometry,shovelGeometry,UNIFORMS,type WeaponVisualKind} from './SoldierVisual';
 import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
+import {armyFor} from '../operations/BattleSetup';
 
 export class UnitRenderer {
   readonly group=new THREE.Group();
@@ -76,6 +77,7 @@ export class UnitRenderer {
     this.body!.geometry=close?this.rifleGeometry:this.lodBodies[0];this.engineers!.geometry=close?this.engineerGeometry:this.lodBodies[1];this.enemies!.geometry=close?this.enemyGeometry:this.lodBodies[2];
     const engineerIds=new Set(this.state.squads.filter(s=>s.kind==='engineer').map(s=>s.id));
     const enemyIds=new Set(this.state.squads.filter(s=>s.faction==='enemy').map(s=>s.id));
+    const germanIds=new Set(this.state.squads.filter(s=>armyFor(this.state,s.faction??'player')==='german').map(s=>s.id));
     const visibleEnemies=playerVisibleEnemies(this.state);
     const freshShots=new Map((this.state.operation?.shotEvents??[]).filter(s=>this.state.elapsed-s.at<.065).map(s=>[s.shooterId,s]));
     const matrix=new THREE.Matrix4(),rotation=new THREE.Quaternion(),scale=new THREE.Vector3(1,1,1),p=new THREE.Vector3();
@@ -100,8 +102,9 @@ export class UnitRenderer {
       if(lying){rotation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2));p.x-=Math.sin(soldier.heading)*.9;p.z-=Math.cos(soldier.heading)*.9;p.y+=.38;}
       if(soldier.action==='being carried')p.y+=1;
       matrix.compose(p,rotation,scale);bodyMatrix.copy(matrix);
-      const body=enemyIds.has(soldier.squadId)?this.enemies!:engineerIds.has(soldier.squadId)?this.engineers!:this.body!;
-      const bodyIndex=enemyIds.has(soldier.squadId)?enemies++:engineerIds.has(soldier.squadId)?engineers++:rifles++;
+      const german=germanIds.has(soldier.squadId);
+      const body=german?this.enemies!:engineerIds.has(soldier.squadId)?this.engineers!:this.body!;
+      const bodyIndex=german?enemies++:engineerIds.has(soldier.squadId)?engineers++:rifles++;
       body.setMatrixAt(bodyIndex,matrix);
       tint.setHex(soldier.lastHitAt!==undefined&&this.state.elapsed-soldier.lastHitAt<.2?0xff8068:soldier.needs?.life==='dead'?0x888888:0xffffff);body.setColorAt(bodyIndex,tint);
       const moving=isWalkingAction(soldier.action);
@@ -123,9 +126,9 @@ export class UnitRenderer {
         p.set(position.x+Math.cos(soldier.heading)*localX+Math.sin(soldier.heading)*phase,position.y+.35,position.z-Math.sin(soldier.heading)*localX+Math.cos(soldier.heading)*phase);
         if(lying){p.set(localX,.35,0).applyQuaternion(rotation).add(position);p.x-=Math.sin(soldier.heading)*.9;p.z-=Math.cos(soldier.heading)*.9;p.y+=.38;scale.setScalar(1);}else{scale.set(1,seated?.58:1,1);if(seated){p.y=position.y+.20;p.z+=Math.cos(soldier.heading)*.12;p.x+=Math.sin(soldier.heading)*.12;}}
         jointRotation.copy(rotation);if(moving&&!lying)jointRotation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),phase*1.4));
-        matrix.compose(p,jointRotation,scale);this.legs!.setMatrixAt(legs,matrix);this.legs!.setColorAt(legs++,tint.setHex(enemyIds.has(soldier.squadId)?0x646a60:0x65654b));
+        matrix.compose(p,jointRotation,scale);this.legs!.setMatrixAt(legs,matrix);this.legs!.setColorAt(legs++,tint.setHex(german?0x646a60:0x65654b));
       }
-      const cloth=enemyIds.has(soldier.squadId)?UNIFORMS.enemy:engineerIds.has(soldier.squadId)?UNIFORMS.engineer:UNIFORMS.rifle;
+      const cloth=german?UNIFORMS.enemy:engineerIds.has(soldier.squadId)?UNIFORMS.engineer:UNIFORMS.rifle;
       for(const side of [-1,1]){
         const swing=moving?Math.sin(this.state.elapsed*8+i*.37)*side*.17:0;
         let elbow=[side*.255,1.10,swing],hand=[side*.24,.9,-swing];

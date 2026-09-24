@@ -115,8 +115,8 @@ export class BattlefieldUI {
     const readout=selectionReadout(this.state,this.selected),docket=this.root.querySelector<HTMLButtonElement>('#selection-docket')!;
     docket.hidden=!readout;
     if(readout){
-      const text=JSON.stringify([readout.name,readout.kind,readout.role,readout.able,readout.total,readout.order]);
-      if(docket.dataset.readout!==text){docket.dataset.readout=text;docket.innerHTML=`${fieldIcon(readout.kind)}<div><small>${escape(readout.role)}</small><strong>${escape(readout.name)}</strong><span><b>${readout.able} / ${readout.total}</b> able personnel</span><span class="docket-order">${escape(readout.order)} · Report ↗</span></div>`;}
+      const text=JSON.stringify([readout.name,readout.kind,readout.role,readout.able,readout.total,readout.order,readout.warning]);
+      if(docket.dataset.readout!==text){docket.dataset.readout=text;docket.innerHTML=`${fieldIcon(readout.kind)}<div><small>${escape(readout.role)}</small><strong>${escape(readout.name)}</strong><span><b>${readout.able} / ${readout.total}</b> able personnel</span><span class="docket-order">${escape(readout.order)} · Report ↗</span>${readout.warning?`<span class="formation-warning">${escape(readout.warning)}</span>`:''}</div>`;}
     }
     if(!squads.length){this.selectionKey='';panel.innerHTML='<small>FIELD COMMAND</small><strong>Select your force</strong><p>Click a squad flag or an engineer team.</p>';debug.textContent='No squad selected';return;}
     const squad=squads[0],soldiers=this.state.soldiers.filter(s=>this.selected.has(s.squadId));
