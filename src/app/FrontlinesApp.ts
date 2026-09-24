@@ -129,7 +129,7 @@ export class FrontlinesApp {
         this.flags[key] = value;
         if (key === 'chunks') this.terrainRenderer.setChunkDebug(value);
       },
-    });
+    },this.simulation.terrain);
     this.garrisonPanel=new GarrisonPanel(this.simulation,(id,kind)=>this.beginFacility(id,kind));
     this.buildPanel=new BuildPanel(()=>this.state,{place:(id,kind)=>this.beginFacility(id,kind),focus:point=>this.camera.focus(point,100),assign:id=>{
       if(this.simulation.commandsLocked)return;

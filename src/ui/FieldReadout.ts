@@ -4,11 +4,12 @@ import {supportReadiness,supportMissionText,SUPPORT_NAMES} from '../combat/Suppo
 import {constructionStatus} from '../construction/ConstructionReadout';
 import {crewWeaponReadout} from './WeaponReadout';
 import {hasEquipment,squadHasEquipment} from '../combat/Equipment';
+import type {TerrainSystem} from '../terrain/TerrainSystem';
 
 export const roleName:Record<SquadKind,string>={rifle:'Rifle squad',engineer:'Engineer team',machinegun:'Machine-gun team',mortar:'Mortar team',medical:'Medical team'};
 const mean=(people:SoldierState[],read:(s:SoldierState)=>number)=>Math.round(people.reduce((sum,s)=>sum+read(s),0)/Math.max(1,people.length));
 /** Screen-only aggregation. No invented organization, ammo capacity, or ETA. */
-export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>){
+export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>,terrain?:TerrainSystem){
   const squads=state.squads.filter(q=>ids.has(q.id)&&factionOf(q)==='player');
   if(!squads.length)return undefined;
   const selected=new Set(squads.map(q=>q.id)),people=state.soldiers.filter(s=>selected.has(s.squadId));
@@ -32,7 +33,7 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>)
     covered:living.filter(s=>s.cover==='trench'||s.building?.stage==='station'||s.building?.stage==='inside').length,living:living.length,
     down:people.filter(s=>s.needs?.life==='incapacitated').length,dead:people.filter(s=>s.needs?.life==='dead').length,
     position:squads.length===1?`${Math.abs(Math.round(first.x))} ${first.x<0?'W':'E'} / ${Math.abs(Math.round(first.z))} ${first.z<0?'N':'S'}`:'Multiple positions',
-    support:squads.length===1&&squadHasEquipment(state,first,'mortar')?{he:supportReadiness(state,'mortarHE',first.id),smoke:supportReadiness(state,'mortarSmoke',first.id)}:undefined,
+    support:squads.length===1&&squadHasEquipment(state,first,'mortar')?{he:supportReadiness(state,'mortarHE',first.id,terrain),smoke:supportReadiness(state,'mortarSmoke',first.id,terrain)}:undefined,
     weapon:squads.length===1?crewWeaponReadout(state,first):undefined,
     equipment:[['automatic','automatic weapon'],['tools','tool set'],['mortar','mortar'],['medicalKit','medical kit']].map(([key,label])=>{const n=able.filter(s=>hasEquipment(state,s,key as import('../combat/Equipment').EquipmentCapability)).length;return n?`${n} ${label}${n>1?'s':''}`:'';}).filter(Boolean).join(' · ')||'Personal weapons only',
     reasons:[...new Set(able.map(s=>s.combat?.pauseReason).filter((s):s is string=>Boolean(s)))],
