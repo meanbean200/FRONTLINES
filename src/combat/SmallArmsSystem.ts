@@ -22,10 +22,12 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
   for(const shooter of active){
     if(shooter.needs?.life!=='active')continue;
     if(['pinned','broken'].includes(shooter.combat?.reaction??'')||['casualty','support'].includes(shooter.combat?.owner??''))continue;
-    if(op.elapsed<(shooter.nextShotAt??0)||(shooter.carried?.ammo??0)<1||shooter.suppression>=90)continue;
+    if((shooter.carried?.ammo??0)<1||shooter.suppression>=90)continue;
     if(shooter.duty&&(shooter.duty.kind!=='watch'||shooter.duty.arrivedAt===undefined||shooter.duty.rationUntil!==undefined))continue;
     const weapon=equipWeapon(state,shooter),definition=WEAPONS[weapon.id];
-    if(!weaponReady(state,shooter,active))continue;
+    // Handling starts when the crew stops or empties the weapon, not only
+    // when the next firing opportunity arrives. Cadence still gates the shot.
+    if(!weaponReady(state,shooter,active)||op.elapsed<(shooter.nextShotAt??0))continue;
     const combat=shooter.combat??={shotSequence:0};
     const squad=state.squads.find(q=>q.id===shooter.squadId)!,area=squad.order.intent==='suppress'?squad.order.target:undefined;
     if(squad.kind==='medical')continue;
