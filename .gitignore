@@ -1,0 +1,19 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+.playwright-cli/
+output/
+*.tsbuildinfo
+*.log
+.DS_Store
+.venv-study/
+__pycache__/
+study-runs/
+
+# Local credentials and machine-specific configuration must not be published.
+.env
+.env.*
+!.env.example
+*.pem
+*.key

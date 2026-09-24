@@ -1,0 +1,32 @@
+async(page)=>{
+  await page.bringToFront();
+  const before=await page.evaluate(()=>window.__FRONTLINES__.getState());
+  const main=before.trenches.find(t=>t.id===before.squads.find(q=>q.kind==='engineer').order.trenchId);
+  const ids=before.trenches.filter(t=>t.engineerSquadId).map(t=>t.id);
+  const at=(t,d)=>{for(let i=1;i<t.points.length;i++){const a=t.points[i-1],b=t.points[i],n=Math.hypot(b.x-a.x,b.z-a.z);if(d<=n)return {x:a.x+(b.x-a.x)*d/n,z:a.z+(b.z-a.z)*d/n};d-=n;}return t.points.at(-1);};
+  const left=at(main,main.excavation.start),goal={x:left.x-12,z:left.z-2};
+  await page.getByRole('button',{name:'◈Hold H'}).click();
+  const screen=await page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z),goal);
+  if(!screen.visible||screen.x<270||screen.x>1150||screen.y<170||screen.y>700)throw Error('Reposition is outside clear playfield: '+JSON.stringify(screen));
+  await page.mouse.click(screen.x,screen.y,{button:'right'});
+  await page.getByRole('button',{name:'5×',exact:true}).click();await page.waitForTimeout(8000);
+  await page.getByRole('button',{name:'Ⅱ',exact:true}).click();
+  const stopped=await page.evaluate(()=>window.__FRONTLINES__.getState());
+  if(ids.some(id=>JSON.stringify(stopped.trenches.find(t=>t.id===id).excavation)!==JSON.stringify(before.trenches.find(t=>t.id===id).excavation)))throw Error('Interrupted work advanced');
+  const q=stopped.squads.find(q=>q.kind==='engineer');
+  const faces=stopped.trenches.filter(t=>ids.includes(t.id)).flatMap(t=>[-1,1].map(direction=>({id:t.id,direction,point:at(t,direction<0?t.excavation.start:t.excavation.end)}))).map(f=>({...f,distance:Math.hypot(f.point.x-q.x,f.point.z-q.z)})).sort((a,b)=>a.distance-b.distance);
+  await page.getByRole('button',{name:'Resume R',exact:true}).click();
+  const resumed=await page.evaluate(()=>window.__FRONTLINES__.getState());
+  const order=resumed.squads.find(q=>q.kind==='engineer');
+  if(order.order.trenchId!==faces[0].id||Math.hypot(order.route.at(-1).x-faces[0].point.x,order.route.at(-1).z-faces[0].point.z)>.1)throw Error('Resume did not choose nearest unfinished face');
+  await page.getByRole('button',{name:'Save',exact:true}).click();
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('frontlines-battlefield-v2')));
+  await page.getByRole('button',{name:'5×',exact:true}).click();await page.waitForTimeout(20000);
+  await page.getByRole('button',{name:'Ⅱ',exact:true}).click();
+  const advanced=await page.evaluate(()=>window.__FRONTLINES__.getState());
+  await page.getByRole('button',{name:'⌖',exact:true}).click();await page.waitForTimeout(900);
+  await page.screenshot({path:'output/playwright/engineer-edge-resumed-r1.png'});
+  await page.getByRole('button',{name:'Load',exact:true}).click();await page.waitForTimeout(500);
+  const restored=await page.evaluate(()=>window.__FRONTLINES__.getState());
+  return {checks:{allFrontsPaused:true,nearestFace:faces[0],resumedTrench:order.order.trenchId,allJobsProgressed:ids.every(id=>advanced.trenches.find(t=>t.id===id).progress>stopped.trenches.find(t=>t.id===id).progress),exactSave:JSON.stringify(saved)===JSON.stringify(restored)},before,stopped,faces,resumed,saved,advanced,restored};
+}

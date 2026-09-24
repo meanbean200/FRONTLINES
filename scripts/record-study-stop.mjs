@@ -1,0 +1,10 @@
+import {readFileSync,writeFileSync,copyFileSync,constants} from 'node:fs';
+import {resolve,join} from 'node:path';
+const output=resolve(process.argv[2]),reason=process.argv[3];
+if(!reason)throw new Error('Provide a concrete stop reason. Stop the owned process before recording it.');
+const path=join(output,'report.json'),report=JSON.parse(readFileSync(path,'utf8'));
+if(report.status!=='running')throw new Error('Only a running study can receive this stop receipt.');
+copyFileSync(path,join(output,'report-at-stop.json'),constants.COPYFILE_EXCL);
+report.status='stopped-foundation-safety';report.stoppedAt=new Date().toISOString();report.stopReason=reason;
+writeFileSync(path,JSON.stringify(report,null,2));
+console.log(JSON.stringify({status:report.status,stoppedAt:report.stoppedAt,reason}));

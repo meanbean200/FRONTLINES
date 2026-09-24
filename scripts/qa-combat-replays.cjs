@@ -1,0 +1,11 @@
+async(page)=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.locator('[data-speed="0"]').click();await page.getByRole('button',{name:'Save',exact:true}).click();await page.reload();await page.getByRole('button',{name:'Load saved campaign',exact:true}).click();const before=await page.evaluate(()=>window.__FRONTLINES__.getState()),stored=await page.evaluate(()=>localStorage.getItem('frontlines-battlefield-v3'));
+ await page.locator('.debug-toggle').click();await page.getByRole('button',{name:'Review matched replays',exact:true}).click();
+ await page.locator('.replay-review input[type="file"]').setInputFiles(['C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/combat-advance-v3-r2-exposed.json','C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/combat-advance-v3-r2-supported.json']);
+ await page.waitForFunction(()=>document.querySelector('.replay-time')?.textContent?.startsWith('Frame'));
+ await page.getByRole('slider',{name:'Replay time',exact:true}).press('End');await page.waitForTimeout(700);const a=await page.evaluate(()=>window.__FRONTLINES__.getState());await page.screenshot({path:'output/playwright/combat-v3-replay-exposed-r2.png'});
+ await page.getByRole('combobox',{name:'Replay candidate',exact:true}).selectOption('1');await page.waitForTimeout(700);const b=await page.evaluate(()=>window.__FRONTLINES__.getState());await page.screenshot({path:'output/playwright/combat-v3-replay-supported-r2.png'});
+ await page.getByRole('button',{name:'Play motion clip · 1×',exact:true}).click();await page.waitForTimeout(1400);await page.getByRole('button',{name:'Pause motion clip',exact:true}).click();
+ await page.getByRole('button',{name:'Return to campaign',exact:true}).click();const after=await page.evaluate(()=>window.__FRONTLINES__.getState());
+ return {scope:'Actual local replay upload, matched-time candidate switch, playback and return without overwriting saves',errors,checks:{sameTime:a.elapsed===b.elapsed,matchedSeed:a.seed===b.seed,differentOutcomes:JSON.stringify(a.soldiers)!==JSON.stringify(b.soldiers),campaignRestored:JSON.stringify(before)===JSON.stringify(after),saveUntouched:stored===await page.evaluate(()=>localStorage.getItem('frontlines-battlefield-v3')),noPageErrors:!errors.length},snapshotSeconds:a.elapsed};
+}
