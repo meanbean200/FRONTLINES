@@ -1,5 +1,6 @@
 import type {BattlefieldState,SoldierState,SquadKind} from '../core/types';
 import {factionOf} from '../operations/types';
+import {supportReadiness,supportMissionText,SUPPORT_NAMES} from '../combat/SupportWeapons';
 
 export const roleName:Record<SquadKind,string>={rifle:'Rifle squad',engineer:'Engineer team',machinegun:'Machine-gun team',mortar:'Mortar team',medical:'Medical team'};
 const mean=(people:SoldierState[],read:(s:SoldierState)=>number)=>Math.round(people.reduce((sum,s)=>sum+read(s),0)/Math.max(1,people.length));
@@ -11,7 +12,9 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>)
   const able=people.filter(s=>!s.needs||s.needs.life==='active'),living=people.filter(s=>s.needs?.life!=='dead');
   const first=squads[0],orders=new Set(squads.map(q=>q.order.intent??q.order.type));
   const names:Record<string,string>={'hold':'Holding','move':'Moving','occupy-trench':'Defending','construct-trench':'Excavating','observe':'Observing','suppress':'Suppressing','assault':'Assaulting','fall-back':'Withdrawing'};
-  const order=orders.size>1?'Mixed orders':names[[...orders][0]]??'Following orders';
+  let order=orders.size>1?'Mixed orders':names[[...orders][0]]??'Following orders';
+  const mission=state.operation?.supportMissions?.filter(m=>selected.has(m.squadId)).at(-1);
+  if(mission&&(['preparing','flight'].includes(mission.stage)||state.elapsed-mission.requestedAt<30))order=SUPPORT_NAMES[mission.kind]+' · '+supportMissionText(mission,state.elapsed);
   const activities=new Map<string,number>();for(const s of able)activities.set(s.action,(activities.get(s.action)??0)+1);
   const activity=[...activities].sort((a,b)=>b[1]-a[1])[0]?.[0]??'Out of action';
   const warning=able.length&&able.filter(s=>s.combat?.reaction==='pinned').length>=Math.ceil(able.length/2)?'PINNED':
@@ -24,6 +27,7 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>)
     covered:living.filter(s=>s.cover==='trench'||s.building?.stage==='station'||s.building?.stage==='inside').length,living:living.length,
     down:people.filter(s=>s.needs?.life==='incapacitated').length,dead:people.filter(s=>s.needs?.life==='dead').length,
     position:squads.length===1?`${Math.abs(Math.round(first.x))} ${first.x<0?'W':'E'} / ${Math.abs(Math.round(first.z))} ${first.z<0?'N':'S'}`:'Multiple positions',
+    support:squads.length===1&&first.kind==='mortar'?{he:supportReadiness(state,'mortarHE',first.id),smoke:supportReadiness(state,'mortarSmoke',first.id)}:undefined,
     reasons:[...new Set(able.map(s=>s.combat?.pauseReason).filter((s):s is string=>Boolean(s)))],
   };
 }

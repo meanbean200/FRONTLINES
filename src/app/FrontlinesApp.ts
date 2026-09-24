@@ -24,7 +24,7 @@ import { factionOf, type GameMode } from '../operations/types';
 import { releaseLostContextResources } from '../render/ContextRecovery';
 import { restoredViewTarget } from '../render/RestoredView';
 import { HudLayout } from '../ui/HudLayout';
-import {requestSupport} from '../combat/SupportWeapons';
+import {requestSupport,selectedSupportTeam} from '../combat/SupportWeapons';
 import {CombatAudio} from '../render/CombatAudio';
 import {trenchDraft} from '../ui/TrenchDraft';
 import {BuildPanel} from '../ui/BuildPanel';
@@ -145,7 +145,7 @@ export class FrontlinesApp {
       onSelectionChanged: () => undefined,
       onMove: (point) => {this.simulation.issueMove([...this.selectedSquads], point);if(this.selectedSquads.size)this.ui.notify(`Move order · ${this.selectedSquads.size} squad${this.selectedSquads.size===1?'':'s'}`);},
       onTactical:(mode,point)=>{this.simulation.issueTactical([...this.selectedSquads],mode,point);this.ui.notify(`${mode} order issued`);},
-      onSupport:(kind,point)=>{const squad=[...this.selectedSquads][0];let result=requestSupport(this.state,kind,squad,point);if(result.warning&&window.confirm(result.reason))result=requestSupport(this.state,kind,squad,point,true);this.ui.notify(result.reason,result.accepted?'normal':'warn');},
+      onSupport:(kind,point)=>{const squad=selectedSupportTeam(this.state,this.selectedSquads,kind,this.simulation.terrain);if(squad===undefined){this.ui.notify(kind==='smokeGrenades'?'Select a squad with smoke grenades':'Select a mortar team','warn');return false;}let result=requestSupport(this.state,kind,squad,point,false,this.simulation.terrain);if(result.warning&&window.confirm(result.reason))result=requestSupport(this.state,kind,squad,point,true,this.simulation.terrain);this.ui.notify(result.reason,result.accepted?'normal':'warn');return result.accepted;},
       onDrawPath:(points,append,intent)=>{const ok=this.simulation.issueDrawnPath([...this.selectedSquads],points,append);if(ok&&intent)for(const q of this.state.squads.filter(q=>this.selectedSquads.has(q.id)&&factionOf(q)==='player'))q.order.intent=intent;this.ui.notify(ok?`${append?'Extended':'Drawn'} ${intent??'move'} route · ${this.selectedSquads.size} squad(s)`:'Route crosses a building or cannot be reached · adjust the corridor',ok?'normal':'warn');},
       onTrench: (points) => this.buildTrench(points),
       previewTrench:points=>trenchDraft(points,this.simulation.terrain),

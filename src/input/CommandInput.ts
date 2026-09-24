@@ -24,7 +24,7 @@ interface CommandInputOptions {
   onCrater: (point: Vec2) => void;
   onFacility?: (point:Vec2)=>boolean;
   onTactical?:(mode:'observe'|'suppress'|'assault'|'fall-back',point:Vec2)=>void;
-  onSupport?:(kind:'mortarHE'|'mortarSmoke'|'smokeGrenades',point:Vec2)=>void;
+  onSupport?:(kind:'mortarHE'|'mortarSmoke'|'smokeGrenades',point:Vec2)=>boolean;
 }
 
 export class CommandInput {
@@ -155,7 +155,7 @@ export class CommandInput {
     } else if(mode==='observe'||mode==='suppress'||mode==='assault'||mode==='fall-back'){
       const point=this.options.camera.groundPoint(event.clientX,event.clientY);if(point&&(mode==='assault'||mode==='fall-back')&&this.drawDistance>8){this.trenchPoints.push(point);this.options.onDrawPath(this.trenchPoints,event.shiftKey,mode);}else if(point)this.options.onTactical?.(mode,point);this.trenchPoints=[];this.routePreview.style.display='none';this.options.setMode('select');
     } else if(mode==='mortarHE'||mode==='mortarSmoke'||mode==='smokeGrenades'){
-      const point=this.options.camera.groundPoint(event.clientX,event.clientY);if(point)this.options.onSupport?.(mode,point);this.routePreview.style.display='none';this.options.setMode('select');
+      const point=this.options.camera.groundPoint(event.clientX,event.clientY);if(point&&this.options.onSupport?.(mode,point)){this.routePreview.style.display='none';this.options.setMode('select');}
     } else if (mode === 'crater') {
       const point = this.options.camera.groundPoint(event.clientX, event.clientY);
       if (point) this.options.onCrater(point);

@@ -7,14 +7,39 @@ import {combatWound} from './Casualties';
 import {registerIncoming} from './Reactions';
 import {signalEngagement} from './Engagement';
 export type SupportKind='mortarHE'|'mortarSmoke'|'smokeGrenades';
+export const SUPPORT_NAMES:Record<SupportKind,string>={mortarHE:'Mortar HE',mortarSmoke:'Mortar smoke',smokeGrenades:'Smoke grenade'};
+/** Read-only readiness, shared by command validation, live missions and the HUD. */
+export function supportReadiness(state:BattlefieldState,kind:SupportKind,squadId:number,terrain?:TerrainSystem,checkBusy=true){
+  const q=state.squads.find(q=>q.id===squadId),grenade=kind==='smokeGrenades';
+  const people=state.soldiers.filter(s=>s.squadId===squadId&&s.needs?.life==='active');
+  const available=people.filter(s=>s.suppression<70&&s.action!=='sleeping'&&!s.combat?.careTask);
+  const crew=available.filter(s=>q&&distance(s,q)<12),ammo=people.reduce((n,s)=>n+(s.carried?.[kind]??0),0);
+  const pack=available.find(s=>(s.carried?.[kind]??0)>=1);
+  let reason='';
+  if(!state.operation?.supportRules||state.operation.status!=='active'||!q)reason='Support unavailable in this scenario';
+  else if(!grenade&&q.kind!=='mortar')reason='Select a mortar team';
+  else if(checkBusy&&state.operation.supportMissions?.some(m=>m.squadId===q.id&&['preparing','flight'].includes(m.stage)))reason='Support mission already in progress';
+  else if(ammo<1)reason=`No ${SUPPORT_NAMES[kind].toLowerCase()} ammunition`;
+  else if(!grenade&&q.order.type==='move')reason='Team moving · Hold [H] before setting up the mortar';
+  else if(!pack)reason='Ammunition carrier unavailable: pinned, asleep or treating a casualty';
+  else if(!grenade&&crew.length<2)reason='Need 2 ready crew within 12 m · regroup the team';
+  else if(!grenade&&terrain&&[pack,...crew].some(s=>{const id=terrain.buildingAt(s);return id!==undefined&&state.buildingChanges?.find(b=>b.id===id)?.condition!=='ruined';}))reason='Mortar needs an open-air position clear of roofs';
+  return {ammo:Math.floor(ammo),crew:crew.length,reason};
+}
+export function selectedSupportTeam(state:BattlefieldState,ids:ReadonlySet<number>,kind:SupportKind,terrain?:TerrainSystem):number|undefined{
+  const teams=state.squads.filter(q=>ids.has(q.id)&&q.faction!=='enemy'&&(kind==='smokeGrenades'||q.kind==='mortar'));
+  return (teams.find(q=>!supportReadiness(state,kind,q.id,terrain).reason)??teams[0])?.id;
+}
+export function supportMissionText(m:SupportMission,now:number):string{
+  return m.stage==='preparing'?`Preparing · ${Math.max(0,Math.ceil(m.launchAt-now))} s to fire`:m.stage==='flight'?`Round in flight · ${Math.max(0,Math.ceil(m.impactAt-now))} s to impact`:m.stage==='complete'?'Impact complete':m.reason;
+}
 export interface SupportMission {id:number;squadId:number;kind:SupportKind;target:Vec2;impact:Vec2;requestedAt:number;launchAt:number;impactAt:number;stage:'preparing'|'flight'|'complete'|'cancelled';reason:string;dangerRadius:number;confirmedRisk:boolean}
 export interface SmokeField extends Vec2 {id:number;radius:number;until:number;born:number}
 export interface BlastEvent extends Vec2 {id:number;at:number;radius:number}
-export function requestSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk=false):{accepted:boolean;warning?:boolean;reason:string} {
+export function requestSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk=false,terrain?:TerrainSystem):{accepted:boolean;warning?:boolean;reason:string} {
   const op=state.operation,q=state.squads.find(q=>q.id===squadId);if(!op?.supportRules||op.status!=='active'||!q||![target.x,target.z].every(Number.isFinite))return{accepted:false,reason:'Support unavailable'};
-  const people=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life==='active'),ammo=people.reduce((n,s)=>n+(s.carried?.[kind]??0),0),range=distance(q,target),grenade=kind==='smokeGrenades';
-  if(!grenade&&q.kind!=='mortar')return{accepted:false,reason:'Select a mortar team'};
-  if(!people.length||!grenade&&people.length<2||ammo<1)return{accepted:false,reason:'Crew or ammunition unavailable'};
+  const ready=supportReadiness(state,kind,squadId,terrain),range=distance(q,target),grenade=kind==='smokeGrenades';
+  if(ready.reason)return{accepted:false,reason:ready.reason};
   if(range>(grenade?30:900)||!grenade&&range<50)return{accepted:false,reason:grenade?'Smoke grenade exceeds 30m throw':'Mortar target must be 50–900m away'};
   if((op.supportMissions??[]).some(m=>m.squadId===q.id&&['preparing','flight'].includes(m.stage)))return{accepted:false,reason:'Support mission already in progress'};
   const dangerRadius=kind==='mortarHE'?40:0,side=q.faction??'player';
@@ -32,11 +57,9 @@ export function stepSupport(state:BattlefieldState,terrain:TerrainSystem):void {
   for(const mission of op.supportMissions??[]){
     if(mission.stage==='preparing'){
       const squad=state.squads.find(q=>q.id===mission.squadId)!,people=state.soldiers.filter(s=>s.squadId===squad.id&&s.needs?.life==='active'&&s.suppression<70&&s.action!=='sleeping'&&!s.combat?.careTask),grenade=mission.kind==='smokeGrenades';
-      const crew=people.filter(s=>distance(s,squad)<12),pack=people.find(s=>(s.carried?.[mission.kind]??0)>=1);
-      if(!pack||!grenade&&(crew.length<2||squad.order.type==='move')){mission.stage='cancelled';mission.reason='Mission cancelled: crew moved, pinned or ammunition unavailable';continue;}
-      if(!grenade&&[pack,...crew].some(s=>{const id=terrain.buildingAt(s);return id!==undefined&&state.buildingChanges?.find(b=>b.id===id)?.condition!=='ruined';})){
-        mission.stage='cancelled';mission.reason='Mortar needs an open-air position clear of roofs';continue;
-      }
+      const pack=people.find(s=>(s.carried?.[mission.kind]??0)>=1);
+      const ready=supportReadiness(state,mission.kind,mission.squadId,terrain,false);
+      if(ready.reason||!pack){mission.stage='cancelled';mission.reason='Cancelled: '+(ready.reason||'Ammunition carrier unavailable');continue;}
       if(state.elapsed<mission.launchAt)continue;
       if(grenade&&distance(pack,mission.target)>30){mission.stage='cancelled';mission.reason='Thrower moved beyond grenade range';continue;}
       const side=squad.faction??'player',danger=mission.kind==='mortarHE'&&state.soldiers.some(s=>s.needs?.life!=='dead'&&state.squads.some(q=>q.id===s.squadId&&(q.faction??'player')===side)&&distance(s,mission.target)<mission.dangerRadius);

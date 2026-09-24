@@ -5,6 +5,7 @@ import { blocksGameplayKey } from '../input/GameplayKeys';
 import { relocationProgress, withdrawalProgress } from './GarrisonReadout';
 import {fieldIcon} from './FieldSymbols';
 import {selectionReadout,roleName} from './FieldReadout';
+import {SUPPORT_NAMES,selectedSupportTeam,supportReadiness,supportMissionText,type SupportKind} from '../combat/SupportWeapons';
 
 export interface PerfSnapshot {fps:number;frameMs:number;simulationMs:number;drawCalls:number;chunks:number;p95Ms?:number}
 interface UIActions {
@@ -32,7 +33,7 @@ export class BattlefieldUI {
     for(const [mode,label] of [['observe','Observe'],['suppress','Suppress'],['assault','Assault'],['fall-back','Withdraw']] as const){const b=document.createElement('button');b.innerHTML=fieldIcon(mode)+label;b.dataset.tactical=mode;b.title=mode==='suppress'?'Suppress a reported area; consumes real ammunition':mode==='fall-back'?'Draw a withdrawal route':mode==='observe'?'Face and observe a position':'Draw an assault route';b.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help)this.actions.tactical?.(mode);});dock.append(b);}
     const push=document.createElement('button');push.textContent='Push through';push.dataset.tactical='push';push.title='Accept exposure on this order. Does not override pinning or incapacitation.';push.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help)this.actions.pushThrough?.();});dock.append(push);
     const context=document.createElement('div');context.className='selection-actions';this.root.querySelector('.selection-card')!.append(context);
-    context.append(this.root.querySelector('#resume-command')!);context.append(this.root.querySelector('#hold-command')!);context.append(push);
+    context.append(this.root.querySelector('#resume-command')!);context.append(push);
     this.root.querySelector('#move-command')!.innerHTML=fieldIcon('move')+'Move';
     this.root.querySelector('#move-command')!.setAttribute('title','Draw a route [V] · right-drag also works');
     this.root.querySelector('#hold-command')!.innerHTML=fieldIcon('hold')+'Hold <kbd>H</kbd>';
@@ -45,6 +46,7 @@ export class BattlefieldUI {
     const support=document.createElement('details');support.className='support-controls';support.innerHTML='<summary>Support & rescue</summary><div></div>';this.root.append(support);
     for(const [kind,label] of [['mortarHE','Mortar HE'],['mortarSmoke','Mortar smoke'],['smokeGrenades','Throw smoke']] as const){const b=document.createElement('button');b.dataset.support=kind;b.textContent=label;b.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help){this.actions.support?.(kind);support.open=false;}});support.querySelector('div')!.append(b);}
     const missions=document.createElement('div');missions.className='support-status';support.append(missions);
+    const guide=document.createElement('p');guide.className='support-guide';guide.textContent='Mortars: 2 ready crew together, stopped in the open · 50–900 m range · 15 s preparation · one shell per order. Smoke grenades: 30 m throw. H holds your team.';support.insertBefore(guide,missions);
     const supportButton=document.createElement('button');supportButton.id='support-command';supportButton.innerHTML=fieldIcon('mortar')+'Support';dock.append(supportButton);supportButton.onclick=()=>{support.open=!support.open;};
     const defend=this.root.querySelector<HTMLButtonElement>('#occupy-command')!;
     defend.innerHTML=fieldIcon('defend')+'Defend';
@@ -69,7 +71,7 @@ export class BattlefieldUI {
     if(mode==='facility')label.textContent='PLACE SUPPORT WORKS · click 6–40m behind the trench · Esc / right-click cancels';
     if(mode==='defend')label.textContent='DEFEND AREA · draw frontage near completed trenches · then choose facing';
     if(['observe','suppress','assault','fall-back'].includes(mode))label.textContent=`${mode.toUpperCase()} · ${mode==='assault'||mode==='fall-back'?'draw your route or click a position':'click a world position'} · Esc cancels`;
-    if(['mortarHE','mortarSmoke','smokeGrenades'].includes(mode))label.textContent=`${mode} · click target area · explosives can injure allies`;
+    if(['mortarHE','mortarSmoke','smokeGrenades'].includes(mode))label.textContent=`${SUPPORT_NAMES[mode as SupportKind]} · ${mode==='smokeGrenades'?'within 30 m':'50–900 m'} · click target · ${mode==='mortarHE'?'40 m friendly danger area':'smoke blocks sight, not bullets'} · Esc cancels`;
     if(reviewing)label.textContent='REPLAY REVIEW · recorded snapshots · campaign paused';
     else if(ended)label.textContent='OPERATION COMPLETE · inspect the sector or choose a new operation in MENU';
     this.renderRoster();this.renderSelection();
@@ -83,11 +85,18 @@ export class BattlefieldUI {
     for(const b of this.root.querySelectorAll<HTMLButtonElement>('.command-dock button,[data-tactical],[data-support]'))b.setAttribute('aria-pressed',String(b.classList.contains('active')));
     const support=this.root.querySelector<HTMLDetailsElement>('.support-controls')!;support.hidden=!this.state.operation?.supportRules;
     this.root.querySelector<HTMLButtonElement>('#support-command')!.disabled=locked||!this.state.operation?.supportRules;
-    for(const b of support.querySelectorAll<HTMLButtonElement>('[data-support]'))b.disabled=locked||!this.selected.size;
+    for(const b of support.querySelectorAll<HTMLButtonElement>('[data-support]')){
+      const kind=b.dataset.support as SupportKind,id=selectedSupportTeam(this.state,this.selected,kind),ready=id===undefined?undefined:supportReadiness(this.state,kind,id);
+      b.disabled=locked||!ready||Boolean(ready.reason);b.textContent=SUPPORT_NAMES[kind]+(ready?` · ${ready.ammo}`:'');
+      b.title=ready?.reason??(ready?`Order one round · ${ready.crew} crew nearby`:kind==='smokeGrenades'?'Select a squad':'Select a mortar team');
+    }
     const replacements=this.state.operation?.campaign?.replacements;
-    const supportKey=JSON.stringify([locked,this.state.operation?.supportMissions?.map(m=>[m.id,m.reason]),this.state.operation?.rescueDecisions,replacements?.reserve.player,replacements?.manifests.length,replacements?.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length,Math.floor(hours*10)]);
+    const supportKey=JSON.stringify([locked,[...this.selected],this.state.operation?.supportMissions?.map(m=>[m.id,m.reason]),this.state.operation?.rescueDecisions,replacements?.reserve.player,replacements?.manifests.length,replacements?.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length,Math.floor(this.state.elapsed)]);
     if(support.open&&supportKey!==this.supportKey){this.supportKey=supportKey;const status=support.querySelector('.support-status')!;status.replaceChildren();
-      for(const mission of this.state.operation?.supportMissions?.filter(m=>this.state.squads.some(q=>q.id===m.squadId&&factionOf(q)==='player')).slice(-3)??[]){const p=document.createElement('p');p.textContent=`${mission.kind}: ${mission.reason}`;status.append(p);}
+      const mortar=selectedSupportTeam(this.state,this.selected,'mortarHE');
+      const readiness=mortar===undefined?'Select your mortar team to order HE or smoke.':supportReadiness(this.state,'mortarHE',mortar).reason;
+      if(readiness){const p=document.createElement('p');p.textContent=readiness;status.append(p);}
+      for(const mission of this.state.operation?.supportMissions?.filter(m=>this.state.squads.some(q=>q.id===m.squadId&&factionOf(q)==='player')).slice(-3)??[]){const p=document.createElement('p');p.textContent=`${this.state.squads.find(q=>q.id===mission.squadId)?.name} · ${SUPPORT_NAMES[mission.kind]}: ${supportMissionText(mission,this.state.elapsed)}`;status.append(p);}
       for(const decision of this.state.operation?.rescueDecisions?.filter(d=>d.side==='player'&&d.choice==='pending')??[]){const row=document.createElement('div'),p=document.createElement('p');p.textContent=`Soldier ${decision.patientId}: ${decision.reason}`;row.append(p);for(const [choice,label] of [['approved',decision.reason.startsWith('Casualty route blocked')?'Retry rescue':'Accept rescue risk'],['hold','Wait for safety']] as const){const b=document.createElement('button');b.textContent=label;b.disabled=locked;b.onclick=()=>{if(locked)return;decision.choice=choice;decision.reviewAt=this.state.elapsed+30;};row.append(b);}status.append(row);}
       if(replacements){const p=document.createElement('p');p.textContent=`Reserve ${replacements.reserve.player}/48 · ${replacements.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length} in transit · next release in ${Math.max(0,replacements.nextAt.player-hours).toFixed(1)} campaign hours`;status.append(p);}
     }
@@ -122,8 +131,9 @@ export class BattlefieldUI {
     if(readout){
       const ammo=readout.able?readout.ammo/readout.able:0;
       const ammoLabel=ammo<10?'Low':ammo<25?'Limited':'Good',suppression=readout.suppression>65?'Pinned':readout.suppression>30?'High':'Low';
-      const text=JSON.stringify([readout.name,readout.kind,readout.role,readout.able,readout.total,readout.order,readout.warning,ammoLabel,suppression]);
-      if(docket.dataset.readout!==text){docket.dataset.readout=text;docket.querySelector('#selection-summary')!.innerHTML=`<div class="selection-identity">${fieldIcon(readout.kind)}<strong>${escape(readout.name)}</strong><b>${readout.able}/${readout.total}</b></div><p>${escape(readout.role)} · ${escape(readout.order)}</p><div class="selection-health"><span>Ammo <b>${ammoLabel}</b></span><span>Suppression <b>${suppression}</b></span></div>${readout.warning?`<span class="formation-warning">${escape(readout.warning)}</span>`:''}`;}
+      const text=JSON.stringify([readout.name,readout.kind,readout.role,readout.able,readout.total,readout.order,readout.warning,ammoLabel,suppression,readout.support]);
+      const ammoText=readout.support?`${readout.support.he.ammo} HE / ${readout.support.smoke.ammo} smoke`:ammoLabel;
+      if(docket.dataset.readout!==text){docket.dataset.readout=text;docket.querySelector('#selection-summary')!.innerHTML=`<div class="selection-identity">${fieldIcon(readout.kind)}<strong>${escape(readout.name)}</strong><b>${readout.able}/${readout.total}</b></div><p>${escape(readout.role)} · ${escape(readout.order)}</p><div class="selection-health"><span>${readout.support?'Shells':'Ammo'} <b>${ammoText}</b></span><span>Suppression <b>${suppression}</b></span></div>${readout.support?.he.reason?`<p class="support-readiness">${escape(readout.support.he.reason)}</p>`:''}${readout.warning?`<span class="formation-warning">${escape(readout.warning)}</span>`:''}`;}
     }
     if(!squads.length){this.selectionKey='';panel.innerHTML='<small>FIELD COMMAND</small><strong>Select your force</strong><p>Click a squad flag or an engineer team.</p>';debug.textContent='No squad selected';return;}
     const squad=squads[0],soldiers=this.state.soldiers.filter(s=>this.selected.has(s.squadId));
