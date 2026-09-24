@@ -7,6 +7,17 @@ import {SaveSystem} from '../persistence/SaveSystem';
 import {bodyFloor} from '../operations/Visibility';
 import {distance} from '../core/types';
 describe('shared usable building geometry',()=>{
+  it('queues a second formation outside a full floor, then admits it after a physical exit',()=>{
+    const sim=new BattlefieldSimulation(createOperation('advance')),state=sim.state,groups=state.squads.slice(0,2),id=0,site=sim.terrain.buildings[id],door=doorPoint(site,16);
+    for(const p of state.soldiers){p.x=1800;p.z=1800;}
+    const people=groups.map((q,n)=>state.soldiers.filter(p=>p.squadId===q.id).map((p,i)=>{Object.assign(p,{x:door.x+(i%4-1.5)*1.5,z:door.z-Math.floor(i/4)*2-n*8});return p;}));
+    groups.forEach(q=>Object.assign(q,door));sim.issueBuilding(groups.map(q=>q.id),id,0);
+    const advance=(ticks:number)=>{for(let i=0;i<ticks;i++){state.elapsed+=.05;const before=people.flat().map(p=>({x:p.x,z:p.z}));stepBuildings(state,sim.terrain,sim.navigation,.05);people.flat().forEach((p,n)=>expect(distance(p,before[n])).toBeLessThan(.12));}};
+    advance(3500);expect(people[0].every(p=>p.building?.stage==='station')).toBe(true);expect(people[1].every(p=>!p.building&&p.combat?.owner==='building')).toBe(true);
+    expect(people[1][0].combat?.pauseReason).toContain('floor full');sim.issueHold([groups[0].id]);advance(5500);
+    expect(people[0].every(p=>!p.building)).toBe(true);expect(people[1].map(p=>p.building?.stage)).toEqual(Array(8).fill('station'));
+    expect(new Set(people[1].map(p=>JSON.stringify(p.building!.target))).size).toBe(8);
+  },20000);
   it('finishes an interrupted stair traversal and separates overlapping helpers continuously',()=>{
     const sim=new BattlefieldSimulation(createOperation('advance')),s=sim.state,q=s.squads[0],id=sim.terrain.buildings.findIndex(b=>b.height>6),b=sim.terrain.buildings[id],helpers=s.soldiers.slice(0,2),landing={...stairPoint(b),z:b.z-2};
     for(const p of s.soldiers){p.x=1800;p.z=1800;}q.order={type:'hold',issuedAt:0};

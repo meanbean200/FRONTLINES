@@ -1,9 +1,11 @@
 import type {BattlefieldState} from '../core/types';
 import {WEAPONS} from './Weapons';
+import {RULES_VERSION} from '../garrison/GarrisonPolicy';
 export function validCombatSystems(state:BattlefieldState):boolean {
   const finite=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v),nonnegative=(v:unknown)=>finite(v)&&v>=0;
   const point=(v:unknown):boolean=>!!v&&typeof v==='object'&&finite((v as {x:number}).x)&&finite((v as {z:number}).z);
   const ids=new Set(state.soldiers.map(s=>s.id));
+  if(state.combatRules===RULES_VERSION&&state.soldiers.some(s=>!s.equipment||!s.posture))return false;
   if(state.living?.facilities.some(f=>f.facing!==undefined&&!finite(f.facing)))return false;
   const patients=new Set<number>();
   for(const s of state.soldiers){
@@ -20,6 +22,7 @@ export function validCombatSystems(state:BattlefieldState):boolean {
   const passengers=new Set<number>();
   for(const truck of state.living?.trucks??[])if(truck.passengers!==undefined){if(!Array.isArray(truck.passengers)||truck.passengers.length>2)return false;for(const id of truck.passengers){if(!ids.has(id)||passengers.has(id)||patients.has(id))return false;passengers.add(id);}}
   const op=state.operation;if(!op)return true;
+  if(op.forceModel!==undefined&&op.forceModel!=='infantry-equipment-v1')return false;
   for(const flag of [op.casualtyRules,op.supportRules])if(flag!==undefined&&typeof flag!=='boolean')return false;
   if(op.rescueDecisions!==undefined&&(!Array.isArray(op.rescueDecisions)||!op.rescueDecisions.every(d=>d&&ids.has(d.patientId)&&['player','enemy'].includes(d.side)&&['pending','hold','approved'].includes(d.choice)&&typeof d.reason==='string'&&nonnegative(d.reviewAt))))return false;
   if(op.supportMissions!==undefined){

@@ -2,6 +2,7 @@ import {distance,type BattlefieldState,type SoldierState,type Vec2} from '../cor
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {SquadNavigation} from '../navigation/SquadNavigation';
 import {buildingContains,buildingFloors,doorPoint,firingPoints,floorHeight,stairPoint} from '../terrain/BuildingGeometry';
+import {postureSpeed} from '../combat/Posture';
 
 export function beginBuildingTravel(s:SoldierState,id:number,level:0|1,target:Vec2,terrain:TerrainSystem,nav:SquadNavigation):boolean {
   const site=terrain.buildings[id];if(!site||level>=buildingFloors(site))return false;
@@ -12,18 +13,17 @@ export function beginBuildingTravel(s:SoldierState,id:number,level:0|1,target:Ve
 /** Explicit interior intent. Normal formation navigation never squeezes a squad
  * through a wall; individual people use the same door and stairs. */
 export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:SquadNavigation,dt:number):void {
+  const sides=new Map(state.squads.map(q=>[q.id,q.faction??'player']));
   for(const q of state.squads){
     const order=q.order.building,site=order?terrain.buildings[order.id]:undefined;
     const people=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life==='active');
-    if(site&&order)for(const [index,s] of people.entries()){
+    if(site&&order)for(const s of people){
       if(s.building||s.combat?.owner==='reaction'||s.combat?.owner==='casualty')continue;
       const points=firingPoints(site),level=Math.min(order.floor,buildingFloors(site)-1) as 0|1;
-      const occupied=state.soldiers.filter(p=>p!==s&&p.building?.id===order.id&&p.building.targetFloor===level).map(p=>p.building!.target);
+      const occupied=state.soldiers.filter(p=>p!==s&&p.needs?.life==='active'&&sides.get(p.squadId)===(q.faction??'player')&&p.building?.id===order.id&&p.building.targetFloor===level&&!p.building.exitRequested).map(p=>p.building!.target);
       const target=points.find(p=>!occupied.some(o=>distance(p,o)<.8));
-      if(!target){(s.combat??={shotSequence:0}).pauseReason='Building firing positions occupied';s.action='waiting for building space';continue;}
+      if(!target){const c=s.combat??={shotSequence:0};c.owner='building';c.pauseReason='Building floor full · waiting outside; choose another floor or building';s.action='waiting for building space';continue;}
       if(!beginBuildingTravel(s,order.id,level,target,terrain,nav)){(s.combat??={shotSequence:0}).pauseReason='Building entrance blocked';continue;}
-      // A short stagger prevents everyone aiming for the threshold on one tick.
-      s.nextShotAt=Math.max(s.nextShotAt??0,state.elapsed+index*.12);
     }
     for(const s of people){
       const inside=s.building;if(!inside)continue;
@@ -50,7 +50,7 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
         inside.vertical=floorHeight(b)*(inside.targetFloor?t:1-t);s.x=from.x+(to.x-from.x)*t;s.z=from.z+(to.z-from.z)*t;s.action='climbing stairs';
         if(t>=1){inside.floor=inside.targetFloor;inside.stairTime=0;const exiting=inside.exitRequested&&inside.floor===0;inside.stage=exiting?'exit':'inside';inside.route=exiting?exitRoute():[inside.target];inside.index=0;}continue;
       }
-      const target=inside.route[inside.index];
+      let target=inside.route[inside.index];
       if(!target){
         if(inside.stage==='exit'){delete s.building;c.owner=s.duty?'duty':'order';s.action='holding';continue;}
         if(inside.floor!==inside.targetFloor){if(state.soldiers.some(o=>o!==s&&o.building?.id===inside.id&&o.building.stage==='stairs')){s.action='waiting at stair';continue;}inside.stage='stairs';inside.stairTime=0;inside.stairFrom={x:s.x,z:s.z};continue;}
@@ -58,8 +58,14 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
         const dx=s.x-b.x,dz=s.z-b.z;s.heading=Math.abs(dx)/(b.width/2)>Math.abs(dz)/(b.depth/2)?Math.sign(dx)*Math.PI/2:dz<0?Math.PI:0;
         continue;
       }
-      const d=distance(s,target);if(d<(inside.stage==='exit'&&inside.index===inside.route.length-1?.25:inside.index<inside.route.length-1||inside.floor!==inside.targetFloor?.65:.03)){inside.index++;continue;}
-      const step=Math.min(d,dt*1.35),p={x:s.x+(target.x-s.x)/d*step,z:s.z+(target.z-s.z)/d*step};
+      // One physical passage at a time. Exiting people have priority; waiting
+      // arrivals spread either side of the approach instead of filling the door.
+      const door=doorPoint(b,0),traffic=state.soldiers.filter(p=>sides.get(p.squadId)===(q.faction??'player')&&p.needs?.life==='active'&&p.combat?.reaction!=='pinned'&&p.building?.id===inside.id&&p.building.floor===0&&(p.building.stage==='approach'||p.building.stage==='exit'||p.building.stage==='inside'&&p.z<door.z+2.5)&&distance(p,door)<18);
+      traffic.sort((a,b)=>Number(b.building!.stage==='exit')-Number(a.building!.stage==='exit')||distance(a,door)-distance(b,door)||a.id-b.id);
+      const waiting=inside.stage==='approach'&&distance(s,door)<16&&traffic[0]?.id!==s.id;
+      if(waiting){const queue=traffic.filter(p=>p.building!.stage==='approach').sort((a,b)=>a.id-b.id),rank=Math.max(0,queue.indexOf(s));target={x:door.x+(rank%2?1:-1)*3.2,z:door.z-10-Math.floor(rank/2)*1.4};if(terrain.obstacleAt(target.x,target.z,.5)){s.action='waiting at doorway';c.pauseReason='Doorway queue · approach obstructed';continue;}}
+      const d=distance(s,target);if(d<(waiting?.15:inside.stage==='exit'&&inside.index===inside.route.length-1?.25:inside.index<inside.route.length-1||inside.floor!==inside.targetFloor?.65:.03)){if(!waiting)inside.index++;else{s.action='waiting at doorway';c.pauseReason='Doorway queue · yielding to passage';}continue;}
+      const step=Math.min(d,dt*1.35*postureSpeed(s)),p={x:s.x+(target.x-s.x)/d*step,z:s.z+(target.z-s.z)/d*step};
       const floorY=terrain.baseHeightAt(b.x,b.z)+inside.vertical+1;
       const blocked=(p:{x:number;z:number})=>terrain.structure(inside.id).some(box=>box.role==='wall'&&Math.abs(p.x-box.x)<box.rx+.22&&Math.abs(p.z-box.z)<box.rz+.22&&Math.abs(floorY-(terrain.baseHeightAt(b.x,b.z)+box.y))<box.ry+.6);
       // If stair handover or a loaded formation already overlaps, permit
@@ -70,7 +76,7 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
         for(const angle of [.65,-.65,1.2,-1.2,Math.PI/2,-Math.PI/2,Math.PI]){const candidate={x:s.x+Math.sin(heading+angle)*step,z:s.z+Math.cos(heading+angle)*step};if(!crowded(candidate)&&!blocked(candidate)){p.x=candidate.x;p.z=candidate.z;break;}}
       }
       if(blocked(p)||crowded(p)){s.action='waiting at doorway';c.pauseReason=blocked(p)?'Building route blocked':'Yielding at narrow doorway';continue;}
-      s.heading=Math.atan2(target.x-s.x,target.z-s.z);s.x=p.x;s.z=p.z;s.action='walking to firing position';
+      s.heading=Math.atan2(target.x-s.x,target.z-s.z);s.x=p.x;s.z=p.z;s.action=waiting?'joining doorway queue':inside.stage==='exit'?'leaving building':'walking to firing position';c.pauseReason=waiting?'Doorway queue · yielding to passage':undefined;
       if(inside.stage==='approach'&&buildingContains(b,s,.4))inside.stage='inside';
       s.cover=terrain.coverAt(s.x,s.z);
     }

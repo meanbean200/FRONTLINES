@@ -31,6 +31,12 @@ export function commandOperationalEnemy(o:EnemyObservation,terrain:TerrainSystem
     }else if(reserve){goal=atDepth(k.front,k.deploymentDepth-150,(i%3-1)*200);defend=true;}
     else if(phase==='scouting'&&q.id!==scout?.id){goal=atDepth(k.front,k.deploymentDepth-160,(i%3-1)*230);defend=true;}
     else if(k.intent==='penetrate'){goal=phase==='scouting'?atDepth(k.front,0,(i%3-1)*450):target.point;}
+    // The mixed-equipped rear formation must be able to bring its mortar into
+    // range of a delivered report. Being the reserve is not a permanent class
+    // lock at deployment. No report means no pursuit of hidden coordinates.
+    if(!exhausted&&q.mortar&&(q.mortarAmmo??0)>0&&report&&distance(q,report)>750){
+      const d=distance(q,report);goal={x:report.x+(q.x-report.x)/d*650,z:report.z+(q.z-report.z)/d*650};defend=true;
+    }
     return {squadId:q.id,objectiveId:target.id,goal,defend};
   });
   const result=commandEnemy({...o,assignments},terrain,previous);

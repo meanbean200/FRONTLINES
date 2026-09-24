@@ -159,6 +159,15 @@ describe('information firewall and persistence',()=>{
     const after=commandOperationalEnemy(observeEnemy(state),terrain);expect(after.support?.target).toEqual(target);
     expect(commandOperationalEnemy(observeEnemy(state),terrain,after.memory,after.commander).support).toBeUndefined();
   });
+  it('brings reserve-carried mortar equipment into range of delivered reports, not hidden positions',()=>{
+    const {state,terrain}=fixture('meeting'),o=observeEnemy(state),mortar=o.squads.find(q=>q.mortar)!;
+    const report={soldierId:state.soldiers[0].id,squadId:state.squads[0].id,x:0,z:-80,lastSeen:0,visible:false,active:true,status:'last-reported' as const};
+    const quiet=commandOperationalEnemy(o,terrain);o.contacts=[report];const aware=commandOperationalEnemy(o,terrain);
+    expect(aware.support).toBeUndefined();const goal=aware.commands.find(c=>c.squadId===mortar.id)!.goal;
+    expect(distance(goal,report)).toBeLessThan(distance(mortar,report)-100);
+    expect(goal).not.toEqual(quiet.commands.find(c=>c.squadId===mortar.id)?.goal);
+    o.contacts=[];expect(commandOperationalEnemy(o,terrain)).toEqual(quiet);
+  });
   it.each(OPERATION_IDS)('%s plans cannot read hidden positions, losses, orders or objective oracle state',id=>{
     const state=createOperation(id),copy=structuredClone(state);
     for(const q of copy.squads.filter(q=>q.faction==='player')){q.x=800;q.z=900;q.order.target={x:0,z:0};}

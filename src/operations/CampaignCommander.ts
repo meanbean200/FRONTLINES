@@ -13,7 +13,7 @@ export function commandCampaign(state:BattlefieldState,terrain:TerrainSystem,mov
   const op=state.operation!,c=op.campaign!,now=state.elapsed;
   const home=state.living!.garrisons.find(g=>g.trenchId===c.enemyTrench&&g.faction==='enemy');if(!home)return;
   const observation=observeEnemy(state),own=observation.squads,byId=new Map(own.map(q=>[q.id,q]));
-  const ready=own.filter(q=>q.kind==='rifle'&&q.able>=5&&q.energy>45&&q.ammo>=20&&q.morale>45&&q.suppression<25).sort((a,b)=>a.id-b.id);
+  const ready=own.filter(q=>!q.working&&!q.supportBusy&&q.able>=5&&q.energy>45&&q.ammo>=20&&q.morale>45&&q.suppression<25).sort((a,b)=>a.id-b.id);
   let plan=c.plan;
   const issue=(ids:number[],goal:Vec2)=>{for(const id of ids){const q=state.squads.find(q=>q.id===id);if(q&&(!q.order.target||distance(q.order.target,goal)>8||q.order.type!=='move')&&distance(q,goal)>8)move([id],goal);}};
   if(!plan){
@@ -56,7 +56,7 @@ export function commandCampaign(state:BattlefieldState,terrain:TerrainSystem,mov
     else change('withdraw','No sustainable progress; withdraw and recover before another plan',180);
   }
   if(plan.phase==='consolidate'){
-    const guard=force.find(q=>q.kind==='rifle'),building=terrain.buildings.filter(b=>distance(b,objective)<40).sort((a,b)=>distance(a,objective)-distance(b,objective))[0];
+    const guard=force.find(q=>!q.working&&!q.supportBusy&&q.able>=3),building=terrain.buildings.filter(b=>distance(b,objective)<40).sort((a,b)=>distance(a,objective)-distance(b,objective))[0];
     if(guard){const q=state.squads.find(q=>q.id===guard.id)!;if(!q.order.building)issue([guard.id],building??objective);}
     const returning=plan.forceIds.filter(id=>id!==guard?.id);issue(returning,home.entrance);
     for(const id of returning)if(byId.get(id)&&distance(byId.get(id)!,home.entrance)<80&&!home.squadIds.includes(id))occupy([id],c.enemyTrench);

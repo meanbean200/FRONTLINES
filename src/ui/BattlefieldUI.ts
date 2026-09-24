@@ -32,10 +32,12 @@ export class BattlefieldUI {
   constructor(private state:BattlefieldState,private readonly selected:Set<number>,private readonly flags:DebugFlags,private readonly actions:UIActions){
     this.root.innerHTML=this.template();this.bind();
     const dock=this.root.querySelector('.command-dock > div')!;
-    for(const [mode,label] of [['observe','Observe'],['suppress','Suppress'],['assault','Assault'],['fall-back','Withdraw']] as const){const b=document.createElement('button');b.innerHTML=fieldIcon(mode)+label;b.dataset.tactical=mode;b.title=mode==='suppress'?'Suppress a reported area; consumes real ammunition':mode==='fall-back'?'Draw a withdrawal route':mode==='observe'?'Face and observe a position':'Draw an assault route';b.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help)this.actions.tactical?.(mode);});dock.append(b);}
+    const advanced=document.createElement('details');advanced.className='advanced-orders';advanced.innerHTML='<summary>Optional tactical orders</summary><p>Move and Hold already observe, fight, and seek nearby cover. These orders change your intent.</p><div class="selection-actions"></div>';this.root.querySelector('.selection-card')!.append(advanced);
+    const optional=advanced.querySelector('div')!;
+    for(const [mode,label] of [['observe','Observe'],['suppress','Suppress'],['assault','Assault'],['fall-back','Withdraw']] as const){const b=document.createElement('button');b.innerHTML=fieldIcon(mode)+label;b.dataset.tactical=mode;b.title=mode==='suppress'?'Suppress a reported area; consumes real ammunition':mode==='fall-back'?'Draw a withdrawal route':mode==='observe'?'Face and observe a position':'Draw an assault route';b.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help)this.actions.tactical?.(mode);});optional.append(b);}
     const push=document.createElement('button');push.textContent='Push through';push.dataset.tactical='push';push.title='Accept exposure on this order. Does not override pinning or incapacitation.';push.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help)this.actions.pushThrough?.();});dock.append(push);
     const context=document.createElement('div');context.className='selection-actions';this.root.querySelector('.selection-card')!.append(context);
-    context.append(this.root.querySelector('#resume-command')!);context.append(push);
+    context.append(this.root.querySelector('#resume-command')!);optional.append(push);
     this.root.querySelector('#move-command')!.innerHTML=fieldIcon('move')+'Move';
     this.root.querySelector('#move-command')!.setAttribute('title','Draw a route [V] · right-drag also works');
     this.root.querySelector('#hold-command')!.innerHTML=fieldIcon('hold')+'Hold <kbd>H</kbd>';
@@ -48,9 +50,10 @@ export class BattlefieldUI {
     const support=document.createElement('details');support.className='support-controls';support.innerHTML='<summary>Support & rescue</summary><div></div>';this.root.append(support);
     for(const [kind,label] of [['mortarHE','Mortar HE'],['mortarSmoke','Mortar smoke'],['smokeGrenades','Throw smoke']] as const){const b=document.createElement('button');b.dataset.support=kind;b.textContent=label;b.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help){this.actions.support?.(kind);support.open=false;}});support.querySelector('div')!.append(b);}
     const missions=document.createElement('div');missions.className='support-status';support.append(missions);
-    const guide=document.createElement('p');guide.className='support-guide';guide.textContent='Mortars: 2 ready crew together, stopped in the open · 50–900 m range · 15 s preparation · one shell per order. Smoke grenades: 30 m throw. H holds your team.';support.insertBefore(guide,missions);
+    const guide=document.createElement('p');guide.className='support-guide';guide.textContent='Mortars: 2 ready crew together, stopped in the open · 50–900 m range · 15 s preparation · one shell per order. Smoke grenades: 30 m throw. H holds your formation. Friendly support fires only on your request.';support.insertBefore(guide,missions);
     const supportButton=document.createElement('button');supportButton.id='support-command';supportButton.innerHTML=fieldIcon('mortar')+'Support';dock.append(supportButton);supportButton.onclick=()=>{support.open=!support.open;};
     const defend=this.root.querySelector<HTMLButtonElement>('#occupy-command')!;
+    optional.prepend(defend);
     defend.innerHTML=fieldIcon('defend')+'Defend';
     defend.title='Draw a frontage near completed trenches, then choose facing in the area inspector. Click a trench label for quick assignment.';
   }
@@ -64,7 +67,7 @@ export class BattlefieldUI {
     const time=`D${Math.floor(hours/24)+1} ${Math.floor(hours%24).toString().padStart(2,'0')}:${Math.floor(hours*60%60).toString().padStart(2,'0')}`;
     this.root.querySelector('#battle-time')!.textContent=time;
     const friendlies=new Set(this.state.squads.filter(s=>factionOf(s)==='player').map(s=>s.id));
-    this.root.querySelector('#unit-count')!.textContent=`${this.state.soldiers.filter(s=>friendlies.has(s.squadId)&&s.needs?.life!=='dead').length} personnel · ${friendlies.size} squads`;
+    this.root.querySelector('#unit-count')!.textContent=`${this.state.soldiers.filter(s=>friendlies.has(s.squadId)&&s.needs?.life!=='dead').length} personnel · ${friendlies.size} formations`;
     this.root.querySelector('.brand small')!.textContent=this.state.operation?'TACTICAL OPERATIONS':'LIVING BATTLEFIELD';
     this.root.querySelector('#perf-readout')!.textContent=`${perf.fps.toFixed(0)} FPS · CPU ${perf.frameMs.toFixed(1)} ms · p95 ${(perf.p95Ms??0).toFixed(1)} ms · sim ${perf.simulationMs.toFixed(2)} ms · ${perf.drawCalls} draws`;
     const label=this.root.querySelector<HTMLElement>('#mode-label')!;
@@ -96,6 +99,7 @@ export class BattlefieldUI {
     const replacements=this.state.operation?.campaign?.replacements;
     const supportKey=JSON.stringify([locked,[...this.selected],this.state.operation?.supportMissions?.map(m=>[m.id,m.reason]),this.state.operation?.rescueDecisions,replacements?.reserve.player,replacements?.manifests.length,replacements?.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length,Math.floor(this.state.elapsed)]);
     if(support.open&&supportKey!==this.supportKey){this.supportKey=supportKey;const status=support.querySelector('.support-status')!;status.replaceChildren();
+      for(const q of this.state.squads.filter(q=>factionOf(q)==='player'&&squadHasEquipment(this.state,q,'mortar'))){const b=document.createElement('button');b.textContent=`Select ${q.name} · mortar equipment`;b.disabled=locked;b.onclick=()=>this.actions.select([q.id]);status.append(b);}
       const mortar=selectedSupportTeam(this.state,this.selected,'mortarHE');
       const readiness=mortar===undefined?'Select a formation with mortar equipment below.':supportReadiness(this.state,'mortarHE',mortar).reason;
       if(readiness){const p=document.createElement('p');p.textContent=readiness;status.append(p);}
@@ -120,7 +124,7 @@ export class BattlefieldUI {
     if(this.rosterSize!==this.state.squads.length){
       this.rosterSize=this.state.squads.length;
       const rows=(kind:string)=>this.state.squads.filter(s=>(kind==='rifle'?s.kind!=='engineer':s.kind===kind)&&factionOf(s)==='player').map(s=>`<button class="roster-row ${kind}" data-squad="${s.id}" title="${roleName[s.kind]} · select ${escape(s.name)}; double-click to focus"><i>${fieldIcon(s.kind)}</i><span>${escape(s.name)}</span><small>${s.soldierIds.length}</small></button>`).join('');
-      this.root.querySelector('#rifle-roster')!.innerHTML=rows('rifle');this.root.querySelector('#engineer-roster')!.innerHTML=rows('engineer');
+      this.root.querySelector('#rifle-roster')!.innerHTML=rows('rifle');this.root.querySelector('#engineer-roster')!.innerHTML=rows('engineer');(this.root.querySelector('.engineers-title') as HTMLElement).hidden=!this.state.squads.some(q=>q.kind==='engineer'&&factionOf(q)==='player');
       this.root.querySelectorAll<HTMLButtonElement>('[data-squad]').forEach(b=>{b.addEventListener('click',e=>this.actions.select([Number(b.dataset.squad)],e.shiftKey));b.addEventListener('dblclick',()=>this.actions.focus(Number(b.dataset.squad)));});
     }
     const counts=new Map<number,number>();for(const s of this.state.soldiers)if(s.needs?.life!=='dead'&&s.needs?.life!=='incapacitated')counts.set(s.squadId,(counts.get(s.squadId)??0)+1);
@@ -140,7 +144,7 @@ export class BattlefieldUI {
     }
     const crewInfo=docket.querySelector('.crew-readiness');
     if(readout?.weapon){const p=crewInfo??document.createElement('p');p.className='crew-readiness';p.textContent=readout.weapon;if(!crewInfo)docket.querySelector('#selection-summary')!.append(p);}else crewInfo?.remove();
-    if(!squads.length){this.selectionKey='';panel.innerHTML='<small>FIELD COMMAND</small><strong>Select your force</strong><p>Click a squad flag or an engineer team.</p>';debug.textContent='No squad selected';return;}
+    if(!squads.length){this.selectionKey='';panel.innerHTML='<small>FIELD COMMAND</small><strong>Select your force</strong><p>Click a formation flag or select it in Forces.</p>';debug.textContent='No squad selected';return;}
     const squad=squads[0],soldiers=this.state.soldiers.filter(s=>this.selected.has(s.squadId));
     const trench=this.state.trenches.find(t=>t.id===squad.order.trenchId);
     const living=soldiers.filter(s=>s.needs?.life!=='dead'),covers=living.filter(s=>s.cover==='trench').length;
@@ -153,7 +157,7 @@ export class BattlefieldUI {
     if(key===this.selectionKey)return;this.selectionKey=key;
     const r=readout!;
     const opened=new Set([...panel.querySelectorAll<HTMLDetailsElement>('details[open]')].map(d=>d.dataset.section));
-    panel.innerHTML=`<small>${escape(r.role)}</small><strong>${escape(r.name)}</strong><p>${escape(command)}</p><details data-section="condition"><summary>Condition</summary><dl class="unit-ledger"><dt>Strength</dt><dd>${r.able} / ${r.total} able</dd><dt>Morale</dt><dd>${r.morale} / 100</dd><dt>Fatigue</dt><dd>${r.fatigue} / 100</dd><dt>Suppression</dt><dd>${r.suppression}%</dd><dt>Sheltered</dt><dd>${r.covered} / ${r.living}</dd></dl></details><details data-section="supply"><summary>Ammunition & supply</summary><p>${r.ammo} carried rounds · ${r.warning==='SUPPLY SHORTAGE'?'Supply interrupted':'Check Defense Status for network stocks.'}</p></details><details data-section="activity"><summary>Activity & position</summary><p>${escape(r.activity)}</p><p>${r.position}</p></details>${trench&&squad.order.type==='construct-trench'?`<div class="progress"><i style="width:${trench.progress*100}%"></i></div>`:''}`;
+    panel.innerHTML=`<small>${escape(r.role)}</small><strong>${escape(r.name)}</strong><p>${escape(command)}</p><details data-section="condition"><summary>Condition</summary><dl class="unit-ledger"><dt>Strength</dt><dd>${r.able} / ${r.total} able</dd><dt>Morale</dt><dd>${r.morale} / 100</dd><dt>Fatigue</dt><dd>${r.fatigue} / 100</dd><dt>Suppression</dt><dd>${r.suppression}%</dd><dt>Sheltered</dt><dd>${r.covered} / ${r.living}</dd></dl></details><details data-section="supply"><summary>Equipment & supply</summary><p>${escape(r.equipment)}</p><p>${r.ammo} carried rounds · ${r.warning==='SUPPLY SHORTAGE'?'Supply interrupted':'Check Defense Status for network stocks.'}</p></details><details data-section="activity"><summary>Activity & position</summary><p>${escape(r.activity)}</p><p>${r.position}</p></details>${trench&&squad.order.type==='construct-trench'?`<div class="progress"><i style="width:${trench.progress*100}%"></i></div>`:''}`;
     for(const d of panel.querySelectorAll<HTMLDetailsElement>('details'))d.open=opened.has(d.dataset.section);
     if(this.state.operation){
       const dead=soldiers.filter(s=>s.needs?.life==='dead').length,wounded=soldiers.filter(s=>s.needs?.life==='incapacitated').length,pinned=able.filter(s=>s.suppression>=70).length;
@@ -174,7 +178,7 @@ export class BattlefieldUI {
     this.root.querySelector<HTMLSelectElement>('#quality')!.addEventListener('change',e=>this.actions.quality((e.target as HTMLSelectElement).value));
     bind('crater-command',this.actions.craterMode);bind('save-command',this.actions.save);bind('load-command',this.actions.load);bind('stress-command',this.actions.stress);
     bind('focus-command',()=>this.actions.focus());
-    bind('selection-orders',()=>this.root.querySelector<HTMLButtonElement>('#move-command')!.focus());
+    bind('selection-orders',()=>{this.root.dataset.hudPanel='selection';const panel=this.root.querySelector<HTMLDetailsElement>('.advanced-orders')!;panel.open=true;panel.scrollIntoView({block:'nearest'});});
     bind('defense-toggle',()=>{const panel=this.root.querySelector<HTMLDetailsElement>('.garrison-panel')!;panel.open=!panel.open;});
     bind('open-build',()=>this.root.querySelector<HTMLButtonElement>('#build-command')!.click());
     this.root.querySelector('.hud-tools')!.addEventListener('click',e=>{if((e.target as HTMLElement).closest('button'))(this.root.querySelector('.hud-tools') as HTMLDetailsElement).open=false;});
@@ -204,7 +208,7 @@ export class BattlefieldUI {
     if(network)alerts.push({key:'garrison',text:network.cutoff==='decision'?'Supply emergency · decision needed':'Defense under fire',action:()=>{this.root.querySelector<HTMLDetailsElement>('.garrison-panel')!.open=true;}});
     for(const q of this.state.squads.filter(q=>factionOf(q)==='player')){
       const r=selectionReadout(this.state,new Set([q.id]))!;
-      const warning=r.warning||actionableWeaponReason(r.reasons)||(r.fatigue>=85?'Exhausted':'');
+      const warning=q.orderNote?.startsWith('Route blocked')?q.orderNote:r.warning||actionableWeaponReason(r.reasons)||(r.fatigue>=85?'Exhausted':'');
       if(warning)alerts.push({key:String(q.id),text:q.name+' · '+warning,action:()=>{this.actions.select([q.id]);this.actions.focus(q.id);}});
       if(alerts.length>=2)break;
     }
@@ -216,7 +220,7 @@ export class BattlefieldUI {
     <header class="brand"><strong>FRONTLINES</strong><small>BATTLEFIELD SANDBOX</small></header>
     <nav class="session-controls"><span id="battle-time">00:00</span><div class="sim-controls" aria-label="Simulation speed"><button data-speed="0" title="Pause [Space]">Ⅱ</button><button data-speed="1" class="active">1×</button><button data-speed="2">2×</button><button data-speed="5">5×</button></div><button id="save-command">Save</button><button id="load-command">Load</button><button id="help-toggle" title="Controls">?</button></nav>
     <nav class="battle-tools"><button id="map-expand" title="Operational map [M]">${fieldIcon('map')}Map</button><details class="hud-tools"><summary>Command</summary><button id="roster-toggle" data-hud-panel="force" aria-label="Your force" aria-expanded="false" aria-controls="force-roster">${fieldIcon('force')}Forces</button><button id="defense-toggle">${fieldIcon('defend')}Defense status</button><button id="open-build">${fieldIcon('engineer')}Build</button></details></nav>
-    <section id="selection-docket" class="selection-docket" aria-label="Selected formation" hidden><div id="selection-summary"></div><div class="selection-links"><button data-hud-panel="selection" aria-expanded="false" aria-controls="selection-card">Details</button><button id="selection-orders">Orders →</button></div></section>
+    <section id="selection-docket" class="selection-docket" aria-label="Selected formation" hidden><div id="selection-summary"></div><div class="selection-links"><button data-hud-panel="selection" aria-expanded="false" aria-controls="selection-card">Details</button><button id="selection-orders">Options</button></div></section>
     <div id="battle-alerts" aria-label="Battlefield alerts"></div>
     <aside id="force-roster" class="force-roster"><div class="roster-heading"><small>YOUR FORCE</small><span id="unit-count"></span></div><button id="rifle-select" class="section-heading">INFANTRY <span>SELECT ALL ↗</span></button><div id="rifle-roster"></div><div class="section-heading engineers-title">ENGINEER TEAMS</div><div id="engineer-roster"></div><p class="roster-help">Double-click a squad to focus.<br>Shift-click to add to selection.</p></aside>
     <div class="mode-label" id="mode-label"></div>

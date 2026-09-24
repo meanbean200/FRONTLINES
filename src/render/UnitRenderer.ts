@@ -111,16 +111,16 @@ export class UnitRenderer {
       const moving=isWalkingAction(soldier.action);
       const shot=freshShots.get(soldier.id);
       const firing=Boolean(shot);
-      const aiming=!lying&&!moving&&soldier.aimTargetId!==undefined&&(!soldier.duty||soldier.duty.kind==='watch');
+      const aiming=!moving&&soldier.needs?.life==='active'&&soldier.aimTargetId!==undefined&&(!soldier.duty||soldier.duty.kind==='watch');
       weaponRotation.copy(rotation);
       if(!aiming&&!firing)weaponRotation.multiply(this.carriedWeaponTilt);
       local.set(.16,(aiming||firing?1.24:1.05)-(seated?.43:0),.24).applyQuaternion(rotation);
       weaponPosition.copy(position).add(local);
-      if(lying){weaponPosition.x-=Math.sin(soldier.heading)*.9;weaponPosition.z-=Math.cos(soldier.heading)*.9;weaponPosition.y+=.38;}
+      if(lying){weaponRotation.setFromAxisAngle(axis,soldier.heading);local.set(.14,.33,.53).applyQuaternion(weaponRotation);weaponPosition.copy(position).add(local);}
       const weapon=soldier.combat?.weapon?.id,kind=weapon==='crew-mg'||weapon==='mg42'?'machinegun':weapon==='bar'?'automatic':weapon==='smg'?'smg':'rifle';scale.setScalar(1);matrix.compose(weaponPosition,weaponRotation,scale);
       const digging=soldier.action==='digging',care=soldier.action.startsWith('treating')||soldier.action==='carrying casualty';
       if(!care&&!digging&&soldier.action!=='being carried'){if(kind==='rifle')this.weapons!.setMatrixAt(weapons++,matrix);else this.variants.get(kind)!.setMatrixAt(variantCounts[kind]++,matrix);}
-      if(shot&&!lying){p.set(shot.from.x,shot.from.y,shot.from.z);matrix.compose(p,weaponRotation,scale);this.flashes!.setMatrixAt(flashes++,matrix);}
+      if(shot){p.set(shot.from.x,shot.from.y,shot.from.z);matrix.compose(p,weaponRotation,scale);this.flashes!.setMatrixAt(flashes++,matrix);}
       for(let leg=0;leg<2;leg++) {
         const phase=moving?Math.sin(this.state.elapsed*8+i*.37+leg*Math.PI)*.2:0;
         const localX=leg===0?-.12:.12;
@@ -134,6 +134,7 @@ export class UnitRenderer {
         const swing=moving?Math.sin(this.state.elapsed*8+i*.37)*side*.17:0;
         let elbow=[side*.255,1.10,swing],hand=[side*.24,.9,-swing];
         if(aiming||firing){elbow=side>0?[.32,1.10,-.02]:[-.20,1.05,.25];hand=side>0?[.16,1.24,.09]:[.12,1.24,.49];}
+        if(lying){elbow=[side*.30,1.12,.03];hand=[side*.14,1.45,.05];}
         if(digging){const reach=Math.sin(this.state.elapsed*4+i)*.17;elbow=[side*.23,1.10,.18];hand=[side*.08,1.0+reach,.46];}
         if(care||soldier.action==='eating'){elbow=[side*.22,1.02,.22];hand=[side*.12,care?.89:1.40,.37];}
         const points=[[side*.23,1.33,0],elbow,hand];

@@ -27,10 +27,10 @@ test('finite operations explain reserves without offering sandbox spawning',asyn
   await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length)).toBe(before);
 });
 test('support identifies an eligible team within a mixed selection',async({page})=>{
-  await meeting(page);await select(page,'Able');await page.locator('#support-command').click();await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();await expect(page.locator('.support-status')).toContainText('Select your mortar team');
-  await select(page,'Mortar team',true);await page.locator('#support-command').click();await expect(page.locator('[data-support="mortarHE"]')).toBeEnabled();await expect(page.locator('[data-support="mortarHE"]')).toContainText('12');
+  await meeting(page);await select(page,'Able');await page.locator('#support-command').click();await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();await expect(page.locator('.support-status')).toContainText('mortar equipment');
+  await select(page,'Fox',true);await expect(page.locator('[data-support="mortarHE"]')).toBeEnabled();await expect(page.locator('[data-support="mortarHE"]')).toContainText('12');
 });
 test('machine-gun inspection separates crew readiness from urgent warnings',async({page})=>{
-  await meeting(page);await select(page,'Machine-gun team');await expect(page.locator('.crew-readiness')).toBeVisible();await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');
+  await meeting(page);await select(page,'Easy');await expect(page.locator('.crew-readiness')).toBeVisible();await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');
   await page.locator('[data-speed="1"]').click();await expect(page.locator('.crew-readiness')).toContainText('watching sector',{timeout:12000});await page.locator('[data-speed="0"]').click();
 });

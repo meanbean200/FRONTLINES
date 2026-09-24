@@ -9,6 +9,14 @@ import {SaveSystem} from '../persistence/SaveSystem';
 import {observeEnemy} from '../operations/EnemyCommander';
 import {balance} from '../garrison/Inventory';
 describe('equipment, not classes',()=>{
+  it('takes the rest of a mixed formation along to cover its tool carriers, without inventing additional workers',()=>{
+    const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),q=state.squads[0],people=state.soldiers.filter(s=>s.squadId===q.id);
+    state.operation!.nextOrders=1e9;people.forEach((s,i)=>{Object.assign(s,{x:-1400+i*2,z:-1450});s.equipment!.tools=i===0;});Object.assign(q,{x:-1393,z:-1450});
+    const before=people.map(s=>({x:s.x,z:s.z}));expect(sim.createTrench([{x:-1400,z:-1400},{x:-1370,z:-1400}],q.id)).toBeDefined();
+    for(let i=0;i<400;i++)sim.step(.05);
+    expect(people.slice(1).every((s,i)=>Math.hypot(s.x-before[i+1].x,s.z-before[i+1].z)>10)).toBe(true);
+    expect(people.filter(s=>s.action==='digging').every(s=>s.equipment!.tools)).toBe(true);
+  });
   it('does not gain kit by changing a class, and ordinary infantry operates an explicitly carried automatic weapon',()=>{
     const state=createOperation('advance'),sim=new BattlefieldSimulation(state),q=state.squads[0],s=state.soldiers[0];
     expect(squadHasEquipment(state,q,'tools')).toBe(false);q.kind='engineer';expect(squadHasEquipment(state,q,'tools')).toBe(false);
@@ -33,6 +41,7 @@ describe('equipment, not classes',()=>{
     expect(loaded.living!.ledger).toEqual(ledger);expect(loaded.soldiers[0].health).toBe(40);
     expect(loaded.soldiers.some(s=>equipmentOf(loaded,s).mortar)).toBe(true);
     loaded.soldiers[0].equipment!.tools='yes' as unknown as boolean;expect(()=>new SaveSystem().parse(JSON.stringify(loaded))).toThrow();
+    const current=createOperationalBattle('meeting');delete current.soldiers[0].equipment;expect(()=>new SaveSystem().parse(JSON.stringify(current))).toThrow();
   });
   it('manual friendly support and reported enemy support are identifiable, finite and physically crewed',()=>{
     const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),q=state.squads.find(q=>q.faction==='player'&&squadHasEquipment(state,q,'mortar'))!;

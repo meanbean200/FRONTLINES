@@ -26,7 +26,8 @@ export class SaveSystem {
   lastError='';
   save(state: BattlefieldState): string {
     if(!isBattlefieldState(state))throw new Error('Battlefield contains invalid state; existing save preserved.');
-    const json = JSON.stringify({...state,schemaVersion:3,combatRules:RULES_VERSION,policySchema:{observationVersion:OBSERVATION_VERSION,rulesVersion:RULES_VERSION}});
+    const snapshot=structuredClone(state);initializeEquipment(snapshot);for(const s of snapshot.soldiers)s.posture??='standing';
+    const json = JSON.stringify({...snapshot,schemaVersion:3,combatRules:RULES_VERSION,policySchema:{observationVersion:OBSERVATION_VERSION,rulesVersion:RULES_VERSION}});
     localStorage.setItem(SAVE_KEY, json);
     return json;
   }
