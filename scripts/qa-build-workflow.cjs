@@ -1,28 +1,48 @@
 async(page)=>{
-  const suffix=page.url().split('#')[1]||'r4';if(!/^[a-z0-9-]+$/.test(suffix))throw Error('Use a simple unused screenshot suffix.');
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.bringToFront();await page.goto('http://127.0.0.1:4175/');await page.reload();await page.setViewportSize({width:1600,height:900});
-  await page.locator('[data-mode-choice="campaign"]').click();await page.locator('#launch-operation').click();await page.locator('[data-speed="0"]').click();
-  await page.waitForFunction(()=>window.__FRONTLINES__.getPerf().chunks>=8&&document.querySelectorAll('.squad-marker').length>=8);
-  await page.evaluate(()=>new Promise(resolve=>{let last,stable=0;const tick=()=>{const a=window.__FRONTLINES__,g=a.getState().living.garrisons.find(g=>g.faction!=='enemy'),p=a.projectWorld(g.entrance.x,g.entrance.z,.3);if(p.visible&&p.x>380&&p.x<1250&&p.y>160&&p.y<750&&last&&Math.hypot(p.x-last.x,p.y-last.y)<.1)stable++;else stable=0;last=p;if(stable>=12)resolve(true);else requestAnimationFrame(tick);};tick();}));
-  const before=await page.evaluate(()=>window.__FRONTLINES__.getState());
-  await page.screenshot({path:`output/playwright/build-after-world-${suffix}.png`});
-  const visibleFromRifle=await page.locator('#build-command').isVisible();
-  await page.locator('#build-command').click();await page.screenshot({path:`output/playwright/build-work-orders-${suffix}.png`});
-  const panelText=await page.locator('#build-panel').innerText();await page.locator('[data-build-kind="meal"]').click();
-  const g=before.living.garrisons.find(g=>g.faction!=='enemy'),trench=before.trenches.find(t=>t.id===g.trenchId);
-  const candidates=trench.points.flatMap(p=>[12,20,30].map(d=>({x:p.x-Math.sin(g.front)*d,z:p.z-Math.cos(g.front)*d})));
-  let site,preview;
-  for(const p of candidates){const screen=await page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.3),p);if(!screen.visible||screen.x<380||screen.x>1250||screen.y<160||screen.y>750)continue;await page.mouse.move(screen.x,screen.y);await page.waitForTimeout(60);preview=await page.locator('.draft-readout').innerText();if(await page.locator('.draft-readout').getAttribute('data-invalid')==='false'){site={...p,screen};break;}}
-  if(!site)throw Error('No visible valid site found: '+preview);
-  await page.screenshot({path:`output/playwright/build-site-preview-${suffix}.png`});await page.mouse.click(site.screen.x,site.screen.y);
-  const facility=await page.evaluate(ids=>window.__FRONTLINES__.getState().living.facilities.find(f=>!ids.includes(f.id)&&f.kind==='meal'),before.living.facilities.map(f=>f.id));
+  const out='output/playwright/cinematic-ui/build-'+Date.now()+'-',errors=[],checks={};
+  page.on('pageerror',e=>errors.push(e.message));
+  const state=()=>page.evaluate(()=>window.__FRONTLINES__.getState());
+  const project=p=>page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.3),p);
+  const screenClear=p=>p.visible&&p.x>440&&p.x<1450&&p.y>200&&p.y<790;
+  const draw=async(a,b,shot)=>{const p=await project(a),q=await project(b);if(!screenClear(p)||!screenClear(q))return false;await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(q.x,q.y,{steps:16});if(shot)await page.screenshot({path:out+shot+'.png'});await page.mouse.up();return true;};
+  await page.setViewportSize({width:1920,height:1080});await page.goto('http://127.0.0.1:4175/');
+  await page.locator('#choose-operation').click();await page.locator('[data-mode-choice="line-defense"]').click();
+  await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');
+  await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
+  await page.waitForTimeout(650);
+  // Build is reachable even with no current formation selected.
+  await page.locator('.hud-tools>summary').click();await page.locator('#open-build').click();
+  checks.unselectedBuild=await page.locator('#trench-command').isVisible();
+  await page.locator('[data-build-close]').click();
+  const before=await state(),engineer=before.squads.find(q=>q.kind==='engineer'&&q.faction!=='enemy');
+  await page.locator('.hud-tools>summary').click();await page.locator('#roster-toggle').click();
+  await page.locator('[data-squad="'+engineer.id+'"]').dblclick();await page.locator('[aria-label="Close forces"]').click();
+  await page.mouse.move(960,450);await page.mouse.wheel(0,350);await page.waitForTimeout(700);
+  const g=before.living.garrisons.find(g=>g.squadIds.includes(engineer.id)),trench=before.trenches.find(t=>t.id===g.trenchId);
+  await page.locator('#build-command').click();await page.locator('[data-build-category="support"]').click();await page.locator('#build-network').selectOption(String(g.id));
+  if(await page.locator('#assign-builders').isVisible())await page.locator('#assign-builders').click();
+  await page.locator('[data-build-kind="meal"]').click();
+  let site;
+  for(const p of trench.points.flatMap(p=>[14,24,32].map(d=>({x:p.x-Math.sin(g.front)*d,z:p.z-Math.cos(g.front)*d})))){
+    const s=await project(p);if(!screenClear(s))continue;
+    await page.mouse.move(s.x,s.y);await page.waitForTimeout(60);
+    if(await page.locator('.draft-readout').getAttribute('data-invalid')==='false'){site={...p,screen:s};break;}
+  }
+  if(!site)throw Error('No clear reachable support site in the current camera');
+  await page.screenshot({path:out+'support-site.png'});await page.mouse.click(site.screen.x,site.screen.y);
+  checks.facilityQueued=(await state()).living.facilities.some(f=>!before.living.facilities.some(old=>old.id===f.id)&&f.kind==='meal');
   await page.locator('#build-command').click();await page.locator('#trench-command').click();
-  const q=before.squads.find(q=>q.kind==='engineer'&&q.faction!=='enemy');
-  const draw=async(length)=>{const points=await page.evaluate(({q,length})=>[{x:q.x-85,z:q.z+38},{x:q.x-85+length,z:q.z+38}].map(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.3)),{q,length});if(points.some(p=>!p.visible))throw Error('Draw target outside view');await page.mouse.move(points[0].x,points[0].y);await page.mouse.down();await page.mouse.move(points[1].x,points[1].y,{steps:15});await page.mouse.up();};
-  const n=await page.evaluate(()=>window.__FRONTLINES__.getState().trenches.length);await draw(5);const shortToast=await page.locator('#toast').innerText();const shortMode=await page.locator('#battlefield').getAttribute('data-mode');await draw(15);
-  const after=await page.evaluate(()=>window.__FRONTLINES__.getState());
-  await page.locator('#build-command').click();const noCrew=await page.locator('.build-workforce').innerText();await page.locator('#assign-builders').click();await page.waitForFunction(()=>document.querySelector('#assign-builders').hidden);
-  await page.screenshot({path:`output/playwright/build-reassigned-${suffix}.png`});
-  return {scope:'Actual controls, unmodified campaign inventory, no save writes',visibleFromRifle,panelText,preview,facility,shortToast,shortMode,noCrew,errors,checks:{visibleFromRifle,facilityQueued:!!facility,shortExplained:shortToast.includes('too short')&&shortMode==='trench',fifteenMetresAccepted:after.trenches.length===n+1,reassignmentExplained:noCrew.includes('No engineers'),noErrors:errors.length===0}};
+  checks.directTrench=(await page.locator('#battlefield').getAttribute('data-mode'))==='trench'&&await page.locator('#build-panel').isHidden();
+  const origin={x:engineer.x+28,z:engineer.z+28};
+  if(!await draw(origin,{x:origin.x+5,z:origin.z}))throw Error('Short-draw camera unavailable');
+  const shortToast=await page.locator('#toast').innerText();checks.shortExplained=shortToast.includes('too short')&&await page.locator('#battlefield').getAttribute('data-mode')==='trench';
+  const count=(await state()).trenches.length;
+  await draw(origin,{x:origin.x+15,z:origin.z},'trench-drawing');
+  const after=await state();checks.fifteenMetresAccepted=after.trenches.length===count+1;
+  await page.locator('#build-command').click();await page.locator('[data-build-category="support"]').click();
+  const noCrew=await page.locator('.build-workforce').innerText();checks.reassignmentExplained=noCrew.includes('No engineers');
+  await page.locator('#assign-builders').click();await page.waitForFunction(()=>document.querySelector('#assign-builders').hidden);
+  checks.reassignAvailable=await page.locator('[data-build-kind="meal"]').isEnabled();
+  await page.screenshot({path:out+'reassigned.png'});checks.noErrors=errors.length===0;
+  return {scope:'Actual controls, generated Defend the Line, unmodified inventory, no save writes',checks,shortToast,noCrew,site,errors,screenshots:out};
 }

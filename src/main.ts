@@ -1,9 +1,7 @@
 import './style.css';
-import './operations.css';
-import './responsive.css';
-import './field-command.css';
-import './operational-ui.css';
-import './quick-battle.css';
+import './ui/menu.css';
+import './ui/hud.css';
+import './ui/map.css';
 import { FrontlinesApp } from './app/FrontlinesApp';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#battlefield');

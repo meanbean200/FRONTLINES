@@ -1,5 +1,5 @@
 export const COMPACT_HUD = '(max-width: 1150px), (max-height: 720px)';
-export type HudPanel = 'force' | 'selection' | 'map';
+export type HudPanel = 'force' | 'selection';
 
 export function hudInsets(sessionBottom:number,objectiveBottom:number,dockHeight:number,selectionHeight:number,hintHeight=0){
   return {railTop:Math.ceil(Math.max(sessionBottom,objectiveBottom)+8),dockHeight:Math.ceil(dockHeight),selectionHeight:Math.ceil(selectionHeight),hintHeight:Math.ceil(hintHeight)};
@@ -13,6 +13,7 @@ export class HudLayout {
   constructor(private readonly root:HTMLElement){
     this.garrison=root.querySelector<HTMLDetailsElement>('.garrison-panel')!;
     const support=root.querySelector<HTMLDetailsElement>('.support-controls');
+    for(const selector of ['.force-roster','.selection-card']){const panel=root.querySelector(selector)!,button=document.createElement('button');button.className='drawer-close';button.textContent='×';button.setAttribute('aria-label','Close '+(selector==='.force-roster'?'forces':'unit details'));button.onclick=()=>this.setPanel(undefined);panel.prepend(button);}
     support?.addEventListener('toggle',()=>{if(support.open){this.garrison.open=false;if(this.compact.matches)this.setPanel(undefined);}});
     root.querySelectorAll<HTMLButtonElement>('[data-hud-panel]').forEach(button=>button.addEventListener('click',()=>{
       const panel=button.dataset.hudPanel as HudPanel;
@@ -24,7 +25,8 @@ export class HudLayout {
     // Retire drawer state when entering the spacious layout; do not close a
     // player's open trench inspector merely because the window was resized.
     this.compact.addEventListener('change',()=>{this.setPanel(undefined);this.schedule();});
-    window.addEventListener('frontlines-menu',()=>this.setPanel(undefined));
+    window.addEventListener('frontlines-menu',()=>{this.setPanel(undefined);this.garrison.open=false;if(support)support.open=false;root.querySelector<HTMLDetailsElement>('.hud-tools')!.open=false;});
+    window.addEventListener('keydown',e=>{if(e.code!=='Escape'||document.documentElement.dataset.menu||document.documentElement.dataset.fieldMap)return;if(root.dataset.hudPanel||this.garrison.open||support?.open){this.setPanel(undefined);this.garrison.open=false;if(support)support.open=false;e.preventDefault();e.stopImmediatePropagation();}},true);
     const observer=new ResizeObserver(()=>this.schedule());
     for(const selector of ['.session-controls','.operation-hud','.command-dock','.selection-card','.mode-label']){
       const element=root.querySelector(selector);if(element)observer.observe(element);

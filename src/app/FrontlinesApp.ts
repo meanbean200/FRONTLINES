@@ -72,6 +72,7 @@ export class FrontlinesApp {
   private readonly livingRenderer:LivingRenderer;
   private readonly operationUI:OperationUI;
   private readonly operationRenderer:OperationRenderer;
+  private battlePreview?:{state:BattlefieldState;point:Vec2;zoom:number;selected:number[]};
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.state = createPlayableSandbox();
@@ -90,6 +91,9 @@ export class FrontlinesApp {
     this.scene.background = new THREE.Color(0xa1b1ad);
     this.scene.fog = new THREE.FogExp2(0xa1b1ad, 0.00021);
     this.camera = new StrategyCamera(canvas, this.simulation.terrain);
+    // Frame the interior of the real sector for the opening menu, not its edge.
+    // Beginning or loading a battle still focuses that force's actual position.
+    this.camera.focus({x:-160,z:100},430);
     this.lighting=new EnvironmentLighting(this.scene,this.renderer);
     this.terrainRenderer = new TerrainRenderer(this.simulation.terrain);
     this.unitRenderer = new UnitRenderer(this.state, this.simulation.terrain);
@@ -130,7 +134,7 @@ export class FrontlinesApp {
       this.ui.notify(assigned?`${engineer.name} assigned · unfinished earthworks are preserved`:'No reachable completed trench with room for the engineers. Finish excavation first.',assigned?'normal':'warn');
       if(assigned)this.selectSquads([engineer.id]);
     }});
-    this.tactical=new TacticalOverlay(()=>this.state,this.selectedSquads,this.camera,this.simulation.terrain,(ids,add)=>this.selectSquads(ids,add),id=>this.occupyTrench(id));
+    this.tactical=new TacticalOverlay(()=>this.state,this.selectedSquads,this.camera,this.simulation.terrain,(ids,add)=>this.selectSquads(ids,add),id=>this.occupyTrench(id),point=>{this.simulation.issueMove([...this.selectedSquads],point);this.ui.notify('Map move order issued');});
     this.input=new CommandInput({
       canvas,
       camera: this.camera,
@@ -165,7 +169,7 @@ export class FrontlinesApp {
     new ResizeObserver(this.resize).observe(canvas);
     this.resize();
     new ReplayPanel(()=>this.state,state=>window.__FRONTLINES__.restoreState(state),(x,z)=>this.camera.focus({x,z},180));
-    this.operationUI=new OperationUI(()=>this.state,{start:setup=>this.startGame(setup.operation,setup.seed,setup),legacyStart:(mode,seed)=>this.startGame(mode,seed),load:()=>this.load(),save:()=>Boolean(this.save()),hasSave:()=>this.saveSystem.hasSave(),loadError:()=>this.saveSystem.lastError,saveNotice:()=>this.saveSystem.legacyNotice(),focus:p=>this.camera.focus(p,520),quality:level=>this.setQuality(level)});
+    this.operationUI=new OperationUI(()=>this.state,{start:setup=>this.beginPreview(setup),preview:setup=>this.previewBattle(setup),cancelPreview:()=>this.cancelBattlePreview(),legacyStart:(mode,seed)=>this.startGame(mode,seed),load:()=>this.load(),save:()=>Boolean(this.save()),hasSave:()=>this.saveSystem.hasSave(),loadError:()=>this.saveSystem.lastError,saveNotice:()=>this.saveSystem.legacyNotice(),focus:p=>this.camera.focus(p,520),quality:level=>this.setQuality(level),mute:muted=>{this.audio.muted=muted;}});
     new HudLayout(document.querySelector<HTMLElement>('#ui-root')!);
     canvas.addEventListener('webglcontextlost',event=>{
       event.preventDefault();this.graphicsLost=true;this.accumulator=0;this.operationUI.setGraphicsLost(true);
@@ -319,8 +323,26 @@ export class FrontlinesApp {
     this.replaceWorld(fresh);
     if(mode==='sandbox')this.simulation.issueOccupyNearest([fresh.squads[0].id,fresh.squads[1].id,fresh.squads.find(s=>s.kind==='engineer')!.id],fresh.trenches[0].id);
     const start=mode==='campaign'?fresh.operation?.objectives[0]:restoredViewTarget(fresh);if(start)this.camera.focus(start,mode==='sandbox'||mode==='campaign'?360:520);
-    this.selectSquads([fresh.squads[0].id]);this.setMode('select');
+    this.selectSquads([]);this.setMode('select');
     this.ui.notify(mode==='sandbox'?'Living battlefield · no enemies or timer':'Select squads, right-drag a route. Rifles engage visible enemies automatically.');
+  }
+  private previewBattle(setup:ResolvedBattleSetup):void {
+    this.cancelBattlePreview();
+    // Construct first: a failed preparation must not discard the current world.
+    const fresh=createOperationalBattle(setup.operation,setup.seed,setup);
+    this.battlePreview={state:this.state,point:{x:this.camera.target.x,z:this.camera.target.z},zoom:this.camera.zoomDistance,selected:[...this.selectedSquads]};
+    this.replaceWorld(fresh);
+    const target=restoredViewTarget(fresh);if(target)this.camera.focus(target,820);
+  }
+  private cancelBattlePreview():void {
+    const held=this.battlePreview;if(!held)return;this.battlePreview=undefined;
+    this.replaceWorld(held.state);this.camera.focus(held.point,held.zoom);this.selectSquads(held.selected);
+  }
+  private beginPreview(setup:ResolvedBattleSetup):void {
+    if(!this.battlePreview){this.startGame(setup.operation,setup.seed,setup);return;}
+    this.battlePreview=undefined;this.selectSquads([]);this.setMode('select');
+    const target=restoredViewTarget(this.state);if(target)this.camera.focus(target,520);
+    this.ui.notify('Select a formation to issue orders. M opens the operational map.');
   }
   private replaceWorld(loaded:BattlefieldState):void {
     // Loading/new worlds invalidate any unfinished pointer or keyboard gesture.

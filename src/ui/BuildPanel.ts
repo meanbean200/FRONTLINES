@@ -5,7 +5,7 @@ import {localInventory} from '../garrison/Inventory';
 import {fieldIcon} from './FieldSymbols';
 
 interface BuildActions {place:(id:number,kind:Facility['kind'])=>void;assign:(id?:number)=>void;focus:(point:Vec2)=>void}
-/** A discoverable work order sheet. Opening it never changes orders or inventories. */
+/** Contextual construction choices. Opening never changes orders or inventories. */
 export class BuildPanel {
   readonly element=document.createElement('section');
   private readonly button=document.createElement('button');
@@ -16,11 +16,14 @@ export class BuildPanel {
     this.button.id='build-command';this.button.innerHTML=fieldIcon('engineer')+'Build';this.button.setAttribute('aria-controls','build-panel');this.button.setAttribute('aria-expanded','false');
     root.querySelector('.command-dock>div')!.append(this.button);
     this.element.id='build-panel';this.element.className='build-panel';this.element.hidden=true;this.element.setAttribute('aria-label','Engineer construction');
-    this.element.innerHTML=`<header><div><small>ENGINEER WORK ORDERS</small><h2>Build & dig</h2></div><button data-build-close aria-label="Close construction">×</button></header><div class="build-trench"><small>FIELD EARTHWORKS</small></div><p class="build-instructions">Drag a line at least 10 m long. Engineers walk to it and excavate; connected branches split the crew.</p><label>Support network<select id="build-network" aria-label="Construction network"></select></label><p class="build-workforce"></p><button id="assign-builders">Assign engineers to this network</button><div class="build-catalog">${Object.entries(SUPPORT_WORKS).map(([kind,work])=>`<button data-build-kind="${kind}"><strong>${work.name}</strong><small>${work.cost} materials · ${work.description}</small></button>`).join('')}</div><p class="build-supply"></p><h3>Works in progress</h3><div class="build-jobs"></div>`;
+    this.element.innerHTML=`<header><div><small>ENGINEERING</small><h2>Build</h2></div><button data-build-close aria-label="Close construction">×</button></header><div class="build-categories"><div class="build-trench"></div><button data-build-category="support">${fieldIcon('force')}<span><strong>Support structures</strong><small>Supply, shelter and casualty care</small></span></button><button data-build-category="jobs">${fieldIcon('resume')}<span><strong>Worksites</strong><small>Inspect queued and active construction</small></span></button></div><section class="build-context" data-build-page="support" hidden><button data-build-back>← Construction</button><h3>Support structures</h3><label>Trench network<select id="build-network" aria-label="Construction network"></select></label><p class="build-workforce"></p><button id="assign-builders">Assign engineers to this network</button><div class="build-catalog">${Object.entries(SUPPORT_WORKS).map(([kind,work])=>`<button data-build-kind="${kind}"><strong>${work.name}</strong><small>${work.cost} materials · ${work.description}</small></button>`).join('')}</div><p class="build-supply"></p></section><section class="build-context" data-build-page="jobs" hidden><button data-build-back>← Construction</button><h3>Works in progress</h3><div class="build-jobs"></div></section>`;
     root.append(this.element);this.element.querySelector('.build-trench')!.append(root.querySelector('#trench-command')!);
     this.button.onclick=()=>this.element.hidden?this.open():this.close();
     this.element.querySelector('[data-build-close]')!.addEventListener('click',()=>this.close());
     this.element.querySelector('#trench-command')!.addEventListener('click',()=>this.close());
+    const page=(value?:string)=>{this.element.querySelector<HTMLElement>('.build-categories')!.hidden=Boolean(value);for(const el of this.element.querySelectorAll<HTMLElement>('[data-build-page]'))el.hidden=el.dataset.buildPage!==value;};
+    this.element.querySelectorAll<HTMLButtonElement>('[data-build-category]').forEach(b=>b.onclick=()=>page(b.dataset.buildCategory));
+    this.element.querySelectorAll<HTMLButtonElement>('[data-build-back]').forEach(b=>b.onclick=()=>page());
     this.element.querySelector('#build-network')!.addEventListener('change',e=>{this.networkId=Number((e.target as HTMLSelectElement).value);this.update(true);});
     this.element.querySelector('#assign-builders')!.addEventListener('click',()=>{this.actions.assign(this.networkId||undefined);this.update(true);});
     this.element.querySelectorAll<HTMLButtonElement>('[data-build-kind]').forEach(b=>b.onclick=()=>{this.actions.place(this.networkId,b.dataset.buildKind as Facility['kind']);this.close();});
@@ -32,6 +35,7 @@ export class BuildPanel {
     window.dispatchEvent(new Event('frontlines-menu'));
     document.querySelectorAll<HTMLDetailsElement>('.garrison-panel,.support-controls').forEach(p=>p.open=false);
     if(id)this.networkId=id;
+    this.element.querySelector<HTMLElement>('.build-categories')!.hidden=false;for(const el of this.element.querySelectorAll<HTMLElement>('[data-build-page]'))el.hidden=true;
     this.element.hidden=false;this.element.scrollTop=0;this.button.setAttribute('aria-expanded','true');this.button.classList.add('active');document.documentElement.dataset.buildOpen='true';this.update(true);
   }
   close():void{this.element.hidden=true;this.button.setAttribute('aria-expanded','false');this.button.classList.remove('active');delete document.documentElement.dataset.buildOpen;}

@@ -1,6 +1,4 @@
 import type { BattlefieldState, Vec2 } from '../core/types';
-import {WORLD_SIZE,WORLD_HALF} from '../core/types';
-import {mapCenter,mapProject,mapUnproject,ROADS,pointOnRoad} from '../terrain/WorldLayout';
 import { SETTLEMENTS } from '../terrain/WorldFeatures';
 import type { StrategyCamera } from '../render/StrategyCamera';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
@@ -8,7 +6,6 @@ import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {pointAlongPolyline,polylineLength} from '../core/types';
 import { factionOf } from '../operations/types';
 import {observedEnemySquad} from '../operations/Visibility';
-import {drawOperationPlan} from './OperationalMap';
 import {excavatedSpan} from '../core/TrenchGeometry';
 import {trenchPresence} from './GarrisonReadout';
 import {fieldIcon} from './FieldSymbols';
@@ -22,27 +19,15 @@ export class TacticalOverlay {
   private objectiveMarkers=new Map<string,HTMLDivElement>();
   private markerTimer=1/30;
   private labels: {element:HTMLElement;point:Vec2}[]=[];
-  private readonly mini:HTMLCanvasElement;
-  private mapBackground=document.createElement('canvas');
-  private mapSeed=-1;
-  private mapTimer=0;
-  private readonly center={x:-1150,z:-1250};
-  private span=1800;
-  private overview=false;
   private network=new TrenchNetwork();
   private networkTimer=0;
   private presence=new Map<number,number>();
   private readonly fieldMap:FieldMap;
   private readonly orders:OrderOverlay;
-  constructor(private readonly getState:()=>BattlefieldState,private readonly selected:Set<number>,private readonly camera:StrategyCamera,private readonly terrain:TerrainSystem,private readonly select:(ids:number[],add?:boolean)=>void,private readonly occupy:(id:number)=>void){
+  constructor(private readonly getState:()=>BattlefieldState,private readonly selected:Set<number>,private readonly camera:StrategyCamera,terrain:TerrainSystem,private readonly select:(ids:number[],add?:boolean)=>void,private readonly occupy:(id:number)=>void,move?:(point:Vec2)=>void){
     this.layer.className='tactical-overlay';document.querySelector('#app')!.append(this.layer);
     for(const settlement of SETTLEMENTS){const label=document.createElement('div');label.className='place-name';label.textContent=settlement.name;this.layer.append(label);this.labels.push({element:label,point:settlement});}
-    this.mini=document.querySelector<HTMLCanvasElement>('#minimap')!;
-    this.mini.width=240;this.mini.height=180;
-    Object.assign(this.center,mapCenter(this.camera.target,this.span));
-    this.mini.addEventListener('pointerdown',e=>{const rect=this.mini.getBoundingClientRect();this.camera.focus(mapUnproject((e.clientX-rect.left)/rect.width,(e.clientY-rect.top)/rect.height,this.center,this.span));});
-    document.querySelector('#map-overview')!.addEventListener('click',()=>{this.overview=!this.overview;this.span=this.overview?WORLD_SIZE:1800;Object.assign(this.center,mapCenter(this.camera.target,this.span));this.mapSeed=-1;});
-    this.fieldMap=new FieldMap(getState,terrain,camera,selected);
+    this.fieldMap=new FieldMap(getState,terrain,camera,selected,select,move);
     this.orders=new OrderOverlay(getState,selected,camera);
   }
   update(dt:number):void {
@@ -54,11 +39,6 @@ export class TacticalOverlay {
     // Match the camera rendered this frame, even between content refreshes.
     // No visibility debounce or transform tween: both would lag behind the world.
     this.positionMarkers();
-    this.mapTimer+=dt;if(this.mapTimer<.15)return;this.mapTimer=0;
-    const state=this.getState();
-    if(!this.overview){const next=mapCenter(this.camera.target,this.span);if(Math.hypot(next.x-this.center.x,next.z-this.center.z)>this.span*.25){Object.assign(this.center,next);this.mapSeed=-1;}}
-    if(this.mapSeed!==state.seed){this.paintBackground();this.mapSeed=state.seed;}
-    this.paintMap();
   }
   private updateMarkers(dt:number):void {
     const state=this.getState(),ids=new Set(state.squads.map(s=>s.id));
@@ -131,30 +111,5 @@ export class TacticalOverlay {
       const p=this.camera.project(objective,9);marker.style.display=p.visible?'':'none';
       marker.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`;
     }
-  }
-  private paintBackground():void {
-    const width=240,height=180;this.mapBackground.width=width;this.mapBackground.height=height;
-    const ctx=this.mapBackground.getContext('2d')!,image=ctx.createImageData(width,height);
-    for(let j=0;j<height;j++)for(let i=0;i<width;i++) {
-      const x=this.center.x+(i/width-.5)*this.span,z=this.center.z+(j/height-.5)*this.span;
-      const ground=this.terrain.groundTypeAt(x,z),h=this.terrain.baseHeightAt(x,z),shade=1+(h-this.terrain.baseHeightAt(x+10,z+10))*.025;
-      const color=ground==='river'?[143,166,167]:ground==='road'?[225,216,181]:ground==='settlement'?[173,161,133]:ground==='forest'?[168,179,141]:[208,197,164];
-      const k=(j*width+i)*4;image.data[k]=color[0]*shade;image.data[k+1]=color[1]*shade;image.data[k+2]=color[2]*shade;image.data[k+3]=255;
-    }
-    ctx.putImageData(image,0,0);
-    ctx.strokeStyle='#ebe1bc';ctx.lineWidth=1;
-    for(const road of ROADS){ctx.beginPath();for(let t=-WORLD_HALF;t<=WORLD_HALF;t+=20){const p=mapProject(pointOnRoad(road,t),this.center,this.span);if(t===-WORLD_HALF)ctx.moveTo(p.x*width,p.y*height);else ctx.lineTo(p.x*width,p.y*height);}ctx.stroke();}
-  }
-  private paintMap():void {
-    const ctx=this.mini.getContext('2d')!,w=240,h=180,state=this.getState();ctx.drawImage(this.mapBackground,0,0);
-    const screen=(p:Vec2)=>{const q=mapProject(p,this.center,this.span);return {x:q.x*w,y:q.y*h};};
-    if(state.operation?.runtime)drawOperationPlan(ctx,state.operation.runtime,screen);
-    ctx.strokeStyle='rgba(226,221,191,.12)';ctx.lineWidth=1;for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(i*w/4,0);ctx.lineTo(i*w/4,h);ctx.moveTo(0,i*h/4);ctx.lineTo(w,i*h/4);ctx.stroke();}
-    for(const trench of state.trenches){ctx.strokeStyle='#443328';ctx.lineWidth=2;ctx.beginPath();trench.points.forEach((p,i)=>{const q=screen(p);if(i===0)ctx.moveTo(q.x,q.y);else ctx.lineTo(q.x,q.y);});ctx.stroke();}
-    for(const squad of state.squads){const enemy=factionOf(squad)==='enemy',contact=enemy?observedEnemySquad(state,squad.id):undefined;if(enemy&&!contact)continue;const p=screen(contact??squad);ctx.fillStyle=enemy?'#873e35':this.selected.has(squad.id)?'#fff9df':'#415c6a';ctx.fillRect(p.x-2,p.y-2,4,4);}
-    for(const [i,o]of (state.operation?.objectives??[]).entries()){const p=screen(o);ctx.strokeStyle=state.operation?.runtime?'#665d38':o.owner==='player'?'#415c6a':o.owner==='enemy'?'#873e35':'#665d38';ctx.lineWidth=1.5;ctx.strokeRect(p.x-5,p.y-5,10,10);ctx.fillStyle=ctx.strokeStyle;ctx.font='10px monospace';if(!state.operation?.runtime)ctx.fillText(String.fromCharCode(65+i),p.x+7,p.y+3);}
-    const p=screen(this.camera.target);const r=this.camera.zoomDistance/this.span*60;
-    ctx.strokeStyle='#e2d7ad';ctx.lineWidth=1;ctx.strokeRect(p.x-r,p.y-r*.7,r*2,r*1.4);
-    const title=document.querySelector('#map-scale');if(title)title.textContent=this.overview?`${WORLD_SIZE/1000} KM · THEATER`:'1.8 KM · SECTOR';
   }
 }

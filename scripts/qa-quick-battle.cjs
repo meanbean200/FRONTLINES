@@ -2,7 +2,7 @@ async (page) => {
   const out=`output/playwright/quick-battle/flow-${Date.now()}-`,errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.setViewportSize({width:1920,height:1080});await page.reload();
-  await page.locator('#launch-operation').waitFor();
+  await page.locator('#choose-operation').click();await page.locator('#launch-operation').waitFor();
   const initialStorage=await page.evaluate(()=>Object.keys(localStorage));
   await page.screenshot({path:out+'01-quick-battle.png'});
   const began=Date.now();await page.locator('#launch-operation').click();
@@ -37,14 +37,14 @@ async (page) => {
   const preserved=await page.evaluate(()=>localStorage.getItem('frontlines-battlefield-v3-world2-4km'))===save;
   await page.locator('.operation-menu-button').click();await page.locator('#save-session').click();
   const savedCustom=await page.evaluate(()=>JSON.parse(localStorage.getItem('frontlines-battlefield-v3-world2-4km')));
-  await page.reload();await page.locator('#continue-save').click();await page.locator('.operation-menu').waitFor({state:'hidden'});
-  const loaded=await identity();await page.locator('.operation-menu-button').click();await page.locator('#choose-operation').click();
+  await page.reload();await page.locator('#main-continue').click();await page.locator('.operation-menu').waitFor({state:'hidden'});
+  const loaded=await identity();await page.locator('.operation-menu-button').click();await page.locator('#return-main').click();await page.locator('#choose-operation').click();
   const defaults=await page.evaluate(()=>({size:document.querySelector('#battle-size').value,side:document.querySelector('#battle-side').value,map:document.querySelector('#battle-map').value,advanced:document.querySelector('.advanced-setup').open}));
   const modes=[];
   for(const mode of ['line-defense','meeting']){
     await page.locator(`[data-mode-choice="${mode}"]`).click();await page.locator('#battle-size').selectOption('large');await page.locator('#battle-side').selectOption('random');
     await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
-    modes.push(await identity());await page.locator('.operation-menu-button').click();await page.locator('#choose-operation').click();
+    modes.push(await identity());await page.locator('.operation-menu-button').click();await page.locator('#return-main').click();await page.locator('#choose-operation').click();
   }
   const layouts=[];
   for(const size of [{width:2560,height:1440},{width:1280,height:720},{width:960,height:600}]){

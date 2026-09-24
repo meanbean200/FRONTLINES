@@ -1,12 +1,12 @@
 # FRONTLINES — Living battlefield
 
-A browser tactics game in TypeScript and Three.js. The menu offers an **open-ended, saveable Trench war campaign**, a 10-minute village offensive, a 15-minute defensive operation, and a peaceful living-trench sandbox. The campaign starts both armies in prepared trenches with separate physical supply chains; there is no time limit. Operations have capture/hold objectives, finite town caches, rifle combat, and explicit victory/defeat. New battles span **4 × 4 km (±2000 m)** with **64 × 500 m terrain chunks**, nine settlements and six connected roads. Nearby chunks gain detail while coarse terrain keeps the wider countryside visible.
+A browser tactics game in TypeScript and Three.js. **Quick Battle** offers Breakthrough, Defend the Line, Meeting Engagement and the saveable, open-ended Open Front. **Operations** introduces these missions, while **Sandbox** is a peaceful living-trench battlefield. New battles span **4 × 4 km (±2000 m)** with **64 × 500 m terrain chunks**, nine settlements and six connected roads. Nearby chunks gain detail while coarse terrain keeps the wider countryside visible.
 
 **Current: local combat-v3 preview, world 2, rules `combat-23-world2`.** Physical rifle shots, suppression and cautious orders, supporting weapons, delayed local reports, smoke/mortars, casualty care, usable building floors, persistent enemy plans and finite campaign replacements are integrated. Read [the 4 km rebase report](docs/world-rebase-report.md) for current geography, save policy and measurements, and [the combat overhaul report](docs/combat-overhaul-progress.md) for the earlier combat acceptance record. **Old 8 km saves are preserved but incompatible with this generated world.** They require their matching older build; no coordinates are silently clamped or migrated. New saves use `frontlines-battlefield-v3-world2-4km`. No neural training or automation was started.
 
 Fresh sandbox games now start with **28 soldiers in three squads**, all assigned to the prepared trench. The original 224-person fixture and existing saves are preserved; larger forces remain available through Developer stress tools. This avoids stranding 196 unassigned reserves without autonomous support in the default experience.
 
-The starting trench now has an autonomous garrison: connected walking routes, temporary watch and rest duties, individual needs, engineer-built dugouts, and physical truck/foot supply chains. Coordination is deterministic; no neural worker is loaded. See [current implementation and acceptance](docs/deterministic-garrisons.md). Deprivation deaths are OFF by default; opt in using the campaign checkbox at the bottom of Trench Command. Exhaustion, inventory use and recovery still operate when deaths are off. Combat deaths are separate and always apply in operations.
+The starting trench now has an autonomous garrison: connected walking routes, temporary watch and rest duties, individual needs, engineer-built dugouts, and physical truck/foot supply chains. Coordination is deterministic; no neural worker is loaded. See [current implementation and acceptance](docs/deterministic-garrisons.md). Deprivation deaths are OFF by default; opt in through Command → Defense status → Support. Exhaustion, inventory use and recovery still operate when deaths are off. Combat deaths are separate and always apply in operations.
 
 ## Planned release target
 
@@ -34,9 +34,13 @@ Open `http://127.0.0.1:4173`.
 
 For the separate player-facing Edge preview, `scripts/edge-player.config.json` uses `viewport: null` so the game follows the real browser window. Do not run fixed-viewport probes in the `frontlines-player` session; use a disposable QA session instead. Its persistent local profile is under the ignored `output/playwright/edge-player-profile` directory. The current preview is served at port 4175.
 
+## Current interface
+
+The [cinematic UI redesign report](docs/cinematic-ui-redesign.md) documents the replacement menu/HUD architecture, real-browser screenshots, accessibility checks and remaining UX limits. It supersedes the older paper/folio UI documents. Main menu → Quick Battle → generated-sector preview → Begin is now the primary entry flow.
+
 ## Controls
 
-- The battlefield starts with the roster and squad inspector closed at every window size. **Force** and **Squad** open those panels only when needed; click the same button to close one. Smaller/shorter windows also fold the **Map** into a drawer. Objectives use a compact top strip; mission timers and the win condition remain visible. Trench Command and long menus scroll within the available space. No game-state or save changes are caused by resizing.
+- Normal play keeps only the objective, clock/speed, Menu, Map and Command access on screen. Select a formation to reveal compact status and its order bar. **Details** opens collapsible condition, supply and activity sections. **Command → Forces / Defense status / Build** opens optional tools. No permanent minimap or inspector; resizing changes presentation only.
 - `WASD` or arrow keys: pan; hold `Shift` for operational-scale movement
 - Mouse wheel: zoom from strategic to troop scale
 - Middle-drag: rotate and change camera pitch
@@ -44,22 +48,24 @@ For the separate player-facing Edge preview, `scripts/edge-player.config.json` u
 - Shift-click: add a squad; double-click a flag or roster row to focus it
 - `F`: focus the selected squad; `Q` / `E`: rotate
 - World labels stay visible during camera movement and follow the current rendered camera every frame, with no hide/fade delay.
-- Right-drag: draw a movement corridor; troops follow its bends in columns. `M` / Draw path uses left-drag instead. Shift-drag appends. A short right-click still gives a destination order.
-- **Build** opens the engineer work-order sheet from any selection. **Plot trench [B]** selects a fit friendly engineer team; drag a line at least **10 metres** and release. Engineers split into small crews, start at the middle or an existing completed junction, and dig outward. Connected branches receive a crew once their junction is excavated; disconnected lines remain queued. Short or obstructed plans explain why they cannot be placed.
+- Right-drag: draw a movement corridor; troops follow its bends in columns. `V` / Move uses left-drag instead. Shift-drag appends. A short right-click still gives a destination order.
+- **Build** (selected order bar or Command → Build) opens Trench, Support structures and Worksites. **Trench [B]** immediately selects a fit friendly engineer team and enters drawing; drag at least **10 metres** and release. Engineers split into crews, start at the middle or a completed junction, and dig outward. Connected branches receive a crew when their junction is excavated. Short or blocked plans explain rejection.
 - Trench labels distinguish personnel physically **inside** cover (including digging engineers) from garrison troops **assigned** to that network. Assignment alone does not grant protection. Engineers' selection panel shows their actual shelter count.
 - `R`: resume nearby unfinished works and the selected engineer's remaining jobs. `H` / a new movement order pauses every working front. Existing partly dug saves retain their original excavation.
 - **Defend Area [T]** draws a frontage near completed trenches; choose facing in the inspector. For quick assignment, select squads and click a trench's capacity label. Soldiers enter nearby reachable cover, rotate watch, rest, eat and carry supplies. Capacity uses deduplicated usable floor, with no permanent soldier positions. Move / Hold [H] leaves the routine.
-- Main orders are **Move, Defend Area, Observe, Suppress Area, Assault, Fall Back**. Draw movement/assault/withdrawal routes; cautious troops can use nearby protection and resume the route when safe. Contextual **Push through** accepts exposure but cannot override physical pinning or incapacitation. The inspector shows actual pause reasons.
-- **Support & rescue** orders smoke grenades and mortar HE/smoke, displays explosive danger and blocked-rescue decisions. Explosives can injure allies; small arms cannot. First aid and evacuation consume supplies, time and transport capacity. Build reachable aid posts to handle serious wounds.
+- Primary orders: **Move, Defend, Observe, Suppress, Assault, Withdraw, Build, Support**. Draw movement/assault/withdrawal routes; cautious troops use nearby protection and resume when safe. Hold [H], Resume works [R] and contextual Push through remain in Details. Push through cannot override pinning or incapacitation. Actual pause reasons are displayed.
+- **Support** opens Support & rescue, which orders smoke grenades and mortar HE/smoke, displays explosive danger and blocked-rescue decisions. Explosives can injure allies; small arms cannot. First aid and evacuation consume supplies, time and transport capacity. Build reachable aid posts to handle serious wounds.
 - Click a building with a Move order to use its doors and interior; choose an available floor in the squad inspector. Friendly roof cutaways do not reveal hidden enemies.
 - `Esc`: cancel the current drawing, otherwise open/close the paused command menu; `H`: hold and release trench reservations
 - `C`: create a persistent test crater in the sandbox; also available in Developer
 - `Space`: pause/resume; the HUD also exposes pause, 1×, 2×, and 5×
-- Developer / Performance: Balanced, Performance (no shadows), or High rendering
-- Trench Command: a plain-language explanation, readiness, front direction, support construction requests, shipments, needs and emergency decisions
-- **Build → support network → facility**: choose a site **6–40 m behind** a completed connected trench. The footprint/connector preview shows actual clearance, materials and rejection reasons. Rest dugouts, meal bays, supply stores, ammunition dugouts, aid posts and weapon emplacements require assigned engineers, delivered materials, and a physically excavated connector. If the team has left to dig main trenches, **Assign engineers to this network** returns them explicitly; unfinished earthworks remain. An emplacement supplies protection, not a free weapon or crew. Right-click or Esc cancels placement. The work list shows delivery/construction progress; click a job to focus it. Plans can be placed while paused, but **Space / 1×** starts the crews. The older Trench Command → Facilities & shipments controls remain available.
-- The initial garrison contains 28 troops. Assign reserves to additional supplied trench networks with `T`; holding in the open is not an autonomous camp, and personal packs are finite.
-- Developer / Performance → Review matched replays: compare local recorded runs without replacing your campaign or saved slot. The report links matched exposed/supported combat clips; these are not pre-overhaul recordings.
+- **Menu → Settings → Graphics**: Balanced, Performance (no shadows), or High rendering. Audio, Controls and Interface are separate tabs. The optional field manual and Developer tools are under Interface.
+- **Command → Defense status**: readiness and facing, then separate Supplies, Personnel, Facilities and Support tabs. Supply and casualty emergencies still surface when action is needed.
+- **Build → Support structures → facility**: choose a site **6–40 m behind** a completed connected trench. The footprint/connector preview shows actual clearance, materials and rejection reasons. Rest dugouts, meal bays, supply stores, ammunition dugouts, aid posts and weapon emplacements require assigned engineers, delivered materials, and a physically excavated connector. If the team has left to dig main trenches, **Assign engineers to this network** returns them explicitly; unfinished earthworks remain. An emplacement supplies protection, not a free weapon or crew. Right-click or Esc cancels placement. The work list shows delivery/construction progress; click a job to focus it. Plans can be placed while paused, but **Space / 1×** starts the crews. Defense status → Facilities also exposes existing support requests.
+- The peaceful sandbox's initial garrison contains 28 troops. Assign reserves to additional supplied trench networks with `T`; holding in the open is not an autonomous camp, and personal packs are finite.
+- Menu → Settings → Interface → Developer tools → Review matched replays: compare local recorded runs without replacing your campaign or saved slot. The report links matched exposed/supported combat clips; these are not pre-overhaul recordings.
+
+- **M** (or G): open/close the operational map. Select friendly symbols, Shift-add, right-click to move selected squads, or click terrain to focus the battlefield. Only known enemy contacts appear. The map pauses play without changing the saved speed.
 
 ## Architecture
 
@@ -117,6 +123,7 @@ Latest reliability pass: [playthroughs, fixed bugs and verification](docs/bugpas
 ```powershell
 npm test
 npm run build
+npm run test:e2e -- --workers=1
 ```
 
 Developer exposes actual frame cadence, CPU frame cost, p95 frame interval, simulation cost and draw calls. `window.__FRONTLINES__` exposes repeatable probes, including a downward ray cast against the rendered terrain. Regression tests cover complex queued construction through save/load, pause/resume, capacity reservation/release, physical cover, drawn route bends/append/cancellation, separate squad destinations, obstacle validation, road excavation/restoration and save validation. Current checks are in [the deterministic acceptance record](docs/deterministic-garrisons.md) and [current frame-time measurements](docs/deterministic-performance.md). Earlier movement and neural-study documents are historical evidence, not current certification.
@@ -131,7 +138,9 @@ Previous performance measurements describe older revisions, not current certific
 
 Earlier checkpoints, source snapshots, failed runs and development replays remain in `study-runs/` and `output/`. These are incomplete historical evidence, not adopted models. Rules are now `combat-23-world2`; no new policy has been trained or adopted. Incompatible neural policies fall back to rules; old-world replay snapshots require their older build. The local continuation window and later interactive work are recorded in [overnight development](docs/overnight-development.md). The overnight heartbeat remains paused.
 
-## Operations
+## Legacy operations and combat
+
+The following three legacy missions remain loadable in matching world-2 saves. New battles use the four Operations V2 missions described in [Operations V2](docs/operations-v2.md) and [Quick Battle](docs/quick-battle.md).
 
 - **Trench war:** open-ended campaign with 48 troops per side in opposing prepared trenches. New rosters comprise four eight-person rifle squads, eight engineers, three MG crew, three mortar crew and two medical personnel. Save and resume at any time. Secure and hold both command posts A + C for 120 seconds to win; no match countdown. Both sides have scheduled convoys and truck/foot deliveries. Replacements fill losses from a finite 48-person reserve, at most eight every 24 campaign hours, through the physical rear chain. Returning evacuees retain identity and do not consume a replacement. An unattended campaign is not guaranteed to resolve itself.
 - **Village offensive:** 48 friendly troops against 24 defenders; take Le Verger (B) plus A or C on the western approach. Hold two objectives for 180 control points within 10 minutes. Three able troops capture a neutral point in 35 seconds; taking an enemy-owned point takes 70 seconds. Mixed forces halt capture; hostile presence denies scoring.

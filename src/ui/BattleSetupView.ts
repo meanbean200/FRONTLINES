@@ -14,16 +14,16 @@ const toggle=(id:string,label:string,value:boolean)=>`<label class="setup-check"
 
 export function renderBattleSetup(s:BattleSetup,advancedOpen:boolean,presets:SavedSetup[]):string {
   const a=s.advanced;
-  return `<form id="quick-battle-form"><div class="setup-title"><div><small>NEW BATTLE</small><h2>Quick Battle</h2></div><span>YOUR ORDERS. YOUR APPROACH.</span></div>
-    <fieldset class="operation-picker"><legend>01 / OPERATION</legend><div class="quick-operations">${OPERATION_IDS.map(id=>`<button type="button" data-mode-choice="${id}" aria-pressed="${s.operation===id}"><strong>${OPERATION_DEFINITIONS[id].title}</strong><span>${descriptions[id][0]}</span><small>${descriptions[id][1]}</small></button>`).join('')}</div></fieldset>
+  return `<form id="quick-battle-form"><div class="setup-title"><span class="eyebrow">INTO THE FIELD</span><h2>Quick Battle</h2></div>
+    <fieldset class="operation-picker"><legend>Operation</legend><div class="quick-operations">${OPERATION_IDS.map(id=>`<button type="button" data-mode-choice="${id}" aria-pressed="${s.operation===id}" title="${descriptions[id][0]}"><strong>${OPERATION_DEFINITIONS[id].title}</strong></button>`).join('')}</div><p class="operation-choice-description">${descriptions[s.operation][0]}</p></fieldset>
     <div class="quick-fields">
-      ${select('battle-size','02 / BATTLE SIZE',Object.entries(SIZE_LABELS),s.size)}
-      ${select('battle-side','03 / YOUR SIDE',[...Object.entries(ARMY_LABELS),['random','Random side']],s.side)}
-      ${select('battle-map','04 / MAP',[['random','Random sector'],['seed','Use a seed']],s.map)}
+      ${select('battle-size','Battle size',Object.entries(SIZE_LABELS),s.size)}
+      ${select('battle-side','Your side',[...Object.entries(ARMY_LABELS),['random','Random side']],s.side)}
+      ${select('battle-map','Map',[['random','Random sector'],['seed','Use a seed']],s.map)}
     </div>
     <p class="setup-estimate">${battlePopulation(s)} · 4 × 4 km${s.size==='large'?' · 1× speed recommended':''}</p>
     <label class="setup-seed" for="sector-seed" ${s.map==='random'?'hidden':''}>Sector seed <input id="sector-seed" type="number" min="1" max="2147483647" step="1" required value="${s.seed}" ${s.map==='random'?'disabled':''}><small>Same seed + settings recreates the same battle.</small></label>
-    <details class="advanced-setup" ${advancedOpen?'open':''}><summary>Advanced setup <span>Optional · sensible defaults already set</span></summary>
+    <details class="advanced-setup" ${advancedOpen?'open':''}><summary>Advanced <span>Optional</span></summary>
       <div class="setup-presets">${select('setup-preset','Starting preset',[['custom','Choose preset…'],...SETUP_PRESETS.map(p=>[p.id,p.name] as [string,string])],'custom')}
         ${presets.length?select('local-preset','Local setups',[['','Choose saved setup…'],...presets.map((p,i)=>[String(i),p.name] as [string,string])],''):''}</div>
       <div class="advanced-groups">
@@ -33,15 +33,15 @@ export function renderBattleSetup(s:BattleSetup,advancedOpen:boolean,presets:Sav
       </div>
       <div class="save-setup"><label for="preset-name">Save these settings locally<input id="preset-name" maxlength="48" placeholder="e.g. Night defense"></label><button type="button" id="save-setup">Save setup</button></div><p class="setup-storage-note">Settings only — your battlefield save is untouched.</p>
     </details>
-    <button class="menu-primary" id="launch-operation" type="submit">Start operation <span>→</span></button>
-    <p class="setup-next">Next: a short briefing, then the battlefield.</p>
+    <button class="menu-primary" id="launch-operation" type="submit">Prepare battle <span>→</span></button>
+    <p class="setup-next">Review your sector before you begin.</p>
   </form>`;
 }
 
 export function renderBattleBriefing(s:ResolvedBattleSetup):string {
   const d=configuredDefinition(s.operation,s),r=placeOperation(s.operation,s.seed,s),primary=r.objectives.find(o=>o.side==='player'&&o.priority==='primary')!;
   const hours={dawn:'06:00',day:'08:00',dusk:'18:00',night:'22:00'}[s.advanced.time];
-  return `<section class="battle-briefing" aria-label="Operation briefing"><div class="setup-title"><div><small>OPERATION ORDERS</small><h2>${escapeText(d.title)}</h2></div><span>${ARMY_LABELS[s.side]}<br>SECTOR ${s.seed} · ${hours}</span></div>
+  return `<section class="battle-briefing" aria-label="Operation briefing"><div class="setup-title"><span class="eyebrow">${ARMY_LABELS[s.side]} · ${hours}</span><h2>${escapeText(d.title)}</h2><p class="muted">Sector ${s.seed}</p></div>
     <dl><div><dt>SITUATION</dt><dd>${escapeText(d.situation)}</dd></div><div class="briefing-primary"><dt>PRIMARY</dt><dd>${escapeText(primary.title)}</dd></div><div><dt>OPTIONAL</dt><dd>${r.objectives.filter(o=>o.priority==='optional').map(o=>escapeText(o.title)).join(' · ')}<small>Local supply caches. Choose what supports your plan.</small></dd></div><div><dt>YOUR FORCE</dt><dd>${forceSummary(s)}<small>${battlePopulation(s)}${d.persistent?` · ${s.advanced.reserves} reserve personnel per side`:''}</small></dd></div></dl>
     <p class="briefing-settings">${s.advanced.supply==='low'?'Limited supplies':'Standard supplies'} · ${s.advanced.smoke?'Smoke available':'No smoke'} · ${d.persistent?'Save and resume anytime':d.duration.toLowerCase()}</p>
     <button class="menu-primary" id="begin-operation">Begin operation <span>→</span></button><button class="briefing-back" id="back-to-setup">← Change settings</button></section>`;
