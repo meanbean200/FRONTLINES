@@ -1,4 +1,5 @@
 async (page) => {
+  if(page.viewportSize()!==null)throw Error('Native sizing must be configured as viewport:null at browser creation. Zero dimensions are not a reset.');
   const cdp=await page.context().newCDPSession(page);
   const {windowId}=await cdp.send('Browser.getWindowForTarget');
   const read=()=>page.evaluate(()=>({inner:[innerWidth,innerHeight],outer:[outerWidth,outerHeight],canvas:[document.querySelector('#battlefield').clientWidth,document.querySelector('#battlefield').clientHeight]}));

@@ -6,24 +6,17 @@ const [session,probe,target]=process.argv.slice(2);
 if(!session||!probe||!target||existsSync(target))throw Error('Pass session, probe file and an unused evidence path.');
 const source=readFileSync(probe,'utf8').trim();
 const changesViewport=source.includes('setViewportSize');
-if(session==='frontlines-player'&&changesViewport)throw Error('Do not pin the player window to a test viewport. Use a separate test session or native window resizing.');
+if(session.startsWith('frontlines-player')&&changesViewport)throw Error('Do not pin the player window to a test viewport. Use a separate test session or native window resizing.');
 const cli=join(dirname(process.execPath),'node_modules/npm/bin/npx-cli.js');
-// Responsive QA may constrain a disposable page, but must never leave the
-// visible Edge window constrained afterward. The finally runs on probe errors
-// too. Zero dimensions release Chromium's metrics through the owning session;
-// a second CDP session cannot clear another session's emulation override.
+// Fixed-viewport QA stays in disposable, emulated sessions. Restore the original
+// positive viewport on success or failure; zero dimensions are NOT a reset to
+// native sizing (Chromium reapplies that invalid override after navigation).
+// Native player contexts must be created with viewport:null and never emulated.
 const wrapped=changesViewport?`async(page)=>{
-  const cdp=await page.context().newCDPSession(page);
-  const {windowId,bounds}=await cdp.send('Browser.getWindowForTarget');
+  const viewport=page.viewportSize();
+  if(!viewport||viewport.width<=0||viewport.height<=0)throw Error('Fixed-viewport probes require a disposable QA session with a positive viewport. Native player sessions must remain viewport:null.');
   try {return await (${source})(page);}
-  finally {
-    try {
-      await page.setViewportSize({width:0,height:0});
-      await cdp.send('Browser.setWindowBounds',{windowId,bounds:{windowState:'normal'}});
-      await cdp.send('Browser.setWindowBounds',{windowId,bounds:{left:bounds.left,top:bounds.top,width:bounds.width,height:bounds.height}});
-      if(bounds.windowState!=='normal')await cdp.send('Browser.setWindowBounds',{windowId,bounds:{windowState:bounds.windowState}});
-    } finally {await cdp.detach();}
-  }
+  finally {await page.setViewportSize(viewport);}
 }`:source;
 // Pass generated code by file so Windows command-line quoting cannot rewrite
 // embedded strings. Keep it beside the evidence, including failed probes.
@@ -37,7 +30,10 @@ try {
   throw error;
 }
 const match=result.match(/### Result\s*\n([\s\S]*?)\n### Ran Playwright code/);
-if(!match)throw Error('No structured probe result: '+result);
+if(!match){
+  writeFileSync(target+'.failure.txt',result,{flag:'wx'});
+  throw Error('No structured probe result. See '+target+'.failure.txt');
+}
 const evidence=JSON.parse(match[1]);
 if(evidence.nativeScreenshot?.data){
   const screenshot=target.replace(/\.json$/,'.png');

@@ -32,9 +32,15 @@ npm run dev
 
 Open `http://127.0.0.1:4173`.
 
-For the separate player-facing Edge preview, `scripts/edge-player.config.json` uses `viewport: null` so the game follows the real browser window. Do not run fixed-viewport probes in the `frontlines-player` session; use a disposable QA session instead. Its persistent local profile is under the ignored `output/playwright/edge-player-profile` directory. The current preview is served at port 4175.
+For the separate player-facing Edge preview, `scripts/edge-player.config.json` uses `viewport: null` **at browser creation**, so the game follows the real window, including after refresh. With the production preview running at port 4175:
 
-Responsive CLI probes must run through `scripts/run-browser-probe.mjs`, which releases their viewport override and restores native window bounds in `finally`, including failed probes. Do not leave a fixed-size QA viewport as the player-facing window. `scripts/qa-native-window.cjs` checks real window resizing; emulated screenshots alone cannot verify the final handoff.
+```powershell
+npx --yes --package @playwright/cli playwright-cli -s=frontlines-player-native open http://127.0.0.1:4175/ --browser=msedge --headed --config=scripts/edge-player.config.json --profile=output/playwright/edge-player-native-profile
+```
+
+The persistent player profile is ignored by Git. The older `output/playwright/edge-player-profile` is preserved separately; never erase or overwrite a profile to repair sizing. Do not run fixed-viewport probes in any `frontlines-player*` session. Use a disposable QA session with a positive emulated viewport instead.
+
+Responsive CLI probes run through `scripts/run-browser-probe.mjs`, which restores their original positive viewport in `finally`, including failed probes. It refuses emulation on native-sized pages and in named player sessions. **Zero width/height is not a native-viewport reset:** it can appear fixed after resizing, then shrink again on refresh. `scripts/qa-native-window.cjs` checks actual window resizing; `scripts/qa-native-refresh.cjs` checks repeated normal/cache-disabled reloads in disposable native contexts without reloading the player's unsaved world. A handoff must pass both; fixed-size screenshots alone are insufficient.
 
 ## Current interface
 
