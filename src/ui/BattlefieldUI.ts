@@ -9,6 +9,7 @@ import {SUPPORT_NAMES,selectedSupportTeam,supportReadiness,supportMissionText,ty
 import {actionableWeaponReason} from './WeaponReadout';
 import {squadHasEquipment} from '../combat/Equipment';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
+import {initialReserveCapacity} from '../operations/Replacements';
 
 export interface PerfSnapshot {fps:number;frameMs:number;simulationMs:number;drawCalls:number;chunks:number;p95Ms?:number}
 interface UIActions {
@@ -106,7 +107,7 @@ export class BattlefieldUI {
       if(readiness){const p=document.createElement('p');p.textContent=readiness;status.append(p);}
       for(const mission of this.state.operation?.supportMissions?.filter(m=>this.state.squads.some(q=>q.id===m.squadId&&factionOf(q)==='player')).slice(-3)??[]){const p=document.createElement('p');p.textContent=`${this.state.squads.find(q=>q.id===mission.squadId)?.name} · ${SUPPORT_NAMES[mission.kind]}: ${supportMissionText(mission,this.state.elapsed)}`;status.append(p);}
       for(const decision of this.state.operation?.rescueDecisions?.filter(d=>d.side==='player'&&d.choice==='pending')??[]){const row=document.createElement('div'),p=document.createElement('p');p.textContent=`Soldier ${decision.patientId}: ${decision.reason}`;row.append(p);for(const [choice,label] of [['approved',decision.reason.startsWith('Casualty route blocked')?'Retry rescue':'Accept rescue risk'],['hold','Wait for safety']] as const){const b=document.createElement('button');b.textContent=label;b.disabled=locked;b.onclick=()=>{if(locked)return;decision.choice=choice;decision.reviewAt=this.state.elapsed+30;};row.append(b);}status.append(row);}
-      if(replacements){const p=document.createElement('p');p.textContent=`Reserve ${replacements.reserve.player}/48 · ${replacements.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length} in transit · next release in ${Math.max(0,replacements.nextAt.player-hours).toFixed(1)} campaign hours`;status.append(p);}
+      if(replacements){const p=document.createElement('p');p.textContent=`Reserve ${replacements.reserve.player}/${initialReserveCapacity(this.state)} · ${replacements.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length} in transit · next release in ${Math.max(0,replacements.nextAt.player-hours).toFixed(1)} campaign hours`;status.append(p);}
     }
     support.querySelector('summary')!.textContent=this.state.operation?.rescueDecisions?.some(d=>d.side==='player'&&d.choice==='pending')?'Rescue decision needed':'Support & rescue';
     for(const id of ['trench-command','crater-command','stress-command'])this.root.querySelector<HTMLButtonElement>('#'+id)!.disabled=locked;

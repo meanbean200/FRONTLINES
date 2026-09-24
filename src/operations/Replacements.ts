@@ -16,10 +16,15 @@ export interface ReplacementSystem {
   reserve:Record<Faction,number>;nextAt:Record<Faction,number>;
   establishment:{squadId:number;strength:number}[];manifests:ReplacementManifest[];
 }
+/** Configured capacity is immutable as reserves are spent. Pre-setup campaigns
+ * and V2 factory scenarios without setup used the original 48-person pool. */
+export function initialReserveCapacity(state:BattlefieldState):number {
+  return state.operation?.setup?.advanced?.reserves??48;
+}
 export function initializeReplacements(state:BattlefieldState):void {
   const c=state.operation?.campaign;if(!c||c.replacements)return;
   const next=state.living!.campaignHours+24;
-  const reserve=state.operation?.setup?.advanced.reserves??48;
+  const reserve=initialReserveCapacity(state);
   c.replacements={reserve:{player:reserve,enemy:reserve},nextAt:{player:next,enemy:next},establishment:state.squads.map(q=>({squadId:q.id,strength:q.soldierIds.length})),manifests:[]};
 }
 /** Called immediately before truck motion, so loading and unloading are real timed handoffs. */
