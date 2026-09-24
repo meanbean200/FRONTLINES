@@ -36,6 +36,14 @@ There is at least one long pre-contact travel period in each opening. Decision d
 - Support: real smoke completes; friendly explosive danger prompt works; moving-mortar immediate cancellation reproduced. Grenade and HE outcome comparisons remain to test.
 - MG: observed gunner on watch and assistants resting nearby; no verified crew-loss firing comparison yet. Do not invent a combat result.
 
+### Extended baseline, still before reloading these sessions
+
+The original-bundle defense session subsequently reached first contact at 612.45 s, first shot at 690.8 s and the combat proxy at 758.3 s; no friendly casualty by 792.45 s. Meeting reached contact at 431.1 s, without shots by 449.95 s. A separate independent command probe then confirmed Observe facing/hold, 13 rounds expended by Suppress, and persistent Assault/Withdraw movement intents. These empty-area test shots are excluded from combat-onset metrics. Details and limitations are in the rescue report.
+
+### Additional root cause found during the readability replay
+
+The now-visible MG status still showed 4 seconds of setup remaining after 5.8 seconds stopped. `SmallArmsSystem` checked the next-shot cooldown **before** calling weapon handling, delaying setup/reload start. The minimal fix moves handling ahead of that gate while retaining firing cadence and all physical readiness checks. A matched fresh-operation Edge check is now set/watching after the same window. Focused regressions cover setup during cooldown, movement restarting setup, and ammunition-conserving reloads. This is a responsiveness repair, not MG lethality tuning.
+
 ## Fix boundaries
 
 Implement the evidenced control/readiness/feedback defects first, in separate commits. Sandbox deployment is the player's explicit requested feature; short operations stay finite and Open Front replacements stay on their transport schedule. No changes to world scale, visibility, damage, movement speeds, casualty care, operation objectives or enemy information. Record exact verification and remaining gaps in `gameplay-rescue-report.md`.

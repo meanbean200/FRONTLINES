@@ -32,7 +32,7 @@ test('contextual commands, drawer escape and direct trench entry remain accessib
   await begin(page);await expect(page.locator('#selection-docket')).toBeHidden();await expect(page.locator('.command-dock')).toBeHidden();
   await page.locator('.hud-tools>summary').click();await page.locator('#roster-toggle').click();
   await page.locator('.roster-row').first().click();await page.locator('[aria-label="Close forces"]').click();
-  await expect(page.locator('.command-dock')).toBeVisible();await expect(page.locator('.command-dock button')).toHaveCount(8);
+  await expect(page.locator('.command-dock')).toBeVisible();await expect(page.locator('.command-dock button')).toHaveCount(9);await expect(page.locator('#hold-command')).toBeVisible();
   await page.locator('#selection-docket [data-hud-panel]').click();await expect(page.locator('#selection-card')).toBeVisible();
   await page.keyboard.press('Escape');await expect(page.locator('#selection-card')).toBeHidden();await expect(page.locator('.operation-menu')).toBeHidden();
   await page.locator('#build-command').click();await page.locator('#trench-command').click();
