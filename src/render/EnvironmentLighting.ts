@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
 
+export function environmentDaylight(hours:number):number{return Math.max(0,Math.sin((hours%24-6)/12*Math.PI));}
+
 /** Presentation only. Campaign time is read, never advanced here. */
 export class EnvironmentLighting {
   readonly sun=new THREE.DirectionalLight(0xffeed5,2.5);
@@ -20,13 +22,21 @@ export class EnvironmentLighting {
   }
   setQuality(quality:VisualQuality):void{
     this.quality=quality;const settings=VISUAL_QUALITY[quality];
-    this.renderer.shadowMap.enabled=settings.shadowSize>0;this.releaseShadows();
+    const shadows=settings.shadowSize>0,changed=this.renderer.shadowMap.enabled!==shadows;
+    this.renderer.shadowMap.enabled=shadows;this.sun.castShadow=shadows;this.releaseShadows();
+    // Three caches lit programs. A disabled map must not leave its old sampler
+    // bound in already-compiled terrain/foliage materials after a preset switch.
+    if(changed)this.scene.traverse(object=>{
+      if(object instanceof THREE.Mesh)for(const material of Array.isArray(object.material)?object.material:[object.material])material.needsUpdate=true;
+    });
     this.sun.shadow.mapSize.setScalar(settings.shadowSize||1024);this.lastShadow=-Infinity;
   }
   releaseShadows():void{this.sun.shadow.map?.dispose();this.sun.shadow.map=null;}
   update(hours:number,target:THREE.Vector3,distance:number,now:number):void{
-    const daylight=Math.max(0,Math.sin((hours%24-6)/12*Math.PI));
-    this.sun.intensity=.2+daylight*2.7;this.sky.intensity=.38+daylight*.82;
+    const daylight=environmentDaylight(hours),nightFill=1-Math.min(1,daylight*5);
+    // Readable moon/sky fill, not a change to the simulation's night visibility.
+    // Daylight above twilight is identical to the calibrated day presentation.
+    this.sun.intensity=.2+daylight*2.7+nightFill*.18;this.sky.intensity=.38+daylight*.82+nightFill*.48;
     this.sun.color.setHex(daylight<.1?0x91a8c4:0xffeed5);
     (this.scene.background as THREE.Color).copy(this.night).lerp(this.day,Math.min(1,daylight*1.6));
     this.fog.color.copy(this.scene.background as THREE.Color);

@@ -28,15 +28,22 @@ function crownGeometry(family:number,detail:boolean):THREE.BufferGeometry{
   }
   const result=mergeGeometries(parts);parts.forEach(g=>g.dispose());
   const positions=result.attributes.position,normals=result.attributes.normal,n=new THREE.Vector3();
-  for(let i=0;i<positions.count;i++){n.set(positions.getX(i),positions.getY(i)*.7+.3,positions.getZ(i)).normalize();normals.setXYZ(i,n.x,n.y,n.z);}
+  for(let i=0;i<positions.count;i++){
+    n.set(positions.getX(i),positions.getY(i),positions.getZ(i));if(n.lengthSq()>1)n.normalize();
+    // Cards stay INSIDE the same unit ellipsoid used for physical foliage.
+    // A far card must not look like extra concealment outside that envelope.
+    positions.setXYZ(i,n.x,n.y,n.z);n.set(n.x,n.y*.7+.3,n.z).normalize();normals.setXYZ(i,n.x,n.y,n.z);
+  }
   return result;
 }
-function foliageMaterial(map:THREE.Texture):THREE.MeshStandardMaterial{
+function foliageMaterial(map:THREE.Texture,far=false):THREE.MeshStandardMaterial{
   const fade={value:1},material=new THREE.MeshStandardMaterial({map,alphaTest:.4,roughness:1,side:THREE.DoubleSide,emissive:0x23291b,emissiveIntensity:.35});
   material.userData.fade=fade;
   material.onBeforeCompile=shader=>{shader.uniforms.foliageFade=fade;shader.fragmentShader='uniform float foliageFade;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <alphatest_fragment>',`#include <alphatest_fragment>
-    if(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)>foliageFade)discard;
+    float stipple=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453);
+    if(${far?'stipple < 1. - foliageFade':'stipple > foliageFade'})discard;
   `);shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_begin>','#include <normal_fragment_begin>\nnormal *= faceDirection;');};
+  material.customProgramCacheKey=()=>far?'foliage-far':'foliage-near';
   return material;
 }
 const families=[0,1,2].map(family=>{
@@ -54,7 +61,7 @@ export function createVegetation(terrain:TerrainSystem,x0:number,z0:number):THRE
   const trunks=new THREE.InstancedMesh(trunkGeometry,trunkMaterial,trees.length),m=new THREE.Matrix4(),q=new THREE.Quaternion(),p=new THREE.Vector3(),s=new THREE.Vector3(),color=new THREE.Color();
   trunks.castShadow=true;
   for(let family=0;family<3;family++){
-    const capacity=Math.ceil(trees.length/3)*3,asset=families[family],near=new THREE.InstancedMesh(asset.near,foliageMaterial(asset.map),capacity),far=new THREE.InstancedMesh(asset.far,foliageMaterial(asset.map),capacity);
+    const capacity=Math.ceil(trees.length/3)*3,asset=families[family],near=new THREE.InstancedMesh(asset.near,foliageMaterial(asset.map),capacity),far=new THREE.InstancedMesh(asset.far,foliageMaterial(asset.map,true),capacity);
     near.count=far.count=0;
     for(const mesh of [near,far]){mesh.customDepthMaterial=asset.depth;mesh.castShadow=mesh.receiveShadow=true;mesh.userData.disposableMaterial=true;}
     pairs.push({near,far,original:new Float32Array()});group.add(near,far);

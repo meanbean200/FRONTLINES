@@ -4,6 +4,7 @@ import {soldierGeometry,weaponGeometry} from './SoldierVisual';
 import {truckGeometry,truckWheelGeometry} from './VehicleVisual';
 import {createVegetation,refreshVegetationClearance,setVegetationDetail} from './Vegetation';
 import {ParticlePool} from './ParticlePool';
+import {EnvironmentLighting,environmentDaylight} from './EnvironmentLighting';
 import {ImpactEffects} from './ImpactEffects';
 import {UnitRenderer} from './UnitRenderer';
 import {releaseLostContextResources} from './ContextRecovery';
@@ -26,6 +27,7 @@ describe('visual rescue contracts',()=>{
     const trees=[{x:0,z:0,size:4,index:0},{x:20,z:0,size:5,index:1}],serialized=JSON.stringify(trees);let cut=false;
     const terrain={objects:{trees:()=>trees},heightAt:()=>0,deformationAt:(x:number)=>cut&&Math.abs(x)<4?-.5:0} as unknown as TerrainSystem;
     const group=createVegetation(terrain,0,0),pair=group.userData.pairs[0],m=new THREE.Matrix4(),original=new THREE.Matrix4();pair.near.getMatrixAt(0,original);
+    for(const row of group.userData.pairs)for(const mesh of [row.near,row.far]){const p=mesh.geometry.attributes.position;for(let i=0;i<p.count;i++)expect(Math.hypot(p.getX(i),p.getY(i),p.getZ(i))).toBeLessThanOrEqual(1.000001);}
     setVegetationDetail(group,100,600);expect(pair.near.visible).toBe(true);expect(pair.far.visible).toBe(false);
     setVegetationDetail(group,1000,600);expect(pair.near.visible).toBe(false);expect(pair.far.visible).toBe(true);
     cut=true;refreshVegetationClearance(group,terrain);
@@ -37,6 +39,22 @@ describe('visual rescue contracts',()=>{
     const p=new ParticlePool(8),matrices=p.mesh.instanceMatrix,alpha=p.mesh.geometry.attributes.particleAlpha;p.limit=4;
     p.begin();for(let i=0;i<40;i++)p.add(i,0,0,1,1,0xffffff,.5);p.end();expect(p.count).toBe(4);
     p.begin();p.add(0,0,0,1,1,0xffffff,0);p.end();expect(p.count).toBe(0);expect(p.mesh.instanceMatrix).toBe(matrices);expect(p.mesh.geometry.attributes.particleAlpha).toBe(alpha);
+  });
+  it('dims dust and smoke at night while brief luminous flashes retain their color',()=>{
+    const p=new ParticlePool(4),day=new THREE.Color(),night=new THREE.Color(),flash=new THREE.Color();
+    p.begin();p.add(0,0,0,1,1,0xb7b7a9,.5);p.end();p.mesh.getColorAt(0,day);
+    p.setAmbientLight(.22);p.begin();p.add(0,0,0,1,1,0xb7b7a9,.5);p.add(0,0,0,1,1,0xb7b7a9,.5,true);p.end();
+    p.mesh.getColorAt(0,night);p.mesh.getColorAt(1,flash);
+    expect(night.r/day.r).toBeCloseTo(.22);expect(flash.r).toBeCloseTo(day.r);expect(environmentDaylight(22)).toBe(0);expect(environmentDaylight(12)).toBe(1);
+  });
+  it('invalidates cached shadow receivers on preset changes and retains readable night fill',()=>{
+    const scene=new THREE.Scene(),material=new THREE.MeshStandardMaterial(),mesh=new THREE.Mesh(new THREE.PlaneGeometry(),material);scene.add(mesh);
+    const renderer={shadowMap:{enabled:true}} as THREE.WebGLRenderer,lighting=new EnvironmentLighting(scene,renderer),version=material.version;
+    lighting.setQuality('low');expect(renderer.shadowMap.enabled).toBe(false);expect(lighting.sun.castShadow).toBe(false);expect(material.version).toBeGreaterThan(version);
+    lighting.setQuality('balanced');expect(renderer.shadowMap.enabled).toBe(true);expect(lighting.sun.castShadow).toBe(true);
+    lighting.update(22,new THREE.Vector3(),60,0);const sky=scene.children.find(o=>o instanceof THREE.HemisphereLight) as THREE.HemisphereLight;
+    expect(sky.intensity).toBeGreaterThan(.8);expect(lighting.sun.intensity).toBeLessThan(.5);
+    lighting.update(12,new THREE.Vector3(),60,100);expect(sky.intensity).toBeCloseTo(1.2);expect(lighting.sun.intensity).toBeCloseTo(2.9);
   });
   it('keeps effect aging paused, bounded, state-free and cleared by restoration',()=>{
     const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),p=state.soldiers[0],effects=new ImpactEffects();

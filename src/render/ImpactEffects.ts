@@ -4,6 +4,7 @@ import {playerCanSeePoint,playerVisibleEnemies} from '../operations/Visibility';
 import {hash2D} from '../core/random';
 import {ParticlePool} from './ParticlePool';
 import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
+import {environmentDaylight} from './EnvironmentLighting';
 
 interface Impact {key:string;id:number;at:number;x:number;y:number;z:number;blast:boolean;stone:boolean}
 export class ImpactEffects {
@@ -16,6 +17,7 @@ export class ImpactEffects {
   setQuality(q:VisualQuality):void{this.particles.limit=VISUAL_QUALITY[q].particles;}
   update(state:BattlefieldState,terrain:TerrainSystem):void{
     const op=state.operation,now=state.elapsed,pool=this.particles;
+    pool.setAmbientLight(.22+.78*Math.min(1,environmentDaylight(state.living?.campaignHours??12)*2));
     if(this.identity!==op||now<this.previous){this.impacts=[];this.remembered.clear();this.identity=op;}this.previous=now;
     const enemies=new Set(state.squads.filter(s=>s.faction==='enemy').map(s=>s.id)),seen=playerVisibleEnemies(state);
     const friendly=state.soldiers.filter(s=>!enemies.has(s.squadId)&&s.needs?.life==='active');
@@ -29,13 +31,13 @@ export class ImpactEffects {
     for(const c of op?.smokeFields??[]){
       if(!visible(c))continue;const life=Math.min(1,(now-c.born+1)/4,(c.until-now)/10);if(life<=0)continue;
       const floor=terrain.heightAt(c.x,c.z),age=now-c.born;
-      for(let n=0;n<14;n++){const a=n*2.399,r=c.radius*.56*Math.sqrt((n+.5)/14)*life,drift=Math.sin(age*.12+n)*.2;
-        pool.add(c.x+Math.cos(a)*r+drift,floor+1.7+n%4*1.1*life,c.z+Math.sin(a)*r,c.radius*.95*life,(4.5+n%3)*life,0xb7b7a9,.7*life);}
+      for(let n=0;n<14;n++){const a=n*2.399,r=c.radius*.50*Math.sqrt((n+.5)/14)*life,drift=Math.sin(age*.12+n)*.2*life;
+        pool.add(c.x+Math.cos(a)*r+drift,floor+1.7+n%4*1.1*life,c.z+Math.sin(a)*r,c.radius*.90*life,(4.5+n%3)*life,0xb7b7a9,.7*life);}
     }
     for(const i of this.impacts){const age=Math.max(0,now-i.at);if(!visible(i))continue;
       if(i.blast){
         // Very brief flash, then dirty thrown earth, never a persistent fireball.
-        if(age<.10)pool.add(i.x,i.y+.5,i.z,2.5,2,0xe5bd77,(1-age/.1)*.9);
+        if(age<.10)pool.add(i.x,i.y+.5,i.z,2.5,2,0xe5bd77,(1-age/.1)*.9,true);
         for(let n=0;n<20;n++){const h=hash2D(n,i.id,29),a=n*2.399+i.id,r=(.8+age*1.35)*(h+.2),fade=Math.max(0,1-age/7);
           pool.add(i.x+Math.cos(a)*r,i.y+.35+Math.min(2.8,age*1.3)*(1+h),i.z+Math.sin(a)*r,(1.2+age*.85)*(1+h),1.2+age*.7,n%3?0x928678:0x6b6258,fade*.50);
           if(age<1.2){const t=age*2.3,flight=Math.max(0,t*(2.5+h*3)-4.9*t*t);pool.add(i.x+Math.cos(a)*t*3,i.y+flight+.15,i.z+Math.sin(a)*t*3,.10+h*.15,.16+h*.2,0x51473b,1-age/1.2);}

@@ -7,6 +7,7 @@ export class ParticlePool {
   private readonly alpha:THREE.InstancedBufferAttribute;
   private readonly color=new THREE.Color();
   private used=0;
+  private ambient=1;
   limit:number;
   constructor(readonly capacity=900){
     this.limit=capacity;const geometry=new THREE.PlaneGeometry(1,1);
@@ -28,10 +29,11 @@ export class ParticlePool {
     this.mesh=new THREE.InstancedMesh(geometry,material,capacity);this.mesh.count=0;this.mesh.frustumCulled=false;this.mesh.renderOrder=2;
   }
   begin():void{this.used=0;}
-  add(x:number,y:number,z:number,width:number,height:number,tint:number,opacity:number):void{
+  setAmbientLight(value:number):void{this.ambient=Math.max(0,Math.min(1,value));}
+  add(x:number,y:number,z:number,width:number,height:number,tint:number,opacity:number,emissive=false):void{
     if(this.used>=Math.min(this.limit,this.capacity)||opacity<=0)return;
     this.matrix.makeScale(width,height,1);this.matrix.setPosition(x,y,z);this.mesh.setMatrixAt(this.used,this.matrix);
-    this.mesh.setColorAt(this.used,this.color.setHex(tint));this.alpha.setX(this.used,opacity);this.used++;
+    this.mesh.setColorAt(this.used,this.color.setHex(tint).multiplyScalar(emissive?1:this.ambient));this.alpha.setX(this.used,opacity);this.used++;
   }
   end():void{this.mesh.count=this.used;this.mesh.instanceMatrix.needsUpdate=true;this.alpha.needsUpdate=true;if(this.mesh.instanceColor)this.mesh.instanceColor.needsUpdate=true;}
   get count():number{return this.used;}
