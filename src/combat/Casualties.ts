@@ -39,7 +39,7 @@ export function updateCasualtyCare(state:BattlefieldState,terrain:TerrainSystem,
   };
   for(const s of state.soldiers){
     const wound=s.combat?.wound;if(!wound||s.needs?.life==='dead')continue;
-    if(wound.bleedUntil!==undefined&&!wound.stabilized&&state.elapsed>=wound.bleedUntil){s.health=0;s.needs!.life='dead';s.action='dead';wound.severity='fatal';w.metrics.deaths++;dropCargo(state,s);continue;}
+    if(wound.bleedUntil!==undefined&&!wound.stabilized&&state.elapsed>=wound.bleedUntil){s.health=0;s.needs!.life='dead';s.action='dead';wound.severity='fatal';delete wound.bleedUntil;w.metrics.deaths++;dropCargo(state,s);continue;}
     if(wound.care==='evacuated'){s.action='evacuated';continue;}
   }
   // Passengers are physical truck cargo in their own two-stretcher capacity.

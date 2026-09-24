@@ -163,7 +163,7 @@ export class FrontlinesApp {
     new ResizeObserver(this.resize).observe(canvas);
     this.resize();
     new ReplayPanel(()=>this.state,state=>window.__FRONTLINES__.restoreState(state),(x,z)=>this.camera.focus({x,z},180));
-    this.operationUI=new OperationUI(()=>this.state,{start:mode=>this.startGame(mode),load:()=>this.load(),save:()=>Boolean(this.save()),hasSave:()=>this.saveSystem.hasSave(),loadError:()=>this.saveSystem.lastError,saveNotice:()=>this.saveSystem.legacyNotice(),focus:p=>this.camera.focus(p,210),quality:level=>this.setQuality(level)});
+    this.operationUI=new OperationUI(()=>this.state,{start:(mode,seed)=>this.startGame(mode,seed),load:()=>this.load(),save:()=>Boolean(this.save()),hasSave:()=>this.saveSystem.hasSave(),loadError:()=>this.saveSystem.lastError,saveNotice:()=>this.saveSystem.legacyNotice(),focus:p=>this.camera.focus(p,520),quality:level=>this.setQuality(level)});
     new HudLayout(document.querySelector<HTMLElement>('#ui-root')!);
     canvas.addEventListener('webglcontextlost',event=>{
       event.preventDefault();this.graphicsLost=true;this.accumulator=0;this.operationUI.setGraphicsLost(true);
@@ -312,8 +312,8 @@ export class FrontlinesApp {
     }
   }
 
-  private startGame(mode:GameMode):void {
-    const fresh=mode==='sandbox'?createPlayableSandbox():createOperation(mode);
+  private startGame(mode:GameMode,seed=1944):void {
+    const fresh=mode==='sandbox'?createPlayableSandbox(seed):createOperation(mode,seed);
     this.replaceWorld(fresh);
     if(mode==='sandbox')this.simulation.issueOccupyNearest([fresh.squads[0].id,fresh.squads[1].id,fresh.squads.find(s=>s.kind==='engineer')!.id],fresh.trenches[0].id);
     const start=mode==='campaign'?fresh.operation?.objectives[0]:restoredViewTarget(fresh);if(start)this.camera.focus(start,mode==='sandbox'||mode==='campaign'?360:520);

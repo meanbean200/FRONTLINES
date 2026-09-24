@@ -44,7 +44,7 @@ export class LogisticsSystem {
     for(const t of w.trucks){
       const side=t.faction??'player',enemy=side==='enemy'?w.enemySupply:undefined;
       if(side==='enemy'&&!enemy){t.reason='No friendly rear depot';continue;}
-      const rear=enemy?.rear??w.rear,rearStock=enemy?.stock??w.rearStock,edge=convoyEntry(side==='enemy',rear);
+      const rear=enemy?.rear??w.rear,rearStock=enemy?.stock??w.rearStock,edge=(side==='enemy'?enemy?.entry:w.entry)??convoyEntry(side==='enemy',rear);
       const assigned=w.garrisons.find(g=>g.id===t.garrisonId&&(g.faction??'player')===side);
       // A captured destination does not teleport its shipment back into a depot.
       if(t.role==='shuttle'&&t.garrisonId!==undefined&&!assigned&&t.state!=='returning'&&!(t.state==='blocked'&&t.resume==='returning')){

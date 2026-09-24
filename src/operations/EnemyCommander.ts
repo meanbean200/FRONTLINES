@@ -3,6 +3,8 @@ import {hash2D} from '../core/random';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {lineOfFire} from './Visibility';
 import {factionOf,type Contact,type OperationMode} from './types';
+import {OPERATION_DEFINITIONS} from './OperationDefinitions';
+import type {OperationalKnowledge} from './OperationalCommander';
 
 export const ENEMY_AI_VERSION=1;
 export const ENEMY_ROLES=['defend','advance','support','flank','withdraw','resupply','search','pinned'] as const;
@@ -21,13 +23,15 @@ export interface OwnSquad extends Vec2 {
 export interface KnownObjective extends Vec2 {id:string;radius:number;owner:'player'|'enemy'|'neutral';contested:boolean;ammo:number}
 export interface EnemyObservation {
   at:number;seed:number;mode:OperationMode;squads:OwnSquad[];contacts:Contact[];objectives:KnownObjective[];
+  operational?:OperationalKnowledge;
+  assignments?:{squadId:number;objectiveId:string;goal:Vec2;defend:boolean}[];
 }
 export interface EnemyCommand {squadId:number;type:'move'|'hold';goal:Vec2;role:EnemyRole;reason:string}
 
 /** Information firewall: no opposing live soldier, health, route or order enters the planner. */
 export function observeEnemy(state:BattlefieldState):EnemyObservation {
   const op=state.operation!;
-  return {at:state.elapsed,seed:state.seed,mode:op.mode,
+  const observation:EnemyObservation={at:state.elapsed,seed:state.seed,mode:op.mode,
     squads:state.squads.filter(q=>factionOf(q)==='enemy').map(q=>{
       const people=state.soldiers.filter(s=>s.squadId===q.id&&s.health>0&&s.needs?.life==='active');
       const mean=(f:(s:typeof people[number])=>number)=>people.reduce((n,s)=>n+f(s),0)/Math.max(1,people.length);
@@ -35,7 +39,19 @@ export function observeEnemy(state:BattlefieldState):EnemyObservation {
     }).filter(q=>q.able>0),
     contacts:(op.intelligence?.command.enemy??op.contacts?.enemy??[]).filter(c=>c.active&&state.elapsed-c.lastSeen<=12).map(c=>({...c})),
     // Flag ownership is public to both players. Enemy-owned caches are finite friendly stock.
-    objectives:op.objectives.map(o=>({id:o.id,x:o.x,z:o.z,radius:o.radius,owner:o.owner,contested:o.contested,ammo:o.owner==='enemy'?(state.living!.crates.find(c=>c.id===o.cacheId)?.stock.ammo??0):0}))};
+    objectives:op.runtime?[]:op.objectives.map(o=>({id:o.id,x:o.x,z:o.z,radius:o.radius,owner:o.owner,contested:o.contested,ammo:o.owner==='enemy'?(state.living!.crates.find(c=>c.id===o.cacheId)?.stock.ammo??0):0}))};
+  if(op.runtime){
+    const r=op.runtime,d=OPERATION_DEFINITIONS[r.definitionId];
+    observation.objectives=op.objectives.map(site=>{
+      const present=observation.squads.some(q=>distance(q,site)<160),reported=observation.contacts.some(c=>distance(c,site)<180);
+      return {id:site.id,x:site.x,z:site.z,radius:180,owner:present&&!reported?'enemy':reported?'player':'neutral',contested:present&&reported,
+        ammo:present&&!reported?(state.living!.crates.find(c=>c.id===site.cacheId)?.stock.ammo??0):0};
+    });
+    observation.operational={intent:d.enemyIntent,front:structuredClone(r.front),rear:{...r.reinforcements.find(s=>s.side==='enemy')!.rear},deploymentDepth:d.deployment.enemy,
+      targets:d.enemyIntent==='contest'?r.locations.filter(l=>l.kind==='village').map(l=>({id:l.id,point:{...l.position}})):
+        r.routes.filter(route=>route.side==='enemy').map(route=>({id:'player-rear',point:{...route.destination}}))};
+  }
+  return observation;
 }
 
 type Ground=Pick<TerrainSystem,'coverAt'|'groundTypeAt'|'obstacleAt'|'baseHeightAt'|'clampToWorld'|'heightAt'|'objects'>;
@@ -88,12 +104,13 @@ export function commandEnemy(o:EnemyObservation,terrain:Ground,previous?:EnemyMe
       old.lastPosition=point(q);
       // Travelling, purposeful commitments survive brief observation changes and saves.
       const validSupply=old.role!=='resupply'||o.objectives.some(p=>p.id===old.objectiveId&&p.owner==='enemy'&&!p.contested&&p.ammo>0);
-      if(o.at<old.commitUntil&&!emergency&&old.stalledFor<15&&validSupply){
+      if(o.at<old.commitUntil&&!emergency&&!(o.operational&&contact&&old.role==='advance')&&old.stalledFor<15&&validSupply){
         if(old.role==='resupply'&&!q.moving&&q.ammo>=32)old.commitUntil=o.at;
         else {assigned.set(old.objectiveId,(assigned.get(old.objectiveId)??0)+1);claimed.push(old.goal);continue;}
       }
     }
-    const objective=[...o.objectives].sort((a,b)=>{
+    const assignment=o.assignments?.find(a=>a.squadId===q.id);
+    const objective=assignment?{...o.objectives.find(p=>p.id===assignment.objectiveId)!,...assignment.goal}:[...o.objectives].sort((a,b)=>{
       const score=(p:KnownObjective)=>{
         const pressure=visible.filter(c=>distance(c,p)<p.radius+60).length;
         return (p.id==='village'?o.mode==='defense'?150:60:30)+(p.contested?20:0)+(o.mode==='advance'&&p.owner==='enemy'?25:0)+Math.min(24,pressure*3)-distance(q,p)*.13-(assigned.get(p.id)??0)*38;
@@ -136,7 +153,7 @@ export function commandEnemy(o:EnemyObservation,terrain:Ground,previous?:EnemyMe
     }else if(remembered){
       role='search';reason='Cover the last observed position; no live tracking through concealment';commit=4;
       goal=position(terrain,q,q,claimed,remembered,10,false,variant);
-    }else if(o.mode==='advance'&&objective.owner==='enemy'){
+    }else if(assignment?.defend||o.mode==='advance'&&objective.owner==='enemy'){
       role='defend';reason='Guard an objective from nearby usable cover';commit=24;
       const angle=index*Math.PI*2/Math.max(1,o.squads.length),anchor={x:objective.x+Math.sin(angle)*15,z:objective.z+Math.cos(angle)*15};
       goal=distance(q,objective)<objective.radius*.65&&shelter(terrain.coverAt(q.x,q.z))>=.4?point(q):position(terrain,anchor,q,claimed,undefined,18,false,variant);
@@ -144,7 +161,7 @@ export function commandEnemy(o:EnemyObservation,terrain:Ground,previous?:EnemyMe
       const d=distance(q,objective),anchor=d>75?{x:q.x+(objective.x-q.x)/d*55,z:q.z+(objective.z-q.z)/d*55}:point(objective);
       goal=position(terrain,anchor,q,claimed,undefined,d>75?18:10,false,variant);
       if(d<20)goal=point(q); // Capture is physical; don't orbit the flag once inside.
-      reason=o.mode==='advance'?'Reinforce or retake an objective':'Advance in bounds toward the village';
+      reason=o.operational?'Advance in bounds toward the operational objective':o.mode==='advance'?'Reinforce or retake an objective':'Advance in bounds toward the village';
     }
     const move=distance(q,goal)>5;
     const sameMove=move&&q.moving&&q.orderTarget&&distance(q.orderTarget,goal)<8;

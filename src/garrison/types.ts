@@ -71,7 +71,8 @@ export interface LogisticsConfig {
   convoyCapacity: number; shuttleCapacity: number; carrierCapacity: number;
 }
 export interface LivingWorld {
-  enemySupply?:{rear:Vec2;stock:Inventory;nextDelivery:number};
+  entry?:Vec2;
+  enemySupply?:{rear:Vec2;entry?:Vec2;stock:Inventory;nextDelivery:number};
   version: 1; campaignHours: number; lethalNeeds: boolean; garrisons: Garrison[]; facilities: Facility[];
   trucks: Truck[]; crates: Crate[]; rear: Vec2; rearStock: Inventory; nextDelivery: number;
   ledger: { initial: Inventory; imported: Inventory; consumed: Inventory; lost: Inventory };

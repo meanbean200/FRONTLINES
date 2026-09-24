@@ -1,0 +1,27 @@
+/* Operations sheet: intent first, details folded away from the battlefield. */
+.operation-menu .operations-v2-choices {display:grid;grid-template-columns:1fr 1fr;gap:0;}
+.operation-menu .operations-v2-choices .mode-card {min-height:68px;padding:10px 13px;border-right:1px solid #b3b6a1;}
+.operation-menu .operations-v2-choices .mode-card:last-child {grid-column:1/-1;min-height:54px;}
+.operation-menu .operations-v2-choices .mode-card strong {font-size:20px;}
+.operation-menu .operations-v2-choices .mode-card.chosen strong::after {content:'SELECTED';font-size:8px;}
+.operation-briefing {border-block:1px solid #a8ac94;padding:12px 0;margin:12px 0;color:var(--ink-deep);}
+.operation-briefing>small {font:11px var(--mono);letter-spacing:1px;color:#56614c;display:block;}
+.operation-briefing>strong {display:block;font:600 18px var(--heading);margin:5px 0 10px;}
+.operation-briefing p {font:12px/1.5 var(--body);margin:7px 0;}
+.operation-briefing details {font:13px var(--body);}
+.operation-briefing summary,.optional-intents summary {cursor:pointer;}
+.sector-seed {display:flex;align-items:center;gap:12px;margin:12px 0;font:12px var(--mono);color:#53604a;}
+.sector-seed input {width:115px;padding:6px 8px;border:1px solid #939b83;border-radius:0;background:#e5e2ce;color:#253029;font:13px var(--mono);}
+#ui-root .operation-hud.operational-intent {display:block;width:440px;max-width:calc(100vw - 32px);}
+#ui-root .operational-intent .operation-topline {display:flex;justify-content:space-between;padding:6px 12px;}
+#ui-root .operational-intent .operation-topline>span {display:inline;font:11px var(--mono);color:var(--muted);}
+.primary-intent {width:100%;display:block;text-align:left;background:transparent;border:0;padding:9px 12px;border-bottom:1px solid var(--rule);}
+.primary-intent small {display:block;font:10px var(--mono);letter-spacing:1px;color:var(--muted);margin-bottom:4px;}
+.primary-intent strong {font:600 16px var(--heading);letter-spacing:.4px;color:var(--paper);}
+.primary-intent:hover {background:#d4ccb80b;}
+#ui-root .operational-intent .intent-status {display:block;font:11px/1.5 var(--mono);padding:5px 12px;}
+.optional-intents {padding:6px 12px;font:11px/1.6 var(--body);color:var(--muted);border-top:1px solid var(--rule);max-height:210px;overflow:auto;}
+.optional-intents>div {border-top:1px solid var(--rule);padding:5px 0;color:var(--paper);}
+.optional-intents small {display:block;color:var(--muted);}
+@media(max-width:650px){.operation-menu .operations-v2-choices{grid-template-columns:1fr}.operation-menu .operations-v2-choices .mode-card{min-height:57px}.primary-intent strong{font-size:14px}}
+@media(max-height:800px){.operation-menu .menu-content{padding:20px 26px}.operation-menu .menu-subtitle{display:none}.operation-menu .mode-description{font-size:13px;margin:12px 0 6px}.operation-menu .menu-footer{display:none}}

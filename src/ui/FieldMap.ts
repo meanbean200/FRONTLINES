@@ -8,6 +8,8 @@ import {observedEnemySquad} from '../operations/Visibility';
 import {SETTLEMENTS} from '../terrain/WorldFeatures';
 import {excavatedPoints} from '../core/TrenchGeometry';
 import {blocksGameplayKey} from '../input/GameplayKeys';
+import {drawOperationPlan} from './OperationalMap';
+import {OPERATION_DEFINITIONS} from '../operations/OperationDefinitions';
 
 /** Both map scales use the same delivered knowledge as battlefield markers. */
 export function mapUnits(state:BattlefieldState){
@@ -59,6 +61,7 @@ export class FieldMap {
     this.returnFocus=document.activeElement instanceof HTMLElement?document.activeElement:undefined;
     window.dispatchEvent(new Event('frontlines-menu'));document.documentElement.dataset.fieldMap='open';
     this.center=mapCenter(this.camera.target,this.span,this.verticalScale);this.seed=-1;
+    if(this.getState().operation?.runtime){this.span=WORLD_SIZE;this.center={x:0,z:0};}
     this.dialog.showModal();this.update(1);
   }
   private close(){this.dialog.close();delete document.documentElement.dataset.fieldMap;this.returnFocus?.focus({preventScroll:true});}
@@ -70,6 +73,9 @@ export class FieldMap {
     for(const b of this.dialog.querySelectorAll<HTMLButtonElement>('[data-scale]'))b.setAttribute('aria-pressed',String((b.dataset.scale==='theater')===(this.span===WORLD_SIZE)));
     const ctx=this.canvas.getContext('2d')!,w=this.canvas.width,h=this.canvas.height;ctx.drawImage(this.background,0,0,w,h);
     const screen=(p:Vec2)=>{const q=mapProject(p,this.center,this.span,this.verticalScale);return {x:q.x*w,y:q.y*h};};
+    const operation=state.operation?.runtime;
+    this.dialog.querySelector('h2')!.textContent=operation?`${OPERATION_DEFINITIONS[operation.definitionId].title.toUpperCase()} / SECTOR ${state.seed}`:'FIELD OPERATIONS';
+    if(operation)drawOperationPlan(ctx,operation,screen,true);
     const line=(points:Vec2[],color:string,width:number,dash:number[]=[])=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();points.forEach((p,i)=>{const v=screen(p);if(i)ctx.lineTo(v.x,v.y);else ctx.moveTo(v.x,v.y);});ctx.stroke();ctx.setLineDash([]);};
     ctx.strokeStyle='#5d705333';ctx.lineWidth=1;ctx.font='11px Consolas';ctx.fillStyle='#5b664d';
     for(let i=0;i<8;i++){const x=i*w/8;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();ctx.fillText(String.fromCharCode(65+i),x+8,16);}
@@ -80,7 +86,8 @@ export class FieldMap {
     }
     for(const place of SETTLEMENTS){const p=screen(place);ctx.font='600 13px Bahnschrift';ctx.fillStyle='#3e4d37';ctx.textAlign='center';ctx.fillText(place.name,p.x,p.y-18);}
     for(const [i,o] of (state.operation?.objectives??[]).entries()){
-      const p=screen(o),color=o.owner==='player'?'#456170':o.owner==='enemy'?'#843f36':'#665d38';ctx.fillStyle='#e6e0cb';ctx.fillRect(p.x-10,p.y-11,20,22);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.strokeRect(p.x-10,p.y-11,20,22);ctx.fillStyle=color;ctx.textAlign='center';ctx.font='600 15px Bahnschrift';ctx.fillText(String.fromCharCode(65+i),p.x,p.y+5);
+      const p=screen(o),color=operation?'#665d38':o.owner==='player'?'#456170':o.owner==='enemy'?'#843f36':'#665d38';ctx.fillStyle='#e6e0cb';ctx.fillRect(p.x-10,p.y-11,20,22);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.strokeRect(p.x-10,p.y-11,20,22);ctx.fillStyle=color;ctx.textAlign='center';ctx.font='600 15px Bahnschrift';ctx.fillText(operation?'◇':String.fromCharCode(65+i),p.x,p.y+5);
+      if(operation&&o.id.endsWith('-rear')){ctx.font='11px Consolas';ctx.fillText(o.name,p.x,p.y+25);}
     }
     for(const q of mapClusters(mapUnits(state),screen)){
       const p=q,chosen=q.units.find(u=>this.selected.has(u.id));ctx.strokeStyle=q.enemy?'#873e35':'#415c6a';ctx.fillStyle=chosen?'#f4ebca':'#d9d1b8';ctx.lineWidth=chosen?2:1.5;ctx.setLineDash(q.reported?[3,3]:[]);

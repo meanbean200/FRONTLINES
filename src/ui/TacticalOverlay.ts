@@ -8,6 +8,7 @@ import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {pointAlongPolyline,polylineLength} from '../core/types';
 import { factionOf } from '../operations/types';
 import {observedEnemySquad} from '../operations/Visibility';
+import {drawOperationPlan} from './OperationalMap';
 import {excavatedSpan} from '../core/TrenchGeometry';
 import {trenchPresence} from './GarrisonReadout';
 import {fieldIcon} from './FieldSymbols';
@@ -105,7 +106,7 @@ export class TacticalOverlay {
     for(const[id,marker]of this.objectiveMarkers)if(!objectiveIds.has(id)){marker.remove();this.objectiveMarkers.delete(id);}
     for(const[i,o]of (state.operation?.objectives??[]).entries()){
       let marker=this.objectiveMarkers.get(o.id);if(!marker){marker=document.createElement('div');this.objectiveMarkers.set(o.id,marker);this.layer.append(marker);}
-      marker.className=`objective-world-label ${o.owner}`;marker.textContent=`${String.fromCharCode(65+i)} · ${o.name}${o.contested?' · CONTESTED':''}`;
+      marker.className=`objective-world-label ${state.operation?.runtime?'neutral':o.owner}`;marker.textContent=state.operation?.runtime?o.name:`${String.fromCharCode(65+i)} · ${o.name}${o.contested?' · CONTESTED':''}`;
     }
   }
   private positionMarkers():void {
@@ -147,10 +148,11 @@ export class TacticalOverlay {
   private paintMap():void {
     const ctx=this.mini.getContext('2d')!,w=240,h=180,state=this.getState();ctx.drawImage(this.mapBackground,0,0);
     const screen=(p:Vec2)=>{const q=mapProject(p,this.center,this.span);return {x:q.x*w,y:q.y*h};};
+    if(state.operation?.runtime)drawOperationPlan(ctx,state.operation.runtime,screen);
     ctx.strokeStyle='rgba(226,221,191,.12)';ctx.lineWidth=1;for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(i*w/4,0);ctx.lineTo(i*w/4,h);ctx.moveTo(0,i*h/4);ctx.lineTo(w,i*h/4);ctx.stroke();}
     for(const trench of state.trenches){ctx.strokeStyle='#443328';ctx.lineWidth=2;ctx.beginPath();trench.points.forEach((p,i)=>{const q=screen(p);if(i===0)ctx.moveTo(q.x,q.y);else ctx.lineTo(q.x,q.y);});ctx.stroke();}
     for(const squad of state.squads){const enemy=factionOf(squad)==='enemy',contact=enemy?observedEnemySquad(state,squad.id):undefined;if(enemy&&!contact)continue;const p=screen(contact??squad);ctx.fillStyle=enemy?'#873e35':this.selected.has(squad.id)?'#fff9df':'#415c6a';ctx.fillRect(p.x-2,p.y-2,4,4);}
-    for(const [i,o]of (state.operation?.objectives??[]).entries()){const p=screen(o);ctx.strokeStyle=o.owner==='player'?'#415c6a':o.owner==='enemy'?'#873e35':'#665d38';ctx.lineWidth=1.5;ctx.strokeRect(p.x-5,p.y-5,10,10);ctx.fillStyle=ctx.strokeStyle;ctx.font='10px monospace';ctx.fillText(String.fromCharCode(65+i),p.x+7,p.y+3);}
+    for(const [i,o]of (state.operation?.objectives??[]).entries()){const p=screen(o);ctx.strokeStyle=state.operation?.runtime?'#665d38':o.owner==='player'?'#415c6a':o.owner==='enemy'?'#873e35':'#665d38';ctx.lineWidth=1.5;ctx.strokeRect(p.x-5,p.y-5,10,10);ctx.fillStyle=ctx.strokeStyle;ctx.font='10px monospace';if(!state.operation?.runtime)ctx.fillText(String.fromCharCode(65+i),p.x+7,p.y+3);}
     const p=screen(this.camera.target);const r=this.camera.zoomDistance/this.span*60;
     ctx.strokeStyle='#e2d7ad';ctx.lineWidth=1;ctx.strokeRect(p.x-r,p.y-r*.7,r*2,r*1.4);
     const title=document.querySelector('#map-scale');if(title)title.textContent=this.overview?`${WORLD_SIZE/1000} KM · THEATER`:'1.8 KM · SECTOR';

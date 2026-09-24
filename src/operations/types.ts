@@ -3,8 +3,9 @@ import type {EnemyMemory} from './EnemyCommander';
 import type {ShotEvent} from '../combat/types';
 import type {RescueDecision} from '../combat/Casualties';
 import type {SupportMission,SmokeField,BlastEvent} from '../combat/SupportWeapons';
+import {operationInfo} from './OperationDefinitions';
 
-export type OperationMode = 'advance' | 'defense' | 'campaign';
+export type OperationMode = 'advance' | 'defense' | 'campaign' | import('./OperationalTypes').OperationId;
 export type GameMode = OperationMode | 'sandbox';
 export type Faction = 'player' | 'enemy';
 export interface Contact extends Vec2 {
@@ -28,6 +29,7 @@ export interface Objective extends Vec2 {
   cacheId: number;
 }
 export interface OperationState {
+  runtime?:import('./OperationalTypes').OperationRuntime;
   version: 1;
   mode: OperationMode;
   status: 'active' | 'victory' | 'defeat';
@@ -59,6 +61,10 @@ export interface OperationState {
 }
 
 export const MODE_INFO = {
+  breakthrough:operationInfo('breakthrough'),
+  'line-defense':operationInfo('line-defense'),
+  meeting:operationInfo('meeting'),
+  'open-front':operationInfo('open-front'),
   campaign: {
     title: 'Trench war', duration: 'SAVE & RESUME', tag: 'OPEN-ENDED CAMPAIGN',
     description: 'Two prepared trench networks, physical supply convoys, and a contested village. Build rear supply stores and ammunition dugouts, rotate the watch, and push the opposing line back. No time limit.',

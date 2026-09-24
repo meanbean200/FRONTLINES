@@ -34,13 +34,14 @@ export class OperationRenderer {
         const a = ring.geometry.attributes.position;
         for (let i = 0; i < a.count; i++) a.setY(i, this.terrain.heightAt(objective.x + a.getX(i), objective.z + a.getZ(i)) - ground + .18);
         marker.add(ring);
+        ring.visible=!op?.runtime;
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(.12, .16, 8, 6), new THREE.MeshStandardMaterial({ color: 0x4d4840, roughness: .8 })); pole.position.y = 4; pole.castShadow = true;
         const flag = new THREE.Mesh(new THREE.BoxGeometry(4, 2.1, .08), new THREE.MeshStandardMaterial({ color: 0xe6c784, roughness: .9 })); flag.position.set(2, 6.5, 0); flag.castShadow = true;
         marker.add(pole, flag); marker.position.set(objective.x, ground, objective.z); this.group.add(marker); this.markers.push({ ring, flag });
       }
     }
     op?.objectives.forEach((o, i) => {
-      const color = o.contested ? 0xc5a568 : o.owner === 'player' ? 0x9bacb2 : o.owner === 'enemy' ? 0xb8796b : 0xdbca96;
+      const color = op.runtime?0xdbca96:o.contested ? 0xc5a568 : o.owner === 'player' ? 0x9bacb2 : o.owner === 'enemy' ? 0xb8796b : 0xdbca96;
       for (const mesh of [this.markers[i].ring, this.markers[i].flag]) (mesh.material as THREE.MeshBasicMaterial).color.setHex(color);
     });
     let count = 0;

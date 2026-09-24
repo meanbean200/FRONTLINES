@@ -55,6 +55,9 @@ describe('physical casualty care',()=>{
   });
   it('untreated critical wounds die, but legacy wounds never acquire a bleeding timer',()=>{
     const {state,sim,patient,helper}=setup();helper.carried!.medical=0;state.elapsed=61;updateCasualtyCare(state,sim.terrain,sim.navigation,.05);expect(patient.needs!.life).toBe('dead');
+    expect(patient.combat!.wound!.bleedUntil).toBeUndefined();
+    const restored=new SaveSystem().parse(JSON.stringify(state));expect(restored.soldiers.find(p=>p.id===patient.id)!.combat!.wound!.severity).toBe('fatal');
+    const deaths=state.living!.metrics.deaths;updateCasualtyCare(state,sim.terrain,sim.navigation,.05);expect(state.living!.metrics.deaths).toBe(deaths);
     const old=createOperation('advance');old.schemaVersion=2;old.soldiers[0].health=40;const migrated=new SaveSystem().parse(JSON.stringify(old));expect(migrated.soldiers[0].combat!.wound!.severity).toBe('legacy');expect(migrated.soldiers[0].combat!.wound!.bleedUntil).toBeUndefined();
   });
   it('carries through an aid post, waits for a real truck, then evacuates at the rear',()=>{

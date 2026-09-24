@@ -9,6 +9,9 @@ import {commandCampaign} from './CampaignCommander';
 import type {ShotEvent} from '../combat/types';
 import {segmentDistance,bodyVolume} from '../combat/Ballistics';
 import {signalEngagement} from '../combat/Engagement';
+import {stepOperationalRuntime,updateOperationalCaches} from './OperationalRuntime';
+import {commandOperationalEnemy} from './OperationalCommander';
+import {requestSupport} from '../combat/SupportWeapons';
 export {lineOfFire} from './Visibility';
 
 export const COMBAT_RULES = Object.freeze({ range: 360, interval: .5, shotInterval: 3.8, damage: 60, captureSeconds: 35, captureTroops: 3 });
@@ -25,7 +28,7 @@ export class OperationSystem {
     const factions = new Map(this.state.squads.map(s => [s.id, factionOf(s)]));
     const active = this.state.soldiers.filter(s => s.health > 0 && s.needs?.life === 'active');
     for (const soldier of active) soldier.suppression = Math.max(0, soldier.suppression - dt * 2.5);
-    this.updateObjectives(active, factions, dt);
+    if(op.runtime)updateOperationalCaches(this.state,active,factions,dt);else this.updateObjectives(active, factions, dt);
     // Every target is revisited each half-second, spread over the fixed ticks
     // instead of creating one all-observers visibility spike every ten frames.
     if(dt<=.050001)updateContacts(this.state,this.terrain,Math.floor((op.elapsed+.000001)/.05)%10);
@@ -33,7 +36,16 @@ export class OperationSystem {
     if(op.contacts?.player.some(c=>c.visible&&c.active))signalEngagement(this.state);
     if (op.elapsed >= op.nextOrders) {
       op.nextOrders = op.elapsed + 3;
-      if(op.mode==='campaign')commandCampaign(this.state,this.terrain,moveEnemy,holdEnemy,occupyEnemy);
+      if(op.runtime){
+        const observation=observeEnemy(this.state),result=commandOperationalEnemy(observation,this.terrain,op.enemyAI,op.runtime.commander);op.enemyAI=result.memory;op.runtime.commander=result.commander;
+        for(const c of result.commands){if(c.type==='move')moveEnemy([c.squadId],c.goal);else holdEnemy([c.squadId]);}
+        if(result.support)requestSupport(this.state,'mortarHE',result.support.squadId,result.support.target);
+        if(result.commander.phase==='withdrawing')for(const q of this.state.squads.filter(q=>q.faction==='enemy'&&(q.kind==='rifle'||q.kind==='machinegun')&&q.order.type!=='occupy-trench')){
+          const rally=this.state.living!.garrisons.filter(g=>g.faction==='enemy'&&distance(q,g.entrance)<120).sort((a,b)=>distance(q,a.entrance)-distance(q,b.entrance))[0];
+          if(rally&&!observation.contacts.some(c=>distance(c,rally.entrance)<180))occupyEnemy([q.id],rally.trenchId);
+        }
+      }
+      else if(op.mode==='campaign')commandCampaign(this.state,this.terrain,moveEnemy,holdEnemy,occupyEnemy);
       else {
       const result=commandEnemy(observeEnemy(this.state),this.terrain,op.enemyAI);op.enemyAI=result.memory;
       for(const command of result.commands){
@@ -41,6 +53,7 @@ export class OperationSystem {
       }
       }
     }
+    if(op.runtime){stepOperationalRuntime(this.state,this.terrain);return;}
     const able = this.state.soldiers.filter(s => s.health > 0 && s.needs?.life === 'active');
     const player = able.filter(s => factions.get(s.squadId) === 'player').length;
     const enemy = able.length - player;

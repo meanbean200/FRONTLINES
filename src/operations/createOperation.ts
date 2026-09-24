@@ -6,9 +6,12 @@ import { SquadNavigation } from '../navigation/SquadNavigation';
 import type { BattlefieldState, Vec2 } from '../core/types';
 import type { Faction, OperationMode } from './types';
 import {createCampaign} from './createCampaign';
+import {isOperationId} from './OperationDefinitions';
+import {createOperationalBattle} from './createOperationalBattle';
 
 /** Fresh matches are separate from saved campaigns. No localStorage writes here. */
 export function createOperation(mode: OperationMode, seed = 1944): BattlefieldState {
+  if(isOperationId(mode))return createOperationalBattle(mode,seed);
   if(mode==='campaign')return createCampaign(seed);
   const state = createBattlefield(seed);
   state.soldiers = []; state.squads = [];

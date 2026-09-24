@@ -13,6 +13,8 @@ import {validCombatSystems} from '../combat/CombatValidation';
 import {validCampaignSystems} from '../operations/CampaignValidation';
 import {initializeReplacements} from '../operations/Replacements';
 import {validBuildings} from '../terrain/BuildingValidation';
+import {validOperationalRuntime} from '../operations/OperationalValidation';
+import {isOperationId} from '../operations/OperationDefinitions';
 
 export const SAVE_KEY = 'frontlines-battlefield-v3-world2-4km';
 const V3_KEY = 'frontlines-battlefield-v3';
@@ -196,14 +198,14 @@ function validOperation(state:BattlefieldState):boolean {
   const op=state.operation!;
   if(!validIntelligence(state))return false;
   const nonnegative=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v)&&v>=0;
-  if(!op||op.version!==1||state.schemaVersion===1||!['advance','defense','campaign'].includes(op.mode)||!['active','victory','defeat'].includes(op.status)||typeof op.reason!=='string')return false;
+  if(!op||op.version!==1||state.schemaVersion===1||!(['advance','defense','campaign'].includes(op.mode)||isOperationId(op.mode))||!['active','victory','defeat'].includes(op.status)||typeof op.reason!=='string'||!validOperationalRuntime(state))return false;
   if(op.shotEvents!==undefined&&(!Array.isArray(op.shotEvents)||op.shotEvents.length>256||!op.shotEvents.every(e=>e&&Number.isSafeInteger(e.id)&&nonnegative(e.at)&&nonnegative(e.energy)&&state.soldiers.some(s=>s.id===e.shooterId&&s.squadId===e.squadId)&&[e.from,e.to].every(p=>p&&[p.x,p.y,p.z].every(Number.isFinite))&&(e.hitId===undefined||state.soldiers.some(s=>s.id===e.hitId))&&(e.obstruction===undefined||['terrain','building','trunk'].includes(e.obstruction)))))return false;
-  if(![op.elapsed,op.duration,op.score,op.targetScore,op.nextCombat,op.nextOrders,op.initialPlayer,op.initialEnemy,op.shots,op.hits].every(nonnegative)||(op.mode!=='campaign'&&op.duration<=0)||op.targetScore<=0)return false;
-  if(!Array.isArray(op.objectives)||op.objectives.length!==3||new Set(op.objectives.map(o=>o?.id)).size!==3||!op.objectives.some(o=>o?.id==='village'))return false;
+  if(![op.elapsed,op.duration,op.score,op.targetScore,op.nextCombat,op.nextOrders,op.initialPlayer,op.initialEnemy,op.shots,op.hits].every(nonnegative)||(!op.runtime&&op.mode!=='campaign'&&op.duration<=0)||op.targetScore<=0)return false;
+  if(!Array.isArray(op.objectives)||new Set(op.objectives.map(o=>o?.id)).size!==op.objectives.length||(!op.runtime&&(op.objectives.length!==3||!op.objectives.some(o=>o?.id==='village'))))return false;
   if(!op.objectives.every(o=>o&&typeof o.id==='string'&&typeof o.name==='string'&&Number.isFinite(o.x)&&Number.isFinite(o.z)&&nonnegative(o.radius)&&o.radius>0&&Number.isFinite(o.control)&&Math.abs(o.control)<=1&&['player','enemy','neutral'].includes(o.owner)&&typeof o.contested==='boolean'&&Number.isInteger(o.cacheId)&&o.cacheId>0))return false;
-  if(op.mode==='campaign'){
+  if(op.mode==='campaign'||op.mode==='open-front'){
     const c=op.campaign;
-    if(!c||op.duration!==0||!state.living?.enemySupply||!['west-hq','east-hq'].every(id=>op.objectives.some(o=>o.id===id))||![c.playerTrench,c.enemyTrench].every(id=>state.trenches.some(t=>t.id===id))||c.playerTrench===c.enemyTrench)return false;
+    if(!c||op.duration!==0||!state.living?.enemySupply||!(op.runtime?['player-rear','enemy-rear']:['west-hq','east-hq']).every(id=>op.objectives.some(o=>o.id===id))||![c.playerTrench,c.enemyTrench].every(id=>state.trenches.some(t=>t.id===id))||c.playerTrench===c.enemyTrench)return false;
     if(![c.nextRaid,c.returnAt,c.playerHold,c.enemyHold].every(nonnegative)||!['preparing','raiding','returning'].includes(c.phase)||!Array.isArray(c.raidSquads)||new Set(c.raidSquads).size!==c.raidSquads.length||!c.raidSquads.every(id=>state.squads.some(q=>q.id===id&&q.faction==='enemy')))return false;
   }else if(op.campaign!==undefined)return false;
   if(op.lastObservationAt!==undefined&&(!nonnegative(op.lastObservationAt)||op.lastObservationAt>state.elapsed+.001))return false;
@@ -241,6 +243,7 @@ function validLiving(state:BattlefieldState):boolean {
   const point=(v:unknown):boolean=>!!v&&typeof v==='object'&&finite((v as {x:number}).x)&&finite((v as {z:number}).z);
   const stock=(v:unknown):boolean=>!!v&&typeof v==='object'&&RESOURCES.every(k=>nonnegative((v as Record<string,unknown>)[k]));
   if(!nonnegative(w.campaignHours)||typeof w.lethalNeeds!=='boolean'||!nonnegative(w.nextDelivery)||![0,1,2,5].includes(w.emergencyResumeSpeed)||!point(w.rear)||!stock(w.rearStock)||!w.ledger||!w.metrics)return false;
+  if(w.entry!==undefined&&(!point(w.entry)||!insideWorld(w.entry))||w.enemySupply?.entry!==undefined&&(!point(w.enemySupply.entry)||!insideWorld(w.enemySupply.entry)))return false;
   if(w.enemySupply!==undefined&&(!w.enemySupply||!point(w.enemySupply.rear)||!stock(w.enemySupply.stock)||!nonnegative(w.enemySupply.nextDelivery)))return false;
   if(w.logistics&&(!stock(w.logistics.manifest)||!['deliveryInterval','rearCapacity','forwardCapacity','cacheCapacity','storeCapacity','convoyCapacity','shuttleCapacity','carrierCapacity'].every(k=>finite(w.logistics![k as keyof typeof w.logistics])&&Number(w.logistics![k as keyof typeof w.logistics])>0)))return false;
   if(!['initial','imported','consumed','lost'].every(k=>stock(w.ledger[k as keyof typeof w.ledger]))||!['watchGapHours','criticalNeedHours','distance','blockedHours','deaths'].every(k=>nonnegative(w.metrics[k as keyof typeof w.metrics])))return false;
