@@ -4,10 +4,22 @@ import {createOperation} from '../operations/createOperation';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {SaveSystem} from '../persistence/SaveSystem';
 import {balance} from '../garrison/Inventory';
-import {chooseEngineer,fitEngineers,facilitySiteReason,MIN_TRENCH_LENGTH,SUPPORT_WORKS} from './ConstructionReadout';
+import {chooseEngineer,fitEngineers,facilitySiteReason,MIN_TRENCH_LENGTH,SUPPORT_WORKS,constructionStatus,selectedConstructionNetwork} from './ConstructionReadout';
 import {trenchDraft} from '../ui/TrenchDraft';
 
 describe('construction controls match actual work rules',()=>{
+  it('reports approach, digging and pause from actual work state',()=>{
+    const sim=createStudyScenario(),q=fitEngineers(sim.state)[0];q.order={type:'construct-trench',trenchId:sim.state.trenches[0].id,issuedAt:0};q.movementState='moving';
+    const people=sim.state.soldiers.filter(s=>s.squadId===q.id);people.forEach(s=>s.action='walking');
+    expect(constructionStatus(sim.state,q)).toContain('Approaching');people[0].action='digging';expect(constructionStatus(sim.state,q)).toContain('1 digging');
+    sim.state.simSpeed=0;expect(constructionStatus(sim.state,q)).toContain('Paused');
+  });
+  it('opens the selected formation network, not an unrelated first network',()=>{
+    const sim=createStudyScenario(),g=sim.state.living!.garrisons[0],q=fitEngineers(sim.state)[0];
+    const other={...g,id:99999,squadIds:[q.id],entrance:{x:q.x,z:q.z}};g.squadIds=g.squadIds.filter(id=>id!==q.id);sim.state.living!.garrisons.push(other);
+    expect(selectedConstructionNetwork(sim.state,new Set([q.id]),g.id)).toBe(other.id);
+    expect(selectedConstructionNetwork(sim.state,new Set(),g.id)).toBe(g.id);
+  });
   it('never auto-selects an enemy or incapacitated construction crew',()=>{
     const state=createOperation('campaign'),enemy=state.squads.find(q=>q.kind==='engineer'&&q.faction==='enemy')!;
     expect(chooseEngineer(state,new Set([enemy.id]))?.faction).not.toBe('enemy');

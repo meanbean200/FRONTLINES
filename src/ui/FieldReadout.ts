@@ -1,6 +1,7 @@
 import type {BattlefieldState,SoldierState,SquadKind} from '../core/types';
 import {factionOf} from '../operations/types';
 import {supportReadiness,supportMissionText,SUPPORT_NAMES} from '../combat/SupportWeapons';
+import {constructionStatus} from '../construction/ConstructionReadout';
 
 export const roleName:Record<SquadKind,string>={rifle:'Rifle squad',engineer:'Engineer team',machinegun:'Machine-gun team',mortar:'Mortar team',medical:'Medical team'};
 const mean=(people:SoldierState[],read:(s:SoldierState)=>number)=>Math.round(people.reduce((sum,s)=>sum+read(s),0)/Math.max(1,people.length));
@@ -13,6 +14,7 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>)
   const first=squads[0],orders=new Set(squads.map(q=>q.order.intent??q.order.type));
   const names:Record<string,string>={'hold':'Holding','move':'Moving','occupy-trench':'Defending','construct-trench':'Excavating','observe':'Observing','suppress':'Suppressing','assault':'Assaulting','fall-back':'Withdrawing'};
   let order=orders.size>1?'Mixed orders':names[[...orders][0]]??'Following orders';
+  if(squads.length===1)order=constructionStatus(state,first)??order;
   const mission=state.operation?.supportMissions?.filter(m=>selected.has(m.squadId)).at(-1);
   if(mission&&(['preparing','flight'].includes(mission.stage)||state.elapsed-mission.requestedAt<30))order=SUPPORT_NAMES[mission.kind]+' · '+supportMissionText(mission,state.elapsed);
   const activities=new Map<string,number>();for(const s of able)activities.set(s.action,(activities.get(s.action)??0)+1);

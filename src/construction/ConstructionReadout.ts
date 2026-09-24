@@ -21,6 +21,21 @@ export function chooseEngineer(state:BattlefieldState,selected:Set<number>):Squa
   const teams=fitEngineers(state);
   return teams.find(q=>selected.has(q.id))??teams.find(q=>q.order.type==='hold')??teams.find(q=>q.order.type==='occupy-trench')??teams[0];
 }
+export function constructionStatus(state:BattlefieldState,q:SquadState):string|undefined{
+  if(q.order.type!=='construct-trench')return undefined;
+  const t=state.trenches.find(t=>t.id===q.order.trenchId),people=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life!=='dead');
+  const digging=people.filter(s=>s.action==='digging').length,progress=t?`${Math.floor(t.progress*100)}%`:'planned';
+  if(state.simSpeed===0)return `Paused · excavation ${progress} · press Space to work`;
+  if(digging)return `${digging} digging · ${progress} excavated${q.constructionQueue?.length?` · ${q.constructionQueue.length} queued`:''}`;
+  if(people.some(s=>s.combat?.reaction==='pinned'||s.combat?.reaction==='broken'))return 'Taking cover · excavation interrupted';
+  if(q.movementState==='planning')return 'Planning approach to worksite';
+  return `Approaching work fronts · ${progress} excavated`;
+}
+export function selectedConstructionNetwork(state:BattlefieldState,selected:ReadonlySet<number>,current?:number):number|undefined{
+  const networks=state.living?.garrisons.filter(g=>g.faction!=='enemy')??[],squads=state.squads.filter(q=>selected.has(q.id)&&q.faction!=='enemy');
+  return networks.find(g=>g.squadIds.some(id=>selected.has(id)))?.id??
+    (squads.length?[...networks].sort((a,b)=>Math.min(...squads.map(q=>distance(q,a.entrance)))-Math.min(...squads.map(q=>distance(q,b.entrance)))||a.id-b.id)[0]?.id:networks.find(g=>g.id===current)?.id??networks[0]?.id);
+}
 /** The preview and construction command use precisely the same site checks. */
 export function facilitySiteReason(state:BattlefieldState,g:Garrison,from:Vec2,to:Vec2,terrain:TerrainSystem,navigation:SquadNavigation,network:TrenchNetwork):string|undefined{
   if(!Number.isFinite(to.x)||!Number.isFinite(to.z))return 'Choose a point on the battlefield.';

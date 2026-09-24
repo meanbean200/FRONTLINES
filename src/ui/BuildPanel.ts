@@ -1,6 +1,6 @@
 import type {BattlefieldState,Vec2} from '../core/types';
 import type {Facility} from '../garrison/types';
-import {fitEngineers,SUPPORT_WORKS} from '../construction/ConstructionReadout';
+import {fitEngineers,SUPPORT_WORKS,constructionStatus,selectedConstructionNetwork} from '../construction/ConstructionReadout';
 import {localInventory} from '../garrison/Inventory';
 import {fieldIcon} from './FieldSymbols';
 
@@ -11,7 +11,7 @@ export class BuildPanel {
   private readonly button=document.createElement('button');
   private networkId=0;
   private last=0;
-  constructor(private getState:()=>BattlefieldState,private actions:BuildActions){
+  constructor(private getState:()=>BattlefieldState,private actions:BuildActions,private selected:()=>ReadonlySet<number>=()=>new Set()){
     const root=document.querySelector<HTMLElement>('#ui-root')!;
     this.button.id='build-command';this.button.innerHTML=fieldIcon('engineer')+'Build';this.button.setAttribute('aria-controls','build-panel');this.button.setAttribute('aria-expanded','false');
     root.querySelector('.command-dock>div')!.append(this.button);
@@ -34,7 +34,7 @@ export class BuildPanel {
   open(id?:number):void{
     window.dispatchEvent(new Event('frontlines-menu'));
     document.querySelectorAll<HTMLDetailsElement>('.garrison-panel,.support-controls').forEach(p=>p.open=false);
-    if(id)this.networkId=id;
+    this.networkId=id??selectedConstructionNetwork(this.getState(),this.selected(),this.networkId)??0;
     this.element.querySelector<HTMLElement>('.build-categories')!.hidden=false;for(const el of this.element.querySelectorAll<HTMLElement>('[data-build-page]'))el.hidden=true;
     this.element.hidden=false;this.element.scrollTop=0;this.button.setAttribute('aria-expanded','true');this.button.classList.add('active');document.documentElement.dataset.buildOpen='true';this.update(true);
   }
@@ -50,7 +50,7 @@ export class BuildPanel {
     select.value=String(this.networkId);select.disabled=locked||!networks.length;
     const g=networks.find(g=>g.id===this.networkId),teams=fitEngineers(state),assigned=teams.filter(q=>g?.squadIds.includes(q.id)&&q.order.type==='occupy-trench');
     const workforce=this.element.querySelector('.build-workforce')!;
-    workforce.textContent=!teams.length?'No fit engineer team available.':!g?'Finish a trench, then assign engineers here to establish a support network.':assigned.length?`${assigned.map(q=>q.name).join(', ')} assigned · support crews available`:'No engineers assigned here. Reassigning pauses their current order; unfinished trenches remain.';
+    workforce.textContent=!teams.length?'No fit engineer team available.':!g?'First draw a trench and let excavation finish. Then assign engineers here.':assigned.length?`${assigned.map(q=>q.name).join(', ')} ready. Choose a structure below, then place it behind this trench.`:'Step 1: assign engineers below. Step 2: choose a structure and its site. This pauses their current order; unfinished trenches remain.';
     const assign=this.element.querySelector<HTMLButtonElement>('#assign-builders')!;assign.hidden=assigned.length>0;assign.disabled=locked||!teams.length;assign.textContent=g?'Assign engineers to this network':'Assign engineers to nearest completed trench';
     for(const b of this.element.querySelectorAll<HTMLButtonElement>('[data-build-kind]')){b.disabled=locked||!assigned.length||g?.cutoff==='withdraw';b.title=b.disabled?'Assign an engineer team to this trench network first.':'Choose a site; materials are physically delivered, not spent instantly.';}
     const materials=g?localInventory(state,g).materials:0;
@@ -62,7 +62,7 @@ export class BuildPanel {
       add(SUPPORT_WORKS[f.kind].name,!assigned.length?'Waiting for assigned engineers':!f.paid?`Waiting for material carrier · ${f.materialCost} materials`:t&&t.progress<1?`Digging connector · ${Math.round(t.progress*100)}%`:`Building · ${Math.round(f.progress*100)}%`,f);
     }
     const ids=new Set(teams.map(q=>q.id));
-    for(const t of state.trenches.filter(t=>t.status!=='complete'&&ids.has(t.engineerSquadId!)))add(`Trench ${t.id}`,`${Math.round(t.progress*100)}% excavated · ${t.status==='planned'?'queued or paused':'crew working'}`,t.points[Math.floor(t.points.length/2)]);
+    for(const t of state.trenches.filter(t=>t.status!=='complete'&&ids.has(t.engineerSquadId!))){const q=teams.find(q=>q.id===t.engineerSquadId)!;add(`Trench ${t.id}`,q.order.trenchId===t.id?constructionStatus(state,q)??`${Math.round(t.progress*100)}% excavated · paused`:`${Math.round(t.progress*100)}% excavated · queued or paused`,t.points[Math.floor(t.points.length/2)]);}
     if(!jobs.childElementCount)add('No unfinished works','Draw a trench or choose a support structure above.');
     if(state.simSpeed===0)add('SIMULATION PAUSED','Plans can be placed now. Press Space or 1× for crews to work.');
   }

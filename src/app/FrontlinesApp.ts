@@ -137,7 +137,7 @@ export class FrontlinesApp {
       const assigned=this.simulation.issueOccupyNearest([engineer.id],g?.trenchId);
       this.ui.notify(assigned?`${engineer.name} assigned · unfinished earthworks are preserved`:'No reachable completed trench with room for the engineers. Finish excavation first.',assigned?'normal':'warn');
       if(assigned)this.selectSquads([engineer.id]);
-    }});
+    }},()=>this.selectedSquads);
     this.tactical=new TacticalOverlay(()=>this.state,this.selectedSquads,this.camera,this.simulation.terrain,(ids,add)=>this.selectSquads(ids,add),id=>this.occupyTrench(id),point=>{this.simulation.issueMove([...this.selectedSquads],point);this.ui.notify('Map move order issued');});
     this.deploymentPanel=new DeploymentPanel(()=>this.state,(kind,count)=>{this.pendingDeployment={kind,count};this.setMode('deploy');this.ui.notify(`Place ${count} ${kind==='rifle'?'rifle squad':'engineer team'}${count>1?'s':''} · click clear ground · Esc finishes`);});
     this.input=new CommandInput({
