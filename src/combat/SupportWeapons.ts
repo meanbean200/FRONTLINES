@@ -11,6 +11,10 @@ export type SupportKind='mortarHE'|'mortarSmoke'|'smokeGrenades';
 export type SupportSource='PLAYER'|'ENEMY_AI'|'CAMPAIGN_AI'|'SCRIPTED_SCENARIO'|'LEGACY_UNKNOWN';
 export interface SupportRequest {at:number;squadId:number;side:'player'|'enemy';source:SupportSource;kind:SupportKind;target:Vec2;accepted:boolean;reason:string}
 export const SUPPORT_NAMES:Record<SupportKind,string>={mortarHE:'Mortar HE',mortarSmoke:'Mortar smoke',smokeGrenades:'Smoke grenade'};
+/** Live command authority. Historical provenance tags never grant permission. */
+export function supportSourceMatchesSide(side:'player'|'enemy',source:SupportSource):boolean {
+  return side==='player'?source==='PLAYER':source==='ENEMY_AI'||source==='CAMPAIGN_AI';
+}
 /** Read-only readiness, shared by command validation, live missions and the HUD. */
 export function supportReadiness(state:BattlefieldState,kind:SupportKind,squadId:number,terrain?:TerrainSystem,checkBusy=true){
   const q=state.squads.find(q=>q.id===squadId),grenade=kind==='smokeGrenades';
@@ -43,14 +47,16 @@ export interface SmokeField extends Vec2 {id:number;radius:number;until:number;b
 export interface BlastEvent extends Vec2 {id:number;at:number;radius:number}
 export function requestSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk=false,terrain?:TerrainSystem,source:SupportSource='PLAYER'):{accepted:boolean;warning?:boolean;reason:string} {
   const result=validateSupport(state,kind,squadId,target,confirmedRisk,terrain,source);
-  const side=state.squads.find(q=>q.id===squadId)?.faction??'player';
-  if(state.operation&&Number.isFinite(target.x)&&Number.isFinite(target.z))state.operation.supportRequests=[...(state.operation.supportRequests??[]),{at:state.elapsed,squadId,side,source,kind,target:{...target},accepted:result.accepted,reason:result.reason}].slice(-64);
+  const requester=state.squads.find(q=>q.id===squadId),side=requester?.faction??'player';
+  // Unknown/unauthorized API callers are not game requesters. Keep useful
+  // rejected orders (ammo, roofs, range, danger, reports) from real authorities.
+  if(state.operation&&requester&&supportSourceMatchesSide(side,source)&&Number.isFinite(target.x)&&Number.isFinite(target.z))state.operation.supportRequests=[...(state.operation.supportRequests??[]),{at:state.elapsed,squadId,side,source,kind,target:{...target},accepted:result.accepted,reason:result.reason}].slice(-64);
   return result;
 }
 function validateSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk:boolean,terrain:TerrainSystem|undefined,source:SupportSource):{accepted:boolean;warning?:boolean;reason:string} {
   const op=state.operation,q=state.squads.find(q=>q.id===squadId);if(!op?.supportRules||op.status!=='active'||!q||![target.x,target.z].every(Number.isFinite))return{accepted:false,reason:'Support unavailable'};
   const requestingSide=q.faction??'player';
-  if(requestingSide==='player'&&source!=='PLAYER'||requestingSide==='enemy'&&!['ENEMY_AI','CAMPAIGN_AI'].includes(source))return{accepted:false,reason:'Support authority rejected: friendly support requires a player request; enemy support requires its commander'};
+  if(!supportSourceMatchesSide(requestingSide,source))return{accepted:false,reason:'Support authority rejected: friendly support requires a player request; enemy support requires its commander'};
   if(requestingSide==='enemy'&&!(op.intelligence?.command.enemy??op.contacts?.enemy??[]).some(c=>c.active&&state.elapsed-c.lastSeen<=12&&distance(c,target)<=Math.max(5,Math.min(30,c.uncertainty??0))))return{accepted:false,reason:'No recent delivered report for this support target'};
   const ready=supportReadiness(state,kind,squadId,terrain),operator=state.soldiers.find(s=>s.id===ready.operatorId),range=distance(operator??q,target),grenade=kind==='smokeGrenades';
   if(ready.reason)return{accepted:false,reason:ready.reason};
