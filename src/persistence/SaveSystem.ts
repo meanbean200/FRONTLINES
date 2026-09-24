@@ -67,6 +67,8 @@ export class SaveSystem {
     }
     initializeLiving(state);
     if(!wasLegacy&&state.combatRules!==RULES_VERSION)state.living!.migrationNote='This copy now uses revised combat and terrain rules. Exact continuation is guaranteed only within the same rules version; existing people and stock are unchanged.';
+    for(const s of state.soldiers)s.posture??='standing';
+    for(const m of state.operation?.supportMissions??[]){m.source??='LEGACY_UNKNOWN';m.side??=state.squads.find(q=>q.id===m.squadId)?.faction??'player';}
     if(wasLegacy){
       state.living!.migrationNote='Copy migrated to v3: revised combat rules; people, health, orders and existing stock preserved. Legacy injuries do not bleed. Original v1/v2 storage is untouched.';
       for(const s of state.soldiers){s.combat??={shotSequence:0};if(s.health>0&&s.health<100)s.combat.wound={severity:'legacy',at:state.elapsed,stabilized:true,care:'stabilized'};}
@@ -154,6 +156,7 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
     if(order.trenchId!==undefined&&!trenchIds.has(order.trenchId))return false;
   }
   for(const soldier of state.soldiers){
+    if(soldier.posture!==undefined&&!['standing','crouched','prone'].includes(soldier.posture))return false;
     const combat=soldier.combat;
     if(combat){
       if(!Number.isSafeInteger(combat.shotSequence)||combat.shotSequence<0)return false;
@@ -161,7 +164,8 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
       if(aim&&(![aim.since,aim.lastSeen,aim.lastHeading,aim.settlingUntil].every(finite)||!point(aim.point)||!finite(aim.point.y)||!point(aim.lastPosition)||aim.targetId!==undefined&&!soldierMap.has(aim.targetId)))return false;
       if(combat.reaction!==undefined&&!['steady','under-fire','pinned','shaken','broken'].includes(combat.reaction)||combat.owner!==undefined&&!['order','duty','reaction','casualty','building','support'].includes(combat.owner))return false;
       if(combat.weapon?.effectivePoint&&!point(combat.weapon.effectivePoint))return false;
-      for(const v of [combat.reactionUntil,combat.lastIncoming,combat.threatDirection,combat.coverReview])if(v!==undefined&&!finite(v))return false;
+      for(const v of [combat.reactionUntil,combat.reactionSince,combat.lastIncoming,combat.threatDirection,combat.coverReview,combat.coverTests])if(v!==undefined&&!finite(v))return false;
+      if(combat.coverAnchor!==undefined&&!point(combat.coverAnchor))return false;
       if(combat.reactionRoute!==undefined&&(!Array.isArray(combat.reactionRoute)||!combat.reactionRoute.every(point)||!Number.isInteger(combat.reactionIndex)||combat.reactionIndex!<0||combat.reactionIndex!>combat.reactionRoute.length))return false;
       const w=combat.weapon;
       if(w&&(!WEAPONS[w.id as WeaponId]||!Number.isInteger(w.loaded)||w.loaded<0||w.loaded>WEAPONS[w.id].magazine||![w.reloadUntil,w.setupUntil,w.burstLeft].every(v=>finite(v)&&v>=0)||!point(w.position)||w.effectiveUntil!==undefined&&!finite(w.effectiveUntil)))return false;

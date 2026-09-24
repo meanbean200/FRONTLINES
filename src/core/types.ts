@@ -16,6 +16,7 @@ export type ConstructionJob = {kind:'trench'|'facility';id:number};
 export type ConstructionRequest = {kind:'trench';points:Vec2[];engineerSquadId?:number}|{kind:'facility';garrisonId:number;facilityKind:import('../garrison/types').Facility['kind'];origin:Vec2;position:Vec2};
 
 export interface SoldierState extends Vec2 {
+  posture?:'standing'|'crouched'|'prone';
   building?:{id:number;floor:0|1;vertical:number;route:Vec2[];index:number;stage:'approach'|'inside'|'stairs'|'station'|'exit';target:Vec2;targetFloor:0|1;stairTime:number;stairFrom?:Vec2;exitRequested?:boolean};
   id: number;
   squadId: number;

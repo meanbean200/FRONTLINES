@@ -17,6 +17,7 @@ export interface SoldierCombat {
   reaction?:Reaction;reactionUntil?:number;owner?:ActionOwner;
   lastIncoming?:number;threatDirection?:number;coverReview?:number;
   reactionRoute?:Vec2[];reactionIndex?:number;pauseReason?:string;
+  reactionSince?:number;coverAnchor?:Vec2;coverTests?:number;
   weapon?:WeaponState;
   wound?:Wound;careTask?:CareTask;nextCareReview?:number;
 }

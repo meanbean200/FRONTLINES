@@ -6,6 +6,7 @@ import {isWalkingAction} from '../core/SoldierActions';
 import {soldierGeometry,legGeometry,weaponGeometry,shovelGeometry,UNIFORMS,type WeaponVisualKind} from './SoldierVisual';
 import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
 import {armyFor} from '../operations/BattleSetup';
+import {postureOf} from '../combat/Posture';
 
 export class UnitRenderer {
   readonly group=new THREE.Group();
@@ -96,8 +97,8 @@ export class UnitRenderer {
       position.y=bodyFloor(this.terrain,{...soldier,x:position.x,z:position.z});
       this.displayed.set(soldier.id,position);
       rotation.setFromAxisAngle(new THREE.Vector3(0,1,0),soldier.heading);
-      const lying=soldier.action==='sleeping'||soldier.needs?.life==='dead'||soldier.needs?.life==='incapacitated';
-      const seated=['eating','resting','crouching','pinned','sheltering','treating','treating at aid post'].includes(soldier.action)||soldier.suppression>60;
+      const lying=postureOf(soldier)==='prone';
+      const seated=postureOf(soldier)==='crouched'||['eating','resting','treating','treating at aid post'].includes(soldier.action);
       scale.setScalar(1);p.copy(position);if(seated&&!lying)p.y-=.43;
       if(lying){rotation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2));p.x-=Math.sin(soldier.heading)*.9;p.z-=Math.cos(soldier.heading)*.9;p.y+=.38;}
       if(soldier.action==='being carried')p.y+=1;
@@ -124,7 +125,7 @@ export class UnitRenderer {
         const phase=moving?Math.sin(this.state.elapsed*8+i*.37+leg*Math.PI)*.2:0;
         const localX=leg===0?-.12:.12;
         p.set(position.x+Math.cos(soldier.heading)*localX+Math.sin(soldier.heading)*phase,position.y+.35,position.z-Math.sin(soldier.heading)*localX+Math.cos(soldier.heading)*phase);
-        if(lying){p.set(localX,.35,0).applyQuaternion(rotation).add(position);p.x-=Math.sin(soldier.heading)*.9;p.z-=Math.cos(soldier.heading)*.9;p.y+=.38;scale.setScalar(1);}else{scale.set(1,seated?.58:1,1);if(seated){p.y=position.y+.20;p.z+=Math.cos(soldier.heading)*.12;p.x+=Math.sin(soldier.heading)*.12;}}
+        if(lying){p.set(localX,.35,phase*.2).applyQuaternion(rotation).add(position);p.x-=Math.sin(soldier.heading)*.9;p.z-=Math.cos(soldier.heading)*.9;p.y+=.38;scale.setScalar(1);}else{scale.set(1,seated?.58:1,1);if(seated){p.y=position.y+.20;p.z+=Math.cos(soldier.heading)*.12;p.x+=Math.sin(soldier.heading)*.12;}}
         jointRotation.copy(rotation);if(moving&&!lying)jointRotation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),phase*1.4));
         matrix.compose(p,jointRotation,scale);this.legs!.setMatrixAt(legs,matrix);this.legs!.setColorAt(legs++,tint.setHex(german?0x646a60:0x65654b));
       }

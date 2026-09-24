@@ -3,6 +3,7 @@ import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {factionOf,type Contact} from './types';
 import {isWalkingAction} from '../core/SoldierActions';
 import {smokeTransmission} from '../combat/SupportWeapons';
+import {postureOf} from '../combat/Posture';
 
 // Outer search bounds are only a cost limit. Recognition inside them depends on
 // angular size, exposure, facing, light and the actual intervening environment.
@@ -11,13 +12,13 @@ export const SIGHT_RULES=Object.freeze({dayRange:800,nightRange:350,memorySecond
 export function bodyFloor(terrain:TerrainSystem,s:Vec2&Partial<SoldierState>):number {
   if(s.building&&s.building.stage!=='approach'&&s.building.stage!=='exit'){const b=terrain.buildings[s.building.id];if(b)return terrain.baseHeightAt(b.x,b.z)+.14+s.building.vertical;}
   const floor=terrain.heightAt(s.x,s.z);
-  const peeking=s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&(s.suppression??0)<65&&s.needs?.life==='active';
+  const peeking=s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&postureOf(s)==='standing'&&(s.suppression??0)<65&&s.needs?.life==='active';
   return peeking?Math.max(floor,terrain.baseHeightAt(s.x,s.z)-1.15):floor;
 }
 export function eyeHeight(terrain:TerrainSystem,s:Vec2&Partial<SoldierState>):number {
   const floor=bodyFloor(terrain,s);
-  if(s.action==='sleeping'||s.needs?.life==='incapacitated'||s.needs?.life==='dead')return floor+.4;
-  if(s.suppression!==undefined&&s.suppression>65||['crouching','pinned','sheltering'].includes(s.action??''))return floor+.8;
+  if(postureOf(s)==='prone')return floor+.4;
+  if(postureOf(s)==='crouched')return floor+.95;
   return floor+1.6;
 }
 
@@ -34,7 +35,7 @@ export function visibilitySignal(state:BattlefieldState,terrain:TerrainSystem,ob
   const facing=((target.x-observer.x)*Math.sin(observer.heading)+(target.z-observer.z)*Math.cos(observer.heading))/Math.max(1,d);
   const attention=d<35||recentShot?1:facing<-.25?.28:facing<.25?.7:1;
   const tired=.55+(observer.needs?.energy??100)*.0045,stress=1-observer.suppression*.006;
-  const posture=target.action==='sleeping'||(target.suppression??0)>65?.45:terrain.coverAt(target.x,target.z)==='trench'?(target.duty?.kind==='watch'?.78:.48):1;
+  const posture=postureOf(target)==='prone'?.45:postureOf(target)==='crouched'?.7:terrain.coverAt(target.x,target.z)==='trench'?(target.duty?.kind==='watch'?.78:.48):1;
   const movement=isWalkingAction(target.action??'holding')||target.action==='following drawn path'?1.35:1;
   const light=night?.18:hour<7||hour>=19?.55:1;
   const angularSize=1/(1+(d/230)**2);

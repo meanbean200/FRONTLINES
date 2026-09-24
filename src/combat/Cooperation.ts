@@ -17,6 +17,10 @@ export function coordinateMovement(state:BattlefieldState):void {
     const effective=support.some(s=>useful(s)&&(s.carried?.ammo??0)>0&&s.suppression<70);
     const otherSupport=state.soldiers.some(s=>s.squadId!==q.id&&state.squads.some(other=>other.id===s.squadId&&(other.faction??'player')===side)&&distance(s,q)<150&&useful(s)&&s.needs?.life==='active');
     for(const s of support)if(s.combat?.owner==='order'){s.combat.owner='reaction';s.combat.pauseReason='Covering moving group';s.action='covering fire';}
-    if(!effective&&!otherSupport)for(const s of moving)if(s.combat?.owner==='order'){s.combat.owner='reaction';s.combat.pauseReason='Waiting for covering fire';s.action='waiting for covering fire';}
+    // A short wait permits the supporting group to settle. Without effective
+    // fire it is NOT safe, but neither is indefinite exposed paralysis. The
+    // moving group resumes cautiously; pinning still has higher authority.
+    if(!effective&&!otherSupport&&state.elapsed<t.switchAt-7.5){for(const s of moving)if(s.combat?.owner==='order'){s.combat.owner='reaction';s.combat.pauseReason='Waiting briefly for covering fire';s.action='waiting for covering fire';s.posture='crouched';}}
+    else if(!effective&&!otherSupport){for(const s of moving)if(s.combat?.owner==='order')s.posture='crouched';}
   }
 }

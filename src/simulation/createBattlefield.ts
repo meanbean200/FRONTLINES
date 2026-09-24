@@ -66,6 +66,7 @@ export function addSquad(
       ammunition: kind === 'engineer' ? 60 : 120,
       fatigue: 0,
       action: 'holding',
+      posture:'standing',
       cover: 'open',
     };
     state.soldiers.push(soldier);

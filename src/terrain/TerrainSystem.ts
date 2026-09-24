@@ -50,6 +50,20 @@ export class TerrainSystem {
     this.syncModifications();
   }
   get seed(): number { return this.state.seed; }
+  /** Bounded local physical anchors. No troops or remote world-state lookup. */
+  localCoverAnchors(p:Vec2,radius:number):Vec2[]{
+    const points:Vec2[]=[],seen=new Set<ExcavationSegment>();
+    for(let x=Math.floor((p.x-radius)/32);x<=Math.floor((p.x+radius)/32);x++)for(let z=Math.floor((p.z-radius)/32);z<=Math.floor((p.z+radius)/32);z++)for(const edge of this.buckets.get(`${x},${z}`)??[]){
+      if(seen.has(edge))continue;seen.add(edge);const hit=distanceToSegment(p,edge.a,edge.b);
+      if(hit.distance<=radius){points.push({x:edge.a.x+(edge.b.x-edge.a.x)*hit.t,z:edge.a.z+(edge.b.z-edge.a.z)*hit.t});if(points.length>=8)return points;}
+    }
+    // Seed the existing footprint buckets, then sample exterior corners.
+    this.buildingAt(p);
+    const buildings=new Set<number>();
+    for(let x=Math.floor((p.x-radius)/32);x<=Math.floor((p.x+radius)/32);x++)for(let z=Math.floor((p.z-radius)/32);z<=Math.floor((p.z+radius)/32);z++)for(const id of this.buildingBuckets.get(`${x},${z}`)??[])buildings.add(id);
+    for(const id of buildings){const b=this.buildings[id];for(const dx of [-1,1])for(const dz of [-1,1]){const v={x:b.x+dx*(b.width/2+.9),z:b.z+dz*(b.depth/2+.9)};if(distance(p,v)<=radius)points.push(v);if(points.length>=16)return points;}}
+    return points;
+  }
   get snapshot():Pick<BattlefieldState,'seed'|'trenches'|'craters'|'buildingChanges'> {return {seed:this.seed,trenches:this.state.trenches,craters:this.state.craters,buildingChanges:this.state.buildingChanges};}
   setState(state: BattlefieldState): void {
     this.epoch++;

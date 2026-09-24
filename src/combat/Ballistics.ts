@@ -5,6 +5,7 @@ import { boxIntersection } from '../terrain/WorldOcclusion';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import { bodyFloor, eyeHeight } from '../operations/Visibility';
 import type { Point3, ShotEvent } from './types';
+import {postureOf} from './Posture';
 
 // Gameplay calibration, not historical marksmanship statistics. Metres of
 // standard deviation in a plane perpendicular to the intended shot direction.
@@ -18,7 +19,7 @@ export function rifleSpread(range:number):number {
 }
 export function bodyVolume(terrain:TerrainSystem,s:SoldierState){
   const floor=bodyFloor(terrain,s),top=eyeHeight(terrain,s)+.12;
-  const lying=s.action==='sleeping'||s.needs?.life==='incapacitated'||s.needs?.life==='dead';
+  const lying=postureOf(s)==='prone';
   return {x:s.x,z:s.z,y:floor+(top-floor)/2,rx:lying?.45:.23,ry:Math.max(.15,(top-floor)/2),rz:lying?.65:.23};
 }
 export function muzzlePoint(terrain:TerrainSystem,s:SoldierState):Point3 {

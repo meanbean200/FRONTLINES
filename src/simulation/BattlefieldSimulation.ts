@@ -26,6 +26,7 @@ import {updateCasualtyCare} from '../combat/Casualties';
 import {stepSupport} from '../combat/SupportWeapons';
 import {stepReplacements} from '../operations/Replacements';
 import {stepBuildings} from './BuildingSystem';
+import {postureSpeed} from '../combat/Posture';
 
 export class BattlefieldSimulation {
   readonly terrain: TerrainSystem;
@@ -335,7 +336,7 @@ export class BattlefieldSimulation {
     dz /= normalized;
     const slopePenalty = 1 / (1 + this.terrain.slopeAt(soldier.x, soldier.z) * 3);
     const fatiguePenalty = 1 - clamp(soldier.fatigue / 180, 0, 0.35);
-    const speed = 3.4 * slopePenalty * fatiguePenalty * (this.state.operation ? Math.max(.12,1 - soldier.suppression / 110) : 1);
+    const speed = 3.4 * postureSpeed(soldier) * slopePenalty * fatiguePenalty * (this.state.operation ? Math.max(.12,1 - soldier.suppression / 110) : 1);
     const movement = Math.min(targetDistance, speed * dt);
     const nextX=soldier.x+dx*movement,nextZ=soldier.z+dz*movement;
     if(this.terrain.obstacleAt(nextX,nextZ,.8)) {
