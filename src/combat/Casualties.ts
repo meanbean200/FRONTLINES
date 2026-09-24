@@ -1,4 +1,5 @@
 import {distance,type BattlefieldState,type SoldierState,type Vec2} from '../core/types';
+import {hasEquipment} from './Equipment';
 import {hash2D} from '../core/random';
 import {consume,transfer} from '../garrison/Inventory';
 import {dropCargo} from '../garrison/NeedsSystem';
@@ -59,7 +60,7 @@ export function updateCasualtyCare(state:BattlefieldState,terrain:TerrainSystem,
       if(task){const p=byId.get(task.patientId);if(p){p.x=helper.x;p.z=helper.z;}delete c.careTask;}continue;
     }
     if(c.owner==='reaction'||c.owner==='support'||c.reaction==='pinned'||c.reaction==='broken')continue;
-    const squad=squads.get(helper.squadId)!,side=squad.faction??'player',medic=squad.kind==='medical';
+    const squad=squads.get(helper.squadId)!,side=squad.faction??'player',medic=hasEquipment(state,helper,'medicalKit');
     if(!task&&(medic||helper.duty?.kind!=='watch')&&state.elapsed>=(c.nextCareReview??0)){
       c.nextCareReview=state.elapsed+3+(helper.id%5)*.2;
       // Do not keep interrupting people to re-treat an already stabilized
@@ -131,6 +132,6 @@ export function updateCasualtyCare(state:BattlefieldState,terrain:TerrainSystem,
     }
   }
   // Medics draw supplies only while physically at a friendly store or cache.
-  for(const s of state.soldiers.filter(s=>squads.get(s.squadId)?.kind==='medical'&&s.needs?.life==='active'))for(const g of w.garrisons.filter(g=>(g.faction??'player')===(squads.get(s.squadId)?.faction??'player'))){if(distance(s,g.entrance)<4)transfer(g.cache,s.carried!,'medical',Math.min(dt,8-s.carried!.medical));for(const f of w.facilities.filter(f=>f.garrisonId===g.id&&f.progress===1))if(distance(s,f)<4)transfer(f.stock,s.carried!,'medical',Math.min(dt,8-s.carried!.medical));}
+  for(const s of state.soldiers.filter(s=>hasEquipment(state,s,'medicalKit')&&s.needs?.life==='active'))for(const g of w.garrisons.filter(g=>(g.faction??'player')===(squads.get(s.squadId)?.faction??'player'))){if(distance(s,g.entrance)<4)transfer(g.cache,s.carried!,'medical',Math.min(dt,8-s.carried!.medical));for(const f of w.facilities.filter(f=>f.garrisonId===g.id&&f.progress===1))if(distance(s,f)<4)transfer(f.stock,s.carried!,'medical',Math.min(dt,8-s.carried!.medical));}
   op.rescueDecisions=op.rescueDecisions.filter(d=>byId.get(d.patientId)?.needs?.life!=='dead'&&byId.get(d.patientId)?.combat?.wound?.care!=='evacuated');
 }

@@ -27,6 +27,7 @@ import {stepSupport} from '../combat/SupportWeapons';
 import {stepReplacements} from '../operations/Replacements';
 import {stepBuildings} from './BuildingSystem';
 import {postureSpeed} from '../combat/Posture';
+import {initializeEquipment,squadHasEquipment} from '../combat/Equipment';
 
 export class BattlefieldSimulation {
   readonly terrain: TerrainSystem;
@@ -49,6 +50,7 @@ export class BattlefieldSimulation {
   }
 
   constructor(public state: BattlefieldState) {
+    initializeEquipment(state);
     this.terrain = new TerrainSystem(state);
     this.trenches = new TrenchSystem(state);
     this.navigation = new SquadNavigation(this.terrain);
@@ -59,6 +61,7 @@ export class BattlefieldSimulation {
   }
 
   replaceState(state: BattlefieldState): void {
+    initializeEquipment(state);
     this.worldRevision++;this.routeRevision.clear();
     this.coverRevision=-1;
     this.state = state;
@@ -110,7 +113,7 @@ export class BattlefieldSimulation {
     this.updateSquadCenters();
     this.updateOrders(dt);
     this.trenches.update(dt);
-    for(const squad of this.state.squads)if(squad.kind==='engineer'&&squad.order.type==='hold'&&squad.constructionQueue?.length){const job=squad.constructionQueue.shift()!;if(typeof job==='number'||job.kind==='trench')this.startConstruction(squad,typeof job==='number'?job:job.id);}
+    for(const squad of this.state.squads)if(squadHasEquipment(this.state,squad,'tools')&&squad.order.type==='hold'&&squad.constructionQueue?.length){const job=squad.constructionQueue.shift()!;if(typeof job==='number'||job.kind==='trench')this.startConstruction(squad,typeof job==='number'?job:job.id);}
     this.terrain.syncModifications();
     stepReplacements(this.state,dt);
     this.garrisons.step(dt);
@@ -195,7 +198,7 @@ export class BattlefieldSimulation {
     if(this.commandsLocked)return;
     if (points.length < 2||points.length>4096||points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z))) return undefined;
     const bounded = points.map((point) => this.terrain.clampToWorld(point));
-    const validEngineer = this.state.squads.find((squad) => squad.id === engineerSquadId && squad.kind === 'engineer' && factionOf(squad) === 'player');
+    const validEngineer = this.state.squads.find((squad) => squad.id === engineerSquadId && squadHasEquipment(this.state,squad,'tools') && factionOf(squad) === 'player');
     for(let i=1;i<bounded.length;i++){
       const a=bounded[i-1],b=bounded[i],n=Math.max(1,Math.ceil(distance(a,b)/2));
       for(let j=0;j<=n;j++){const x=a.x+(b.x-a.x)*j/n,z=a.z+(b.z-a.z)*j/n;if(this.terrain.obstacleAt(x,z,4)||this.terrain.groundTypeAt(x,z)==='river')return undefined;}
@@ -383,7 +386,7 @@ export class BattlefieldSimulation {
   resumeConstruction(squadIds:number[]):number {
     if(this.commandsLocked)return 0;
     let count=0;
-    for(const squad of this.state.squads.filter(s=>squadIds.includes(s.id)&&s.kind==='engineer'&&factionOf(s)==='player')){
+    for(const squad of this.state.squads.filter(s=>squadIds.includes(s.id)&&squadHasEquipment(this.state,s,'tools')&&factionOf(s)==='player')){
       if(squad.order.type==='construct-trench')continue;
       const candidates=this.state.trenches.filter(t=>t.status!=='complete'&&!this.state.squads.some(s=>s.order.type==='construct-trench'&&(s.order.trenchId===t.id||s.engineerWork?.crews.some(c=>c.trenchId===t.id)||(s.constructionQueue??[]).some(j=>typeof j==='number'?j===t.id:j.kind==='trench'&&j.id===t.id))))
         .map(t=>({trench:t,point:this.engineers.workFaces(t,squad)[0]})).filter(row=>row.point)

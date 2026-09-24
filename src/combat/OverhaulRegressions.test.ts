@@ -21,10 +21,10 @@ describe('combat overhaul release regressions',()=>{
   });
   it('support owns crew actions while preparing, but cannot override physical pinning',()=>{
     const s=createOperation('campaign'),sim=new BattlefieldSimulation(s),q=s.squads.find(q=>q.kind==='mortar'&&q.faction==='player')!,crew=s.soldiers.filter(p=>p.squadId===q.id);q.x=crew[0].x;q.z=crew[0].z;
-    expect(requestSupport(s,'mortarSmoke',q.id,{x:q.x+100,z:q.z}).accepted).toBe(true);prepareActions(s,sim.terrain,sim.navigation,.05);expect(crew.every(p=>p.combat?.owner==='support')).toBe(true);expect(new SaveSystem().parse(JSON.stringify(s)).operation!.supportMissions).toEqual(s.operation!.supportMissions);crew[0].suppression=90;prepareActions(s,sim.terrain,sim.navigation,.05);expect(crew[0].combat?.reaction).toBe('pinned');
+    expect(requestSupport(s,'mortarSmoke',q.id,{x:q.x+100,z:q.z}).accepted).toBe(true);prepareActions(s,sim.terrain,sim.navigation,.05);expect(crew.filter(p=>p.combat?.owner==='support')).toHaveLength(2);expect(new SaveSystem().parse(JSON.stringify(s)).operation!.supportMissions).toEqual(s.operation!.supportMissions);crew[0].suppression=90;prepareActions(s,sim.terrain,sim.navigation,.05);expect(crew[0].combat?.reaction).toBe('pinned');
   });
   it('unrelated supporting fire cannot authorize an advance',()=>{
     const s=createOperation('advance'),q=s.squads[0],people=s.soldiers.filter(p=>p.squadId===q.id),target=s.soldiers.find(p=>s.squads.find(q=>q.id===p.squadId)?.faction==='enemy')!;q.order={type:'move',issuedAt:0,target:{x:q.x+100,z:q.z}};Object.assign(target,{x:q.x+100,z:q.z});s.operation!.contacts={player:[{soldierId:target.id,squadId:target.squadId,x:target.x,z:target.z,lastSeen:0,visible:true,active:true}],enemy:[]};for(const p of people)p.combat={shotSequence:0,owner:'order'};
-    const gun=people[1],w=equipWeapon(s,gun);w.effectiveUntil=3;w.effectivePoint={x:q.x,z:q.z+500};coordinateMovement(s);expect(people[0].combat!.pauseReason).toBe('Waiting for covering fire');for(const p of people)p.combat!.owner='order';w.effectivePoint={x:target.x,z:target.z};coordinateMovement(s);expect(people[0].combat!.owner).toBe('order');
+    const gun=people[1],w=equipWeapon(s,gun);w.effectiveUntil=3;w.effectivePoint={x:q.x,z:q.z+500};coordinateMovement(s);expect(people[0].combat!.pauseReason).toBe('Waiting briefly for covering fire');for(const p of people)p.combat!.owner='order';w.effectivePoint={x:target.x,z:target.z};coordinateMovement(s);expect(people[0].combat!.owner).toBe('order');
   });
 });

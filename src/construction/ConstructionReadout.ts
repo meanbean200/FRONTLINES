@@ -4,6 +4,7 @@ import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {SquadNavigation} from '../navigation/SquadNavigation';
 import type {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {insideWorld} from '../terrain/WorldLayout';
+import {squadHasEquipment} from '../combat/Equipment';
 
 export const MIN_TRENCH_LENGTH=10;
 export const SUPPORT_WORKS:Record<Facility['kind'],{name:string;cost:number;description:string}>={
@@ -15,7 +16,7 @@ export const SUPPORT_WORKS:Record<Facility['kind'],{name:string;cost:number;desc
   emplacement:{name:'Weapon emplacement',cost:16,description:'Prepared cover · bring your own crew'},
 };
 export function fitEngineers(state:BattlefieldState):SquadState[]{
-  return state.squads.filter(q=>q.kind==='engineer'&&q.faction!=='enemy'&&state.soldiers.some(s=>s.squadId===q.id&&s.health>0&&(!s.needs||s.needs.life==='active')));
+  return state.squads.filter(q=>q.faction!=='enemy'&&squadHasEquipment(state,q,'tools'));
 }
 export function chooseEngineer(state:BattlefieldState,selected:Set<number>):SquadState|undefined{
   const teams=fitEngineers(state);

@@ -30,7 +30,6 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     if(!weaponReady(state,shooter,active)||op.elapsed<(shooter.nextShotAt??0))continue;
     const combat=shooter.combat??={shotSequence:0};
     const squad=state.squads.find(q=>q.id===shooter.squadId)!,area=squad.order.intent==='suppress'?squad.order.target:undefined;
-    if(squad.kind==='medical')continue;
     const known=new Set(squadContacts(state,shooter.squadId).filter(c=>c.visible).map(c=>c.soldierId));
     const faction=factions.get(shooter.squadId)!,candidates:SoldierState[]=[];
     const cx=Math.floor(shooter.x/cell),cz=Math.floor(shooter.z/cell);

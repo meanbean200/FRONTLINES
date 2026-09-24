@@ -8,7 +8,7 @@ export function combatDiagnostics(state:BattlefieldState){
       posture:s.posture??'standing',reaction:s.combat?.reaction??'steady',owner:s.combat?.owner??'order',
       suppression:s.suppression,morale:s.morale,threatDirection:s.combat?.threatDirection,
       desiredCover:s.combat?.reactionRoute?.[s.combat.reactionIndex??0],
-      stoppedReason:s.combat?.pauseReason??squadReason(state,s.squadId),action:s.action,equipment:s.combat?.weapon?.id??'not equipped'})),
+      stoppedReason:s.combat?.pauseReason??squadReason(state,s.squadId),action:s.action,equipment:s.equipment,weaponInUse:s.combat?.weapon?.id??'not equipped',coverTests:s.combat?.coverTests??0})),
     support:(state.operation?.supportMissions??[]).map(m=>({...m,source:m.source??'LEGACY_UNKNOWN',ammoConsumed:m.ammoConsumed??null})),
     requests:structuredClone(state.operation?.supportRequests??[]),
   };

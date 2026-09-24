@@ -5,10 +5,12 @@ import { inventory, RESOURCES, type Garrison, type Inventory, type Truck, type L
 import { localInventory, total, transfer, transferBounded } from './Inventory';
 import { freshNeeds } from './NeedsSystem';
 import {RULES_VERSION} from './GarrisonPolicy';
+import {initializeEquipment} from '../combat/Equipment';
 
 export function roadPoint(x:number):Vec2{return {x,z:supplyRoadZ(x)};}
 export const defaultLogistics=():LogisticsConfig=>({deliveryInterval:450,manifest:inventory({food:400,water:600,materials:120,fuel:180,ammo:160,medical:12,mortarHE:12,mortarSmoke:6,smokeGrenades:10}),rearCapacity:12000,forwardCapacity:400,cacheCapacity:600,storeCapacity:600,convoyCapacity:1500,shuttleCapacity:140,carrierCapacity:16});
 export function initializeLiving(state:BattlefieldState):void {
+  initializeEquipment(state);
   if(state.living){state.living.logistics??=defaultLogistics();return;}
   // This is fresh-state initialization, never save compatibility/migration.
   state.worldVersion??=WORLD_VERSION;state.worldSize??=WORLD_SIZE;

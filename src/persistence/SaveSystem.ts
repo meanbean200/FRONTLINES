@@ -15,6 +15,7 @@ import {initializeReplacements} from '../operations/Replacements';
 import {validBuildings} from '../terrain/BuildingValidation';
 import {validOperationalRuntime} from '../operations/OperationalValidation';
 import {isOperationId} from '../operations/OperationDefinitions';
+import {initializeEquipment} from '../combat/Equipment';
 
 export const SAVE_KEY = 'frontlines-battlefield-v3-world2-4km';
 const V3_KEY = 'frontlines-battlefield-v3';
@@ -68,6 +69,7 @@ export class SaveSystem {
     initializeLiving(state);
     if(!wasLegacy&&state.combatRules!==RULES_VERSION)state.living!.migrationNote='This copy now uses revised combat and terrain rules. Exact continuation is guaranteed only within the same rules version; existing people and stock are unchanged.';
     for(const s of state.soldiers)s.posture??='standing';
+    initializeEquipment(state);
     for(const m of state.operation?.supportMissions??[]){m.source??='LEGACY_UNKNOWN';m.side??=state.squads.find(q=>q.id===m.squadId)?.faction??'player';}
     if(wasLegacy){
       state.living!.migrationNote='Copy migrated to v3: revised combat rules; people, health, orders and existing stock preserved. Legacy injuries do not bleed. Original v1/v2 storage is untouched.';
@@ -144,7 +146,7 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
     if(squad.workStarted!==undefined&&typeof squad.workStarted!=='boolean')return false;
     if(squad.engineerWork!==undefined){
       const work=squad.engineerWork,members=new Set<number>();
-      if(!work||squad.kind!=='engineer'||order.type!=='construct-trench'||work.version!==1||!finite(work.nextReview)||work.nextReview<0||!Array.isArray(work.crews)||work.crews.length>squad.soldierIds.length)return false;
+      if(!work||order.type!=='construct-trench'||work.version!==1||!finite(work.nextReview)||work.nextReview<0||!Array.isArray(work.crews)||work.crews.length>squad.soldierIds.length)return false;
       const jobs=new Set([order.trenchId,...(squad.constructionQueue??[]).map(j=>typeof j==='number'?j:j.kind==='trench'?j.id:undefined)]);
       for(const crew of work.crews){
         if(!crew||!Array.isArray(crew.soldierIds)||crew.soldierIds.length<1||crew.soldierIds.length>2||![-1,1].includes(crew.direction)||!Array.isArray(crew.route)||!crew.route.every(point)||!Number.isInteger(crew.routeIndex)||crew.routeIndex<0||crew.routeIndex>crew.route.length||typeof crew.approached!=='boolean')return false;

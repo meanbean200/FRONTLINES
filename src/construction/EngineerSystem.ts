@@ -3,6 +3,7 @@ import {atDistance,routeMetrics} from '../core/Polyline';
 import {excavatedPoints,excavatedSpan} from '../core/TrenchGeometry';
 import type {SquadNavigation} from '../navigation/SquadNavigation';
 import type {TrenchSystem} from './TrenchSystem';
+import {hasEquipment,squadHasEquipment} from '../combat/Equipment';
 
 type Move=(soldier:SoldierState,target:Vec2,dt:number,action:string)=>void;
 type Front={trench:TrenchState;direction:-1|1;point:Vec2};
@@ -24,6 +25,7 @@ export class EngineerSystem {
   }
 
   start(squad:SquadState,trench:TrenchState):boolean {
+    if(!squadHasEquipment(this.state,squad,'tools'))return false;
     this.initialize(trench,squad);
     let route:Vec2[]=[];
     for(const point of this.workFaces(trench,squad)){route=this.navigation.plan(squad,point);if(route.length)break;}
@@ -46,6 +48,8 @@ export class EngineerSystem {
   }
 
   step(squad:SquadState,people:SoldierState[],dt:number,move:Move):void {
+    people=people.filter(s=>hasEquipment(this.state,s,'tools'));
+    if(!people.length){squad.orderNote='No available construction tools';return;}
     const work=squad.engineerWork??(squad.engineerWork={version:1,nextReview:0,crews:[]});
     const ids=new Set([squad.order.trenchId,...(squad.constructionQueue??[]).map(jobId)]);
     const jobs=this.state.trenches.filter(t=>ids.has(t.id));

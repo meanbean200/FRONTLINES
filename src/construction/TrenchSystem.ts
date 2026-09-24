@@ -12,6 +12,7 @@ import { inventory } from '../garrison/types';
 import {atDistance} from '../core/Polyline';
 import {excavatedSpan} from '../core/TrenchGeometry';
 import {SUPPORT_WORKS} from './ConstructionReadout';
+import {squadHasEquipment,hasEquipment} from '../combat/Equipment';
 
 export const METRES_PER_PERSON=2.5;
 export const ENTRANCE_LENGTH=5;
@@ -29,7 +30,7 @@ export class TrenchSystem {
   request(request:ConstructionRequest):number|undefined {
     if(request.kind==='trench')return this.create(request.points,request.engineerSquadId).id;
     const w=this.state.living,g=w?.garrisons.find(g=>g.id===request.garrisonId);
-    const engineers=this.state.squads.filter(q=>q.kind==='engineer'&&g?.squadIds.includes(q.id)&&q.order.type==='occupy-trench');
+    const engineers=this.state.squads.filter(q=>squadHasEquipment(this.state,q,'tools')&&g?.squadIds.includes(q.id)&&q.order.type==='occupy-trench');
     if(!w||!g||!engineers.length||distance(request.origin,request.position)>40)return;
     const connector=this.create([request.origin,request.position]);connector.width=7.2;connector.progress=.001;connector.status='building';
     const kind=request.facilityKind,id=this.state.nextEntityId++;
@@ -71,13 +72,13 @@ export class TrenchSystem {
   update(dt: number): void {
     for (const trench of this.state.trenches) {
       if (trench.status !== 'building' || !trench.engineerSquadId) continue;
-      const engineer = this.state.squads.find((squad) => squad.id === trench.engineerSquadId && squad.kind === 'engineer');
+      const engineer = this.state.squads.find((squad) => squad.id === trench.engineerSquadId && squadHasEquipment(this.state,squad,'tools'));
       if(engineer?.engineerWork)continue; // Crew fronts apply only physically completed work.
       if (!engineer || engineer.order.type !== 'construct-trench' || engineer.order.trenchId !== trench.id) continue;
       const head = this.constructionHead(trench);
       if (!engineer.workStarted) continue;
       const crew=this.state.soldiers.filter(s=>s.squadId===engineer.id);
-      const workers=crew.filter(s=>(!s.needs||s.needs.life==='active')&&distance(s,head)<9).length;
+      const workers=crew.filter(s=>(!s.needs||s.needs.life==='active')&&hasEquipment(this.state,s,'tools')&&distance(s,head)<9).length;
       if(workers<Math.min(3,crew.length))continue;
       this.applyWork({kind:'trench',id:trench.id},dt,1.6);
       if (trench.progress >= 1) {
@@ -91,7 +92,7 @@ export class TrenchSystem {
 
   assignEngineer(trenchId: number, squadId: number): boolean {
     const trench = this.state.trenches.find((item) => item.id === trenchId);
-    const squad = this.state.squads.find((item) => item.id === squadId && item.kind === 'engineer');
+    const squad = this.state.squads.find((item) => item.id === squadId && squadHasEquipment(this.state,item,'tools'));
     if (!trench || !squad || trench.status === 'complete') return false;
     trench.engineerSquadId = squadId;
     trench.status = 'building';

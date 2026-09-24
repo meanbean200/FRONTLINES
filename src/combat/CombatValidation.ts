@@ -1,4 +1,5 @@
 import type {BattlefieldState} from '../core/types';
+import {WEAPONS} from './Weapons';
 export function validCombatSystems(state:BattlefieldState):boolean {
   const finite=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v),nonnegative=(v:unknown)=>finite(v)&&v>=0;
   const point=(v:unknown):boolean=>!!v&&typeof v==='object'&&finite((v as {x:number}).x)&&finite((v as {z:number}).z);
@@ -6,6 +7,8 @@ export function validCombatSystems(state:BattlefieldState):boolean {
   if(state.living?.facilities.some(f=>f.facing!==undefined&&!finite(f.facing)))return false;
   const patients=new Set<number>();
   for(const s of state.soldiers){
+    const kit=s.equipment;
+    if(kit&&(kit.version!==1||!Object.hasOwn(WEAPONS,kit.weapon)||![kit.tools,kit.mortar,kit.medicalKit].every(v=>typeof v==='boolean')||s.combat?.weapon&&s.combat.weapon.id!==kit.weapon))return false;
     const c=s.combat;if(!c)continue;
     if(c.nextCareReview!==undefined&&!nonnegative(c.nextCareReview))return false;
     const w=c.wound;
@@ -25,6 +28,7 @@ export function validCombatSystems(state:BattlefieldState):boolean {
       if(!m||!Number.isInteger(m.id)||m.id<1||m.id>=state.nextEntityId||!state.squads.some(q=>q.id===m.squadId))return false;
       if(!['mortarHE','mortarSmoke','smokeGrenades'].includes(m.kind)||!['preparing','flight','complete','cancelled'].includes(m.stage))return false;
       if(m.source!==undefined&&!['PLAYER','ENEMY_AI','CAMPAIGN_AI','SCRIPTED_SCENARIO','LEGACY_UNKNOWN'].includes(m.source)||m.side!==undefined&&!['player','enemy'].includes(m.side)||m.ammoConsumed!==undefined&&![0,1].includes(m.ammoConsumed))return false;
+      if(m.crewIds!==undefined&&(!Array.isArray(m.crewIds)||m.crewIds.length<1||m.crewIds.length>2||new Set(m.crewIds).size!==m.crewIds.length||!m.crewIds.every(id=>state.soldiers.some(s=>s.id===id&&s.squadId===m.squadId))))return false;
       if(![m.requestedAt,m.launchAt,m.impactAt,m.dangerRadius].every(nonnegative)||m.impactAt<m.launchAt||!point(m.target)||!point(m.impact)||typeof m.confirmedRisk!=='boolean'||typeof m.reason!=='string')return false;
     }
   }

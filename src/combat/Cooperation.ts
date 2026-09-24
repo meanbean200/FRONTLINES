@@ -6,7 +6,7 @@ import {squadContacts} from '../operations/Visibility';
 export function coordinateMovement(state:BattlefieldState):void {
   const op=state.operation;if(!op)return;
   for(const q of state.squads){
-    if(q.kind!=='rifle'||q.order.type!=='move'||q.order.pushThrough||q.order.intent==='fall-back')continue;
+    if(q.order.type!=='move'||q.order.pushThrough||q.order.intent==='fall-back')continue;
     const people=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life==='active'),side=q.faction??'player';
     const threats=squadContacts(state,q.id).filter(c=>c.active&&c.visible&&distance(c,q)<300);
     if(!threats.length){if(q.tactics)delete q.tactics;continue;}

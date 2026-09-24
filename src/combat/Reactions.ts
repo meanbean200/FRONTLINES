@@ -34,7 +34,7 @@ export function prepareActions(state:BattlefieldState,terrain:TerrainSystem,navi
     s.posture=reaction==='pinned'?'prone':reaction==='under-fire'||reaction==='shaken'?'crouched':'standing';
     c.owner=s.duty?'duty':'order';delete c.pauseReason;
     if(c.careTask&&reaction!=='pinned'&&reaction!=='broken'){c.owner='casualty';continue;}
-    if(reaction!=='pinned'&&reaction!=='broken'&&state.operation?.supportMissions?.some(m=>m.squadId===q.id&&m.stage==='preparing')){c.owner='support';s.action='preparing support weapon';c.pauseReason='Preparing support mission';continue;}
+    if(reaction!=='pinned'&&reaction!=='broken'&&state.operation?.supportMissions?.some(m=>m.squadId===q.id&&m.stage==='preparing'&&(!m.crewIds||m.crewIds.includes(s.id)))){c.owner='support';s.action='preparing support weapon';c.pauseReason='Preparing support mission';continue;}
     if(s.building&&terrain.buildingAt(s)===s.building.id){if(reaction==='pinned'){c.owner='reaction';s.action='pinned';c.pauseReason='Pinned · sheltering below the window';}continue;}
     if(reaction==='broken'){
       c.owner='reaction';c.pauseReason='Broken · withdrawing to rally point';
