@@ -17,6 +17,7 @@ export class DeploymentPanel {
     this.element.querySelector('header button')!.addEventListener('click',()=>this.close());
     this.element.querySelectorAll<HTMLButtonElement>('[data-deploy]').forEach(b=>b.onclick=()=>{const count=Number(this.element.querySelector('select')!.value);this.close();this.place(b.dataset.deploy as DeploymentKind,count);});
     window.addEventListener('frontlines-menu',()=>this.close());
+    root.querySelectorAll('[data-hud-panel],#build-command,#support-command,#defense-toggle').forEach(b=>b.addEventListener('click',()=>this.close()));
     window.addEventListener('keydown',e=>{if(e.code==='Escape'&&!this.element.hidden){this.close();e.preventDefault();e.stopImmediatePropagation();}},true);
   }
   private close(){this.element.hidden=true;this.button.setAttribute('aria-expanded','false');}
