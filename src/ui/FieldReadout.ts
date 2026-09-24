@@ -2,6 +2,7 @@ import type {BattlefieldState,SoldierState,SquadKind} from '../core/types';
 import {factionOf} from '../operations/types';
 import {supportReadiness,supportMissionText,SUPPORT_NAMES} from '../combat/SupportWeapons';
 import {constructionStatus} from '../construction/ConstructionReadout';
+import {crewWeaponReadout} from './WeaponReadout';
 
 export const roleName:Record<SquadKind,string>={rifle:'Rifle squad',engineer:'Engineer team',machinegun:'Machine-gun team',mortar:'Mortar team',medical:'Medical team'};
 const mean=(people:SoldierState[],read:(s:SoldierState)=>number)=>Math.round(people.reduce((sum,s)=>sum+read(s),0)/Math.max(1,people.length));
@@ -21,7 +22,7 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>)
   const activity=[...activities].sort((a,b)=>b[1]-a[1])[0]?.[0]??'Out of action';
   const warning=able.length&&able.filter(s=>s.combat?.reaction==='pinned').length>=Math.ceil(able.length/2)?'PINNED':
     people.some(s=>s.needs?.life==='incapacitated')?'CASUALTIES':
-    able.length&&able.reduce((n,s)=>n+(s.carried?.ammo??s.ammunition),0)<able.length*10?'LOW AMMO':
+    state.operation&&able.length&&able.reduce((n,s)=>n+(s.carried?.ammo??s.ammunition),0)<able.length*10?'LOW AMMO':
     state.living?.garrisons.some(g=>g.squadIds.some(id=>selected.has(id))&&['decision','hold','recover'].includes(g.cutoff))?'SUPPLY SHORTAGE':'';
   return {name:squads.length===1?first.name:`${squads.length} squads`,role:squads.length===1?roleName[first.kind]:'Selected formation',kind:first.kind,
     able:able.length,total:people.length,order,activity,warning,ammo:Math.floor(able.reduce((n,s)=>n+(s.carried?.ammo??s.ammunition),0)),
@@ -30,6 +31,7 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>)
     down:people.filter(s=>s.needs?.life==='incapacitated').length,dead:people.filter(s=>s.needs?.life==='dead').length,
     position:squads.length===1?`${Math.abs(Math.round(first.x))} ${first.x<0?'W':'E'} / ${Math.abs(Math.round(first.z))} ${first.z<0?'N':'S'}`:'Multiple positions',
     support:squads.length===1&&first.kind==='mortar'?{he:supportReadiness(state,'mortarHE',first.id),smoke:supportReadiness(state,'mortarSmoke',first.id)}:undefined,
+    weapon:squads.length===1?crewWeaponReadout(state,first):undefined,
     reasons:[...new Set(able.map(s=>s.combat?.pauseReason).filter((s):s is string=>Boolean(s)))],
   };
 }

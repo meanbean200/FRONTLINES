@@ -6,6 +6,7 @@ import { relocationProgress, withdrawalProgress } from './GarrisonReadout';
 import {fieldIcon} from './FieldSymbols';
 import {selectionReadout,roleName} from './FieldReadout';
 import {SUPPORT_NAMES,selectedSupportTeam,supportReadiness,supportMissionText,type SupportKind} from '../combat/SupportWeapons';
+import {actionableWeaponReason} from './WeaponReadout';
 
 export interface PerfSnapshot {fps:number;frameMs:number;simulationMs:number;drawCalls:number;chunks:number;p95Ms?:number}
 interface UIActions {
@@ -89,7 +90,7 @@ export class BattlefieldUI {
     for(const b of support.querySelectorAll<HTMLButtonElement>('[data-support]')){
       const kind=b.dataset.support as SupportKind,id=selectedSupportTeam(this.state,this.selected,kind),ready=id===undefined?undefined:supportReadiness(this.state,kind,id);
       b.disabled=locked||!ready||Boolean(ready.reason);b.textContent=SUPPORT_NAMES[kind]+(ready?` · ${ready.ammo}`:'');
-      b.title=ready?.reason??(ready?`Order one round · ${ready.crew} crew nearby`:kind==='smokeGrenades'?'Select a squad':'Select a mortar team');
+      b.title=ready?.reason||(ready?`Order one round · ${ready.crew} crew nearby`:kind==='smokeGrenades'?'Select a squad':'Select a mortar team');
     }
     const replacements=this.state.operation?.campaign?.replacements;
     const supportKey=JSON.stringify([locked,[...this.selected],this.state.operation?.supportMissions?.map(m=>[m.id,m.reason]),this.state.operation?.rescueDecisions,replacements?.reserve.player,replacements?.manifests.length,replacements?.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length,Math.floor(this.state.elapsed)]);
@@ -132,10 +133,12 @@ export class BattlefieldUI {
     if(readout){
       const ammo=readout.able?readout.ammo/readout.able:0;
       const ammoLabel=ammo<10?'Low':ammo<25?'Limited':'Good',suppression=readout.suppression>65?'Pinned':readout.suppression>30?'High':'Low';
-      const text=JSON.stringify([readout.name,readout.kind,readout.role,readout.able,readout.total,readout.order,readout.warning,ammoLabel,suppression,readout.support]);
+      const text=JSON.stringify([readout.name,readout.kind,readout.role,readout.able,readout.total,readout.order,readout.warning,ammoLabel,suppression,readout.support,readout.weapon]);
       const ammoText=readout.support?`${readout.support.he.ammo} HE / ${readout.support.smoke.ammo} smoke`:ammoLabel;
       if(docket.dataset.readout!==text){docket.dataset.readout=text;docket.querySelector('#selection-summary')!.innerHTML=`<div class="selection-identity">${fieldIcon(readout.kind)}<strong>${escape(readout.name)}</strong><b>${readout.able}/${readout.total}</b></div><p>${escape(readout.role)} · ${escape(readout.order)}</p><div class="selection-health"><span>${readout.support?'Shells':'Ammo'} <b>${ammoText}</b></span><span>Suppression <b>${suppression}</b></span></div>${readout.support?.he.reason?`<p class="support-readiness">${escape(readout.support.he.reason)}</p>`:''}${readout.warning?`<span class="formation-warning">${escape(readout.warning)}</span>`:''}`;}
     }
+    const crewInfo=docket.querySelector('.crew-readiness');
+    if(readout?.weapon){const p=crewInfo??document.createElement('p');p.className='crew-readiness';p.textContent=readout.weapon;if(!crewInfo)docket.querySelector('#selection-summary')!.append(p);}else crewInfo?.remove();
     if(!squads.length){this.selectionKey='';panel.innerHTML='<small>FIELD COMMAND</small><strong>Select your force</strong><p>Click a squad flag or an engineer team.</p>';debug.textContent='No squad selected';return;}
     const squad=squads[0],soldiers=this.state.soldiers.filter(s=>this.selected.has(s.squadId));
     const trench=this.state.trenches.find(t=>t.id===squad.order.trenchId);
@@ -200,7 +203,7 @@ export class BattlefieldUI {
     if(network)alerts.push({key:'garrison',text:network.cutoff==='decision'?'Supply emergency · decision needed':'Defense under fire',action:()=>{this.root.querySelector<HTMLDetailsElement>('.garrison-panel')!.open=true;}});
     for(const q of this.state.squads.filter(q=>factionOf(q)==='player')){
       const r=selectionReadout(this.state,new Set([q.id]))!;
-      const warning=r.warning||r.reasons[0]||(r.fatigue>=85?'Exhausted':'');
+      const warning=r.warning||actionableWeaponReason(r.reasons)||(r.fatigue>=85?'Exhausted':'');
       if(warning)alerts.push({key:String(q.id),text:q.name+' · '+warning,action:()=>{this.actions.select([q.id]);this.actions.focus(q.id);}});
       if(alerts.length>=2)break;
     }
