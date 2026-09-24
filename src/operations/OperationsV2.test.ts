@@ -145,7 +145,7 @@ describe('reusable operational objectives and terminal conditions',()=>{
 
 describe('information firewall and persistence',()=>{
   it('enemy regrouping never steals an engineer construction order',()=>{
-    const state=createOperation('open-front'),sim=new BattlefieldSimulation(state),engineer=state.squads.find(q=>q.faction==='enemy'&&q.kind==='engineer')!;
+    const state=createOperation('open-front'),sim=new BattlefieldSimulation(state),engineer=state.squads.find(q=>q.faction==='enemy'&&state.soldiers.some(s=>s.squadId===q.id&&s.equipment?.tools))!;
     sim.garrisons.release(engineer.id);engineer.order={type:'construct-trench',trenchId:state.operation!.campaign!.enemyTrench,issuedAt:0};
     for(const p of state.soldiers.filter(p=>state.squads.find(q=>q.id===p.squadId)?.faction==='enemy'))p.morale=0;
     state.operation!.nextOrders=0;const assigned:number[]=[];
@@ -155,8 +155,8 @@ describe('information firewall and persistence',()=>{
   it('preserves mortar support through reported areas, without inventing a hidden target',()=>{
     const state=createOperation('open-front'),terrain=new TerrainSystem(state),before=commandOperationalEnemy(observeEnemy(state),terrain);
     expect(before.support).toBeUndefined();
-    const q=state.squads[0];state.operation!.contacts={player:[],enemy:[{soldierId:q.soldierIds[0],squadId:q.id,x:123,z:456,lastSeen:0,visible:false,active:true,status:'last-reported'}]};
-    const after=commandOperationalEnemy(observeEnemy(state),terrain);expect(after.support?.target).toEqual({x:123,z:456});
+    const q=state.squads[0],mortar=state.soldiers.find(s=>s.equipment?.mortar&&state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')!,target={x:mortar.x+200,z:mortar.z};state.operation!.contacts={player:[],enemy:[{soldierId:q.soldierIds[0],squadId:q.id,...target,lastSeen:0,visible:false,active:true,status:'last-reported'}]};
+    const after=commandOperationalEnemy(observeEnemy(state),terrain);expect(after.support?.target).toEqual(target);
     expect(commandOperationalEnemy(observeEnemy(state),terrain,after.memory,after.commander).support).toBeUndefined();
   });
   it.each(OPERATION_IDS)('%s plans cannot read hidden positions, losses, orders or objective oracle state',id=>{

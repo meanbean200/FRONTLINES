@@ -40,7 +40,7 @@ export class BattlefieldUI {
     this.root.querySelector('#move-command')!.setAttribute('title','Draw a route [V] · right-drag also works');
     this.root.querySelector('#hold-command')!.innerHTML=fieldIcon('hold')+'Hold <kbd>H</kbd>';
     this.root.querySelector('#hold-command')!.setAttribute('title','Hold position and cancel movement [H]');
-    this.root.querySelector('#trench-command')!.innerHTML=fieldIcon('engineer')+'<span><strong>Trench</strong><small>Draw a line. Engineers excavate.</small></span>';
+    this.root.querySelector('#trench-command')!.innerHTML=fieldIcon('engineer')+'<span><strong>Trench</strong><small>Draw a line. Tool carriers excavate.</small></span>';
     this.root.querySelector('#trench-command')!.setAttribute('title','Draw a trench [B]');
     this.root.querySelector('#resume-command')!.innerHTML=fieldIcon('resume')+'Resume works';
     this.root.querySelector('#focus-command')!.innerHTML=fieldIcon('focus');
@@ -91,13 +91,13 @@ export class BattlefieldUI {
     for(const b of support.querySelectorAll<HTMLButtonElement>('[data-support]')){
       const kind=b.dataset.support as SupportKind,id=selectedSupportTeam(this.state,this.selected,kind),ready=id===undefined?undefined:supportReadiness(this.state,kind,id);
       b.disabled=locked||!ready||Boolean(ready.reason);b.textContent=SUPPORT_NAMES[kind]+(ready?` · ${ready.ammo}`:'');
-      b.title=ready?.reason||(ready?`Order one round · ${ready.crew} crew nearby`:kind==='smokeGrenades'?'Select a squad':'Select a mortar team');
+      b.title=ready?.reason||(ready?`Order one round · ${ready.crew} crew nearby`:kind==='smokeGrenades'?'Select a squad':'Select a formation carrying mortar equipment');
     }
     const replacements=this.state.operation?.campaign?.replacements;
     const supportKey=JSON.stringify([locked,[...this.selected],this.state.operation?.supportMissions?.map(m=>[m.id,m.reason]),this.state.operation?.rescueDecisions,replacements?.reserve.player,replacements?.manifests.length,replacements?.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length,Math.floor(this.state.elapsed)]);
     if(support.open&&supportKey!==this.supportKey){this.supportKey=supportKey;const status=support.querySelector('.support-status')!;status.replaceChildren();
       const mortar=selectedSupportTeam(this.state,this.selected,'mortarHE');
-      const readiness=mortar===undefined?'Select your mortar team to order HE or smoke.':supportReadiness(this.state,'mortarHE',mortar).reason;
+      const readiness=mortar===undefined?'Select a formation with mortar equipment below.':supportReadiness(this.state,'mortarHE',mortar).reason;
       if(readiness){const p=document.createElement('p');p.textContent=readiness;status.append(p);}
       for(const mission of this.state.operation?.supportMissions?.filter(m=>this.state.squads.some(q=>q.id===m.squadId&&factionOf(q)==='player')).slice(-3)??[]){const p=document.createElement('p');p.textContent=`${this.state.squads.find(q=>q.id===mission.squadId)?.name} · ${SUPPORT_NAMES[mission.kind]}: ${supportMissionText(mission,this.state.elapsed)}`;status.append(p);}
       for(const decision of this.state.operation?.rescueDecisions?.filter(d=>d.side==='player'&&d.choice==='pending')??[]){const row=document.createElement('div'),p=document.createElement('p');p.textContent=`Soldier ${decision.patientId}: ${decision.reason}`;row.append(p);for(const [choice,label] of [['approved',decision.reason.startsWith('Casualty route blocked')?'Retry rescue':'Accept rescue risk'],['hold','Wait for safety']] as const){const b=document.createElement('button');b.textContent=label;b.disabled=locked;b.onclick=()=>{if(locked)return;decision.choice=choice;decision.reviewAt=this.state.elapsed+30;};row.append(b);}status.append(row);}

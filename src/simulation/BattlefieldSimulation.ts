@@ -278,7 +278,7 @@ export class BattlefieldSimulation {
   }
 
   private updateMovingSquad(squad: SquadState, soldiers: SoldierState[], dt: number): void {
-    if(squad.movementState==='planning')return;
+    if(squad.movementState==='planning'||!squad.route.length&&!squad.order.drawnPath)return;
     if(squad.order.drawnPath){this.followDrawnPath(squad,soldiers,dt);return;}
     const waypoint = squad.route[squad.routeIndex] ?? squad.order.target;
     if (!waypoint) return;
@@ -467,7 +467,7 @@ export class BattlefieldSimulation {
       if(this.commandsLocked||worldRevision!==this.worldRevision||this.routeRevision.get(squad.id)!==revision||!this.state.squads.includes(squad)||squad.order!==order)return;
       squad.route=route.map(p=>this.terrain.clampToWorld(p));squad.routeIndex=0;
       if(route.length)squad.movementState='moving';
-      else{squad.movementState='idle';squad.order={type:'hold',issuedAt:this.state.elapsed};}
+      else{squad.movementState='idle';squad.orderNote='Route blocked · destination retained; draw another approach';}
     };
     if(this.scheduleNavigation)this.scheduleNavigation(squad,destination,done);else done(this.navigation.plan(squad,destination));
   }

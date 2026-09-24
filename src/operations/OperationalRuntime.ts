@@ -83,7 +83,7 @@ export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSys
   else if((survivors<required||survivingSquads<requiredSquads)&&!pending)finish('defeat','Too few surviving combat personnel or formations remain to carry out the operation.');
   else for(const condition of r.victory){
     const other=condition.side==='player'?'enemy':'player',initial=definition.forces[other];
-    const effective=forces[other].length/Math.max(1,initial.rifles*8+initial.machineguns*3);
+    const effective=forces[other].length/Math.max(1,op.forceModel==='infantry-equipment-v1'?(other==='enemy'?op.initialEnemy:op.initialPlayer):initial.rifles*8+initial.machineguns*3);
     if(condition.objectives.every(id=>r.progress.find(p=>p.id===id)?.complete)&&(condition.opponentEffectivenessBelow===undefined||effective<=condition.opponentEffectivenessBelow)){
       finish(condition.side==='player'?'victory':'defeat',condition.side==='player'?`${definition.title}: the operational objective is secured.`:'The opposing force achieved its operational objective.');break;
     }

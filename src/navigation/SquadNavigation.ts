@@ -45,7 +45,7 @@ export class SquadNavigation {
       // search can finish with a fully checked visible leg. Requiring it to
       // enter the final grid cell can exhaust the budget on costly terrain
       // despite an already clear entrance. This is not a least-cost guarantee.
-      if((avoid?distance(point,goal)<180:Math.hypot(current.x-gx,current.z-gz)<1.5)&&clear(point,goal,2)){found=current;break;}
+      if(distance(point,goal)<180&&clear(point,goal,2)){found=current;break;}
       for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){
         if(!dx&&!dz)continue;
         const nx=current.x+dx,nz=current.z+dz,x=ox+nx*cell,z=oz+nz*cell;

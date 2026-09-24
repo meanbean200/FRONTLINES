@@ -1,6 +1,7 @@
 import type { BattlefieldState, SoldierState, SquadKind, SquadState } from '../core/types';
 import {WORLD_VERSION,WORLD_SIZE} from '../core/types';
 import { TrenchSystem } from '../construction/TrenchSystem';
+import {initializeEquipment} from '../combat/Equipment';
 
 export function createBattlefield(seed = 1944): BattlefieldState {
   const state: BattlefieldState = {
@@ -73,6 +74,7 @@ export function addSquad(
     squad.soldierIds.push(soldier.id);
   }
   state.squads.push(squad);
+  if(state.living)initializeEquipment(state);
   return squad;
 }
 

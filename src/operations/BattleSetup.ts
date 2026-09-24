@@ -66,7 +66,7 @@ export function armyFor(state:BattlefieldState,side:Faction):Army {
 }
 export function forceSummary(setup:ResolvedBattleSetup):string {
   const f=configuredDefinition(setup.operation,setup).forces.player;
-  return `${f.rifles} rifle squads · ${f.engineers} engineer ${f.engineers===1?'section':'sections'} · machine-gun team${f.mortars?' · mortar team':''} · medics`;
+  return `${Math.ceil((f.rifles*8+f.engineers*8+f.machineguns*3+f.mortars*3+f.medics*2)/8)} infantry formations · ${f.engineers*8} tool sets · ${f.machineguns} crew MG${f.mortars?` · ${f.mortars} mortar`:''} · medical kits`;
 }
 export function battlePopulation(setup:BattleSetup):string {
   const resolved=resolveBattleSetup({...setup,map:'seed'},setup.seed),d=configuredDefinition(setup.operation,resolved);

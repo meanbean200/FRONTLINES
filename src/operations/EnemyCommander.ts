@@ -5,6 +5,7 @@ import {lineOfFire} from './Visibility';
 import {factionOf,type Contact,type OperationMode} from './types';
 import {configuredDefinition} from './BattleSetup';
 import type {OperationalKnowledge} from './OperationalCommander';
+import {squadHasEquipment} from '../combat/Equipment';
 
 export const ENEMY_AI_VERSION=1;
 export const ENEMY_ROLES=['defend','advance','support','flank','withdraw','resupply','search','pinned'] as const;
@@ -19,6 +20,8 @@ export interface OwnSquad extends Vec2 {
   id:number;able:number;initial:number;health:number;morale:number;energy:number;suppression:number;ammo:number;
   moving:boolean;planning:boolean;orderTarget?:Vec2;
   kind?:import('../core/types').SquadKind;effectiveUntil?:number;
+  mortar?:boolean;mortarAmmo?:number;automatic?:boolean;
+  working?:boolean;supportBusy?:boolean;
 }
 export interface KnownObjective extends Vec2 {id:string;radius:number;owner:'player'|'enemy'|'neutral';contested:boolean;ammo:number}
 export interface EnemyObservation {
@@ -35,7 +38,7 @@ export function observeEnemy(state:BattlefieldState):EnemyObservation {
     squads:state.squads.filter(q=>factionOf(q)==='enemy').map(q=>{
       const people=state.soldiers.filter(s=>s.squadId===q.id&&s.health>0&&s.needs?.life==='active');
       const mean=(f:(s:typeof people[number])=>number)=>people.reduce((n,s)=>n+f(s),0)/Math.max(1,people.length);
-      return {id:q.id,x:q.x,z:q.z,kind:q.kind,effectiveUntil:Math.max(0,...people.map(s=>s.combat?.weapon?.effectiveUntil??0)),able:people.length,initial:q.soldierIds.length,health:mean(s=>s.health),morale:mean(s=>s.morale),energy:mean(s=>s.needs!.energy),suppression:mean(s=>s.suppression),ammo:mean(s=>s.carried?.ammo??0),moving:q.order.type==='move',planning:q.movementState==='planning',orderTarget:q.order.target?{...q.order.target}:undefined};
+      return {id:q.id,x:q.x,z:q.z,kind:q.kind,working:q.order.type==='construct-trench',supportBusy:op.supportMissions?.some(m=>m.squadId===q.id&&m.stage==='preparing')??false,mortar:squadHasEquipment(state,q,'mortar'),mortarAmmo:people.reduce((n,s)=>n+(s.carried?.mortarHE??0),0),automatic:squadHasEquipment(state,q,'automatic'),effectiveUntil:Math.max(0,...people.map(s=>s.combat?.weapon?.effectiveUntil??0)),able:people.length,initial:q.soldierIds.length,health:mean(s=>s.health),morale:mean(s=>s.morale),energy:mean(s=>s.needs!.energy),suppression:mean(s=>s.suppression),ammo:mean(s=>s.carried?.ammo??0),moving:q.order.type==='move',planning:q.movementState==='planning',orderTarget:q.order.target?{...q.order.target}:undefined};
     }).filter(q=>q.able>0),
     contacts:(op.intelligence?.command.enemy??op.contacts?.enemy??[]).filter(c=>c.active&&state.elapsed-c.lastSeen<=12).map(c=>({...c})),
     // Flag ownership is public to both players. Enemy-owned caches are finite friendly stock.
@@ -91,7 +94,7 @@ export function commandEnemy(o:EnemyObservation,terrain:Ground,previous?:EnemyMe
   const commands:EnemyCommand[]=[],assigned=new Map<string,number>(),claimed:Vec2[]=[];
   const visible=o.contacts.filter(c=>c.visible),elapsedSince=(plan:EnemyPlan)=>Math.max(0,o.at-plan.lastIssued);
   for(const [index,q] of o.squads.entries()){
-    if(q.kind==='medical'||q.kind==='mortar'||q.kind==='engineer')continue;
+    if(q.working||q.supportBusy)continue;
     let old=memory.plans.find(p=>p.squadId===q.id);
     const contact=visible.filter(c=>distance(q,c)<360).sort((a,b)=>distance(q,a)-distance(q,b)||a.soldierId-b.soldierId)[0];
     const remembered=o.contacts.filter(c=>!c.visible&&distance(q,c)<300).sort((a,b)=>b.lastSeen-a.lastSeen)[0];

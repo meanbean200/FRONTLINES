@@ -41,7 +41,7 @@ export function supportMissionText(m:SupportMission,now:number):string{
 export interface SupportMission {id:number;squadId:number;kind:SupportKind;target:Vec2;impact:Vec2;requestedAt:number;launchAt:number;impactAt:number;stage:'preparing'|'flight'|'complete'|'cancelled';reason:string;dangerRadius:number;confirmedRisk:boolean;source?:SupportSource;side?:'player'|'enemy';ammoConsumed?:number;crewIds?:number[]}
 export interface SmokeField extends Vec2 {id:number;radius:number;until:number;born:number}
 export interface BlastEvent extends Vec2 {id:number;at:number;radius:number}
-export function requestSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk=false,terrain?:TerrainSystem,source:SupportSource='SCRIPTED_SCENARIO'):{accepted:boolean;warning?:boolean;reason:string} {
+export function requestSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk=false,terrain?:TerrainSystem,source:SupportSource='PLAYER'):{accepted:boolean;warning?:boolean;reason:string} {
   const result=validateSupport(state,kind,squadId,target,confirmedRisk,terrain,source);
   const side=state.squads.find(q=>q.id===squadId)?.faction??'player';
   if(state.operation&&Number.isFinite(target.x)&&Number.isFinite(target.z))state.operation.supportRequests=[...(state.operation.supportRequests??[]),{at:state.elapsed,squadId,side,source,kind,target:{...target},accepted:result.accepted,reason:result.reason}].slice(-64);
@@ -49,6 +49,9 @@ export function requestSupport(state:BattlefieldState,kind:SupportKind,squadId:n
 }
 function validateSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk:boolean,terrain:TerrainSystem|undefined,source:SupportSource):{accepted:boolean;warning?:boolean;reason:string} {
   const op=state.operation,q=state.squads.find(q=>q.id===squadId);if(!op?.supportRules||op.status!=='active'||!q||![target.x,target.z].every(Number.isFinite))return{accepted:false,reason:'Support unavailable'};
+  const requestingSide=q.faction??'player';
+  if(requestingSide==='player'&&source!=='PLAYER'||requestingSide==='enemy'&&!['ENEMY_AI','CAMPAIGN_AI'].includes(source))return{accepted:false,reason:'Support authority rejected: friendly support requires a player request; enemy support requires its commander'};
+  if(requestingSide==='enemy'&&!(op.intelligence?.command.enemy??op.contacts?.enemy??[]).some(c=>c.active&&state.elapsed-c.lastSeen<=12&&distance(c,target)<=Math.max(5,Math.min(30,c.uncertainty??0))))return{accepted:false,reason:'No recent delivered report for this support target'};
   const ready=supportReadiness(state,kind,squadId,terrain),operator=state.soldiers.find(s=>s.id===ready.operatorId),range=distance(operator??q,target),grenade=kind==='smokeGrenades';
   if(ready.reason)return{accepted:false,reason:ready.reason};
   if(range>(grenade?30:900)||!grenade&&range<50)return{accepted:false,reason:grenade?'Smoke grenade exceeds 30m throw':'Mortar target must be 50–900m away'};

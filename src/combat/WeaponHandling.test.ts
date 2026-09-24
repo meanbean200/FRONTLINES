@@ -5,8 +5,8 @@ import {fireSmallArms} from './SmallArmsSystem';
 import {equipWeapon} from './Weapons';
 
 function fixture(){
-  const state=createOperation('meeting'),terrain=new TerrainSystem(state),q=state.squads.find(q=>q.kind==='machinegun'&&q.faction!=='enemy')!;
-  const crew=state.soldiers.filter(s=>s.squadId===q.id);crew.forEach((s,i)=>{s.x=i;s.z=0;s.nextShotAt=100;});
+  const state=createOperation('meeting'),terrain=new TerrainSystem(state),q=state.squads.find(q=>q.faction!=='enemy'&&state.soldiers.some(s=>s.squadId===q.id&&s.equipment?.weapon==='crew-mg'))!;
+  const crew=state.soldiers.filter(s=>s.squadId===q.id).sort((a,b)=>Number(b.equipment?.weapon==='crew-mg')-Number(a.equipment?.weapon==='crew-mg'));crew.forEach((s,i)=>{s.x=i;s.z=0;s.nextShotAt=100;});
   const tick=(at:number)=>{state.elapsed=state.operation!.elapsed=at;fireSmallArms(state,terrain,crew,new Map([[q.id,'player']]),()=>{});};
   return {state,crew,tick};
 }

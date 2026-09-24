@@ -2,7 +2,7 @@ import {distance,type Vec2} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {commandEnemy,type EnemyMemory,type EnemyObservation} from './EnemyCommander';
 import {atDepth,frontDepth} from './OperationGeometry';
-import {COMBAT_KINDS,type FrontGeometry,type OperationalCommandMemory} from './OperationalTypes';
+import {type FrontGeometry,type OperationalCommandMemory} from './OperationalTypes';
 
 export interface OperationalKnowledge {
   intent:'defend'|'penetrate'|'contest';front:FrontGeometry;rear:Vec2;deploymentDepth:number;
@@ -11,7 +11,7 @@ export interface OperationalKnowledge {
 /** Takes ONLY the information-firewall observation. It cannot inspect the live world,
  * objective oracle, player orders, hidden casualties or mission-completion progress. */
 export function commandOperationalEnemy(o:EnemyObservation,terrain:TerrainSystem,previous?:EnemyMemory,old?:OperationalCommandMemory){
-  const k=o.operational!,combat=o.squads.filter(q=>q.kind&&COMBAT_KINDS.includes(q.kind));
+  const k=o.operational!,combat=o.squads.filter(q=>!q.working);
   const ready=combat.filter(q=>q.able>=3&&q.ammo>=8&&q.energy>=25&&q.morale>=30&&q.suppression<65);
   const able=combat.reduce((n,q)=>n+q.able,0),start=old?.startingAble??able;
   const report=o.contacts.filter(c=>o.at-c.lastSeen<=12&&c.active).sort((a,b)=>b.lastSeen-a.lastSeen)[0];
@@ -35,7 +35,11 @@ export function commandOperationalEnemy(o:EnemyObservation,terrain:TerrainSystem
   });
   const result=commandEnemy({...o,assignments},terrain,previous);
   let support:{squadId:number;target:Vec2}|undefined;
-  const mortar=o.squads.find(q=>q.kind==='mortar'&&q.able>=2&&!q.moving);
-  if(!exhausted&&report&&mortar&&o.at>=commander.nextSupport!){commander.nextSupport=o.at+30;support={squadId:mortar.id,target:{x:report.x,z:report.z}};}
+  const mortar=o.squads.find(q=>q.mortar&&(q.mortarAmmo??0)>0&&q.able>=2&&!q.working&&!q.supportBusy&&q.suppression<65&&q.morale>=30&&report&&distance(q,report)>=50&&distance(q,report)<=900);
+  if(!exhausted&&report&&mortar&&o.at>=commander.nextSupport!){
+    result.commands=result.commands.filter(c=>c.squadId!==mortar.id);
+    result.commands.push({squadId:mortar.id,type:'hold',goal:{x:mortar.x,z:mortar.z},role:'support',reason:'Deploy carried mortar against delivered report'});
+    if(!mortar.moving){commander.nextSupport=o.at+30;support={squadId:mortar.id,target:{x:report.x,z:report.z}};}
+  }
   return {...result,commander,support};
 }

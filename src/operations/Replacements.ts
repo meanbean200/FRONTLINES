@@ -4,6 +4,7 @@ import {transfer} from '../garrison/Inventory';
 import {freshNeeds} from '../garrison/NeedsSystem';
 import type {Faction} from './types';
 import {equipWeapon} from '../combat/Weapons';
+import {armyFor} from './BattleSetup';
 
 export interface ReplacementManifest {
   id:number;side:Faction;squadId:number;personId:number;returning:boolean;
@@ -71,8 +72,11 @@ export function stepReplacements(state:BattlefieldState,dt:number):void {
       else {delete person.combat!.wound;delete person.combat!.careTask;person.health=100;person.needs=freshNeeds();person.suppression=0;person.morale=Math.max(60,person.morale);}
       for(const key of RESOURCES)transfer(m.stock,person.carried!,key,m.stock[key]);
       person.ammunition=person.carried!.ammo;person.x=truck.x;person.z=truck.z;person.garrisonId=g.id;person.action='arriving replacement';delete person.duty;
-      const predecessor=state.soldiers.find(s=>s.id===m.replacesId);
-      equipWeapon(state,person,predecessor?equipWeapon(state,predecessor).id:undefined);
+      // New arrivals bring one ordinary rifle, not cloned heavy equipment from
+      // a casualty elsewhere. Returning people retain their original kit.
+      person.posture='standing';
+      if(!m.returning)person.equipment={version:1,weapon:armyFor(state,m.side)==='german'?'kar98k':'m1',tools:false,mortar:false,medicalKit:false};
+      equipWeapon(state,person);
       m.stage='arrived';m.arrivedAt=w.campaignHours;delete m.truckId;g.nextDecision=0;
     }
     if(m.returning&&truck){const s=state.soldiers.find(s=>s.id===m.personId)!;s.x=truck.x;s.z=truck.z;}

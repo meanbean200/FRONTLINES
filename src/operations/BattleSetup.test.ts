@@ -86,7 +86,7 @@ describe('Advanced options change the existing systems',()=>{
     const s=resolved(id,7151);s.size='large';Object.assign(s.advanced,{direction:'north',time:'night',engineers:2,mortars:false,smoke:false,supply:'low',reserves:24,approach:'close'});
     const state=createOperationalBattle(id,s.seed,s),r=state.operation!.runtime!;
     expect(r.front.forward).toEqual({x:0,z:-1});expect(state.living!.campaignHours).toBe(22);
-    expect(state.squads.filter(q=>q.kind==='engineer')).toHaveLength(4);expect(state.squads.some(q=>q.kind==='mortar')).toBe(false);
+    expect(state.squads.every(q=>q.kind==='rifle')).toBe(true);expect(state.soldiers.filter(s=>s.equipment?.tools)).toHaveLength(32);expect(state.soldiers.some(s=>s.equipment?.mortar)).toBe(false);
     expect(state.soldiers.every(p=>insideWorld(p))).toBe(true);
     expect(state.living!.logistics!.manifest.smokeGrenades).toBe(0);expect(state.living!.logistics!.manifest.mortarHE).toBe(0);
     expect(Object.values(balance(state)).every(n=>Math.abs(n)<1e-7)).toBe(true);

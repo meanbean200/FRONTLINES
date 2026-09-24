@@ -4,8 +4,22 @@ import { TerrainSystem } from '../terrain/TerrainSystem';
 import { createBattlefield } from '../simulation/createBattlefield';
 import { TrenchNetwork } from '../garrison/TrenchNetwork';
 import { distance, type TrenchState } from '../core/types';
+import {createOperationalBattle} from '../operations/createOperationalBattle';
+import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 
 describe('external garrison approach planning',()=>{
+  it('keeps both formations moving to the village when a coarse final grid cell is inside buildings',()=>{
+    const sim=new BattlefieldSimulation(createOperationalBattle('meeting',1944));
+    const squads=sim.state.squads.slice(0,2);
+    sim.issueMove(squads.map(q=>q.id),{x:-7.391036260090295,z:-76.90571195162948});
+    for(const q of squads){expect(q.order.type).toBe('move');expect(q.route.length).toBeGreaterThan(0);expect(q.route.every((p,i)=>sim.navigation.segmentClear(i?q.route[i-1]:q,p,2))).toBe(true);}
+  });
+  it('reports a failed route without silently cancelling the destination or walking through the obstacle',()=>{
+    const sim=new BattlefieldSimulation(createOperationalBattle('meeting',1944)),q=sim.state.squads[0];
+    vi.spyOn(sim.navigation,'plan').mockReturnValue([]);sim.issueMove([q.id],{x:-1850,z:-1850});
+    const order=structuredClone(q.order),before={x:q.x,z:q.z};sim.step(.05);
+    expect(q.order).toEqual(order);expect(q.orderNote).toContain('Route blocked');expect(distance(q,before)).toBeLessThan(2);
+  });
   it('does not run a grid search for a long, fully checked open approach',()=>{
     const terrain=new TerrainSystem(createBattlefield()),nav=new SquadNavigation(terrain);
     const cost=vi.spyOn(terrain,'navigationCostAt');

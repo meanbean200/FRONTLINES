@@ -19,7 +19,7 @@ export function commandCampaign(state:BattlefieldState,terrain:TerrainSystem,mov
   if(!plan){
     if(op.elapsed<c.nextRaid||ready.length<3)return;
     const objective=op.objectives.find(o=>o.id==='village'&&o.owner!=='enemy')??op.objectives.find(o=>o.id==='west-hq')!;
-    const selected=ready.slice(-2),gun=own.find(q=>q.kind==='machinegun'&&q.able>=2&&q.ammo>15);
+    const selected=ready.slice(-2),gun=own.find(q=>q.automatic&&q.able>=2&&q.ammo>15&&!selected.includes(q));
     plan=c.plan={phase:'scout',objectiveId:objective.id,since:now,reviewAt:now+120,scoutId:selected[0].id,forceIds:[...selected.map(q=>q.id),...(gun?[gun.id]:[])],startingAble:selected.reduce((n,q)=>n+q.able,0)+(gun?.able??0),attempts:1,reason:'Scout the objective; keep two rifle squads protecting the line',nextSupport:now};
     c.raidSquads=[...plan.forceIds];c.phase='raiding';op.enemyAI=undefined;
   }
@@ -72,7 +72,7 @@ export function commandCampaign(state:BattlefieldState,terrain:TerrainSystem,mov
   // No hidden target coordinates or bypass of the player-equivalent friendly-fire check.
   if(['prepare','commit'].includes(plan.phase)&&now>=plan.nextSupport){
     plan.nextSupport=now+30;const target=reports.find(r=>distance(r,objective)<100);
-    const mortar=own.find(q=>q.kind==='mortar'&&q.able>=2);
+    const mortar=own.find(q=>q.mortar&&(q.mortarAmmo??0)>0&&q.able>=2);
     if(target&&mortar)requestSupport(state,'mortarHE',mortar.id,{x:target.x,z:target.z},false,terrain,'CAMPAIGN_AI');
   }
 }

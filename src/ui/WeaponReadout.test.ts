@@ -8,8 +8,8 @@ import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 
 describe('honest crew weapon feedback',()=>{
   it('distinguishes travel, setup, crew loss and ready observation without changing state',()=>{
-    const state=createOperation('meeting'),q=state.squads.find(q=>q.kind==='machinegun'&&q.faction!=='enemy')!;
-    const crew=state.soldiers.filter(s=>s.squadId===q.id);crew.forEach((s,i)=>{s.x=i;s.z=0;});q.x=1;q.z=0;
+    const state=createOperation('meeting'),q=state.squads.find(q=>q.faction!=='enemy'&&state.soldiers.some(s=>s.squadId===q.id&&s.equipment?.weapon==='crew-mg'))!;
+    const crew=state.soldiers.filter(s=>s.squadId===q.id).sort((a,b)=>Number(b.equipment?.weapon==='crew-mg')-Number(a.equipment?.weapon==='crew-mg'));crew.forEach((s,i)=>{s.x=i;s.z=0;});q.x=1;q.z=0;
     const w=equipWeapon(state,crew[0]);state.elapsed=1;expect(crewWeaponReadout(state,q)).toContain('Setting up · 4 s');
     q.order.type='move';expect(crewWeaponReadout(state,q)).toContain('Travelling');q.order.type='hold';state.elapsed=6;
     expect(crewWeaponReadout(state,q)).toContain('Set · watching sector');
