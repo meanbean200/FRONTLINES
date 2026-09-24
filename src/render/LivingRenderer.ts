@@ -3,15 +3,21 @@ import type {BattlefieldState,Vec2} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {playerVisibleEnemies,playerCanSeePoint} from '../operations/Visibility';
 import {emplacementBoxes} from '../terrain/SupportGeometry';
+import {truckGeometry,truckWheelGeometry} from './VehicleVisual';
 export class LivingRenderer {
   readonly group=new THREE.Group();
   private readonly boxes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({roughness:1}),8192);
   private readonly routes=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xd9b56b,transparent:true,opacity:.55}));
   private last=-1;
-  constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem){this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes);}
+  private readonly vehicles=new THREE.InstancedMesh(truckGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.88,side:THREE.DoubleSide}),64);
+  private readonly wheels=new THREE.InstancedMesh(truckWheelGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95}),384);
+  private readonly lastTrucks=new Map<number,{x:number;z:number;angle:number;roll:number}>();
+  private identity?:object;
+  constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem){this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes,this.vehicles,this.wheels);for(const mesh of [this.vehicles,this.wheels]){mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;mesh.count=0;}}
   update(now:number,showRoutes:boolean):void {
     this.routes.visible=showRoutes;if(now-this.last<80)return;this.last=now;
-    const state=this.getState(),w=state.living;if(!w)return;
+    const state=this.getState(),w=state.living;if(!w){this.boxes.count=this.vehicles.count=this.wheels.count=0;return;}
+    if(this.identity!==w){this.identity=w;this.lastTrucks.clear();}
     const visible=playerVisibleEnemies(state),enemies=new Set(state.squads.filter(q=>q.faction==='enemy').map(q=>q.id));
     const hidden=(s:BattlefieldState['soldiers'][number])=>Boolean(state.operation&&enemies.has(s.squadId)&&!visible.has(s.id));
     const seen=(p:Vec2)=>playerCanSeePoint(state,this.terrain,p);
@@ -19,12 +25,15 @@ export class LivingRenderer {
     const trucks=w.trucks.filter(t=>t.faction!=='enemy'||seen(t));
     const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),color=new THREE.Color(),position=new THREE.Vector3(),scale=new THREE.Vector3();let count=0;
     const box=(x:number,y:number,z:number,sx:number,sy:number,sz:number,tint:number,angle=0)=>{if(count>=8192)return;position.set(x,y,z);scale.set(sx,sy,sz);q.setFromAxisAngle(new THREE.Vector3(0,1,0),angle);matrix.compose(position,q,scale);this.boxes.setMatrixAt(count,matrix);this.boxes.setColorAt(count++,color.setHex(tint));};
-    for(const t of trucks){
-      const next=t.route[t.routeIndex],angle=next?Math.atan2(next.x-t.x,next.z-t.z):Math.PI/2,h=this.terrain.heightAt(t.x,t.z);
-      const part=(x:number,y:number,z:number,sx:number,sy:number,sz:number,c:number)=>box(t.x+Math.cos(angle)*x+Math.sin(angle)*z,h+y,t.z-Math.sin(angle)*x+Math.cos(angle)*z,sx,sy,sz,c,angle);
-      part(0,1.1,0,2.2,.5,5.6,0x454b38);part(0,2,1.65,2.1,1.4,1.8,0x62704c);part(0,2.1,2.58,1.8,.65,.08,0x778e91);part(0,1.95,-1,2.2,1.2,3.3,0x8a805d);
-      for(const side of [-1,1])for(const z of [-1.8,1.7])part(side*1.12,.6,z,.4,1,1,0x252923);
+    let vehicleCount=0,wheelCount=0;const axis=new THREE.Vector3(0,1,0),wheelAxis=new THREE.Vector3(1,0,0),wheelRotation=new THREE.Quaternion();
+    for(const t of trucks.slice(0,64)){
+      const next=t.route[t.routeIndex],last=this.lastTrucks.get(t.id),angle=next&&Math.hypot(next.x-t.x,next.z-t.z)>.1?Math.atan2(next.x-t.x,next.z-t.z):last?.angle??Math.PI/2,h=this.terrain.heightAt(t.x,t.z);
+      const roll=(last?.roll??0)+(last?Math.min(4,Math.hypot(t.x-last.x,t.z-last.z))/.5:0);this.lastTrucks.set(t.id,{x:t.x,z:t.z,angle,roll});
+      q.setFromAxisAngle(axis,angle);matrix.compose(position.set(t.x,h,t.z),q,scale.setScalar(1));this.vehicles.setMatrixAt(vehicleCount++,matrix);
+      wheelRotation.copy(q).multiply(new THREE.Quaternion().setFromAxisAngle(wheelAxis,roll));
+      for(const side of [-1,1])for(const z of [-2.23,-1.28,1.9]){position.set(side*1.04,.52,z).applyQuaternion(q).add(new THREE.Vector3(t.x,h,t.z));matrix.compose(position,wheelRotation,scale);this.wheels.setMatrixAt(wheelCount++,matrix);}
     }
+    this.vehicles.count=vehicleCount;this.wheels.count=wheelCount;this.vehicles.instanceMatrix.needsUpdate=this.wheels.instanceMatrix.needsUpdate=true;
     const piles=[{point:w.rear,stock:w.rearStock},...garrisons.flatMap(g=>[{point:g.entrance,stock:g.cache},...(g.faction!=='enemy'||seen(g.forward)?[{point:g.forward,stock:g.forwardStock}]:[])]),...(w.enemySupply&&seen(w.enemySupply.rear)?[{point:w.enemySupply.rear,stock:w.enemySupply.stock}]:[])];
     for(const {point:p,stock} of piles){const crates=Math.min(12,Math.ceil((stock.food+stock.water+stock.materials)/20));for(let i=0;i<crates;i++){const x=p.x+2+(i%4)*1.15,z=p.z+Math.floor(i/4)*1.1;box(x,this.terrain.heightAt(x,z)+.35,z,.9,.65,.8,i%2?0x80734c:0x686e49);}}
     for(const f of w.facilities){

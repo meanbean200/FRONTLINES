@@ -8,6 +8,7 @@ export function releaseLostContextResources(root:THREE.Object3D):void {
     if(object instanceof THREE.Mesh||object instanceof THREE.Line||object instanceof THREE.Points){
       geometries.add(object.geometry);
       for(const material of Array.isArray(object.material)?object.material:[object.material])materials.add(material);
+      if(object instanceof THREE.Mesh){if(object.customDepthMaterial)materials.add(object.customDepthMaterial);if(object.customDistanceMaterial)materials.add(object.customDistanceMaterial);}
     }
   });
   for(const material of materials){

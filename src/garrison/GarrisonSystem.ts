@@ -13,6 +13,7 @@ import { firstAvailablePoint } from './DutyReservations';
 import {trenchEntrance} from '../core/TrenchGeometry';
 import {bankPoint,defensivePost} from './DefensivePositions';
 import {ownsAction} from '../combat/Reactions';
+import {facilitySiteReason} from '../construction/ConstructionReadout';
 
 const WATCH={routine:.25,alert:.5,'stand-to':.9};
 const NIGHT=(hours:number)=>hours%24>=20||hours%24<6;
@@ -612,7 +613,7 @@ export class GarrisonSystem {
   requestFacility(garrisonId:number,kind:Facility['kind'],position?:Vec2,origin?:Vec2):number|undefined {
     const g=this.state.living!.garrisons.find(g=>g.id===garrisonId);if(!g)return;
     const existing=this.state.living!.facilities.filter(f=>f.garrisonId===g.id);
-    const valid=(from:Vec2,to:Vec2)=>Number.isFinite(to.x)&&Number.isFinite(to.z)&&distance(from,to)>=6&&distance(from,to)<=40&&!this.state.living!.facilities.some(f=>distance(f,to)<8)&&!this.terrain.obstacleAt(to.x,to.z,6)&&this.terrain.groundTypeAt(to.x,to.z)!=='river'&&(this.network.nearest(from,this.network.component(g.trenchId))?.distance??Infinity)<.3&&this.navigation.segmentClear(from,to,5)&&((to.x-from.x)*Math.sin(g.front)+(to.z-from.z)*Math.cos(g.front))<0;
+    const valid=(from:Vec2,to:Vec2)=>!facilitySiteReason(this.state,g,from,to,this.terrain,this.navigation,this.network);
     if(position&&origin)return valid(origin,position)?this.construction.request({kind:'facility',garrisonId:g.id,facilityKind:kind,origin,position}):undefined;
     const component=this.network.component(g.trenchId),points=component===undefined?[]:this.network.samples(component,10);if(!points.length)return;
     const from=points[Math.min(points.length-1,existing.length*2+1)];

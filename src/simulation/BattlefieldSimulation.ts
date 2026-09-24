@@ -13,6 +13,7 @@ import { addSquad } from './createBattlefield';
 import { SquadNavigation } from '../navigation/SquadNavigation';
 import { TerrainSystem } from '../terrain/TerrainSystem';
 import { TrenchSystem } from '../construction/TrenchSystem';
+import {MIN_TRENCH_LENGTH} from '../construction/ConstructionReadout';
 import {atDistance,simplifyRoute} from '../core/Polyline';
 import { GarrisonSystem } from '../garrison/GarrisonSystem';
 import { OperationSystem } from '../operations/OperationSystem';
@@ -198,7 +199,7 @@ export class BattlefieldSimulation {
       const a=bounded[i-1],b=bounded[i],n=Math.max(1,Math.ceil(distance(a,b)/2));
       for(let j=0;j<=n;j++){const x=a.x+(b.x-a.x)*j/n,z=a.z+(b.z-a.z)*j/n;if(this.terrain.obstacleAt(x,z,4)||this.terrain.groundTypeAt(x,z)==='river')return undefined;}
     }
-    if(polylineLength(bounded)<10)return undefined;
+    if(polylineLength(bounded)<MIN_TRENCH_LENGTH)return undefined;
     const id=this.trenches.request({kind:'trench',points:bounded,engineerSquadId:validEngineer?.id})!;
     const trench = this.state.trenches.find(t=>t.id===id)!;
     // Smoothing is also checked: an inside corner must not cut through a footprint.

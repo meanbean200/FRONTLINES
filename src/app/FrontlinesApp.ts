@@ -25,6 +25,11 @@ import { HudLayout } from '../ui/HudLayout';
 import {requestSupport} from '../combat/SupportWeapons';
 import {CombatAudio} from '../render/CombatAudio';
 import {trenchDraft} from '../ui/TrenchDraft';
+import {BuildPanel} from '../ui/BuildPanel';
+import {chooseEngineer,fitEngineers,facilitySiteReason,MIN_TRENCH_LENGTH,SUPPORT_WORKS,type FacilityPreview} from '../construction/ConstructionReadout';
+import {localInventory} from '../garrison/Inventory';
+import {EnvironmentLighting} from '../render/EnvironmentLighting';
+import {VISUAL_QUALITY,type VisualQuality} from '../render/VisualQuality';
 
 export class FrontlinesApp {
   readonly selectedSquads = new Set<number>();
@@ -48,7 +53,7 @@ export class FrontlinesApp {
   private readonly audio=new CombatAudio(()=>this.state);
   private readonly ui: BattlefieldUI;
   private readonly tactical: TacticalOverlay;
-  private readonly sun=new THREE.DirectionalLight(0xffe5b4,2.3);
+  private readonly lighting:EnvironmentLighting;
   private mode: InteractionMode = 'select';
   private pendingFacility?:{id:number;kind:import('../garrison/types').Facility['kind']};
   private lastTime = performance.now();
@@ -58,13 +63,13 @@ export class FrontlinesApp {
   private readonly intervalSamples: number[] = [];
   private readonly simSamples: number[] = [];
   private perf: PerfSnapshot = { fps: 0, frameMs: 0, simulationMs: 0, drawCalls: 0, chunks: 0 };
-  private lastShadow=0;
   private pixelRatioLimit=1.25;
   private readonly garrisonPanel:GarrisonPanel;
+  private readonly buildPanel:BuildPanel;
+  private readonly input:CommandInput;
   private readonly livingRenderer:LivingRenderer;
   private readonly operationUI:OperationUI;
   private readonly operationRenderer:OperationRenderer;
-  private readonly ambient=new THREE.HemisphereLight(0xd3e2ed,0x535c39,1.65);
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.state = createPlayableSandbox();
@@ -83,6 +88,7 @@ export class FrontlinesApp {
     this.scene.background = new THREE.Color(0xa1b1ad);
     this.scene.fog = new THREE.FogExp2(0xa1b1ad, 0.00021);
     this.camera = new StrategyCamera(canvas, this.simulation.terrain);
+    this.lighting=new EnvironmentLighting(this.scene,this.renderer);
     this.terrainRenderer = new TerrainRenderer(this.simulation.terrain);
     this.unitRenderer = new UnitRenderer(this.state, this.simulation.terrain);
     this.trenchRenderer = new TrenchRenderer(this.state, this.simulation.terrain);
@@ -90,7 +96,6 @@ export class FrontlinesApp {
     this.scene.add(this.terrainRenderer.group, this.unitRenderer.group, this.trenchRenderer.group, this.debugRenderer.group);
     this.livingRenderer=new LivingRenderer(()=>this.state,this.simulation.terrain);this.scene.add(this.livingRenderer.group);
     this.operationRenderer=new OperationRenderer(()=>this.state,this.simulation.terrain);this.scene.add(this.operationRenderer.group);
-    this.addLighting();
     this.ui = new BattlefieldUI(this.state, this.selectedSquads, this.flags, {
       setSpeed: (speed) => this.simulation.setSpeed(speed),
       hold: () => this.simulation.issueHold([...this.selectedSquads]),
@@ -114,9 +119,17 @@ export class FrontlinesApp {
         if (key === 'chunks') this.terrainRenderer.setChunkDebug(value);
       },
     });
-    this.garrisonPanel=new GarrisonPanel(this.simulation,(id,kind)=>{this.setMode('facility');this.pendingFacility={id,kind};this.ui.notify(`Place ${kind==='ammo'?'ammunition dugout':kind} · click 6–40m behind your trench · Esc cancels`);});
+    this.garrisonPanel=new GarrisonPanel(this.simulation,(id,kind)=>this.beginFacility(id,kind));
+    this.buildPanel=new BuildPanel(()=>this.state,{place:(id,kind)=>this.beginFacility(id,kind),focus:point=>this.camera.focus(point,100),assign:id=>{
+      if(this.simulation.commandsLocked)return;
+      const engineer=chooseEngineer(this.state,this.selectedSquads),g=this.state.living!.garrisons.find(g=>g.id===id&&g.faction!=='enemy');
+      if(!engineer){this.ui.notify('No fit engineer team available.','warn');return;}
+      const assigned=this.simulation.issueOccupyNearest([engineer.id],g?.trenchId);
+      this.ui.notify(assigned?`${engineer.name} assigned · unfinished earthworks are preserved`:'No reachable completed trench with room for the engineers. Finish excavation first.',assigned?'normal':'warn');
+      if(assigned)this.selectSquads([engineer.id]);
+    }});
     this.tactical=new TacticalOverlay(()=>this.state,this.selectedSquads,this.camera,this.simulation.terrain,(ids,add)=>this.selectSquads(ids,add),id=>this.occupyTrench(id));
-    new CommandInput({
+    this.input=new CommandInput({
       canvas,
       camera: this.camera,
       getState: () => this.state,
@@ -130,12 +143,14 @@ export class FrontlinesApp {
       onDrawPath:(points,append,intent)=>{const ok=this.simulation.issueDrawnPath([...this.selectedSquads],points,append);if(ok&&intent)for(const q of this.state.squads.filter(q=>this.selectedSquads.has(q.id)&&factionOf(q)==='player'))q.order.intent=intent;this.ui.notify(ok?`${append?'Extended':'Drawn'} ${intent??'move'} route · ${this.selectedSquads.size} squad(s)`:'Route crosses a building or cannot be reached · adjust the corridor',ok?'normal':'warn');},
       onTrench: (points) => this.buildTrench(points),
       previewTrench:points=>trenchDraft(points,this.simulation.terrain),
+      previewFacility:position=>this.facilityPreview(position),
+      notify:message=>this.ui.notify(message,'warn'),
       onDefend:points=>{const id=this.simulation.defendArea([...this.selectedSquads],points);this.ui.notify(id?'Area assigned. Choose its facing in Defend Area.':'Draw the frontage within 40m of reachable completed trenches; check capacity.',id?'normal':'warn');if(id)this.garrisonPanel.showForSquad([...this.selectedSquads][0]);},
       onFacility:position=>{
-        const pending=this.pendingFacility,g=this.state.living!.garrisons.find(g=>g.id===pending?.id&&g.faction!=='enemy');if(!pending||!g)return false;
-        const origin=this.simulation.garrisons.network.nearest(position,this.simulation.garrisons.network.component(g.trenchId))?.point;
-        const id=origin?this.simulation.requestConstruction({kind:'facility',garrisonId:g.id,facilityKind:pending.kind,origin,position}):undefined;
-        this.ui.notify(id?'Support works queued · engineers will carry materials and dig the connector':'Choose clear ground 6–40m behind the trench, away from facilities. An assigned engineer is required.',id?'normal':'warn');
+        const pending=this.pendingFacility,preview=this.facilityPreview(position);if(!pending||!preview)return false;
+        if(!preview.valid||!preview.origin){this.ui.notify(preview.reason,'warn');return false;}
+        const id=this.simulation.requestConstruction({kind:'facility',garrisonId:pending.id,facilityKind:pending.kind,origin:preview.origin,position});
+        this.ui.notify(id?`${preview.name} queued · ${this.state.simSpeed===0?'paused: press Space to start crews':'carriers deliver materials, then engineers dig and build'}`:'Worksite changed · reopen Build and check the assigned engineers.',id?'normal':'warn');
         return Boolean(id);
       },
       onCrater: (point) => {
@@ -152,7 +167,7 @@ export class FrontlinesApp {
     new HudLayout(document.querySelector<HTMLElement>('#ui-root')!);
     canvas.addEventListener('webglcontextlost',event=>{
       event.preventDefault();this.graphicsLost=true;this.accumulator=0;this.operationUI.setGraphicsLost(true);
-      releaseLostContextResources(this.scene);this.sun.shadow.map?.dispose();this.sun.shadow.map=null;
+      releaseLostContextResources(this.scene);this.lighting.releaseShadows();
     });
     canvas.addEventListener('webglcontextrestored',()=>{
       this.graphicsLost=false;this.accumulator=0;this.lastTime=performance.now();this.renderer.shadowMap.needsUpdate=true;this.operationUI.setGraphicsLost(false);
@@ -186,23 +201,19 @@ export class FrontlinesApp {
       if(simulationDuration+(performance.now()-simStart)>10)break;
     }
     this.camera.update(realDt);
-    this.terrainRenderer.update(this.camera.target.x, this.camera.target.z);
+    this.input.updatePreview();
+    this.terrainRenderer.update(this.camera.target.x, this.camera.target.z,this.camera.zoomDistance);
     const interiors=new Map<number,number>();for(const s of this.state.soldiers)if(this.selectedSquads.has(s.squadId)&&s.building&&this.state.squads.find(q=>q.id===s.squadId)?.faction!=='enemy')interiors.set(s.building.id,Math.min(interiors.get(s.building.id)??1,s.building.floor));
     this.terrainRenderer.showInteriors(interiors);
     this.unitRenderer.update(this.selectedSquads,realDt,this.camera.zoomDistance);
-    this.trenchRenderer.update();
+    this.trenchRenderer.update(this.camera.zoomDistance);
     this.debugRenderer.update(realDt, this.flags, this.selectedSquads);
     this.tactical.update(realDt);
     this.livingRenderer.update(now,this.garrisonPanel.showRoutes);this.garrisonPanel.update(now);
+    this.buildPanel.update();
     this.operationRenderer.update();this.operationUI.update(now);
     this.audio.update();
-    const daylight=Math.max(0,Math.sin(((this.state.living?.campaignHours??12)%24-6)/12*Math.PI));
-    this.sun.intensity=.45+daylight*1.85;this.ambient.intensity=1.05+daylight*.6;
-    (this.scene.background as THREE.Color).setRGB(.11+daylight*.47,.15+daylight*.5,.22+daylight*.4);
-    (this.scene.fog as THREE.FogExp2).color.copy(this.scene.background as THREE.Color);
-    const lightX=Math.round(this.camera.target.x/40)*40,lightZ=Math.round(this.camera.target.z/40)*40;
-    this.sun.position.set(lightX-450,750,lightZ+300);this.sun.target.position.set(lightX,0,lightZ);
-    if(now-this.lastShadow>100){this.renderer.shadowMap.needsUpdate=true;this.lastShadow=now;}
+    this.lighting.update(this.state.living?.campaignHours??12,this.camera.target,this.camera.zoomDistance,now);
     this.renderer.render(this.scene, this.camera.camera);
     const frameDuration = performance.now() - frameStart;
     this.recordPerf(frameDuration, simulationDuration, interval);
@@ -210,41 +221,38 @@ export class FrontlinesApp {
     requestAnimationFrame(this.frame);
   };
 
-  private addLighting(): void {
-    const hemisphere = this.ambient;
-    const sun = this.sun;
-    sun.position.set(-900, 1_800, -600);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    sun.shadow.camera.left = -330;
-    sun.shadow.camera.right = 330;
-    sun.shadow.camera.top = 330;
-    sun.shadow.camera.bottom = -330;
-    sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 3_500;
-    sun.shadow.bias = -0.00025;
-    sun.shadow.normalBias=.15;
-    this.scene.add(hemisphere, sun,sun.target);
-  }
-
   private enterTrenchMode(): void {
-    const engineer = this.state.squads.find((squad) => this.selectedSquads.has(squad.id) && squad.kind === 'engineer');
-    if (!engineer) {
-      const available=this.state.squads.find(s=>s.kind==='engineer'&&s.order.type==='hold')??this.state.squads.find(s=>s.kind==='engineer');
-      if(!available)return;
-      this.selectSquads([available.id]);
-      this.ui.notify(`${available.name} selected · drag a route to excavate`);
-    }
+    if(this.simulation.commandsLocked)return;
+    const engineer=chooseEngineer(this.state,this.selectedSquads);
+    if(!engineer){this.ui.notify('No fit engineer team available to dig.','warn');return;}
+    this.selectSquads([engineer.id]);
+    this.ui.notify(`${engineer.name} · left-drag at least ${MIN_TRENCH_LENGTH} m to dig`);
     this.setMode('trench');
   }
 
   private buildTrench(points: Vec2[]): number | undefined {
-    const engineer = this.state.squads.find((squad) => this.selectedSquads.has(squad.id) && squad.kind === 'engineer');
+    const engineer=chooseEngineer(this.state,this.selectedSquads);
     if (!engineer) return undefined;
     const id = this.simulation.createTrench(points, engineer.id);
-    if (id) this.ui.notify(`${engineer.constructionQueue?.includes(id)?'Queued trench':'Trench plan'} ${id} · ${engineer.name}`);
+    if (id) this.ui.notify(`${engineer.constructionQueue?.includes(id)?'Queued trench':'Trench plan'} ${id} · ${engineer.name}${this.state.simSpeed===0?' · paused: press Space for crews to work':''}`);
     else this.ui.notify('Route blocked by a building or water · draw on open ground','warn');
     return id;
+  }
+
+  private beginFacility(id:number,kind:import('../garrison/types').Facility['kind']):void{
+    if(this.simulation.commandsLocked)return;
+    this.setMode('facility');this.pendingFacility={id,kind};
+    this.ui.notify(`${SUPPORT_WORKS[kind].name} · move over ground to preview; click to place, Esc to cancel`);
+  }
+  private facilityPreview(position:Vec2):FacilityPreview|undefined{
+    const pending=this.pendingFacility;if(!pending)return;
+    const g=this.state.living!.garrisons.find(g=>g.id===pending.id&&g.faction!=='enemy'),work=SUPPORT_WORKS[pending.kind];
+    this.simulation.garrisons.network.sync(this.state.trenches);
+    const network=this.simulation.garrisons.network,component=g?network.component(g.trenchId):undefined;
+    const origin=component===undefined?undefined:network.nearest(position,component)?.point;
+    const materials=g?localInventory(this.state,g).materials:0;
+    const reason=!g||!origin?'Assign engineers to a completed trench first.':g.cutoff==='withdraw'?'This network is withdrawn. Reassign engineers before building.':!fitEngineers(this.state).some(q=>g.squadIds.includes(q.id)&&q.order.type==='occupy-trench')?'No engineers assigned here · open Build and assign a team.':facilitySiteReason(this.state,g,origin,position,this.simulation.terrain,this.simulation.navigation,network);
+    return {name:work.name,cost:work.cost,position,origin,materials,valid:!reason,reason:reason??(materials<work.cost?'Clear site · will wait for delivered materials.':'Clear site · click to queue construction.')};
   }
 
   private occupyTrench(requestedId?:number): void {
@@ -256,9 +264,8 @@ export class FrontlinesApp {
   private setQuality(level:string):void {
     if(!['low','balanced','high'].includes(level))return;
     this.ui.setQuality(level);this.operationUI.setQuality(level);
-    this.pixelRatioLimit=level==='low'?1:level==='high'?1.65:1.25;
-    this.renderer.shadowMap.enabled=level!=='low';this.sun.shadow.map?.dispose();this.sun.shadow.map=null;
-    this.sun.shadow.mapSize.setScalar(level==='high'?2048:1024);this.renderer.shadowMap.needsUpdate=true;this.resize();
+    const quality=level as VisualQuality;this.pixelRatioLimit=VISUAL_QUALITY[quality].pixelRatio;
+    this.lighting.setQuality(quality);this.terrainRenderer.setQuality(quality);this.unitRenderer.setQuality(quality);this.operationRenderer.setQuality(quality);this.renderer.shadowMap.needsUpdate=true;this.resize();
   }
 
   private setMode(mode: InteractionMode): void {
@@ -383,6 +390,7 @@ export class FrontlinesApp {
       spawnStressTest: (count = 300) => this.stress(count),
       focus: (x, z, distance = 450) => this.camera.focus({ x, z }, distance),
       getPerf: () => ({ ...this.perf }),
+      getVisualStats:()=>({triangles:this.renderer.info.render.triangles,drawCalls:this.renderer.info.render.calls,particles:this.operationRenderer.particleCount,submittedSoldiers:this.unitRenderer.visibleCount,residentTrees:this.terrainRenderer.residentTreeCount,visibleTrees:this.terrainRenderer.visibleTrees(this.camera.camera)}),
       getState: () => structuredClone(this.state),
       getPolicyPerf:()=>({inferenceMs:0,coordinator:'deterministic'}),
       setReadiness:(id,value)=>this.simulation.garrisons.setReadiness(id,value),

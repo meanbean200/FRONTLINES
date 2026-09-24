@@ -91,7 +91,7 @@ export class BattlefieldUI {
     this.root.querySelector('#trench-command')!.classList.toggle('active',mode==='trench');
     this.root.querySelector('#move-command')!.classList.toggle('active',mode==='move');
     this.root.querySelector<HTMLButtonElement>('#resume-command')!.disabled=locked||!this.state.squads.some(s=>this.selected.has(s.id)&&s.kind==='engineer');
-    for(const id of ['trench-command','resume-command'])this.root.querySelector<HTMLElement>('#'+id)!.hidden=!this.state.squads.some(q=>this.selected.has(q.id)&&q.kind==='engineer');
+    this.root.querySelector<HTMLElement>('#resume-command')!.hidden=!this.state.squads.some(q=>this.selected.has(q.id)&&q.kind==='engineer');
     this.root.querySelector<HTMLElement>('.selection-actions')!.hidden=!this.selected.size;
     {const button=this.root.querySelector<HTMLElement>('[data-tactical="push"]')!;button.hidden=!this.state.squads.some(q=>this.selected.has(q.id)&&q.order.type==='move');}
   }

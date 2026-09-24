@@ -32,6 +32,7 @@ declare global {
       spawnStressTest: (count?: number) => number;
       focus: (x: number, z: number, distance?: number) => void;
       getPerf: () => PerfSnapshot;
+      getVisualStats:()=>{triangles:number;drawCalls:number;particles:number;submittedSoldiers:number;residentTrees:number;visibleTrees:number};
       getState: () => BattlefieldState;
       getPolicyPerf:()=>{inferenceMs:number};
       setReadiness:(id:number,value:'routine'|'alert'|'stand-to')=>void;

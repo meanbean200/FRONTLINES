@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { hash2D } from '../core/random';
 import { CHUNK_SIZE } from '../core/types';
 import { TerrainSystem, smoothStep } from '../terrain/TerrainSystem';
+export {groundMaterial} from './TerrainMaterials';
 
 const fields = [0x62734c, 0x727647, 0x8a8054, 0x526747, 0x746747, 0x667348].map(hex => new THREE.Color(hex));
 const woodland = new THREE.Color(0x3b5037);
@@ -10,7 +11,7 @@ const floor = new THREE.Color(0x302a23);
 
 /** Refines only cells touched by excavation to sub-meter spacing. */
 export function createGroundGeometry(terrain: TerrainSystem, x0: number, z0: number, divisions: number, refine=true): THREE.BufferGeometry {
-  const vertices: number[] = [], colors: number[] = [], normals: number[] = [], indices: number[] = [];
+  const vertices: number[] = [], colors: number[] = [], normals: number[] = [], indices: number[] = [], cover:number[]=[];
   const size = CHUNK_SIZE / divisions;
   const color = new THREE.Color();
   function vertex(x: number, z: number, override?:number): void {
@@ -26,6 +27,7 @@ export function createGroundGeometry(terrain: TerrainSystem, x0: number, z0: num
     color.copy(fields[Math.floor(parcel * fields.length) % fields.length]);
     color.lerp(woodland, smoothStep(.5, .66, terrain.forestValueAt(x, z)) * .85);
     const deformation = terrain.deformationAt(x, z);
+    cover.push(smoothStep(.5,.66,terrain.forestValueAt(x,z)),Math.min(1,Math.abs(deformation)*2.4));
     if (Math.abs(deformation) > .025) color.lerp(deformation < -.5 ? floor : earth, Math.min(1, Math.abs(deformation) * 2.4));
     const lightNoise = .94 + hash2D(Math.floor(x * 2), Math.floor(z * 2), terrain.seed) * .12;
     colors.push(color.r * lightNoise, color.g * lightNoise, color.b * lightNoise);
@@ -63,24 +65,8 @@ export function createGroundGeometry(terrain: TerrainSystem, x0: number, z0: num
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute('groundCover',new THREE.Float32BufferAttribute(cover,2));
   geometry.setIndex(indices);
   geometry.computeBoundingSphere();
   return geometry;
-}
-
-export function groundMaterial(): THREE.MeshStandardMaterial {
-  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 });
-  material.onBeforeCompile = shader => {
-    shader.vertexShader = 'varying vec3 fieldPosition;\n' + shader.vertexShader;
-    shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n fieldPosition = position;');
-    shader.fragmentShader = 'varying vec3 fieldPosition;\nfloat groundHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat groundNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(groundHash(i),groundHash(i+vec2(1,0)),f.x),mix(groundHash(i+vec2(0,1)),groundHash(i+vec2(1,1)),f.x),f.y);}\n' + shader.fragmentShader;
-    shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
-      float grain = groundHash(floor(fieldPosition.xz * 3.0));
-      float broad = groundNoise(fieldPosition.xz / 3.0);
-      float furrow = sin(fieldPosition.x * 2.4 + fieldPosition.z * .38) * .5 + .5;
-      float attenuation = 1.0 / (1.0 + length(vViewPosition) * .006);
-      diffuseColor.rgb *= .88 + broad * .15 + (grain - .5) * .18 * attenuation + furrow * .035;
-    `);
-  };
-  return material;
 }

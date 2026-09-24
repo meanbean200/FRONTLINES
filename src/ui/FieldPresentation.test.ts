@@ -31,7 +31,8 @@ describe('field command presentation is truthful and read only',()=>{
   });
   it('marks only blocked drawn segments and does not promise a smoothing result',()=>{
     const ground={clampToWorld:(p:{x:number;z:number})=>({...p}),obstacleAt:(x:number)=>x>=24&&x<=26,groundTypeAt:(x:number)=>x>=40?'river' as const:'field' as const};
-    const a=trenchDraft([{x:0,z:0},{x:12,z:0}],ground);expect(a.tooShort).toBe(true);expect(a.blocked).toHaveLength(0);
+    const a=trenchDraft([{x:0,z:0},{x:8,z:0}],ground);expect(a.tooShort).toBe(true);expect(a.blocked).toHaveLength(0);
+    expect(trenchDraft([{x:0,z:0},{x:10,z:0}],ground).tooShort).toBe(false);
     const b=trenchDraft([{x:0,z:0},{x:22,z:0},{x:30,z:0},{x:45,z:0}],ground);expect(b.length).toBe(45);expect(b.blocked).toHaveLength(2);expect(b.tooShort).toBe(false);
   });
   it('icons are labelled by their control, not duplicate screen reader text',()=>{

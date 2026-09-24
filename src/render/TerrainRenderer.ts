@@ -5,6 +5,8 @@ import { createGroundGeometry, groundMaterial } from './GroundGeometry';
 import { createInfrastructure, createVegetation,refreshRoadCuts,refreshVegetationClearance,refreshBuildingMeshes } from './Scenery';
 import type {GroundRequest,GroundResponse} from './GroundWorker';
 import {excavationBoundsKey} from '../core/TrenchGeometry';
+import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
+import {setVegetationDetail} from './Vegetation';
 
 interface Chunk { cx:number; cz:number; mesh:THREE.Mesh; detail:boolean; revision:number; modified:boolean; vegetation?:THREE.Group; key?:string;candidateKey?:string;candidateRevision?:number;candidateDetail?:boolean }
 
@@ -21,13 +23,14 @@ export class TerrainRenderer {
   private lastVegetation=0;
   private generation=0;
   private failed=false;
+  private quality:VisualQuality='balanced';
   chunkDebugVisible = false;
   constructor(private readonly terrain: TerrainSystem) {
     this.worker.onmessage=({data:r}:MessageEvent<GroundResponse>)=>{
       const job=this.job;if(!job||job.id!==r.id)return;this.job=undefined;
       if(!this.chunks.includes(job.chunk))return;
       const geometry=new THREE.BufferGeometry();
-      geometry.setAttribute('position',new THREE.BufferAttribute(r.position,3));geometry.setAttribute('normal',new THREE.BufferAttribute(r.normal,3));geometry.setAttribute('color',new THREE.BufferAttribute(r.color,3));geometry.setIndex(new THREE.BufferAttribute(r.index,1));geometry.computeBoundingSphere();
+      geometry.setAttribute('position',new THREE.BufferAttribute(r.position,3));geometry.setAttribute('normal',new THREE.BufferAttribute(r.normal,3));geometry.setAttribute('color',new THREE.BufferAttribute(r.color,3));geometry.setAttribute('groundCover',new THREE.BufferAttribute(r.groundCover,2));geometry.setIndex(new THREE.BufferAttribute(r.index,1));geometry.computeBoundingSphere();
       job.chunk.mesh.geometry.dispose();job.chunk.mesh.geometry=geometry;job.chunk.detail=job.detail;job.chunk.key=job.key;
       if(this.infrastructure)refreshRoadCuts(this.infrastructure,this.terrain,job.chunk.cx*500-4000,job.chunk.cz*500-4000);
       if(job.chunk.vegetation)refreshVegetationClearance(job.chunk.vegetation,this.terrain);
@@ -48,7 +51,7 @@ export class TerrainRenderer {
     }
     this.infrastructure=createInfrastructure(this.terrain);this.group.add(this.infrastructure);
   }
-  update(cameraX:number,cameraZ:number):void {
+  update(cameraX:number,cameraZ:number,zoom=0):void {
     if(this.seed!==this.terrain.seed) this.reset();
     this.terrain.syncModifications();
     const sorted=this.chunks.map(chunk=>({chunk,d:Math.hypot(chunk.cx*500-3750-cameraX,chunk.cz*500-3750-cameraZ)})).sort((a,b)=>a.d-b.d);
@@ -70,6 +73,7 @@ export class TerrainRenderer {
       } else if(d>2100 && chunk.vegetation) {
         this.group.remove(chunk.vegetation);this.disposeInstances(chunk.vegetation);chunk.vegetation=undefined;
       }
+      if(chunk.vegetation)setVegetationDetail(chunk.vegetation,Math.hypot(d,zoom*.75),VISUAL_QUALITY[this.quality].foliageDetail);
     }
   }
   /** Only nearby construction invalidates a mesh, at the same .5 m steps as its physical floor. */
@@ -82,7 +86,16 @@ export class TerrainRenderer {
     return parts.join('|');
   }
   setChunkDebug(visible:boolean):void {this.chunkDebugVisible=visible;this.material.wireframe=visible;}
+  setQuality(quality:VisualQuality):void{this.quality=quality;this.material.userData.detail.value=VISUAL_QUALITY[quality].groundDetail;}
   showInteriors(cutaways:Map<number,number>):void{if(this.infrastructure)refreshBuildingMeshes(this.infrastructure,this.terrain,cutaways);}
   get visibleChunkCount():number {return this.chunks.filter(c=>c.detail).length;}
-  private disposeInstances(group:THREE.Group):void {group.traverse(o=>{if(o instanceof THREE.InstancedMesh)o.dispose();});}
+  /** Resident uncleared trees; separate from actual camera-frustum count. */
+  get residentTreeCount():number {return this.chunks.reduce((n,c)=>n+(c.vegetation?c.vegetation.userData.trees.length-c.vegetation.userData.cleared.size:0),0);}
+  visibleTrees(camera:THREE.Camera):number{
+    const frustum=new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse)),sphere=new THREE.Sphere();let count=0;
+    for(const c of this.chunks)if(c.vegetation)for(const [i,t] of (c.vegetation.userData.trees as {x:number;z:number;size:number}[]).entries()){
+      if(c.vegetation.userData.cleared.has(i))continue;sphere.center.set(t.x,this.terrain.heightAt(t.x,t.z)+t.size*1.9,t.z);sphere.radius=t.size*1.3;if(frustum.intersectsSphere(sphere))count++;
+    }return count;
+  }
+  private disposeInstances(group:THREE.Group):void {group.traverse(o=>{if(o instanceof THREE.InstancedMesh){o.dispose();if(o.userData.disposableMaterial)(o.material as THREE.Material).dispose();}});}
 }

@@ -1,5 +1,6 @@
 import {distance,type Vec2} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
+import {MIN_TRENCH_LENGTH} from '../construction/ConstructionReadout';
 
 /** Read-only drawn-line check using the same 2m terrain sampling and 4m
  * clearance as construction. Smoothing/crew assignment is still authoritative
@@ -15,5 +16,5 @@ export function trenchDraft(points:Vec2[],terrain:Pick<TerrainSystem,'clampToWor
       if(terrain.obstacleAt(x,z,4)||terrain.groundTypeAt(x,z)==='river'){blocked.push({a,b});break;}
     }
   }
-  return {length,blocked,tooShort:length<=20};
+  return {length,blocked,tooShort:length<MIN_TRENCH_LENGTH};
 }

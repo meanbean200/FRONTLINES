@@ -306,3 +306,35 @@ html[data-command-mode=trench] #toast[data-tone=normal] { visibility:hidden; }
   #ui-root .garrison-panel,#ui-root .support-controls { max-height:calc(100dvh - var(--hud-rail-top) - var(--hud-dock-height) - 65px); }
 }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; animation:none!important; } }
+
+/* The engineer work sheet is opt-in; construction is never buried in diagnostics. */
+.build-panel { position:absolute; z-index:42; pointer-events:auto; left:var(--edge,20px); top:var(--hud-rail-top,100px); width:min(340px,calc(100vw - 24px)); max-height:calc(100dvh - var(--hud-rail-top,100px) - var(--hud-dock-height,80px) - 40px); overflow:auto; padding:18px; background:#e6e0cb; color:#242d28; border:1px solid #979980; box-shadow:0 8px 28px #10171155; }
+.build-panel[hidden] { display:none; }
+.build-panel header { position:sticky; top:-18px; z-index:2; background:var(--paper); display:flex; align-items:flex-start; justify-content:space-between; border-bottom:1px solid #a8ad93; padding:10px 0 12px; margin-bottom:12px; }
+.build-panel h2 { margin:4px 0 0; font:600 27px var(--heading); }
+.build-panel h3 { font:600 14px var(--heading); text-transform:uppercase; letter-spacing:.07em; border-bottom:1px solid #a8ad93; padding-bottom:8px; margin:18px 0 6px; }
+.build-panel small { font:11px var(--mono); letter-spacing:.04em; }
+.build-panel p { font-size:13px; line-height:1.45; margin:10px 0; }
+.build-panel button { color:#253029; background:transparent; border:1px solid #a8ad93; border-radius:0; padding:9px 10px; font:600 15px var(--heading); }
+.build-panel button:hover:not(:disabled) { background:#d4cfb8; border-color:#5d6958; }
+.build-panel button:disabled { opacity:.48; cursor:not-allowed; }
+.build-panel header button { padding:2px 8px; font-size:22px; }
+.build-panel label { display:block; font:12px var(--mono); margin-top:16px; }
+.build-panel select { display:block; width:100%; margin-top:7px; padding:8px; color:#242d28; background:#d9d5bf; border:1px solid #a8ad93; font:14px var(--body); }
+.build-trench { display:flex; flex-direction:column; gap:8px; }
+.build-trench #trench-command { display:flex; align-items:center; gap:8px; width:100%; background:#2a382f; color:#eee7d0; border-color:#2a382f; padding:12px; }
+.build-trench #trench-command:hover { background:#3c4c3d; }
+.build-catalog { display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid #a8ad93; margin-top:14px; }
+.build-catalog button { text-align:left; border:0; border-bottom:1px solid #a8ad93; padding:12px 7px; }
+.build-catalog strong,.build-catalog small { display:block; }
+.build-catalog small { font:12px/1.45 var(--body); color:#526050; margin-top:5px; }
+.build-panel .build-supply { font:11px/1.5 var(--mono); color:#526050; }
+.build-jobs p,.build-job { border-left:2px solid #a89a68; padding-left:9px; }
+.build-jobs .build-job { display:block; width:100%; text-align:left; margin:8px 0; font-family:var(--body); font-size:13px; }
+.build-jobs strong,.build-jobs span { display:block; }
+.build-jobs span { margin-top:3px; color:#526050; font-size:12px; }
+.draft-readout { white-space:pre-line; }
+html[data-command-mode=facility] #ui-root #toast[data-tone=normal],html[data-command-mode=facility] #ui-root .mode-label { display:none; }
+html[data-build-open] .selection-docket { display:none; }
+html[data-build-open] #ui-root #toast[data-tone=normal],html[data-build-open] #ui-root .mode-label { display:none; }
+@media (max-width:700px) { .build-panel { padding:12px; } }
