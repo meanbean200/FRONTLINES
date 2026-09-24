@@ -4,7 +4,7 @@ import { factionOf } from '../operations/types';
 import type {trenchDraft} from '../ui/TrenchDraft';
 import {MIN_TRENCH_LENGTH,type FacilityPreview} from '../construction/ConstructionReadout';
 
-export type InteractionMode = 'select' | 'trench' | 'crater' | 'move' | 'facility'|'observe'|'suppress'|'assault'|'fall-back'|'defend'|'mortarHE'|'mortarSmoke'|'smokeGrenades';
+export type InteractionMode = 'select' | 'trench' | 'crater' | 'move' | 'facility'|'observe'|'suppress'|'assault'|'fall-back'|'defend'|'mortarHE'|'mortarSmoke'|'smokeGrenades'|'deploy';
 
 interface CommandInputOptions {
   canvas: HTMLCanvasElement;
@@ -25,6 +25,8 @@ interface CommandInputOptions {
   onFacility?: (point:Vec2)=>boolean;
   onTactical?:(mode:'observe'|'suppress'|'assault'|'fall-back',point:Vec2)=>void;
   onSupport?:(kind:'mortarHE'|'mortarSmoke'|'smokeGrenades',point:Vec2)=>boolean;
+  onDeploy?:(point:Vec2)=>void;
+  previewDeployment?:(point:Vec2)=>{valid:boolean;reason:string;positions:Vec2[]};
 }
 
 export class CommandInput {
@@ -108,7 +110,7 @@ export class CommandInput {
   private readonly onPointerMove = (event: PointerEvent): void => {
     this.hover={x:event.clientX,y:event.clientY};
     const preview=this.options.getMode();
-    if(preview==='facility'){this.updatePreview();return;}
+    if(preview==='facility'||preview==='deploy'){this.updatePreview();return;}
     if(['mortarHE','mortarSmoke','smokeGrenades'].includes(preview)&&!document.documentElement.dataset.menu){const p=this.options.camera.groundPoint(event.clientX,event.clientY);if(p){const radius=preview==='mortarHE'?40:preview==='mortarSmoke'?18:11;const points=Array.from({length:49},(_,i)=>this.options.camera.project({x:p.x+Math.sin(i*Math.PI/24)*radius,z:p.z+Math.cos(i*Math.PI/24)*radius},.6));this.plotted.replaceChildren();this.routeLine.setAttribute('marker-end','none');this.routeLine.setAttribute('stroke-dasharray','5 4');this.routeLine.setAttribute('points',points.map(p=>`${p.x},${p.y}`).join(' '));this.routeLine.setAttribute('stroke',preview==='mortarHE'?'#b8796b':'#b8bbaa');this.routeLine.setAttribute('fill',preview==='mortarHE'?'#b8796b18':'#e6e0cb18');this.routePreview.style.display='block';}return;}
     if (!this.pointerStart) return;
     const mode = this.gesture;
@@ -149,6 +151,8 @@ export class CommandInput {
       if(this.trenchPoints.length>=2){if(mode==='defend')this.options.onDefend?.(this.trenchPoints);else this.options.onTrench(this.trenchPoints);}
       this.trenchPoints = [];
       this.options.setMode('select');
+    } else if(mode==='deploy') {
+      const point=this.options.camera.groundPoint(event.clientX,event.clientY);if(point)this.options.onDeploy?.(point);
     } else if(mode==='facility') {
       const point=this.options.camera.groundPoint(event.clientX,event.clientY);
       if(point&&this.options.onFacility?.(point)){this.options.setMode('select');this.routePreview.style.display='none';this.draft.hidden=true;}
@@ -195,6 +199,12 @@ export class CommandInput {
   updatePreview():void{
     const mode=this.options.getMode();
     if(mode!==this.previewMode){if(!this.pointerStart){this.routePreview.style.display='none';this.draft.hidden=true;this.plotted.replaceChildren();}this.previewMode=mode;}
+    if(mode==='deploy'&&this.hover&&!document.documentElement.dataset.menu&&!document.documentElement.dataset.help&&!document.documentElement.dataset.fieldMap){
+      const point=this.options.camera.groundPoint(this.hover.x,this.hover.y),report=point&&this.options.previewDeployment?.(point);if(!report)return;
+      this.routePreview.style.display='block';this.routeLine.setAttribute('points','');this.plotted.replaceChildren();
+      for(const p of report.positions){const screen=this.options.camera.project(p,.3),mark=document.createElementNS('http://www.w3.org/2000/svg','rect');for(const [key,value] of Object.entries({x:screen.x-3,y:screen.y-3,width:6,height:6,fill:report.valid?'#dbca96':'#b8796b'}))mark.setAttribute(key,String(value));this.plotted.append(mark);}
+      this.draft.hidden=false;this.draft.dataset.valid=String(report.valid);this.draft.textContent=report.reason+' · Esc / right-click cancels';this.draft.style.left=Math.min(this.hover.x+18,window.innerWidth-350)+'px';this.draft.style.top=Math.max(80,Math.min(this.hover.y+18,window.innerHeight-120))+'px';return;
+    }
     if(mode!=='facility'||!this.hover||document.documentElement.dataset.menu||document.documentElement.dataset.help||document.documentElement.dataset.fieldMap)return;
     const point=this.options.camera.groundPoint(this.hover.x,this.hover.y);if(!point)return;
     const report=this.options.previewFacility?.(point);if(!report)return;
