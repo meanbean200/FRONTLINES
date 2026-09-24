@@ -25,12 +25,30 @@ No platform submission, monetization, or external account integration is enabled
 
 ## Run
 
+**Double-click `FRONTLINES.html` to play.** It is the complete offline game: no
+server, terminal, installation or internet connection is needed. Opening the
+repository's `index.html` also takes you there. Use an up-to-date Edge or Chrome
+with graphics acceleration enabled. `dist/index.html` supports disk launches too.
+
+Offline saves belong to that file location and browser. Keep the file in the
+same place to resume them. Saves from `http://127.0.0.1:4175` remain untouched and
+are still available at that address in the original browser profile; browsers
+do not share saves between HTTP and local files.
+
+For development:
+
 ```powershell
 npm install
 npm run dev
 ```
 
 Open `http://127.0.0.1:4173`.
+
+`npm run build` regenerates the hosted build in `dist/` **and** the tracked
+`FRONTLINES.html` offline release. `npm run standalone` rebuilds just the offline
+release. Do not hand-edit the generated HTML. `npm run test:launch` verifies a
+real file launch in a separate, offline Edge context, preserving player profiles.
+See [direct-file launch verification](docs/offline-launch.md) for checks and save boundaries.
 
 For the separate player-facing Edge preview, `scripts/edge-player.config.json` uses `viewport: null` **at browser creation**, so the game follows the real window, including after refresh. With the production preview running at port 4175:
 
