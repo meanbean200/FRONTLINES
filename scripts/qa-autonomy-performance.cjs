@@ -1,5 +1,6 @@
 async(page)=>{
   const speed=await page.locator('[data-speed].active').getAttribute('data-speed');
   const sample=await page.evaluate(async()=>{const start=window.__FRONTLINES__.getSummary(),deltas=[],cpu=[],sim=[];let last=performance.now();const began=last;await new Promise(resolve=>{const frame=(now)=>{deltas.push(now-last);last=now;const p=window.__FRONTLINES__.getPerf();cpu.push(p.frameMs);sim.push(p.simulationMs);if(now-began<20000)requestAnimationFrame(frame);else resolve();};requestAnimationFrame(frame);});const end=window.__FRONTLINES__.getSummary();const quant=(a,p)=>a.sort((x,y)=>x-y)[Math.min(a.length-1,Math.floor(a.length*p))];return {soldiers:end.soldiers,wallSeconds:(last-began)/1000,simulationSeconds:end.elapsed-start.elapsed,frames:deltas.length,rafP50:quant(deltas,.5),rafP95:quant(deltas,.95),cpuP95:quant(cpu,.95),simP95:quant(sim,.95),visual:window.__FRONTLINES__.getVisualStats()};});
-  await page.locator('[data-speed="0"]').click();return {speed,...sample,nativeScreenshot:{data:(await page.screenshot()).toString('base64')}};
+  const status=await page.evaluate(()=>window.__FRONTLINES__.getState().operation?.status);
+  if(await page.locator('[data-speed="0"]').isVisible()&&await page.locator('[data-speed="0"]').isEnabled())await page.locator('[data-speed="0"]').click();return {speed,status,...sample,nativeScreenshot:{data:(await page.screenshot()).toString('base64')}};
 }
