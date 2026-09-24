@@ -25,6 +25,7 @@ import { releaseLostContextResources } from '../render/ContextRecovery';
 import { restoredViewTarget } from '../render/RestoredView';
 import { HudLayout } from '../ui/HudLayout';
 import {requestSupport,selectedSupportTeam} from '../combat/SupportWeapons';
+import {combatDiagnostics} from '../combat/Diagnostics';
 import {CombatAudio} from '../render/CombatAudio';
 import {trenchDraft} from '../ui/TrenchDraft';
 import {BuildPanel} from '../ui/BuildPanel';
@@ -152,7 +153,7 @@ export class FrontlinesApp {
       onDeploy:point=>{if(this.simulation.commandsLocked||document.documentElement.dataset.replay)return;const result=deploySandbox(this.state,this.simulation.terrain,this.pendingDeployment.kind,this.pendingDeployment.count,point);if(result.ids.length)this.selectSquads(result.ids);this.ui.notify(result.reason,result.ids.length?'normal':'warn');},
       onMove: (point) => {this.simulation.issueMove([...this.selectedSquads], point);if(this.selectedSquads.size)this.ui.notify(`Move order · ${this.selectedSquads.size} squad${this.selectedSquads.size===1?'':'s'}`);},
       onTactical:(mode,point)=>{this.simulation.issueTactical([...this.selectedSquads],mode,point);this.ui.notify(`${mode} order issued`);},
-      onSupport:(kind,point)=>{const squad=selectedSupportTeam(this.state,this.selectedSquads,kind,this.simulation.terrain);if(squad===undefined){this.ui.notify(kind==='smokeGrenades'?'Select a squad with smoke grenades':'Select a mortar team','warn');return false;}let result=requestSupport(this.state,kind,squad,point,false,this.simulation.terrain);if(result.warning&&window.confirm(result.reason))result=requestSupport(this.state,kind,squad,point,true,this.simulation.terrain);this.ui.notify(result.reason,result.accepted?'normal':'warn');return result.accepted;},
+      onSupport:(kind,point)=>{const squad=selectedSupportTeam(this.state,this.selectedSquads,kind,this.simulation.terrain);if(squad===undefined){this.ui.notify(kind==='smokeGrenades'?'Select a squad with smoke grenades':'Select a mortar team','warn');return false;}let result=requestSupport(this.state,kind,squad,point,false,this.simulation.terrain,'PLAYER');if(result.warning&&window.confirm(result.reason))result=requestSupport(this.state,kind,squad,point,true,this.simulation.terrain,'PLAYER');this.ui.notify(result.reason,result.accepted?'normal':'warn');return result.accepted;},
       onDrawPath:(points,append,intent)=>{const ok=this.simulation.issueDrawnPath([...this.selectedSquads],points,append);if(ok&&intent)for(const q of this.state.squads.filter(q=>this.selectedSquads.has(q.id)&&factionOf(q)==='player'))q.order.intent=intent;this.ui.notify(ok?`${append?'Extended':'Drawn'} ${intent??'move'} route · ${this.selectedSquads.size} squad(s)`:'Route crosses a building or cannot be reached · adjust the corridor',ok?'normal':'warn');},
       onTrench: (points) => this.buildTrench(points),
       previewTrench:points=>trenchDraft(points,this.simulation.terrain),
@@ -423,6 +424,7 @@ export class FrontlinesApp {
       getPerf: () => ({ ...this.perf }),
       getVisualStats:()=>({triangles:this.renderer.info.render.triangles,drawCalls:this.renderer.info.render.calls,particles:this.operationRenderer.particleCount,submittedSoldiers:this.unitRenderer.visibleCount,residentTrees:this.terrainRenderer.residentTreeCount,visibleTrees:this.terrainRenderer.visibleTrees(this.camera.camera),cameraTarget:{x:this.camera.target.x,z:this.camera.target.z},zoomDistance:this.camera.zoomDistance,...this.terrainRenderer.stats(this.camera.camera)}),
       getState: () => structuredClone(this.state),
+      getCombatDiagnostics:()=>combatDiagnostics(this.state),
       getPolicyPerf:()=>({inferenceMs:0,coordinator:'deterministic'}),
       setReadiness:(id,value)=>this.simulation.garrisons.setReadiness(id,value),
       resolveEmergency:(id,choice)=>this.simulation.garrisons.resolveEmergency(id,choice),

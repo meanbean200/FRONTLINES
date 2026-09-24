@@ -34,6 +34,7 @@ declare global {
       getPerf: () => PerfSnapshot;
       getVisualStats:()=>{triangles:number;drawCalls:number;particles:number;submittedSoldiers:number;residentTrees:number;visibleTrees:number;generatedChunks:number;detailedChunks:number;visibleChunks:number;coarseGenerationMs:number;workerGenerationMs:number;workerJobs:number;cameraTarget:{x:number;z:number};zoomDistance:number};
       getState: () => BattlefieldState;
+      getCombatDiagnostics:()=>ReturnType<typeof import('./combat/Diagnostics').combatDiagnostics>;
       getPolicyPerf:()=>{inferenceMs:number};
       setReadiness:(id:number,value:'routine'|'alert'|'stand-to')=>void;
       resolveEmergency:(id:number,choice:'hold'|'recover'|'withdraw')=>void;

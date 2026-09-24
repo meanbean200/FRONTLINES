@@ -39,7 +39,7 @@ export class OperationSystem {
       if(op.runtime){
         const observation=observeEnemy(this.state),result=commandOperationalEnemy(observation,this.terrain,op.enemyAI,op.runtime.commander);op.enemyAI=result.memory;op.runtime.commander=result.commander;
         for(const c of result.commands){if(c.type==='move')moveEnemy([c.squadId],c.goal);else holdEnemy([c.squadId]);}
-        if(result.support)requestSupport(this.state,'mortarHE',result.support.squadId,result.support.target);
+        if(result.support)requestSupport(this.state,'mortarHE',result.support.squadId,result.support.target,false,this.terrain,'ENEMY_AI');
         if(result.commander.phase==='withdrawing')for(const q of this.state.squads.filter(q=>q.faction==='enemy'&&(q.kind==='rifle'||q.kind==='machinegun')&&q.order.type!=='occupy-trench')){
           const rally=this.state.living!.garrisons.filter(g=>g.faction==='enemy'&&distance(q,g.entrance)<120).sort((a,b)=>distance(q,a.entrance)-distance(q,b.entrance))[0];
           if(rally&&!observation.contacts.some(c=>distance(c,rally.entrance)<180))occupyEnemy([q.id],rally.trenchId);

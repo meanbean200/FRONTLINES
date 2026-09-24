@@ -9,7 +9,9 @@ describe('physical support missions',()=>{
   it('rejects an already moving mortar before creating a mission or spending inventory',()=>{
     const {state,q,crew}=setup();q.order={type:'move',issuedAt:0,target:{x:20,z:0}};
     const before=JSON.stringify(state);expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0}).reason).toContain('Hold [H]');
-    expect(JSON.stringify(state)).toBe(before);expect(crew[0].carried!.mortarHE).toBe(4);
+    expect(state.operation!.supportRequests!.at(-1)).toMatchObject({accepted:false,source:'SCRIPTED_SCENARIO'});
+    const withoutAudit=structuredClone(state);delete withoutAudit.operation!.supportRequests;
+    expect(JSON.stringify(withoutAudit)).toBe(before);expect(crew[0].carried!.mortarHE).toBe(4);
   });
   it('reports separated or pinned crews before acceptance and leaves standing orders intact',()=>{
     const {state,q,crew}=setup();crew.forEach((p,i)=>{if(i)p.x=100;});

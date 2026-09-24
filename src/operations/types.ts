@@ -58,6 +58,7 @@ export interface OperationState {
   casualtyRules?:boolean;
   rescueDecisions?:RescueDecision[];
   supportRules?:boolean;supportMissions?:SupportMission[];smokeFields?:SmokeField[];blastEvents?:BlastEvent[];
+  supportRequests?:import('../combat/SupportWeapons').SupportRequest[];
   campaign?: {playerTrench:number;enemyTrench:number;nextRaid:number;raidSquads:number[];returnAt:number;phase:'preparing'|'raiding'|'returning';playerHold:number;enemyHold:number;plan?:import('./CampaignCommander').CampaignPlan;lastPlan?:{objectiveId:string;reason:string;at:number};replacements?:import('./Replacements').ReplacementSystem};
 }
 

@@ -7,6 +7,8 @@ import {combatWound} from './Casualties';
 import {registerIncoming} from './Reactions';
 import {signalEngagement} from './Engagement';
 export type SupportKind='mortarHE'|'mortarSmoke'|'smokeGrenades';
+export type SupportSource='PLAYER'|'ENEMY_AI'|'CAMPAIGN_AI'|'SCRIPTED_SCENARIO'|'LEGACY_UNKNOWN';
+export interface SupportRequest {at:number;squadId:number;side:'player'|'enemy';source:SupportSource;kind:SupportKind;target:Vec2;accepted:boolean;reason:string}
 export const SUPPORT_NAMES:Record<SupportKind,string>={mortarHE:'Mortar HE',mortarSmoke:'Mortar smoke',smokeGrenades:'Smoke grenade'};
 /** Read-only readiness, shared by command validation, live missions and the HUD. */
 export function supportReadiness(state:BattlefieldState,kind:SupportKind,squadId:number,terrain?:TerrainSystem,checkBusy=true){
@@ -33,10 +35,16 @@ export function selectedSupportTeam(state:BattlefieldState,ids:ReadonlySet<numbe
 export function supportMissionText(m:SupportMission,now:number):string{
   return m.stage==='preparing'?`Preparing · ${Math.max(0,Math.ceil(m.launchAt-now))} s to fire`:m.stage==='flight'?`Round in flight · ${Math.max(0,Math.ceil(m.impactAt-now))} s to impact`:m.stage==='complete'?'Impact complete':m.reason;
 }
-export interface SupportMission {id:number;squadId:number;kind:SupportKind;target:Vec2;impact:Vec2;requestedAt:number;launchAt:number;impactAt:number;stage:'preparing'|'flight'|'complete'|'cancelled';reason:string;dangerRadius:number;confirmedRisk:boolean}
+export interface SupportMission {id:number;squadId:number;kind:SupportKind;target:Vec2;impact:Vec2;requestedAt:number;launchAt:number;impactAt:number;stage:'preparing'|'flight'|'complete'|'cancelled';reason:string;dangerRadius:number;confirmedRisk:boolean;source?:SupportSource;side?:'player'|'enemy';ammoConsumed?:number}
 export interface SmokeField extends Vec2 {id:number;radius:number;until:number;born:number}
 export interface BlastEvent extends Vec2 {id:number;at:number;radius:number}
-export function requestSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk=false,terrain?:TerrainSystem):{accepted:boolean;warning?:boolean;reason:string} {
+export function requestSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk=false,terrain?:TerrainSystem,source:SupportSource='SCRIPTED_SCENARIO'):{accepted:boolean;warning?:boolean;reason:string} {
+  const result=validateSupport(state,kind,squadId,target,confirmedRisk,terrain,source);
+  const side=state.squads.find(q=>q.id===squadId)?.faction??'player';
+  if(state.operation&&Number.isFinite(target.x)&&Number.isFinite(target.z))state.operation.supportRequests=[...(state.operation.supportRequests??[]),{at:state.elapsed,squadId,side,source,kind,target:{...target},accepted:result.accepted,reason:result.reason}].slice(-64);
+  return result;
+}
+function validateSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk:boolean,terrain:TerrainSystem|undefined,source:SupportSource):{accepted:boolean;warning?:boolean;reason:string} {
   const op=state.operation,q=state.squads.find(q=>q.id===squadId);if(!op?.supportRules||op.status!=='active'||!q||![target.x,target.z].every(Number.isFinite))return{accepted:false,reason:'Support unavailable'};
   const ready=supportReadiness(state,kind,squadId,terrain),range=distance(q,target),grenade=kind==='smokeGrenades';
   if(ready.reason)return{accepted:false,reason:ready.reason};
@@ -47,7 +55,7 @@ export function requestSupport(state:BattlefieldState,kind:SupportKind,squadId:n
   if(risk&&!confirmedRisk)return{accepted:false,warning:true,reason:'Explosive danger area includes friendly troops (40m). Confirm or choose another area.'};
   const id=state.nextEntityId++,spread=grenade?2:18,angle=hash2D(id,q.id,state.seed+3)*Math.PI*2,r=Math.sqrt(hash2D(q.id,id,state.seed+7))*spread;
   const impact={x:target.x+Math.sin(angle)*r,z:target.z+Math.cos(angle)*r},launchAt=state.elapsed+(grenade?1.5:15);
-  (op.supportMissions??=[]).push({id,squadId:q.id,kind,target:{...target},impact,requestedAt:state.elapsed,launchAt,impactAt:launchAt+(grenade?1.5:3+range/130),stage:'preparing',reason:'Preparing support mission',dangerRadius,confirmedRisk});
+  (op.supportMissions??=[]).push({id,squadId:q.id,kind,target:{...target},impact,requestedAt:state.elapsed,launchAt,impactAt:launchAt+(grenade?1.5:3+range/130),stage:'preparing',reason:'Preparing support mission',dangerRadius,confirmedRisk,source,side,ammoConsumed:0});
   return{accepted:true,reason:grenade?'Smoke throw ordered':'Mortar mission preparing · dispersed area fire'};
 }
 export function stepSupport(state:BattlefieldState,terrain:TerrainSystem):void {
@@ -64,7 +72,7 @@ export function stepSupport(state:BattlefieldState,terrain:TerrainSystem):void {
       if(grenade&&distance(pack,mission.target)>30){mission.stage='cancelled';mission.reason='Thrower moved beyond grenade range';continue;}
       const side=squad.faction??'player',danger=mission.kind==='mortarHE'&&state.soldiers.some(s=>s.needs?.life!=='dead'&&state.squads.some(q=>q.id===s.squadId&&(q.faction??'player')===side)&&distance(s,mission.target)<mission.dangerRadius);
       if(danger&&!mission.confirmedRisk){mission.stage='cancelled';mission.reason='Friendly troops entered danger area before launch';continue;}
-      consume(state,pack.carried!,mission.kind,1);mission.stage='flight';mission.reason='Round in flight';
+      consume(state,pack.carried!,mission.kind,1);mission.ammoConsumed=(mission.ammoConsumed??0)+1;mission.stage='flight';mission.reason='Round in flight';
     }
     if(mission.stage==='flight'&&state.elapsed>=mission.impactAt){
       mission.stage='complete';mission.reason='Mission complete';

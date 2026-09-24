@@ -73,6 +73,6 @@ export function commandCampaign(state:BattlefieldState,terrain:TerrainSystem,mov
   if(['prepare','commit'].includes(plan.phase)&&now>=plan.nextSupport){
     plan.nextSupport=now+30;const target=reports.find(r=>distance(r,objective)<100);
     const mortar=own.find(q=>q.kind==='mortar'&&q.able>=2);
-    if(target&&mortar)requestSupport(state,'mortarHE',mortar.id,{x:target.x,z:target.z});
+    if(target&&mortar)requestSupport(state,'mortarHE',mortar.id,{x:target.x,z:target.z},false,terrain,'CAMPAIGN_AI');
   }
 }

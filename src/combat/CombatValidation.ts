@@ -24,9 +24,11 @@ export function validCombatSystems(state:BattlefieldState):boolean {
     for(const m of op.supportMissions){
       if(!m||!Number.isInteger(m.id)||m.id<1||m.id>=state.nextEntityId||!state.squads.some(q=>q.id===m.squadId))return false;
       if(!['mortarHE','mortarSmoke','smokeGrenades'].includes(m.kind)||!['preparing','flight','complete','cancelled'].includes(m.stage))return false;
+      if(m.source!==undefined&&!['PLAYER','ENEMY_AI','CAMPAIGN_AI','SCRIPTED_SCENARIO','LEGACY_UNKNOWN'].includes(m.source)||m.side!==undefined&&!['player','enemy'].includes(m.side)||m.ammoConsumed!==undefined&&![0,1].includes(m.ammoConsumed))return false;
       if(![m.requestedAt,m.launchAt,m.impactAt,m.dangerRadius].every(nonnegative)||m.impactAt<m.launchAt||!point(m.target)||!point(m.impact)||typeof m.confirmedRisk!=='boolean'||typeof m.reason!=='string')return false;
     }
   }
+  if(op.supportRequests!==undefined&&(!Array.isArray(op.supportRequests)||op.supportRequests.length>64||!op.supportRequests.every(r=>r&&nonnegative(r.at)&&Number.isInteger(r.squadId)&&['player','enemy'].includes(r.side)&&['PLAYER','ENEMY_AI','CAMPAIGN_AI','SCRIPTED_SCENARIO','LEGACY_UNKNOWN'].includes(r.source)&&['mortarHE','mortarSmoke','smokeGrenades'].includes(r.kind)&&point(r.target)&&typeof r.accepted==='boolean'&&typeof r.reason==='string')))return false;
   if(op.smokeFields!==undefined&&(!Array.isArray(op.smokeFields)||!op.smokeFields.every(s=>s&&point(s)&&Number.isInteger(s.id)&&[s.radius,s.until,s.born].every(nonnegative)&&s.until>=s.born)))return false;
   if(op.blastEvents!==undefined&&(!Array.isArray(op.blastEvents)||!op.blastEvents.every(b=>b&&point(b)&&[b.at,b.radius].every(nonnegative))))return false;
   return true;
