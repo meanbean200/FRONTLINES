@@ -121,3 +121,11 @@ Failures retained and explained:
 - Performance sample is small and early in the operation. Previous large mixed-combat/stress limitations and the JS chunk-size warning are not resolved or waived by this pass.
 
 Suggested player review: Quick Battle → Prepare → Back (confirm the live session survives), then Begin; select a squad, move/defend it, Build a trench, open M and issue a move, and try Details at a short window height. Judge whether command is clearer and the battlefield feels dominant.
+
+## Post-release correction: the QA browser was left constrained
+
+The user's screenshot exposed a delivery mistake not covered by the emulated-resolution checks: the final live probe left the visible Edge session at a **960×600 emulated viewport**. Maximizing the native window did not change that override, so the correct full-viewport game still occupied only the upper-left part of the window. The earlier responsive result was insufficient evidence of a clean player-facing handoff.
+
+Released the override through the owning Playwright session and restored native sizing, without reloading, rewriting a save or changing the paused live world. Verified actual OS-window resizing: 1200×850 produced 1176×758 content; 1600×960 produced 1576×868; maximized 1920×1032 produced **1912×948 content and canvas**. Live state and localStorage remained byte-identical. Screenshot/measurements: `output/playwright/cinematic-ui/native-window-acceptance.{png,json}`.
+
+`scripts/run-browser-probe.mjs` now wraps viewport-changing probes in `try/finally`: release the fixed metrics and restore the original native bounds, on success or failure. Generated probe source and failures are retained beside the evidence. A passing 960×600 fixture and a deliberately throwing 960×600 fixture both returned the browser to 1912×948. `scripts/qa-native-window.cjs` verifies native resizing and uses CDP capture rather than a cached emulated screenshot rectangle. No game CSS, simulation or persistence patch was needed for this correction.

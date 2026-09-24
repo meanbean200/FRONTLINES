@@ -34,6 +34,8 @@ Open `http://127.0.0.1:4173`.
 
 For the separate player-facing Edge preview, `scripts/edge-player.config.json` uses `viewport: null` so the game follows the real browser window. Do not run fixed-viewport probes in the `frontlines-player` session; use a disposable QA session instead. Its persistent local profile is under the ignored `output/playwright/edge-player-profile` directory. The current preview is served at port 4175.
 
+Responsive CLI probes must run through `scripts/run-browser-probe.mjs`, which releases their viewport override and restores native window bounds in `finally`, including failed probes. Do not leave a fixed-size QA viewport as the player-facing window. `scripts/qa-native-window.cjs` checks real window resizing; emulated screenshots alone cannot verify the final handoff.
+
 ## Current interface
 
 The [cinematic UI redesign report](docs/cinematic-ui-redesign.md) documents the replacement menu/HUD architecture, real-browser screenshots, accessibility checks and remaining UX limits. It supersedes the older paper/folio UI documents. Main menu → Quick Battle → generated-sector preview → Begin is now the primary entry flow.
