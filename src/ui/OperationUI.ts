@@ -7,6 +7,8 @@ interface OperationActions {
   load: () => boolean;
   save: () => boolean;
   hasSave: () => boolean;
+  loadError?:()=>string;
+  saveNotice?:()=>string;
   focus: (point: Vec2) => void;
   quality: (level: string) => void;
 }
@@ -75,12 +77,13 @@ export class OperationUI {
     this.dialog.querySelector('#launch-operation')?.addEventListener('click', () => { if(this.graphicsLost)return;this.actions.start(this.chosen); this.started = true; this.resultShown = false; this.close(); });
     this.dialog.querySelector('#resume-session')?.addEventListener('click', () => this.close());
     this.dialog.querySelector('#choose-operation')?.addEventListener('click', () => this.open(true));
-    this.dialog.querySelector('#continue-save')?.addEventListener('click', () => { if(this.graphicsLost)return;if (this.actions.load()) this.stateRestored(); else {const status=this.dialog.querySelector<HTMLParagraphElement>('.menu-status')!;status.hidden=false;status.textContent='Could not load that save. This session and the saved file have been left untouched.';} });
+    this.dialog.querySelector('#continue-save')?.addEventListener('click', () => { if(this.graphicsLost)return;if (this.actions.load()) this.stateRestored(); else {const status=this.dialog.querySelector<HTMLParagraphElement>('.menu-status')!;status.hidden=false;status.textContent=this.actions.loadError?.()||'Could not load that save. This session and the saved file have been left untouched.';} });
     this.dialog.querySelector('#save-session')?.addEventListener('click', e => { (e.target as HTMLButtonElement).textContent = this.actions.save()?'Session saved':'Save failed · previous save preserved'; });
     const quality=this.dialog.querySelector<HTMLSelectElement>('#menu-quality')!;quality.value=this.quality;
     quality.addEventListener('change',()=>{this.quality=quality.value;this.actions.quality(this.quality);});
     for(const control of this.dialog.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('#launch-operation,#resume-session,#continue-save,#menu-quality'))control.disabled=this.graphicsLost;
     if(this.graphicsNotice){const status=this.dialog.querySelector<HTMLParagraphElement>('.menu-status')!;status.hidden=false;status.textContent=this.graphicsNotice;}
+    else if(this.actions.saveNotice?.()){const status=this.dialog.querySelector<HTMLParagraphElement>('.menu-status')!;status.hidden=false;status.textContent=this.actions.saveNotice();}
   }
   private able(faction: 'player' | 'enemy'): number {
     const state = this.getState(), ids = new Set(state.squads.filter(s => factionOf(s) === faction).map(s => s.id));

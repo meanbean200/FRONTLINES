@@ -1,5 +1,6 @@
 import type { BattlefieldState } from '../core/types';
-import {polylineLength} from '../core/types';
+import {polylineLength,WORLD_VERSION,WORLD_SIZE} from '../core/types';
+import {insideWorld} from '../terrain/WorldLayout';
 import {trenchCapacity} from '../construction/TrenchSystem';
 import { initializeLiving } from '../garrison/LogisticsSystem';
 import { RESOURCES } from '../garrison/types';
@@ -13,11 +14,13 @@ import {validCampaignSystems} from '../operations/CampaignValidation';
 import {initializeReplacements} from '../operations/Replacements';
 import {validBuildings} from '../terrain/BuildingValidation';
 
-export const SAVE_KEY = 'frontlines-battlefield-v3';
+export const SAVE_KEY = 'frontlines-battlefield-v3-world2-4km';
+const V3_KEY = 'frontlines-battlefield-v3';
 const V2_KEY = 'frontlines-battlefield-v2';
 const LEGACY_KEY = 'frontlines-battlefield-v1';
 
 export class SaveSystem {
+  lastError='';
   save(state: BattlefieldState): string {
     if(!isBattlefieldState(state))throw new Error('Battlefield contains invalid state; existing save preserved.');
     const json = JSON.stringify({...state,schemaVersion:3,combatRules:RULES_VERSION,policySchema:{observationVersion:OBSERVATION_VERSION,rulesVersion:RULES_VERSION}});
@@ -26,13 +29,16 @@ export class SaveSystem {
   }
 
   load(): BattlefieldState | undefined {
-    const raw = localStorage.getItem(SAVE_KEY)??localStorage.getItem(V2_KEY)??localStorage.getItem(LEGACY_KEY);
+    this.lastError='';
+    const raw = localStorage.getItem(SAVE_KEY)??localStorage.getItem(V3_KEY)??localStorage.getItem(V2_KEY)??localStorage.getItem(LEGACY_KEY);
     if (!raw) return undefined;
-    return this.parse(raw);
+    try{return this.parse(raw);}catch(error){this.lastError=error instanceof Error?error.message:'Save could not be loaded.';throw error;}
   }
 
   parse(raw: string): BattlefieldState {
     const value: unknown = JSON.parse(raw);
+    const world=value as Partial<BattlefieldState>|null;
+    if(world&&typeof world==='object'&&(world.worldVersion!==WORLD_VERSION||world.worldSize!==WORLD_SIZE))throw new Error('Legacy or incompatible battlefield: this save uses the old 8 km or another world layout. New battles use 4 × 4 km. The original save is preserved; start a new battle, or open it in its matching older build. No coordinates were migrated.');
     // Only known legacy inventory locations gain explicit zero-valued new fields.
     // Current v3 payloads must validate as written rather than repairing corruption.
     const legacy=value as Partial<BattlefieldState>|null;
@@ -77,13 +83,15 @@ export class SaveSystem {
   }
 
   hasSave(): boolean {
-    return localStorage.getItem(SAVE_KEY) !== null||localStorage.getItem(V2_KEY)!==null||localStorage.getItem(LEGACY_KEY)!==null;
+    return localStorage.getItem(SAVE_KEY) !== null||localStorage.getItem(V3_KEY)!==null||localStorage.getItem(V2_KEY)!==null||localStorage.getItem(LEGACY_KEY)!==null;
   }
+  legacyNotice():string{return localStorage.getItem(SAVE_KEY)===null&&this.hasSave()?'Legacy 8 km save found · preserved separately. It needs the matching older build; start a new 4 km battle to play here.':'';}
 }
 
 function isBattlefieldState(value: unknown): value is BattlefieldState {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<BattlefieldState>;
+  if(candidate.worldVersion!==WORLD_VERSION||candidate.worldSize!==WORLD_SIZE)return false;
   const shape = (
     ([1,2,3].includes(candidate.schemaVersion!)) &&
     typeof candidate.seed === 'number' &&
@@ -98,6 +106,7 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
   const state=candidate as BattlefieldState;
   if(!validBuildings(state))return false;
   if(!validCombatSystems(state))return false;
+  if(!validWorldPositions(state))return false;
   if(state.squads.some(s=>!s||s.faction!==undefined&&!['player','enemy'].includes(s.faction)))return false;
   const finite=(n:unknown):n is number=>typeof n==='number'&&Number.isFinite(n);
   const point=(p:unknown):boolean=>Boolean(p&&typeof p==='object'&&finite((p as {x:unknown}).x)&&finite((p as {z:unknown}).z));
@@ -167,6 +176,19 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
   }
   if(state.schemaVersion===1)for(const trench of state.trenches)if(state.soldiers.filter(s=>s.trenchId===trench.id).length>trenchCapacity(trench))return false;
   return state.craters.every(c=>point(c)&&finite(c.radius)&&c.radius>0&&finite(c.depth)&&c.depth>0);
+}
+
+/** Physical actors, destinations and works must stay in this generated world.
+ * Shot rays and uncertainty areas may extend beyond its edge; they are not actors.
+ */
+function validWorldPositions(s:BattlefieldState):boolean {
+  const w=s.living;
+  const points=[...s.soldiers,...s.squads,...s.craters,...s.trenches.flatMap(t=>t.points??[]),
+    ...s.squads.flatMap(q=>[...(q.route??[]),...(q.order?.drawnPath??[]),...(q.order?.target?[q.order.target]:[]),...(q.engineerWork?.crews.flatMap(c=>c.route)??[])]),
+    ...s.soldiers.flatMap(p=>p.duty?[p.duty.destination,...p.duty.route]:[]),
+    ...(s.operation?.objectives??[]),
+    ...(w?[w.rear,...(w.enemySupply?[w.enemySupply.rear]:[]),...w.facilities,...w.crates,...w.trucks,...w.trucks.flatMap(t=>t.route),...w.garrisons.flatMap(g=>[g.entrance,g.forward,...(g.frontage??[])])]:[])];
+  return points.every(p=>p&&insideWorld(p));
 }
 
 function validOperation(state:BattlefieldState):boolean {

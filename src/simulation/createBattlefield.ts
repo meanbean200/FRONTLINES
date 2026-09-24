@@ -1,8 +1,10 @@
 import type { BattlefieldState, SoldierState, SquadKind, SquadState } from '../core/types';
+import {WORLD_VERSION,WORLD_SIZE} from '../core/types';
 import { TrenchSystem } from '../construction/TrenchSystem';
 
 export function createBattlefield(seed = 1944): BattlefieldState {
   const state: BattlefieldState = {
+    worldVersion: WORLD_VERSION, worldSize: WORLD_SIZE,
     schemaVersion: 1,
     seed,
     elapsed: 0,

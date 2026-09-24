@@ -22,14 +22,17 @@ describe('explicit reassignment between disconnected trenches',()=>{
     expect(sim.assignGarrison([q.id],target.id)).toBe(true);
     state.soldiers.forEach((s,i)=>expect(distance(s,before[i])).toBe(0));
     for(const g of state.living!.garrisons)g.nextSupport=1e9;
-    let openGround=false;
+    let openGround=false;const arrived=new Set<number>();
     for(let i=0;i<1800;i++){
       const positions=state.soldiers.map(s=>({x:s.x,z:s.z}));sim.step(.05);
       state.soldiers.forEach((s,j)=>expect(distance(s,positions[j])).toBeLessThan(.12));
       if(state.soldiers.some(s=>!sim.garrisons.network.corridorContains(s)))openGround=true;
+      for(const s of state.soldiers)if(!s.duty?.relocationExit&&Math.abs(s.z+1740)<2.2)arrived.add(s.id);
     }
     expect(openGround).toBe(true);
-    for(const s of state.soldiers){expect(s.duty?.relocationExit).toBeUndefined();expect(Math.abs(s.z+1740)).toBeLessThan(2.2);}
+    // After physical arrival the nearer new road can dispatch legitimate haulers.
+    expect(arrived.size).toBe(state.soldiers.length);
+    for(const s of state.soldiers)expect(s.duty?.relocationExit).toBeUndefined();
     for(const n of Object.values(balance(state)))expect(Math.abs(n)).toBeLessThan(1e-6);
   });
   it('preserves an in-progress transfer and inventory exactly through save/load',()=>{

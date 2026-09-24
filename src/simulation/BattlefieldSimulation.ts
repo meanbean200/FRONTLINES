@@ -305,7 +305,7 @@ export class BattlefieldSimulation {
       const depth = (row - (Math.ceil(soldiers.length/5)-1)/2) * 4.1;
       const offsetX = Math.cos(angle) * lateral - Math.sin(angle) * depth;
       const offsetZ = -Math.sin(angle) * lateral - Math.cos(angle) * depth;
-      this.moveSoldier(soldier, { x: destination.x + offsetX, z: destination.z + offsetZ }, soldiers, dt, action);
+      this.moveSoldier(soldier, { x: clamp(destination.x + offsetX,-WORLD_HALF,WORLD_HALF), z: clamp(destination.z + offsetZ,-WORLD_HALF,WORLD_HALF) }, soldiers, dt, action);
     });
     squad.movementState = action === 'digging' ? 'digging' : 'moving';
   }
@@ -461,7 +461,7 @@ export class BattlefieldSimulation {
     squad.route=[];squad.routeIndex=0;squad.movementState='planning';
     const done=(route:Vec2[])=>{
       if(this.commandsLocked||worldRevision!==this.worldRevision||this.routeRevision.get(squad.id)!==revision||!this.state.squads.includes(squad)||squad.order!==order)return;
-      squad.route=route;squad.routeIndex=0;
+      squad.route=route.map(p=>this.terrain.clampToWorld(p));squad.routeIndex=0;
       if(route.length)squad.movementState='moving';
       else{squad.movementState='idle';squad.order={type:'hold',issuedAt:this.state.elapsed};}
     };

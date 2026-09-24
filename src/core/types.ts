@@ -99,6 +99,9 @@ export interface CraterState extends Vec2 {
 }
 
 export interface BattlefieldState {
+  /** Generated terrain identity, separate from serialized simulation schema. */
+  worldVersion?: number;
+  worldSize?: number;
   buildingChanges?:import('../terrain/BuildingGeometry').BuildingChange[];
   schemaVersion: 1 | 2 | 3;
   combatRules?: string;
@@ -122,9 +125,11 @@ export interface DebugFlags {
   trenchSlots: boolean;
 }
 
-export const WORLD_SIZE = 8_000;
+export const WORLD_VERSION = 2;
+export const WORLD_SIZE = 4_000;
 export const WORLD_HALF = WORLD_SIZE / 2;
 export const CHUNK_SIZE = 500;
+export const CHUNKS_PER_AXIS = WORLD_SIZE / CHUNK_SIZE;
 export const FIXED_STEP = 1 / 20;
 
 export const clamp = (value: number, min: number, max: number): number =>

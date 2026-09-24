@@ -12,6 +12,14 @@ function setup(){
 afterEach(()=>vi.unstubAllGlobals());
 
 describe('strategy camera overlay projection',()=>{
+  it('bounds focus, held pan and both zoom extremes to the new world',()=>{
+    const camera=setup(),down=vi.mocked(window.addEventListener).mock.calls.find(([name])=>name==='keydown')![1] as (event:KeyboardEvent)=>void;
+    camera.focus({x:4500,z:-4500},9000);for(let i=0;i<240;i++)camera.update(1/60);
+    expect(camera.target.x).toBeCloseTo(1980);expect(camera.target.z).toBeCloseTo(-1980);expect(camera.zoomDistance).toBeCloseTo(4600);expect(camera.camera.far).toBe(8800);
+    down({code:'ShiftLeft',target:null} as KeyboardEvent);down({code:'KeyD',target:null} as KeyboardEvent);for(let i=0;i<240;i++)camera.update(1/60);
+    expect(Math.abs(camera.target.x)).toBeLessThanOrEqual(1980);expect(Math.abs(camera.target.z)).toBeLessThanOrEqual(1980);
+    camera.focus({x:0,z:0},1);for(let i=0;i<240;i++)camera.update(1/60);expect(camera.zoomDistance).toBeCloseTo(25);
+  });
   it('updates aspect ratio and projection coordinates after repeated narrow/wide resizes',()=>{
     const camera=setup();
     for(const [width,height] of [[390,844],[1024,600],[1920,1080],[600,400]]){

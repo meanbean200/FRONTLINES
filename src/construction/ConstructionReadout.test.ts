@@ -30,6 +30,8 @@ describe('construction controls match actual work rules',()=>{
     expect(reason({x:from.x,z:from.z-45})).toContain('Too far');
     expect(reason({x:from.x,z:from.z+12})).toContain('rear side');
     expect(reason({x:from.x,z:from.z-12})).toBeUndefined();
+    expect(reason({x:1998,z:0})).toContain('battlefield');
+    expect(reason({x:-2001,z:0})).toContain('battlefield');
     expect(JSON.stringify(sim.state)).toBe(before);
   });
   it('requires assigned engineers and preserves unfinished excavation when reassigning',()=>{

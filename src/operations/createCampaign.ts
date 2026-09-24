@@ -3,34 +3,35 @@ import {TrenchSystem} from '../construction/TrenchSystem';
 import {TerrainSystem} from '../terrain/TerrainSystem';
 import {SquadNavigation} from '../navigation/SquadNavigation';
 import {GarrisonSystem} from '../garrison/GarrisonSystem';
-import {roadPoint,initializeLiving} from '../garrison/LogisticsSystem';
+import {initializeLiving} from '../garrison/LogisticsSystem';
 import {inventory,RESOURCES} from '../garrison/types';
 import type {BattlefieldState} from '../core/types';
 import {initializeReplacements} from './Replacements';
+import {convoyEntry,rearDepot,ROADS} from '../terrain/WorldLayout';
 
 /** A finite-force campaign. Only scheduled manifests can replenish its stocks. */
 export function createCampaign(seed=1944):BattlefieldState {
   const state=createBattlefield(seed);state.soldiers=[];state.squads=[];state.trenches=[];state.craters=[];
   const trenches=new TrenchSystem(state),homes:number[]=[];
   for(const side of ['player','enemy'] as const){
-    const x=side==='player'?-1460:-700,back=side==='player'?-1:1;
-    const front=trenches.create([{x,z:-1600},{x:x+back*8,z:-1550},{x,z:-1500},{x:x+back*8,z:-1450},{x,z:-1390}]);
+    const x=side==='player'?-520:520,back=side==='player'?-1:1;
+    const front=trenches.create([{x,z:-240},{x:x+back*8,z:-190},{x,z:-140},{x:x+back*8,z:-90},{x,z:-30}]);
     front.width=7.2;front.progress=1;front.status='complete';homes.push(front.id);
-    const connector=trenches.create([{x:x+back*4,z:-1475},{x:x+back*55,z:-1475},{x:x+back*70,z:-1445}]);
+    const connector=trenches.create([{x:x+back*4,z:-115},{x:x+back*55,z:-115},{x:x+back*70,z:-85}]);
     connector.width=7.2;connector.progress=1;connector.status='complete';
     const roster=[['rifle',8,'Able'],['rifle',8,'Baker'],['rifle',8,'Charlie'],['rifle',8,'Dog'],['engineer',8,'Pioneer team'],['machinegun',3,'Machine-gun team'],['mortar',3,'Mortar team'],['medical',2,'Medical section']] as const;
     for(const [i,[kind,count,name]] of roster.entries()){
-      const squad=addSquad(state,kind,count,x+back*4,-1575+i*22,
+      const squad=addSquad(state,kind,count,x+back*4,-215+i*22,
         side==='enemy'?`Opposing ${name}`:name);
       squad.faction=side;
     }
   }
   initializeLiving(state);const w=state.living!;
-  w.rear=roadPoint(-2300);for(const t of w.trucks)if(t.role==='shuttle')Object.assign(t,w.rear);
-  w.enemySupply={rear:roadPoint(500),stock:{...w.rearStock},nextDelivery:0};
+  w.rear=rearDepot(false,ROADS[2]);for(const t of w.trucks)Object.assign(t,t.role==='convoy'?convoyEntry(false,w.rear):w.rear);
+  w.enemySupply={rear:rearDepot(true,ROADS[2]),stock:{...w.rearStock},nextDelivery:0};
   for(const key of RESOURCES)w.ledger.initial[key]+=w.enemySupply.stock[key];
   for(let i=0;i<4;i++){
-    w.trucks.push({id:state.nextEntityId++,...(i===0?roadPoint(3980):w.enemySupply.rear),faction:'enemy',role:i===0?'convoy':'shuttle',state:'idle',route:[],routeIndex:0,cargo:inventory(),fuel:30,timer:0,reason:'Awaiting assignment'});
+    w.trucks.push({id:state.nextEntityId++,...(i===0?convoyEntry(true,w.enemySupply.rear):w.enemySupply.rear),faction:'enemy',role:i===0?'convoy':'shuttle',state:'idle',route:[],routeIndex:0,cargo:inventory(),fuel:30,timer:0,reason:'Awaiting assignment'});
     w.ledger.initial.fuel+=30;
   }
   for(const s of state.soldiers){const kind=state.squads.find(q=>q.id===s.squadId)!.kind;s.carried!.ammo=60;s.ammunition=60;w.ledger.initial.ammo+=60;s.nextShotAt=4+s.id%9*.35;
@@ -45,7 +46,7 @@ export function createCampaign(seed=1944):BattlefieldState {
     g.cache=inventory({food:64,water:100,materials:80,ammo:200,medical:16,mortarHE:12,mortarSmoke:6,smokeGrenades:8});g.nextSupport=30;
     for(const key of RESOURCES)w.ledger.initial[key]+=g.cache[key];
   }
-  const objectives=[{id:'west-hq',name:'WEST COMMAND',x:-1464,z:-1500,owner:'player' as const,control:1},{id:'village',name:'SAINT-MARTIN',x:-1070,z:-1332,owner:'neutral' as const,control:0},{id:'east-hq',name:'EAST COMMAND',x:-704,z:-1500,owner:'enemy' as const,control:-1}].map(site=>{
+  const objectives=[{id:'west-hq',name:'WEST COMMAND',x:-524,z:-140,owner:'player' as const,control:1},{id:'village',name:'SAINT-MARTIN',x:0,z:28,owner:'neutral' as const,control:0},{id:'east-hq',name:'EAST COMMAND',x:524,z:-140,owner:'enemy' as const,control:-1}].map(site=>{
     const p=navigation.freeDestination(site),cacheId=state.nextEntityId++,stock=inventory(site.id==='village'?{food:32,water:48,ammo:240}:{});
     w.crates.push({id:cacheId,...p,stock});for(const key of RESOURCES)w.ledger.initial[key]+=stock[key];
     return {...site,...p,radius:43,cacheId,contested:false};

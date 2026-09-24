@@ -16,9 +16,9 @@ const encounters=[];
 for(const range of [50,200,300])for(let seed=1944;seed<1952;seed++){
   const sim=new BattlefieldSimulation(createOperation('advance',seed)),s=sim.state,op=s.operation!;flat(sim);op.nextOrders=1e9;op.duration=1e9;op.casualtyRules=true;s.living!.campaignHours=12;
   const a=s.squads.find(q=>q.faction==='player')!,b=s.squads.find(q=>q.faction==='enemy')!,team=s.soldiers.filter(p=>p.squadId===a.id||p.squadId===b.id);
-  for(const p of s.soldiers){p.nextShotAt=1e9;p.x=3000;p.z=3000;}
+  for(const p of s.soldiers){p.nextShotAt=1e9;p.x=1800;p.z=1800;}
   for(const [i,p] of team.entries()){Object.assign(p,{x:p.squadId===a.id?0:range,z:(i%8)*4,nextShotAt:0,heading:p.squadId===a.id?Math.PI/2:-Math.PI/2});}
-  a.x=0;a.z=14;b.x=range;b.z=14;for(const o of op.objectives){o.x=-3500;o.z=3500;}
+  a.x=0;a.z=14;b.x=range;b.z=14;for(const o of op.objectives){o.x=-1800;o.z=1800;}
   const initial=team.reduce((n,p)=>n+p.carried!.ammo,0);
   for(let i=0;i<2400;i++)sim.step(.05);
   encounters.push({seed,range,seconds:s.elapsed,shots:op.shots,hits:op.hits,dead:team.filter(p=>p.needs!.life==='dead').length,disabled:team.filter(p=>p.needs!.life==='incapacitated').length,ammoConsumed:s.living!.ledger.consumed.ammo,ammoRemovedFromPacksIncludingDrops:initial-team.reduce((n,p)=>n+p.carried!.ammo,0),finalMaxSuppression:Math.max(...team.map(p=>p.suppression))});

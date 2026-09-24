@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { WORLD_HALF, clamp, type Vec2 } from '../core/types';
+import { WORLD_HALF,WORLD_SIZE, clamp, type Vec2 } from '../core/types';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import { blocksGameplayKey } from '../input/GameplayKeys';
 
 export class StrategyCamera {
-  readonly camera = new THREE.PerspectiveCamera(46, 1, 1, 14_000);
+  readonly camera = new THREE.PerspectiveCamera(46, 1, 1, WORLD_SIZE*2.2);
   readonly target = new THREE.Vector3(-1270, 0, -1300);
   private readonly desiredTarget = this.target.clone();
   private azimuth = Math.PI * 0.1;
@@ -41,8 +41,8 @@ export class StrategyCamera {
       this.desiredTarget.x += (-forward * sin + strafe * cos) * speed;
       this.desiredTarget.z += (-forward * cos - strafe * sin) * speed;
     }
-    this.desiredTarget.x = clamp(this.desiredTarget.x, -WORLD_HALF, WORLD_HALF);
-    this.desiredTarget.z = clamp(this.desiredTarget.z, -WORLD_HALF, WORLD_HALF);
+    this.desiredTarget.x = clamp(this.desiredTarget.x, -WORLD_HALF+20, WORLD_HALF-20);
+    this.desiredTarget.z = clamp(this.desiredTarget.z, -WORLD_HALF+20, WORLD_HALF-20);
     this.desiredTarget.y = this.terrain.heightAt(this.desiredTarget.x, this.desiredTarget.z);
     const damping = 1 - Math.exp(-dt * 9);
     this.target.lerp(this.desiredTarget, damping);
@@ -68,8 +68,9 @@ export class StrategyCamera {
   }
 
   focus(point: Vec2, distance = this.desiredDistance): void {
-    this.desiredTarget.set(point.x, this.terrain.heightAt(point.x, point.z), point.z);
-    this.desiredDistance = clamp(distance, 25, 6000);
+    const x=clamp(point.x,-WORLD_HALF+20,WORLD_HALF-20),z=clamp(point.z,-WORLD_HALF+20,WORLD_HALF-20);
+    this.desiredTarget.set(x, this.terrain.heightAt(x,z),z);
+    this.desiredDistance = clamp(distance, 25, WORLD_SIZE*1.15);
   }
 
   get zoomDistance():number {return this.distance;}
@@ -90,7 +91,7 @@ export class StrategyCamera {
     const ray = raycaster.ray;
     if (ray.direction.y >= -0.001) return undefined;
     let low = 0;
-    let high = Math.min(18_000, (ray.origin.y + 180) / -ray.direction.y);
+    let high = Math.min(WORLD_SIZE*2.5, (ray.origin.y + 180) / -ray.direction.y);
     for (let i = 0; i < 24; i += 1) {
       const mid = (low + high) * 0.5;
       const point = ray.at(mid, new THREE.Vector3());
@@ -115,7 +116,7 @@ export class StrategyCamera {
   private readonly onWheel = (event: WheelEvent): void => {
     event.preventDefault();
     if(document.documentElement.dataset.menu||document.documentElement.dataset.help||document.documentElement.dataset.fieldMap)return;
-    this.desiredDistance = clamp(this.desiredDistance * Math.exp(event.deltaY * 0.0011), 25, 6000);
+    this.desiredDistance = clamp(this.desiredDistance * Math.exp(event.deltaY * 0.0011), 25, WORLD_SIZE*1.15);
   };
 
   private readonly onPointerDown = (event: PointerEvent): void => {

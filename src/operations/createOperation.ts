@@ -13,8 +13,11 @@ export function createOperation(mode: OperationMode, seed = 1944): BattlefieldSt
   const state = createBattlefield(seed);
   state.soldiers = []; state.squads = [];
   const terrain = new TerrainSystem(state), navigation = new SquadNavigation(terrain);
+  // Preserve short-operation distances, but put defense on a northern approach
+  // to Beaumont. This is a scenario placement, not a mission-rule redesign.
+  const place=(p:Vec2):Vec2=>mode==='defense'?{x:1080+(p.z+1332),z:1000-(p.x+1070)}:p;
   const add = (faction: Faction, at: Vec2, index: number, engineer = false) => {
-    const p = navigation.freeDestination(at);
+    const p = navigation.freeDestination(place(at));
     const squad = addSquad(state, engineer ? 'engineer' : 'rifle', 8, p.x, p.z,
       faction === 'enemy' ? `Opposing ${index + 1}` : engineer ? 'Pioneer team' : ['Able', 'Baker', 'Charlie', 'Dog', 'Easy'][index]);
     squad.faction = faction;
@@ -39,11 +42,11 @@ export function createOperation(mode: OperationMode, seed = 1944): BattlefieldSt
   }
   const sites = [
     { id: 'farm', name: 'WEST FARM', x: -1210, z: -1400 },
-    { id: 'village', name: 'SAINT-MARTIN', x: -1070, z: -1332 },
+    { id: 'village', name: mode==='defense'?'BEAUMONT':'LE VERGER', x: -1070, z: -1332 },
     { id: 'orchard', name: 'EAST ORCHARD', x: -970, z: -1240 },
   ];
   const objectives = sites.map(site => {
-    const p = navigation.freeDestination(site), cacheId = state.nextEntityId++;
+    const p = navigation.freeDestination(place(site)), cacheId = state.nextEntityId++;
     const stock = inventory({ food: 32, water: 48, ammo: 240 });
     world.crates.push({ id: cacheId, ...p, stock });
     for (const key of RESOURCES) world.ledger.initial[key] += stock[key];

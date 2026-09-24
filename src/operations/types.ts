@@ -66,13 +66,13 @@ export const MODE_INFO = {
   },
   advance: {
     title: 'Village offensive', duration: '10 MIN', tag: 'QUICK OPERATION',
-    description: 'Take Saint-Martin and a second strongpoint. Hold both to earn 180 control points. Enemy squads seek cover and counterattack using what they can spot.',
+    description: 'Take Le Verger and a second strongpoint on the western approach. Hold both to earn 180 control points. Enemy squads seek cover and counterattack using what they can spot.',
     hint: 'Capture with 3 able soldiers. Two objectives earn 1 point/sec. Enemies contest the circle. Pause freely.',
   },
   defense: {
     title: 'Hold the crossroads', duration: '15 MIN', tag: 'DEFENSIVE OPERATION',
     description: 'Defend the village against a finite enemy force that combines covering fire and flanking. Build cover, manage ammunition, and deny their foothold.',
-    hint: 'You have 90 seconds to prepare. Keep Saint-Martin until the timer ends, or defeat the assault. Losing the village ends the operation.',
+    hint: 'You have 90 seconds to prepare. Keep the Beaumont crossroads until the timer ends, or defeat the assault. Losing the village ends the operation.',
   },
   sandbox: {
     title: 'Living battlefield', duration: 'OPEN ENDED', tag: 'PEACEFUL SANDBOX',

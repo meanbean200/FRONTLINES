@@ -1,6 +1,6 @@
 async(page)=>{
   const [phase='before',key='medium',quality='balanced']=page.url().split('#')[1]?.split(':')??[];
-  const fixtures=await (await page.request.get('http://127.0.0.1:4173/output/visual-rescue/fixtures.json')).json(),fixture=fixtures[key],samples=[],errors=[];
+  const fixtures=await (await page.request.get('http://127.0.0.1:4173/output/visual-rescue-world2/fixtures.json')).json(),fixture=fixtures[key],samples=[],errors=[];
   if(!fixture)throw Error('Unknown fixture '+key);
   await page.bringToFront();await page.setViewportSize({width:1600,height:900});page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   if(phase.startsWith('preset')){await page.reload();await page.locator('#launch-operation').click();await page.locator('[data-speed="0"]').click();}

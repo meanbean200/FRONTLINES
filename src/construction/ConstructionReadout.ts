@@ -3,6 +3,7 @@ import type {Facility,Garrison} from '../garrison/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {SquadNavigation} from '../navigation/SquadNavigation';
 import type {TrenchNetwork} from '../garrison/TrenchNetwork';
+import {insideWorld} from '../terrain/WorldLayout';
 
 export const MIN_TRENCH_LENGTH=10;
 export const SUPPORT_WORKS:Record<Facility['kind'],{name:string;cost:number;description:string}>={
@@ -23,6 +24,7 @@ export function chooseEngineer(state:BattlefieldState,selected:Set<number>):Squa
 /** The preview and construction command use precisely the same site checks. */
 export function facilitySiteReason(state:BattlefieldState,g:Garrison,from:Vec2,to:Vec2,terrain:TerrainSystem,navigation:SquadNavigation,network:TrenchNetwork):string|undefined{
   if(!Number.isFinite(to.x)||!Number.isFinite(to.z))return 'Choose a point on the battlefield.';
+  if(!insideWorld(to,8)||!insideWorld(from,5))return 'Worksite crosses the battlefield edge · leave 8 m clearance.';
   const length=distance(from,to);
   if(length<6)return 'Too close to the trench · move at least 6 m away.';
   if(length>40)return 'Too far from completed trench · maximum connector is 40 m.';

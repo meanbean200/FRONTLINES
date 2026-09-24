@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TerrainSystem } from '../terrain/TerrainSystem';
 import {buildingMaterial} from './BuildingMaterials';
+import {WORLD_SIZE,WORLD_HALF,CHUNK_SIZE,clamp} from '../core/types';
+import {ROADS,pointOnRoad} from '../terrain/WorldLayout';
 
 export {createVegetation,refreshVegetationClearance} from './Vegetation';
 
@@ -24,11 +26,7 @@ export function createInfrastructure(terrain: TerrainSystem): THREE.Group {
     `);
   };
   const waterMaterial = new THREE.MeshStandardMaterial({ color: 0x547772, roughness: .32, metalness: .18, side: THREE.DoubleSide });
-  const paths = [
-    { path: (t: number) => ({ x: t, z: terrain.roadCenterZ(t) }), width: 6 },
-    { path: (t: number) => ({ x: -1340 + Math.sin(t / 870) * 190, z: t }), width: 7 },
-    { path: (t: number) => ({ x: t, z: -1330 + Math.sin(t / 530) * 30 }), width: 6 },
-  ];
+  const paths = ROADS.map(road=>({path:(t:number)=>pointOnRoad(road,t),width:road.width}));
   for (const { path, width } of paths) group.add(ribbon(terrain, path, width, roadMaterial, false));
   group.add(ribbon(terrain, t => ({ x: t, z: terrain.riverCenter(t) }), 27, waterMaterial, true));
   group.add(createBuildingMeshes(terrain));
@@ -37,16 +35,17 @@ export function createInfrastructure(terrain: TerrainSystem): THREE.Group {
 
 function ribbon(terrain: TerrainSystem, path: (t: number) => {x:number;z:number}, width: number, material: THREE.Material, water: boolean): THREE.Mesh {
   const vertices: number[] = [], indices: number[] = [],uvs:number[]=[];
-  const steps = 2000;
+  const steps = Math.ceil(WORLD_SIZE/4);
   for (let i=0; i<=steps; i++) {
-    const t = -4000 + i / steps * 8000, p = path(t), q = path(t + 1);
+    const t = -WORLD_HALF + i / steps * WORLD_SIZE, p = path(t), q = path(t + 1);
     const length = Math.hypot(q.x-p.x,q.z-p.z), nx = -(q.z-p.z)/length, nz = (q.x-p.x)/length;
     for (const side of [-1,1]) {
-      const x = p.x + nx * width / 2 * side, z = p.z + nz * width / 2 * side;
+      const halfWidth=water?terrain.riverWidth(p.x):width/2;
+      const x = clamp(p.x + nx * halfWidth * side,-WORLD_HALF,WORLD_HALF), z = clamp(p.z + nz * halfWidth * side,-WORLD_HALF,WORLD_HALF);
       vertices.push(x, water ? terrain.baseHeightAt(p.x,p.z)+2.4 : terrain.baseHeightAt(x,z)+.18, z);
       uvs.push(side*.5+.5,t);
     }
-    if (i<steps) {const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
+    if (i<steps&&(!water||terrain.distanceToRoad(p.x,p.z)>13)) {const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
   }
   const geometry = new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setAttribute('roadCoords',new THREE.Float32BufferAttribute(uvs,2));geometry.setIndex(indices);geometry.computeVertexNormals();
   const mesh=new THREE.Mesh(geometry,material);mesh.receiveShadow=true;
@@ -61,7 +60,7 @@ export function refreshRoadCuts(group:THREE.Group,terrain:TerrainSystem,x:number
     const positions=mesh.geometry.attributes.position,hidden=mesh.userData.hiddenRoadQuads as Set<number>;let changed=false;
     for(let i=0;i<positions.count/2-1;i++){
       const a=i*2,b=a+2;
-      if(Math.max(positions.getX(a),positions.getX(b))+8<x||Math.min(positions.getX(a),positions.getX(b))-8>x+500||Math.max(positions.getZ(a),positions.getZ(b))+8<z||Math.min(positions.getZ(a),positions.getZ(b))-8>z+500)continue;
+      if(Math.max(positions.getX(a),positions.getX(b))+8<x||Math.min(positions.getX(a),positions.getX(b))-8>x+CHUNK_SIZE||Math.max(positions.getZ(a),positions.getZ(b))+8<z||Math.min(positions.getZ(a),positions.getZ(b))-8>z+CHUNK_SIZE)continue;
       let cut=false;
       for(let along=0;along<=4&&!cut;along++)for(let across=0;across<=4&&!cut;across++){
         const t=along/4,u=across/4;

@@ -1,6 +1,7 @@
 import { type Vec2, WORLD_HALF, distance } from '../core/types';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import {doorPoint} from '../terrain/BuildingGeometry';
+import {insideWorld} from '../terrain/WorldLayout';
 
 interface Node {x:number;z:number;g:number;f:number;parent?:Node}
 class MinHeap {
@@ -18,7 +19,7 @@ export class SquadNavigation {
     if(!this.terrain.obstacleAt(target.x,target.z,8))return target;
     for(let radius=8;radius<=60;radius+=4)for(let i=0;i<16;i++){
       const p={x:target.x+Math.cos(i*Math.PI/8)*radius,z:target.z+Math.sin(i*Math.PI/8)*radius};
-      if(!this.terrain.obstacleAt(p.x,p.z,8))return p;
+      if(insideWorld(p,10)&&!this.terrain.obstacleAt(p.x,p.z,8))return p;
     }
     return target;
   }

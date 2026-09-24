@@ -8,7 +8,7 @@ import {SaveSystem} from '../persistence/SaveSystem';
 import {stepBuildings} from '../simulation/BuildingSystem';
 import {doorPoint,floorHeight} from '../terrain/BuildingGeometry';
 import {inventory} from '../garrison/types';
-function setup(){const state=createOperation('advance'),sim=new BattlefieldSimulation(state),patient=state.soldiers[0],helper=state.soldiers[1];state.operation!.casualtyRules=true;for(const s of state.soldiers){s.x=3000;s.z=3000;s.nextShotAt=1e9;}Object.assign(patient,{x:0,z:0});Object.assign(helper,{x:1,z:0});helper.carried!.medical+=2;state.living!.ledger.initial.medical+=2;vi.spyOn(sim.terrain,'obstacleAt').mockReturnValue(false);vi.spyOn(sim.navigation,'plan').mockImplementation((_a,b)=>[{x:b.x,z:b.z}]);patient.combat={shotSequence:0,wound:{severity:'critical',at:0,bleedUntil:60,stabilized:false,care:'untreated'}};patient.health=20;patient.needs!.life='incapacitated';return{state,sim,patient,helper};}
+function setup(){const state=createOperation('advance'),sim=new BattlefieldSimulation(state),patient=state.soldiers[0],helper=state.soldiers[1];state.operation!.casualtyRules=true;for(const s of state.soldiers){s.x=1800;s.z=1800;s.nextShotAt=1e9;}Object.assign(patient,{x:0,z:0});Object.assign(helper,{x:1,z:0});helper.carried!.medical+=2;state.living!.ledger.initial.medical+=2;vi.spyOn(sim.terrain,'obstacleAt').mockReturnValue(false);vi.spyOn(sim.navigation,'plan').mockImplementation((_a,b)=>[{x:b.x,z:b.z}]);patient.combat={shotSequence:0,wound:{severity:'critical',at:0,bleedUntil:60,stabilized:false,care:'untreated'}};patient.health=20;patient.needs!.life='incapacitated';return{state,sim,patient,helper};}
 describe('physical casualty care',()=>{
   it('waits for an explicit retry after a blocked rescue instead of recycling helpers',()=>{
     const {state,sim,patient,helper}=setup();vi.mocked(sim.navigation.plan).mockReturnValue([]);updateCasualtyCare(state,sim.terrain,sim.navigation,.05);expect(state.operation!.rescueDecisions![0].choice).toBe('pending');
@@ -22,7 +22,7 @@ describe('physical casualty care',()=>{
   });
   it('reaches an upstairs casualty through the doorway and stairs, then carries them down before evacuation',()=>{
     const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),patient=state.soldiers[0],helper=state.soldiers[1],id=sim.terrain.buildings.findIndex(b=>b.height>6),b=sim.terrain.buildings[id],g=state.living!.garrisons[0];
-    for(const s of state.soldiers){s.x=3000;s.z=3000;delete s.duty;}for(const q of state.squads)q.order={type:'hold',issuedAt:0};
+    for(const s of state.soldiers){s.x=1800;s.z=1800;delete s.duty;}for(const q of state.squads)q.order={type:'hold',issuedAt:0};
     Object.assign(patient,{x:b.x-2,z:b.z,health:20});patient.needs!.life='incapacitated';patient.combat={shotSequence:0,wound:{severity:'critical',at:0,bleedUntil:240,stabilized:false,care:'untreated'}};
     patient.building={id,floor:1,vertical:floorHeight(b),route:[],index:0,stage:'station',target:{x:patient.x,z:patient.z},targetFloor:1,stairTime:0};Object.assign(helper,doorPoint(b,12));
     const post=doorPoint(b,25);state.living!.facilities.push({id:state.nextEntityId++,garrisonId:g.id,kind:'aid',...post,connectorId:g.trenchId,progress:1,capacity:4,paid:true,stock:inventory(),materialCost:18});g.forward=doorPoint(b,40);

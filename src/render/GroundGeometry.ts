@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { hash2D } from '../core/random';
 import { CHUNK_SIZE } from '../core/types';
 import { TerrainSystem, smoothStep } from '../terrain/TerrainSystem';
+import {intersectsCrossing} from '../terrain/WorldLayout';
 export {groundMaterial} from './TerrainMaterials';
 
 const fields = [0x62734c, 0x727647, 0x8a8054, 0x526747, 0x746747, 0x667348].map(hex => new THREE.Color(hex));
@@ -9,15 +10,16 @@ const woodland = new THREE.Color(0x3b5037);
 const earth = new THREE.Color(0x715a40);
 const floor = new THREE.Color(0x302a23);
 
-/** Refines only cells touched by excavation to sub-meter spacing. */
+/** Refines excavation and the three physical causeways to sub-meter spacing. */
 export function createGroundGeometry(terrain: TerrainSystem, x0: number, z0: number, divisions: number, refine=true): THREE.BufferGeometry {
   const vertices: number[] = [], colors: number[] = [], normals: number[] = [], indices: number[] = [], cover:number[]=[];
   const size = CHUNK_SIZE / divisions;
   const color = new THREE.Color();
+  const detailed=(x:number,z:number,size:number)=>terrain.intersectsModification(x,x+size,z,z+size)||intersectsCrossing(x,x+size,z,z+size);
   function vertex(x: number, z: number, override?:number): void {
     let h = override??terrain.heightAt(x, z);
     // Adjacent chunk LODs share the same border elevations.
-    if(!terrain.intersectsModification(x-.1,x+.1,z-.1,z+.1)) {
+    if(!detailed(x-.1,z-.1,.2)) {
       const coarse=CHUNK_SIZE/8;
       if(Math.abs(x-x0)<.001||Math.abs(x-x0-CHUNK_SIZE)<.001){const a=Math.floor(z/coarse)*coarse,t=(z-a)/coarse;h=terrain.heightAt(x,a)*(1-t)+terrain.heightAt(x,a+coarse)*t;}
       if(Math.abs(z-z0)<.001||Math.abs(z-z0-CHUNK_SIZE)<.001){const a=Math.floor(x/coarse)*coarse,t=(x-a)/coarse;h=terrain.heightAt(a,z)*(1-t)+terrain.heightAt(a+coarse,z)*t;}
@@ -40,10 +42,10 @@ export function createGroundGeometry(terrain: TerrainSystem, x0: number, z0: num
   for (let iz = 0; iz < divisions; iz++) {
     for (let ix = 0; ix < divisions; ix++) {
       const x = x0 + ix * size, z = z0 + iz * size;
-      const fine = refine&&terrain.intersectsModification(x, x + size, z, z + size);
+      const fine = refine&&detailed(x,z,size);
       const n = fine ? Math.round(size / (CHUNK_SIZE/512)) : 1;
       const start = vertices.length / 3;
-      const neighborFine=(dx:number,dz:number)=>terrain.intersectsModification(x+dx*size,x+(dx+1)*size,z+dz*size,z+(dz+1)*size);
+      const neighborFine=(dx:number,dz:number)=>detailed(x+dx*size,z+dz*size,size);
       const corners=[terrain.heightAt(x,z),terrain.heightAt(x+size,z),terrain.heightAt(x,z+size),terrain.heightAt(x+size,z+size)];
       for (let j = 0; j <= n; j++) for (let i = 0; i <= n; i++) {
         let h:number|undefined;

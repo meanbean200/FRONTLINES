@@ -11,7 +11,7 @@ import * as THREE from 'three';
 
 function fixture(){
   const state=createOperation('advance'),sim=new BattlefieldSimulation(state),observer=state.soldiers[0],target=state.soldiers.find(s=>state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')!;
-  for(const s of state.soldiers){s.x=state.squads.find(q=>q.id===s.squadId)?.faction==='enemy'?3000:-3000;s.z=3000;s.nextShotAt=10000;}
+  for(const s of state.soldiers){s.x=state.squads.find(q=>q.id===s.squadId)?.faction==='enemy'?1800:-1800;s.z=1800;s.nextShotAt=10000;}
   Object.assign(observer,{x:0,z:0,heading:Math.PI/2});Object.assign(target,{x:150,z:0,heading:-Math.PI/2});
   state.living!.campaignHours=12;state.operation!.nextOrders=10000;
   vi.spyOn(sim.terrain,'baseHeightAt').mockReturnValue(0);vi.spyOn(sim.terrain,'heightAt').mockReturnValue(0);

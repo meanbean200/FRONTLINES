@@ -53,7 +53,7 @@ describe('deterministic garrison acceptance contracts',()=>{
     w.logistics!.rearCapacity=total(w.rearStock);Object.assign(t,w.rear,{state:'unloading',timer:0});
     sim.garrisons.logistics.step(.05);expect(t.state).toBe('returning');expect(t.cargo).toEqual(cargo);
     for(let i=0;i<1800&&t.state!=='idle';i++)sim.garrisons.logistics.step(.05);
-    expect(t.state).toBe('idle');expect(t.x).toBe(-3980);expect(t.cargo).toEqual(cargo);
+    expect(t.state).toBe('idle');expect(t.x).toBe(-1980);expect(t.cargo).toEqual(cargo);
     sim.state.elapsed=w.nextDelivery;sim.garrisons.logistics.step(.05);
     expect(t.state).toBe('loading');expect(t.cargo).toEqual(cargo);
     for(const key of Object.keys(cargo) as (keyof typeof cargo)[])if(key!=='fuel')expect(w.ledger.imported[key]).toBe(imports[key]);

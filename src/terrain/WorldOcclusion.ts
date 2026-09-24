@@ -1,4 +1,4 @@
-import {distance,type Vec2} from '../core/types';
+import {distance,WORLD_HALF,type Vec2} from '../core/types';
 import type {TerrainSystem} from './TerrainSystem';
 import {treesForChunk,treeCleared,type TreeSite} from './WorldFeatures';
 import {MATERIALS} from './BuildingGeometry';
@@ -30,6 +30,7 @@ export class WorldOcclusion {
   constructor(private terrain:TerrainSystem){}
   reset():void{this.chunks.clear();this.clearances=new WeakMap();this.rays.clear();this.rayKeys=[];this.rayCursor=0;this.rayRevision=-1;}
   trees(x0:number,z0:number):TreeSite[]{
+    if(x0< -WORLD_HALF||z0< -WORLD_HALF||x0>=WORLD_HALF||z0>=WORLD_HALF)return [];
     const key=`${x0},${z0}`;let trees=this.chunks.get(key);if(!trees){trees=treesForChunk(this.terrain,x0,z0);this.chunks.set(key,trees);}return trees;
   }
   private cleared(tree:TreeSite):boolean {

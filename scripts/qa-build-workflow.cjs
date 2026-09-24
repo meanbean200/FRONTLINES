@@ -1,10 +1,10 @@
 async(page)=>{
   const suffix=page.url().split('#')[1]||'r4';if(!/^[a-z0-9-]+$/.test(suffix))throw Error('Use a simple unused screenshot suffix.');
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.bringToFront();await page.goto('http://127.0.0.1:4175/');await page.setViewportSize({width:1600,height:900});
+  await page.bringToFront();await page.goto('http://127.0.0.1:4175/');await page.reload();await page.setViewportSize({width:1600,height:900});
   await page.locator('[data-mode-choice="campaign"]').click();await page.locator('#launch-operation').click();await page.locator('[data-speed="0"]').click();
   await page.waitForFunction(()=>window.__FRONTLINES__.getPerf().chunks>=8&&document.querySelectorAll('.squad-marker').length>=8);
-  await page.evaluate(()=>new Promise(resolve=>{let last,stable=0;const tick=()=>{const p=window.__FRONTLINES__.projectWorld(-1480,-1500,.3);if(p.visible&&p.x>380&&p.x<1250&&p.y>160&&p.y<750&&last&&Math.hypot(p.x-last.x,p.y-last.y)<.1)stable++;else stable=0;last=p;if(stable>=12)resolve(true);else requestAnimationFrame(tick);};tick();}));
+  await page.evaluate(()=>new Promise(resolve=>{let last,stable=0;const tick=()=>{const a=window.__FRONTLINES__,g=a.getState().living.garrisons.find(g=>g.faction!=='enemy'),p=a.projectWorld(g.entrance.x,g.entrance.z,.3);if(p.visible&&p.x>380&&p.x<1250&&p.y>160&&p.y<750&&last&&Math.hypot(p.x-last.x,p.y-last.y)<.1)stable++;else stable=0;last=p;if(stable>=12)resolve(true);else requestAnimationFrame(tick);};tick();}));
   const before=await page.evaluate(()=>window.__FRONTLINES__.getState());
   await page.screenshot({path:`output/playwright/build-after-world-${suffix}.png`});
   const visibleFromRifle=await page.locator('#build-command').isVisible();

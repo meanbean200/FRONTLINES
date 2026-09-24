@@ -6,6 +6,7 @@ import {routeMetrics} from '../core/Polyline';
 import {WorldOcclusion} from './WorldOcclusion';
 import {structureBoxes,buildingContains,type BuildingCondition,type StructureBox} from './BuildingGeometry';
 import {emplacementBoxes} from './SupportGeometry';
+import {roadDistance,riverCenter,riverWidth,ROADS} from './WorldLayout';
 
 export type GroundType = 'field' | 'forest' | 'road' | 'river' | 'settlement';
 export interface ModificationBounds { minX: number; maxX: number; minZ: number; maxZ: number }
@@ -113,14 +114,17 @@ export class TerrainSystem {
   }
   private rawBaseHeightAt(x:number,z:number):number {
     const seed = this.state.seed;
-    const broad = (smoothNoise((x + 12000) / 1600, (z - 4000) / 1600, seed) - 0.5) * 100;
+    const broad = (smoothNoise((x + 12000) / 1600, (z - 4000) / 1600, seed) - 0.5) * 100; // Noise phase, not world bounds.
     const rolling = (smoothNoise(x / 420, z / 420, seed + 31) - 0.5) * 48;
     const detail = (smoothNoise(x / 110, z / 110, seed + 83) - 0.5) * 3;
     const ridgeAxis = z - (Math.sin(x / 920) * 430 + 520);
     const ridge = Math.exp(-ridgeAxis * ridgeAxis / 260000) * 85;
     const riverDistance = Math.abs(z - this.riverCenter(x));
     const valley = -Math.exp(-riverDistance * riverDistance / 80000) * 28;
-    const channel = -5.5 * (1 - smoothStep(this.riverWidth(x) * 0.7, this.riverWidth(x) * 1.25, riverDistance));
+    // Shared earth causeways: the road raises the channel, with sloped verges.
+    // This is physical terrain used by bullets, feet and vehicles, not a fake bridge.
+    const crossing=riverDistance<this.riverWidth(x)*1.25?smoothStep(4,12,roadDistance(x,z)):1;
+    const channel = -5.5 * (1 - smoothStep(this.riverWidth(x) * 0.7, this.riverWidth(x) * 1.25, riverDistance))*crossing;
     return broad + rolling + detail + ridge + valley + channel;
   }
   deformationAt(x: number, z: number): number {
@@ -144,8 +148,8 @@ export class TerrainSystem {
   }
   heightAt(x: number, z: number): number {const id=this.buildingAt({x,z}),b=id===undefined?undefined:this.buildings[id];return b?this.baseHeightAt(b.x,b.z):this.baseHeightAt(x,z)+this.deformationAt(x,z);}
   groundTypeAt(x: number, z: number): GroundType {
-    if (Math.abs(z - this.riverCenter(x)) < this.riverWidth(x)) return 'river';
     if (this.distanceToRoad(x, z) < 4) return 'road';
+    if (Math.abs(z - this.riverCenter(x)) < this.riverWidth(x)) return 'river';
     if (this.isSettlement(x, z)) return 'settlement';
     return this.forestValueAt(x, z) > 0.57 ? 'forest' : 'field';
   }
@@ -171,11 +175,11 @@ export class TerrainSystem {
     const ground = this.groundTypeAt(x, z);
     return (ground === 'river' ? 20 : ground === 'forest' ? 1.6 : ground === 'road' ? 0.8 : 1) + this.slopeAt(x, z) * 5 + Math.abs(this.deformationAt(x, z)) * 0.3;
   }
-  riverCenter(x: number): number { return -720 + Math.sin((x + 600) / 760) * 310 + Math.sin(x / 240) * 55; }
-  riverWidth(x: number): number { return 12 + (Math.sin(x / 440) + 1) * 5; }
-  roadCenterZ(x: number): number { return 920 + Math.sin((x - 300) / 1150) * 260; }
+  riverCenter(x: number): number { return riverCenter(x); }
+  riverWidth(x: number): number { return riverWidth(x); }
+  roadCenterZ(x: number): number { return ROADS[1].center(x); }
   distanceToRoad(x: number, z: number): number {
-    return Math.min(Math.abs(z - this.roadCenterZ(x)), Math.abs(x + 1340 - Math.sin(z / 870) * 190), Math.abs(z + 1330 - Math.sin(x / 530) * 30));
+    return roadDistance(x,z);
   }
   isSettlement(x: number, z: number): boolean { return SETTLEMENTS.some(s => Math.hypot(x - s.x, z - s.z) < s.r); }
   isPointInConstructedTrench(point: Vec2, trench: TrenchState, maxDistance: number): boolean {

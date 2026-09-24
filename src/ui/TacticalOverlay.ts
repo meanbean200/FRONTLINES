@@ -1,4 +1,6 @@
 import type { BattlefieldState, Vec2 } from '../core/types';
+import {WORLD_SIZE,WORLD_HALF} from '../core/types';
+import {mapCenter,mapProject,mapUnproject,ROADS,pointOnRoad} from '../terrain/WorldLayout';
 import { SETTLEMENTS } from '../terrain/WorldFeatures';
 import type { StrategyCamera } from '../render/StrategyCamera';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
@@ -36,8 +38,9 @@ export class TacticalOverlay {
     for(const settlement of SETTLEMENTS){const label=document.createElement('div');label.className='place-name';label.textContent=settlement.name;this.layer.append(label);this.labels.push({element:label,point:settlement});}
     this.mini=document.querySelector<HTMLCanvasElement>('#minimap')!;
     this.mini.width=240;this.mini.height=180;
-    this.mini.addEventListener('pointerdown',e=>{const rect=this.mini.getBoundingClientRect();this.camera.focus({x:this.center.x+((e.clientX-rect.left)/rect.width-.5)*this.span,z:this.center.z+((e.clientY-rect.top)/rect.height-.5)*this.span});});
-    document.querySelector('#map-overview')!.addEventListener('click',()=>{this.overview=!this.overview;this.span=this.overview?8000:1800;if(this.overview){this.center.x=0;this.center.z=0;}else{this.center.x=this.camera.target.x;this.center.z=this.camera.target.z;}this.mapSeed=-1;});
+    Object.assign(this.center,mapCenter(this.camera.target,this.span));
+    this.mini.addEventListener('pointerdown',e=>{const rect=this.mini.getBoundingClientRect();this.camera.focus(mapUnproject((e.clientX-rect.left)/rect.width,(e.clientY-rect.top)/rect.height,this.center,this.span));});
+    document.querySelector('#map-overview')!.addEventListener('click',()=>{this.overview=!this.overview;this.span=this.overview?WORLD_SIZE:1800;Object.assign(this.center,mapCenter(this.camera.target,this.span));this.mapSeed=-1;});
     this.fieldMap=new FieldMap(getState,terrain,camera,selected);
     this.orders=new OrderOverlay(getState,selected,camera);
   }
@@ -52,6 +55,7 @@ export class TacticalOverlay {
     this.positionMarkers();
     this.mapTimer+=dt;if(this.mapTimer<.15)return;this.mapTimer=0;
     const state=this.getState();
+    if(!this.overview){const next=mapCenter(this.camera.target,this.span);if(Math.hypot(next.x-this.center.x,next.z-this.center.z)>this.span*.25){Object.assign(this.center,next);this.mapSeed=-1;}}
     if(this.mapSeed!==state.seed){this.paintBackground();this.mapSeed=state.seed;}
     this.paintMap();
   }
@@ -137,16 +141,18 @@ export class TacticalOverlay {
       const k=(j*width+i)*4;image.data[k]=color[0]*shade;image.data[k+1]=color[1]*shade;image.data[k+2]=color[2]*shade;image.data[k+3]=255;
     }
     ctx.putImageData(image,0,0);
+    ctx.strokeStyle='#ebe1bc';ctx.lineWidth=1;
+    for(const road of ROADS){ctx.beginPath();for(let t=-WORLD_HALF;t<=WORLD_HALF;t+=20){const p=mapProject(pointOnRoad(road,t),this.center,this.span);if(t===-WORLD_HALF)ctx.moveTo(p.x*width,p.y*height);else ctx.lineTo(p.x*width,p.y*height);}ctx.stroke();}
   }
   private paintMap():void {
     const ctx=this.mini.getContext('2d')!,w=240,h=180,state=this.getState();ctx.drawImage(this.mapBackground,0,0);
-    const screen=(p:Vec2)=>({x:((p.x-this.center.x)/this.span+.5)*w,y:((p.z-this.center.z)/this.span+.5)*h});
+    const screen=(p:Vec2)=>{const q=mapProject(p,this.center,this.span);return {x:q.x*w,y:q.y*h};};
     ctx.strokeStyle='rgba(226,221,191,.12)';ctx.lineWidth=1;for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(i*w/4,0);ctx.lineTo(i*w/4,h);ctx.moveTo(0,i*h/4);ctx.lineTo(w,i*h/4);ctx.stroke();}
     for(const trench of state.trenches){ctx.strokeStyle='#443328';ctx.lineWidth=2;ctx.beginPath();trench.points.forEach((p,i)=>{const q=screen(p);if(i===0)ctx.moveTo(q.x,q.y);else ctx.lineTo(q.x,q.y);});ctx.stroke();}
     for(const squad of state.squads){const enemy=factionOf(squad)==='enemy',contact=enemy?observedEnemySquad(state,squad.id):undefined;if(enemy&&!contact)continue;const p=screen(contact??squad);ctx.fillStyle=enemy?'#873e35':this.selected.has(squad.id)?'#fff9df':'#415c6a';ctx.fillRect(p.x-2,p.y-2,4,4);}
     for(const [i,o]of (state.operation?.objectives??[]).entries()){const p=screen(o);ctx.strokeStyle=o.owner==='player'?'#415c6a':o.owner==='enemy'?'#873e35':'#665d38';ctx.lineWidth=1.5;ctx.strokeRect(p.x-5,p.y-5,10,10);ctx.fillStyle=ctx.strokeStyle;ctx.font='10px monospace';ctx.fillText(String.fromCharCode(65+i),p.x+7,p.y+3);}
     const p=screen(this.camera.target);const r=this.camera.zoomDistance/this.span*60;
     ctx.strokeStyle='#e2d7ad';ctx.lineWidth=1;ctx.strokeRect(p.x-r,p.y-r*.7,r*2,r*1.4);
-    const title=document.querySelector('#map-scale');if(title)title.textContent=this.overview?'8 KM · THEATER':'1.8 KM · SECTOR';
+    const title=document.querySelector('#map-scale');if(title)title.textContent=this.overview?`${WORLD_SIZE/1000} KM · THEATER`:'1.8 KM · SECTOR';
   }
 }

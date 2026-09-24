@@ -143,7 +143,8 @@ describe('living-trench transition contracts',()=>{
 
   it('retains cargo in a blocked truck without transferring it remotely',()=>{
     const sim=createStudyScenario(),w=sim.state.living!,truck=w.trucks.find(t=>t.role==='shuttle')!;
-    advance(sim,7);expect(truck.state).toBe('outbound');
+    // Intercept the departure itself: the smaller world's rear may be close.
+    for(let i=0;i<200&&truck.state!=='outbound';i++)sim.step(.05);expect(truck.state).toBe('outbound');
     const stock={...truck.cargo},target=truck.route[truck.routeIndex];
     sim.createCrater(target,10,3);advance(sim,1);
     expect(truck.state).toBe('blocked');expect(truck.cargo).toEqual(stock);

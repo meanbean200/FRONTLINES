@@ -163,7 +163,7 @@ export class FrontlinesApp {
     new ResizeObserver(this.resize).observe(canvas);
     this.resize();
     new ReplayPanel(()=>this.state,state=>window.__FRONTLINES__.restoreState(state),(x,z)=>this.camera.focus({x,z},180));
-    this.operationUI=new OperationUI(()=>this.state,{start:mode=>this.startGame(mode),load:()=>this.load(),save:()=>Boolean(this.save()),hasSave:()=>this.saveSystem.hasSave(),focus:p=>this.camera.focus(p,210),quality:level=>this.setQuality(level)});
+    this.operationUI=new OperationUI(()=>this.state,{start:mode=>this.startGame(mode),load:()=>this.load(),save:()=>Boolean(this.save()),hasSave:()=>this.saveSystem.hasSave(),loadError:()=>this.saveSystem.lastError,saveNotice:()=>this.saveSystem.legacyNotice(),focus:p=>this.camera.focus(p,210),quality:level=>this.setQuality(level)});
     new HudLayout(document.querySelector<HTMLElement>('#ui-root')!);
     canvas.addEventListener('webglcontextlost',event=>{
       event.preventDefault();this.graphicsLost=true;this.accumulator=0;this.operationUI.setGraphicsLost(true);
@@ -316,7 +316,7 @@ export class FrontlinesApp {
     const fresh=mode==='sandbox'?createPlayableSandbox():createOperation(mode);
     this.replaceWorld(fresh);
     if(mode==='sandbox')this.simulation.issueOccupyNearest([fresh.squads[0].id,fresh.squads[1].id,fresh.squads.find(s=>s.kind==='engineer')!.id],fresh.trenches[0].id);
-    this.camera.focus(mode==='sandbox'?{x:-1300,z:-1300}:mode==='campaign'?{x:-1410,z:-1475}:mode==='advance'?{x:-1170,z:-1350}:{x:-1080,z:-1320},mode==='sandbox'?360:mode==='campaign'?360:520);
+    const start=mode==='campaign'?fresh.operation?.objectives[0]:restoredViewTarget(fresh);if(start)this.camera.focus(start,mode==='sandbox'||mode==='campaign'?360:520);
     this.selectSquads([fresh.squads[0].id]);this.setMode('select');
     this.ui.notify(mode==='sandbox'?'Living battlefield · no enemies or timer':'Select squads, right-drag a route. Rifles engage visible enemies automatically.');
   }
@@ -390,7 +390,7 @@ export class FrontlinesApp {
       spawnStressTest: (count = 300) => this.stress(count),
       focus: (x, z, distance = 450) => this.camera.focus({ x, z }, distance),
       getPerf: () => ({ ...this.perf }),
-      getVisualStats:()=>({triangles:this.renderer.info.render.triangles,drawCalls:this.renderer.info.render.calls,particles:this.operationRenderer.particleCount,submittedSoldiers:this.unitRenderer.visibleCount,residentTrees:this.terrainRenderer.residentTreeCount,visibleTrees:this.terrainRenderer.visibleTrees(this.camera.camera)}),
+      getVisualStats:()=>({triangles:this.renderer.info.render.triangles,drawCalls:this.renderer.info.render.calls,particles:this.operationRenderer.particleCount,submittedSoldiers:this.unitRenderer.visibleCount,residentTrees:this.terrainRenderer.residentTreeCount,visibleTrees:this.terrainRenderer.visibleTrees(this.camera.camera),cameraTarget:{x:this.camera.target.x,z:this.camera.target.z},zoomDistance:this.camera.zoomDistance,...this.terrainRenderer.stats(this.camera.camera)}),
       getState: () => structuredClone(this.state),
       getPolicyPerf:()=>({inferenceMs:0,coordinator:'deterministic'}),
       setReadiness:(id,value)=>this.simulation.garrisons.setReadiness(id,value),

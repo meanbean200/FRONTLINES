@@ -32,7 +32,7 @@ declare global {
       spawnStressTest: (count?: number) => number;
       focus: (x: number, z: number, distance?: number) => void;
       getPerf: () => PerfSnapshot;
-      getVisualStats:()=>{triangles:number;drawCalls:number;particles:number;submittedSoldiers:number;residentTrees:number;visibleTrees:number};
+      getVisualStats:()=>{triangles:number;drawCalls:number;particles:number;submittedSoldiers:number;residentTrees:number;visibleTrees:number;generatedChunks:number;detailedChunks:number;visibleChunks:number;coarseGenerationMs:number;workerGenerationMs:number;workerJobs:number;cameraTarget:{x:number;z:number};zoomDistance:number};
       getState: () => BattlefieldState;
       getPolicyPerf:()=>{inferenceMs:number};
       setReadiness:(id:number,value:'routine'|'alert'|'stand-to')=>void;

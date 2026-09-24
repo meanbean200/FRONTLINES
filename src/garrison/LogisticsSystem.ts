@@ -1,15 +1,18 @@
-import { distance, lerpVec, type BattlefieldState, type Vec2 } from '../core/types';
+import { distance, lerpVec,WORLD_VERSION,WORLD_SIZE, type BattlefieldState, type Vec2 } from '../core/types';
+import {supplyRoadZ,nearestRoad,roadRoute,convoyEntry,rearDepot} from '../terrain/WorldLayout';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import { inventory, RESOURCES, type Garrison, type Inventory, type Truck, type LogisticsConfig } from './types';
 import { localInventory, total, transfer, transferBounded } from './Inventory';
 import { freshNeeds } from './NeedsSystem';
 import {RULES_VERSION} from './GarrisonPolicy';
 
-export function roadPoint(x:number):Vec2{return {x,z:-1330+Math.sin(x/530)*30};}
+export function roadPoint(x:number):Vec2{return {x,z:supplyRoadZ(x)};}
 export const defaultLogistics=():LogisticsConfig=>({deliveryInterval:450,manifest:inventory({food:400,water:600,materials:120,fuel:180,ammo:160,medical:12,mortarHE:12,mortarSmoke:6,smokeGrenades:10}),rearCapacity:12000,forwardCapacity:400,cacheCapacity:600,storeCapacity:600,convoyCapacity:1500,shuttleCapacity:140,carrierCapacity:16});
 export function initializeLiving(state:BattlefieldState):void {
   if(state.living){state.living.logistics??=defaultLogistics();return;}
-  const rear=roadPoint(-3100),stock=inventory({food:400,water:500,materials:300,fuel:500,ammo:1000});
+  // This is fresh-state initialization, never save compatibility/migration.
+  state.worldVersion??=WORLD_VERSION;state.worldSize??=WORLD_SIZE;
+  const rear=rearDepot(),stock=inventory({food:400,water:500,materials:300,fuel:500,ammo:1000});
   state.schemaVersion=3;
   state.combatRules=RULES_VERSION;
   state.living={version:1,campaignHours:8,lethalNeeds:false,garrisons:[],facilities:[],trucks:[],crates:[],rear,rearStock:stock,nextDelivery:0,
@@ -17,7 +20,7 @@ export function initializeLiving(state:BattlefieldState):void {
     metrics:{watchGapHours:0,criticalNeedHours:0,distance:0,blockedHours:0,deaths:0},emergencyResumeSpeed:1,logistics:defaultLogistics()};
   for(const s of state.soldiers){s.needs=freshNeeds(s.fatigue);s.carried=inventory({food:2,water:3});state.living.ledger.initial.food+=2;state.living.ledger.initial.water+=3;}
   for(let i=0;i<4;i++){
-    const p=i===0?roadPoint(-3980):rear;
+    const p=i===0?convoyEntry():rear;
     state.living.trucks.push({id:state.nextEntityId++,...p,role:i===0?'convoy':'shuttle',state:'idle',route:[],routeIndex:0,cargo:inventory(),fuel:30,timer:0,reason:'Awaiting assignment'});
     state.living.ledger.initial.fuel+=30;
   }
@@ -28,24 +31,20 @@ export class LogisticsSystem {
   private reserved=new Set<number>();
   constructor(private state:BattlefieldState,private terrain:TerrainSystem){}
   replaceState(state:BattlefieldState):void{this.state=state;}
-  forwardPoint(entrance:Vec2):Vec2 {return roadPoint(Math.max(-3900,Math.min(3900,entrance.x)));}
-  private roadRoute(a:Vec2,b:Vec2):Vec2[]{
-    const route:Vec2[]=[];const count=Math.max(1,Math.ceil(Math.abs(a.x-b.x)/20));
-    for(let i=1;i<=count;i++)route.push(roadPoint(a.x+(b.x-a.x)*i/count));return route;
-  }
+  forwardPoint(entrance:Vec2):Vec2 {return nearestRoad(entrance).point;}
   private clear(a:Vec2,b:Vec2):boolean {
     const n=Math.max(1,Math.ceil(distance(a,b)/2));for(let i=0;i<=n;i++){const p=lerpVec(a,b,i/n);
       if(this.terrain.obstacleAt(p.x,p.z,1.6)||this.terrain.groundTypeAt(p.x,p.z)==='river'||this.terrain.deformationAt(p.x,p.z)<-.35)return false;
     }return true;
   }
-  private depart(t:Truck,destination:Vec2,state:'outbound'|'returning'):void{t.route=this.roadRoute(t,destination);t.routeIndex=0;t.state=state;t.reason=state==='outbound'?'Delivering physical cargo':'Returning to depot';}
+  private depart(t:Truck,destination:Vec2,state:'outbound'|'returning'):void{t.route=roadRoute(t,destination);t.routeIndex=0;t.state=state;t.reason=state==='outbound'?'Delivering physical cargo':'Returning to depot';}
   step(dt:number):void {
     const w=this.state.living!,config=w.logistics!;
     this.reserved=new Set(w.trucks.filter(t=>t.garrisonId!==undefined&&t.state!=='idle').map(t=>t.garrisonId!));
     for(const t of w.trucks){
       const side=t.faction??'player',enemy=side==='enemy'?w.enemySupply:undefined;
       if(side==='enemy'&&!enemy){t.reason='No friendly rear depot';continue;}
-      const rear=enemy?.rear??w.rear,rearStock=enemy?.stock??w.rearStock,edge=roadPoint(side==='enemy'?3980:-3980);
+      const rear=enemy?.rear??w.rear,rearStock=enemy?.stock??w.rearStock,edge=convoyEntry(side==='enemy',rear);
       const assigned=w.garrisons.find(g=>g.id===t.garrisonId&&(g.faction??'player')===side);
       // A captured destination does not teleport its shipment back into a depot.
       if(t.role==='shuttle'&&t.garrisonId!==undefined&&!assigned&&t.state!=='returning'&&!(t.state==='blocked'&&t.resume==='returning')){
@@ -114,7 +113,8 @@ export class LogisticsSystem {
         }
         if(t.state==='blocked')t.state=t.resume??'outbound';
         // Queue behind a truck on the same lane; opposing traffic uses the other lane visually.
-        const queued=w.trucks.some(o=>o!==t&&distance(t,o)<7&&Math.sign((o.route[o.routeIndex]?.x??o.x)-o.x)===Math.sign(target.x-t.x)&&(o.x-t.x)*Math.sign(target.x-t.x)>0);
+        const dx=target.x-t.x,dz=target.z-t.z;
+        const queued=w.trucks.some(o=>{const aim=o.route[o.routeIndex];return o!==t&&aim&&distance(t,o)<7&&(aim.x-o.x)*dx+(aim.z-o.z)*dz>0&&(o.x-t.x)*dx+(o.z-t.z)*dz>0;});
         if(queued){t.reason='Road queue';continue;}
         const d=distance(t,target),step=Math.min(d,dt*12),fuel=Math.min(t.fuel,step*.0006);
         t.fuel-=fuel;w.ledger.consumed.fuel+=fuel;

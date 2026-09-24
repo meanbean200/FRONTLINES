@@ -6,10 +6,10 @@ import {distance} from '../core/types';
 
 function setup(progress=1){
   const state=createPlayableSandbox(),squad=state.squads[0];
-  const trench={id:state.nextEntityId++,points:[{x:-2200,z:-2000},{x:-1900,z:-2000}],width:4.2,depth:1.75,progress,status:progress===1?'complete' as const:'building' as const};
+  const trench={id:state.nextEntityId++,points:[{x:-1900,z:-1800},{x:-1600,z:-1800}],width:4.2,depth:1.75,progress,status:progress===1?'complete' as const:'building' as const};
   state.trenches=[trench];
   const people=state.soldiers.filter(s=>s.squadId===squad.id);
-  people.forEach((s,i)=>{s.x=-1940+i*2;s.z=-1980;});squad.x=-1930;squad.z=-1980;
+  people.forEach((s,i)=>{s.x=-1640+i*2;s.z=-1780;});squad.x=-1630;squad.z=-1780;
   const sim=new BattlefieldSimulation(state);return {state,sim,squad,trench,people};
 }
 describe('nearest usable trench entry',()=>{
@@ -21,14 +21,14 @@ describe('nearest usable trench entry',()=>{
   it('enters beside the squad without walking to the remote supply entrance',()=>{
     const {state,sim,squad,trench,people}=setup();expect(sim.assignGarrison([squad.id],trench.id)).toBe(true);
     sim.step(.05);const g=state.living!.garrisons[0];g.nextSupport=10000;
-    for(const s of people){expect(s.duty?.entryPoint?.x).toBeGreaterThan(-2000);expect(distance(s,s.duty!.entryPoint!)).toBeLessThan(23);}
+    for(const s of people){expect(s.duty?.entryPoint?.x).toBeGreaterThan(-1700);expect(distance(s,s.duty!.entryPoint!)).toBeLessThan(23);}
     for(let i=0;i<1000;i++)sim.step(.05);
     expect(people.filter(s=>sim.garrisons.network.corridorContains(s)).length).toBe(people.length);
-    expect(people.every(s=>s.x>-2010)).toBe(true);
+    expect(people.every(s=>s.x>-1710)).toBe(true);
   });
   it('never chooses unfinished excavation as an entry',()=>{
     const {sim,squad,trench,people}=setup(.5);expect(sim.assignGarrison([squad.id],trench.id)).toBe(true);sim.step(.05);
-    for(const s of people)expect(s.duty!.entryPoint!.x).toBeLessThanOrEqual(-2050);
+    for(const s of people)expect(s.duty!.entryPoint!.x).toBeLessThanOrEqual(-1750);
   });
   it('continues a saved personal approach exactly, preserving the supply entrance',()=>{
     const {state,sim,squad,trench,people}=setup();sim.assignGarrison([squad.id],trench.id);sim.step(.05);

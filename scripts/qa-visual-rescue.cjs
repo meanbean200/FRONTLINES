@@ -1,5 +1,5 @@
 async(page)=>{
-  const phase=page.url().split('#')[1]||'candidate',fixtures=await (await page.request.get('http://127.0.0.1:4173/output/visual-rescue/fixtures.json')).json(),errors=[],samples=[];
+  const phase=page.url().split('#')[1]||'candidate',fixtures=await (await page.request.get('http://127.0.0.1:4173/output/visual-rescue-world2/fixtures.json')).json(),errors=[],samples=[];
   if(!/^[a-z0-9-]+$/.test(phase))throw Error('Use a new simple screenshot suffix in the URL hash.');
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await page.reload();

@@ -4,8 +4,17 @@ import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {createBattlefield} from '../simulation/createBattlefield';
 import {createGroundGeometry} from './GroundGeometry';
 import {createInfrastructure,refreshRoadCuts} from './Scenery';
+import {RIVER_CROSSINGS} from '../terrain/WorldLayout';
 
 describe('rendered excavation',()=>{
+  it('renders physical causeway heights at both terrain LODs, including seam-adjacent crossings',()=>{
+    const state=createBattlefield();state.trenches=[];state.craters=[];const sim=new BattlefieldSimulation(state),material=new THREE.MeshBasicMaterial();
+    for(const p of RIVER_CROSSINGS)for(const divisions of [8,32]){
+      const geometry=createGroundGeometry(sim.terrain,Math.floor(p.x/500)*500,Math.floor(p.z/500)*500,divisions),mesh=new THREE.Mesh(geometry,material);mesh.updateMatrixWorld(true);
+      for(const dz of [-8,0,8]){const ray=new THREE.Raycaster(new THREE.Vector3(p.x,1000,p.z+dz),new THREE.Vector3(0,-1,0)),hit=ray.intersectObject(mesh,false)[0];expect(hit).toBeDefined();expect(Math.abs(hit.point.y-sim.terrain.heightAt(p.x,p.z+dz))).toBeLessThan(.1);}
+      geometry.dispose();
+    }material.dispose();
+  });
   it('removes road surfacing across a cut and restores it on load without that cut',()=>{
     const state=createBattlefield();state.trenches=[];state.craters=[];
     const sim=new BattlefieldSimulation(state),infra=createInfrastructure(sim.terrain);

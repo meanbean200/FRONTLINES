@@ -32,7 +32,7 @@ async (page) => {
   // Map supplies the camera repositioning. No simulation state injection.
   await page.keyboard.press('g');await page.locator('.field-map [data-scale="theater"]').click();
   const river=-720+Math.sin(600/760)*310;
-  const map=await page.locator('.field-map canvas').boundingBox();await page.mouse.click(map.x+map.width*.5,map.y+map.height*(river/8000+.5));
+  const span=await page.evaluate(()=>window.__FRONTLINES__.getState().worldSize),map=await page.locator('.field-map canvas').boundingBox();await page.mouse.click(map.x+map.width*.5,map.y+map.height*(river/span+.5));
   await page.mouse.move(1050,600);await page.mouse.wheel(0,-1600);await page.waitForTimeout(800);await page.keyboard.press('b');
   const water=await page.evaluate(z=>[{x:0,z:z-40},{x:0,z:z+40}].map(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.3)),river);
   await page.mouse.move(water[0].x,water[0].y);await page.mouse.down();await page.mouse.move(water[1].x,water[1].y,{steps:12});
