@@ -66,9 +66,9 @@ describe('V1 position management command boundary',()=>{
     transfer(f.state.living!.rearStock,f.g.cache,'materials',16);f.g.nextDecision=0;run(f.sim,8);expect(f.p.paid).toBe(false);run(f.sim,250);expect(f.p.paid).toBe(true);expect(f.p.progress).toBe(1);expect(Math.max(...Object.values(balance(f.state)).map(Math.abs))).toBeLessThan(1e-6);
   });
   it('two physically present workers build faster than one; untooled labor cannot build alone',()=>{
-    const a=post(),b=post();fund(a);fund(b);const ids=b.p.workOrder!.workerIds;b.p.workOrder!.workerIds=ids.slice(0,1);for(const sim of [a,b])for(const [i,id] of sim.p.workOrder!.workerIds.entries()){const s=sim.state.soldiers.find(s=>s.id===id)!;Object.assign(s,weaponCrewPoint(sim.state,sim.p,i));delete s.duty;}
+    const a=post(),b=post();fund(a);fund(b);b.p.workOrder!.autoWorkers=false;const ids=b.p.workOrder!.workerIds;b.p.workOrder!.workerIds=ids.slice(0,1);for(const sim of [a,b])for(const [i,id] of sim.p.workOrder!.workerIds.entries()){const s=sim.state.soldiers.find(s=>s.id===id)!;Object.assign(s,weaponCrewPoint(sim.state,sim.p,i));delete s.duty;}
     run(a.sim,20);run(b.sim,20);expect(a.p.progress).toBeGreaterThan(b.p.progress*1.5);
-    const c=post();fund(c);for(const id of c.p.workOrder!.workerIds)c.state.soldiers.find(s=>s.id===id)!.equipment!.tools=false;run(c.sim,80);expect(c.p.progress).toBe(0);expect(workReadout(c.state,c.p).reason).toContain('tool carrier');
+    const c=post();fund(c);c.p.workOrder!.autoWorkers=false;for(const id of c.p.workOrder!.workerIds)c.state.soldiers.find(s=>s.id===id)!.equipment!.tools=false;run(c.sim,80);expect(c.p.progress).toBe(0);expect(workReadout(c.state,c.p).reason).toContain('tool carrier');
   });
   it('reserves limited truck space for an explicit material shortage before routine top-ups',()=>{
     const f=post(),w=f.state.living!,truck=w.trucks.find(t=>t.role==='shuttle')!;

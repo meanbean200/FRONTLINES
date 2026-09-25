@@ -2,6 +2,7 @@ import type { BattlefieldState } from '../core/types';
 import {polylineLength,WORLD_VERSION,WORLD_SIZE} from '../core/types';
 import {insideWorld} from '../terrain/WorldLayout';
 import {trenchCapacity} from '../construction/TrenchSystem';
+import {migrateExplicitWorkQueues} from '../construction/WorkAssignments';
 import { initializeLiving } from '../garrison/LogisticsSystem';
 import { RESOURCES } from '../garrison/types';
 import { OBSERVATION_VERSION, RULES_VERSION } from '../garrison/GarrisonPolicy';
@@ -94,6 +95,7 @@ export class SaveSystem {
       }
     }
     migrateWeaponCrews(state);
+    migrateExplicitWorkQueues(state);
     migrateSupportPositions(state);
     if(!state.living!.supplyDemands)reconcileSupplyDemands(state);
     state.schemaVersion=3;state.combatRules=RULES_VERSION;

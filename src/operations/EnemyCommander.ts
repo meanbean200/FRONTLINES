@@ -18,6 +18,7 @@ export interface EnemyPlan {
 }
 export interface EnemyMemory {version:1;decisions:number;plans:EnemyPlan[]}
 export interface OwnSquad extends Vec2 {
+  buildingOrder?:number;
   id:number;able:number;initial:number;health:number;morale:number;energy:number;suppression:number;ammo:number;
   moving:boolean;planning:boolean;orderTarget?:Vec2;
   kind?:import('../core/types').SquadKind;effectiveUntil?:number;
@@ -48,6 +49,7 @@ export function observeEnemy(state:BattlefieldState):EnemyObservation {
     contacts:(op.intelligence?.command.enemy??op.contacts?.enemy??[]).filter(c=>c.active&&state.elapsed-c.lastSeen<=12).map(c=>({...c})),
     // Flag ownership is public to both players. Enemy-owned caches are finite friendly stock.
     objectives:op.runtime?[]:op.objectives.map(o=>({id:o.id,x:o.x,z:o.z,radius:o.radius,owner:o.owner,contested:o.contested,ammo:o.owner==='enemy'?(state.living!.crates.find(c=>c.id===o.cacheId)?.stock.ammo??0):0}))};
+  for(const own of observation.squads){const building=state.squads.find(q=>q.id===own.id)?.order.building;if(building)own.buildingOrder=building.id;}
   if(op.runtime){
     const r=op.runtime,d=configuredDefinition(r.definitionId,op.setup);
     observation.objectives=op.objectives.map(site=>{
@@ -58,6 +60,11 @@ export function observeEnemy(state:BattlefieldState):EnemyObservation {
     observation.operational={intent:d.enemyIntent,front:structuredClone(r.front),rear:{...r.reinforcements.find(s=>s.side==='enemy')!.rear},deploymentDepth:d.deployment.enemy,
       targets:d.enemyIntent==='contest'?r.locations.filter(l=>l.kind==='village').map(l=>({id:l.id,point:{...l.position}})):
         r.routes.filter(route=>route.side==='enemy').map(route=>({id:'player-rear',point:{...route.destination}}))};
+    if(r.missionPlan){const m=r.missionPlan;
+      observation.operational.deploymentDepth=m.deployment.enemy;
+      observation.operational.mission={kind:m.kind,houseId:m.houseId,house:{...m.house},preparationSeconds:m.preparationSeconds,frontage:m.frontage};
+      observation.operational.targets=[{id:'mission-house',point:{...m.house}}];
+    }
   }
   return observation;
 }
@@ -107,6 +114,7 @@ export function commandEnemy(o:EnemyObservation,terrain:Ground,previous?:EnemyMe
     const weak=q.able<3||q.morale<25||q.energy<18||q.health<32;
     const shock=q.able<=q.initial*.45&&nearest<145;
     const emergency=(weak||shock)&&nearest<180||q.ammo<4&&nearest<145||q.suppression>72;
+    if(q.buildingOrder!==undefined&&!emergency)continue;
     if(q.emplaced&&!emergency)continue;
     if(old){
       old.stalledFor=!q.planning&&distance(q,old.goal)>6&&distance(q,old.lastPosition)<.6?old.stalledFor+3:0;

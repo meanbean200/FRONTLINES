@@ -23,13 +23,14 @@ export function supportReadiness(state:BattlefieldState,kind:SupportKind,squadId
   const people=(position?crewAt(state,position):state.soldiers.filter(s=>s.squadId===squadId)).filter(s=>s.needs?.life==='active');
   const available=people.filter(s=>s.suppression<70&&s.action!=='sleeping'&&!s.combat?.careTask);
   const operator=grenade?available.find(s=>(s.carried?.[kind]??0)>=1):available.find(s=>equipmentOf(state,s).mortar);
+  const assignedOperator=position?crewOperator(state,position):undefined;
   const crew=available.filter(s=>operator&&distance(s,operator)<12),ammo=crew.reduce((n,s)=>n+(s.carried?.[kind]??0),0);
   const pack=crew.find(s=>(s.carried?.[kind]??0)>=1);
   let reason='';
   if(!state.operation?.supportRules||state.operation.status!=='active'||!q)reason='Support unavailable in this scenario';
   else if(!grenade&&!position)reason='Choose a built mortar pit and assign a crew with mortar equipment';
   else if(!grenade&&crewOperator(state,position!)?.squadId!==squadId)reason='This pit has a different operator';
-  else if(!grenade&&!operator)reason='No ready mortar equipment carrier';
+  else if(!grenade&&!operator)reason=assignedOperator?.action==='sleeping'?'Mortar gunner resting · recovering energy; equipment remains assigned':assignedOperator?.combat?.careTask?'Mortar gunner assisting a casualty · finish or reassign the crew':(assignedOperator?.suppression??0)>=70?'Mortar gunner under heavy suppression · waiting for recovery':'No ready mortar equipment carrier';
   else if(checkBusy&&state.operation.supportMissions?.some(m=>(grenade?m.squadId===q.id:m.positionId===position?.id)&&['preparing','flight'].includes(m.stage)))reason='Support mission already in progress';
   else if(ammo<1)reason=`No ${SUPPORT_NAMES[kind].toLowerCase()} ammunition`;
   else if(!grenade&&q.order.type==='move'&&!operator?.personalArea)reason='Crew moving · Hold [H] before setting up the mortar';

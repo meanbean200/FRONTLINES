@@ -12,6 +12,8 @@ import { GarrisonJobBoard } from './GarrisonJobBoard';
 import { firstAvailablePoint } from './DutyReservations';
 import {trenchEntrance} from '../core/TrenchGeometry';
 import {bankPoint,defensivePost} from './DefensivePositions';
+import {squadContacts} from '../operations/Visibility';
+import {muzzlePoint} from '../combat/Ballistics';
 import {ownsAction} from '../combat/Reactions';
 import {facilitySiteReason,SUPPORT_WORKS} from '../construction/ConstructionReadout';
 import {positionOperator,crewAt,crewOperator,carriesPositionWeapon,migrateWeaponCrews,type WeaponPositionKind} from '../combat/WeaponPositions';
@@ -90,7 +92,7 @@ export class GarrisonSystem {
     if(s.health<=0||s.needs?.life!=='active')return reject('This person is not fit for duty.');
     if(g.cutoff==='withdraw')return reject('Area withdrawal takes priority.');
     if(s.duty?.relocationExit||s.duty?.kind==='haul'||s.combat?.careTask||['reaction','casualty','support'].includes(s.combat?.owner??''))return reject('Finish the current delivery, rescue, reaction or support task first.');
-    if(order==='auto'){for(const f of this.state.living!.facilities){if(f.weaponCrewIds?.includes(s.id))this.removeCrew(f.id,s.id);if(f.workOrder)f.workOrder.workerIds=f.workOrder.workerIds.filter(id=>id!==s.id);}if(s.duty){delete s.duty.playerOrdered;s.duty.until=this.state.elapsed;}g.nextDecision=0;return {accepted:true,reason:'This person returned to automatic area duties.'};}
+    if(order==='auto'){for(const f of this.state.living!.facilities){if(f.weaponCrewIds?.includes(s.id))this.removeCrew(f.id,s.id);if(f.workOrder?.workerIds.includes(id)){f.workOrder.workerIds=f.workOrder.workerIds.filter(id=>id!==s.id);f.workOrder.autoWorkers=false;}}if(s.duty){delete s.duty.playerOrdered;s.duty.until=this.state.elapsed;}g.nextDecision=0;return {accepted:true,reason:'This person returned to automatic area duties.'};}
     this.network.sync(this.state.trenches);const component=this.network.component(g.trenchId);
     if(component===undefined)return reject('No connected, excavated trench available.');
     const people=this.people(g);let destination:Vec2|undefined,kind:DutyKind='rest',reason='',facility:Facility|undefined;
@@ -116,7 +118,7 @@ export class GarrisonSystem {
     if(!this.assignDuty(s,g,kind,destination,reason,150))return reject('No reachable, usable position for this duty.');
     s.duty!.playerOrdered=true;if(facility)s.duty!.facilityId=facility.id;if(kind==='watch')s.duty!.watchPost={...s.duty!.destination};g.nextDecision=0;
     s.garrisonId=g.id;s.personalArea=!g.squadIds.includes(s.squadId);s.trenchId=g.trenchId;
-    for(const f of this.state.living!.facilities){f.weaponCrewIds=f.weaponCrewIds?.filter(id=>id!==s.id);if(f.workOrder)f.workOrder.workerIds=f.workOrder.workerIds.filter(id=>id!==s.id);}
+    for(const f of this.state.living!.facilities){f.weaponCrewIds=f.weaponCrewIds?.filter(id=>id!==s.id);if(f.workOrder?.workerIds.includes(id)){f.workOrder.workerIds=f.workOrder.workerIds.filter(id=>id!==s.id);f.workOrder.autoWorkers=false;}}
     return {accepted:true,reason};
   }
   private personalDuty(s:SoldierState):boolean {
@@ -142,7 +144,7 @@ export class GarrisonSystem {
     if((this.state.squads.find(q=>q.id===s.squadId)?.faction??'player')!==(g.faction??'player'))return 'Choose friendly personnel.';
     if(s.needs?.life!=='active'||s.health<=0)return 'PERSON CURRENTLY INCAPACITATED';
     if(g.cutoff==='withdraw')return 'Area withdrawal takes priority.';
-    if(s.building)return 'Leave the building before assigning this person.';
+    if(s.building||this.state.squads.find(q=>q.id===s.squadId)?.order.building)return 'Leave the building order before assigning this person.';
     if(s.combat?.careTask||['reaction','casualty','support'].includes(s.combat?.owner??'')||['pinned','broken'].includes(s.combat?.reaction??''))return 'Finish the current rescue, combat reaction or support mission first.';
     if(s.duty?.kind==='haul'&&s.duty.stage==='deliver')return 'Finish the physically carried delivery first.';
     return '';
@@ -192,8 +194,10 @@ export class GarrisonSystem {
     const local=(s:SoldierState)=>this.componentAt(s)===this.network.component(g.trenchId)&&this.network.corridorContains(s);
     const people=this.state.soldiers.filter(s=>s.needs?.life==='active'&&(this.state.squads.find(q=>q.id===s.squadId)?.faction??'player')===side&&(local(s)||distance(s,f)<=180)&&!this.personBlock(s,g)&&this.state.squads.find(q=>q.id===s.squadId)?.order.type!=='construct-trench'&&!s.duty?.playerOrdered&&!this.state.living!.facilities.some(o=>o!==f&&(o.weaponCrewIds?.includes(s.id)||o.progress<1&&o.workOrder?.workerIds.includes(s.id))))
       .sort((a,b)=>Number(carriesPositionWeapon(this.state,b,kind))-Number(carriesPositionWeapon(this.state,a,kind))||Number(local(b))-Number(local(a))||Number(hasEquipment(this.state,a,'medicalKit'))-Number(hasEquipment(this.state,b,'medicalKit'))||distance(a,f)-distance(b,f)||a.id-b.id);
-    let reason='No eligible local crew. Move the equipment carrier closer.';
-    for(const s of people){if((f.weaponCrewIds?.length??0)>=WEAPON_POSITIONS[kind].crew)break;const result=this.assignCrew(s.id,f.id);if(result.accepted)reason=result.reason;}
+    const carrier=this.state.soldiers.find(s=>carriesPositionWeapon(this.state,s,kind)&&(this.state.squads.find(q=>q.id===s.squadId)?.faction??'player')===side&&s.needs?.life==='active');
+    const reserved=carrier&&this.state.living!.facilities.find(o=>o!==f&&o.progress<1&&o.workOrder?.workerIds.includes(carrier.id));
+    let reason=reserved?'Equipment carrier is building another position. Finish or release that assignment.':carrier?(this.personBlock(carrier,g)||'Move the equipment carrier within 180 m of this network.'):'No active carrier has the required weapon equipment.';
+    for(const s of people){if((f.weaponCrewIds?.length??0)>=WEAPON_POSITIONS[kind].crew)break;const result=this.assignCrew(s.id,f.id);if(result.accepted||carriesPositionWeapon(this.state,s,kind))reason=result.reason;}
     const count=f.weaponCrewIds?.length??0;return {accepted:count===WEAPON_POSITIONS[kind].crew,reason:count===WEAPON_POSITIONS[kind].crew?'Two individuals assigned; their formation stays in place.':count?'Gunner assigned · choose an eligible assistant.':reason};
   }
   private coordinateWeapons(g:Garrison,active:SoldierState[]):void {
@@ -205,12 +209,12 @@ export class GarrisonSystem {
         if(s===operator&&f.kind==='emplacement'&&s.carried!.ammo<8){const assistant=crewAt(this.state,f).find(p=>p!==s&&p.needs?.life==='active'&&distance(p,s)<2&&(p.carried?.ammo??0)>0);if(assistant)transfer(assistant.carried!,s.carried!,'ammo',Math.min(30,assistant.carried!.ammo));}
         const resource:Resource=f.kind==='mortar'?(s.carried!.mortarHE<1?'mortarHE':'mortarSmoke'):'ammo',low=s===operator&&(f.kind==='mortar'?s.carried![resource]<1:s.carried!.ammo<8),source=this.supplySource(g,resource);
         if(low&&localInventory(this.state,g)[resource]>0){if(this.assignDuty(s,g,'meal',this.supplyPoint(g,s,source.storeId),'Reload weapon ammunition from local stores',30)){s.duty!.stage='pickup';s.duty!.pickupStoreId=source.storeId;}continue;}
-        if(s.duty?.kind==='watch'&&s.duty.facilityId===f.id)continue;
+        if(s.duty?.kind==='watch'&&s.duty.facilityId===f.id&&distance(s.duty.destination,weaponCrewPoint(this.state,f,s===operator?0:1))<.25)continue;
         if(this.assignDuty(s,g,'watch',weaponCrewPoint(this.state,f,s===operator?0:1),'Assigned weapon crew',150)){s.duty!.facilityId=f.id;s.duty!.watchPost={...s.duty!.destination};}
       }
     }
   }
-  assignWorker(facilityId:number,personId:number):{accepted:boolean;reason:string}{
+  assignWorker(facilityId:number,personId:number,automatic=false):{accepted:boolean;reason:string}{
     const f=this.state.living!.facilities.find(f=>f.id===facilityId),s=this.state.soldiers.find(s=>s.id===personId),g=this.state.living!.garrisons.find(g=>g.id===f?.garrisonId);
     const reject=(reason:string)=>({accepted:false,reason});
     if(!f||!s||!g||f.progress===1||f.workOrder?.cancelledAt!==undefined)return reject('Choose an active unfinished worksite.');
@@ -222,16 +226,29 @@ export class GarrisonSystem {
     const target=this.network.nearest(f,this.network.component(g.trenchId))?.point;
     if(!target||!this.attachPerson(s,g,target,'rest','Player: assigned construction work'))return reject('Worksite unreachable.');
     for(const other of this.state.living!.facilities)if(other.workOrder)other.workOrder.workerIds=other.workOrder.workerIds.filter(id=>id!==s.id);
-    f.workOrder??={explicit:true,workerIds:[],createdAt:this.state.elapsed};f.workOrder.explicit=true;f.workOrder.workerIds.push(s.id);g.nextDecision=0;
+    f.workOrder??={explicit:true,workerIds:[],createdAt:this.state.elapsed};f.workOrder.explicit=true;f.workOrder.workerIds.push(s.id);if(!automatic)f.workOrder.autoWorkers=false;g.nextDecision=0;
     return {accepted:true,reason:hasEquipment(this.state,s,'tools')?'Tool carrier assigned.':'Laborer assigned · tool carrier performs skilled work.'};
   }
   autoWorkers(facilityId:number):{accepted:boolean;reason:string}{
-    const f=this.state.living!.facilities.find(f=>f.id===facilityId);if(!f)return {accepted:false,reason:'Worksite unavailable.'};
-    const people=this.state.soldiers.filter(s=>s.needs?.life==='active'&&this.state.squads.find(q=>q.id===s.squadId)?.order.type!=='construct-trench'&&!this.state.living!.facilities.some(o=>o!==f&&o.progress<1&&o.workOrder?.workerIds.includes(s.id)))
-      .sort((a,b)=>Number(hasEquipment(this.state,b,'tools'))-Number(hasEquipment(this.state,a,'tools'))||Number(hasEquipment(this.state,a,'medicalKit'))-Number(hasEquipment(this.state,b,'medicalKit'))||distance(a,f)-distance(b,f)||a.id-b.id);
+    const f=this.state.living!.facilities.find(f=>f.id===facilityId);if(!f||f.progress===1||f.workOrder?.cancelledAt!==undefined)return {accepted:false,reason:'Choose an unfinished worksite.'};
+    f.workOrder??={explicit:true,workerIds:[],createdAt:this.state.elapsed};f.workOrder.autoWorkers=true;
+    // Earlier builds could attach a worker between an Occupy order and physical
+    // entry. Repair that authority conflict without moving people or their cargo.
+    const buildingOrders=new Set(this.state.squads.filter(q=>q.order.building).map(q=>q.id));
+    const released=this.state.soldiers.filter(s=>f.workOrder!.workerIds.includes(s.id)&&(s.building||buildingOrders.has(s.squadId)));
+    for(const s of released){f.workOrder.workerIds=f.workOrder.workerIds.filter(id=>id!==s.id);if(s.personalArea){delete s.garrisonId;delete s.personalArea;delete s.duty;delete s.trenchId;}}
+    const people=this.state.soldiers.filter(s=>s.needs?.life==='active'&&['hold','occupy-trench'].includes(this.state.squads.find(q=>q.id===s.squadId)?.order.type??'')&&!s.duty?.playerOrdered&&!this.state.living!.facilities.some(o=>o!==f&&(o.weaponCrewIds?.includes(s.id)||o.progress<1&&o.workOrder?.workerIds.includes(s.id))));
+    const crew=()=>this.state.soldiers.filter(s=>f.workOrder!.workerIds.includes(s.id)&&s.needs?.life==='active');
+    // One skilled worker before helpers; don't exhaust all available tool sets
+    // on the first two placements. A full labor-only legacy crew may gain a
+    // tool carrier without cancelling a physical delivery or stealing a worker.
+    if(!crew().some(s=>hasEquipment(this.state,s,'tools'))){
+      for(const s of people.filter(s=>hasEquipment(this.state,s,'tools')).sort((a,b)=>distance(a,f)-distance(b,f)||a.id-b.id))if(this.assignWorker(f.id,s.id,true).accepted)break;
+    }
+    people.sort((a,b)=>Number(hasEquipment(this.state,a,'tools'))-Number(hasEquipment(this.state,b,'tools'))||Number(hasEquipment(this.state,a,'medicalKit'))-Number(hasEquipment(this.state,b,'medicalKit'))||distance(a,f)-distance(b,f)||a.id-b.id);
     const maximum=f.kind==='emplacement'||f.kind==='mortar'?WEAPON_POSITIONS[f.kind].workers:4;
-    for(const s of people){if((f.workOrder?.workerIds.length??0)>=maximum)break;if(!f.workOrder?.workerIds.includes(s.id))this.assignWorker(f.id,s.id);}
-    const n=f.workOrder?.workerIds.length??0;return {accepted:n>0,reason:n?`${n} individual workers assigned; formation orders unchanged.`:'No available local workers · choose workers or move them closer.'};
+    for(const s of people){if(crew().length>=maximum)break;if(!f.workOrder.workerIds.includes(s.id))this.assignWorker(f.id,s.id,true);}
+    const n=crew().length,skilled=crew().some(s=>hasEquipment(this.state,s,'tools'));return {accepted:n>0&&skilled,reason:skilled?`${n} workers assigned. Free workers will continue queued work.`:n?'Waiting for a free local tool carrier; assigned laborers retained.':'Waiting for available local workers; move a free crew closer.'};
   }
   private explicitWorker(s:SoldierState):boolean {
     return this.state.living!.facilities.some(f=>f.progress<1&&f.workOrder?.explicit&&f.workOrder.workerIds.includes(s.id))&&s.needs!.energy>15&&s.needs!.hunger<80&&s.needs!.thirst<80;
@@ -239,10 +256,19 @@ export class GarrisonSystem {
   private coordinateWork(g:Garrison,active:SoldierState[]):void {
     reconcileSupplyDemands(this.state);
     for(const f of this.state.living!.facilities.filter(f=>f.garrisonId===g.id&&f.progress<1&&f.workOrder?.explicit&&f.workOrder.cancelledAt===undefined)){
-      for(const s of active.filter(s=>f.workOrder!.workerIds.includes(s.id))){
+      if(f.workOrder?.autoWorkers)this.autoWorkers(f.id);
+      // Reserve scarce cutting-face space for tools before helpers. A newly
+      // started connector has only two physical berths, regardless of crew size.
+      for(const s of active.filter(s=>f.workOrder!.workerIds.includes(s.id)).sort((a,b)=>Number(this.isEngineer(b))-Number(this.isEngineer(a))||a.id-b.id)){
         if(this.personBlock(s,g)||!this.explicitWorker(s)||s.duty?.kind==='haul'||s.duty?.kind==='meal')continue;
         if(f.paid){
           const t=this.state.trenches.find(t=>t.id===f.connectorId)!;
+          if(!this.isEngineer(s)&&!active.some(p=>f.workOrder!.workerIds.includes(p.id)&&this.isEngineer(p)&&p.duty?.kind==='construct'&&p.duty.facilityId===f.id)){
+            // Labor arriving before the material-carrying tool worker must not
+            // occupy both cutting-face berths and permanently exclude the tool.
+            if(s.duty?.kind!=='rest')this.assignDuty(s,g,'rest',this.localMealPoint(g,s),'Waiting aside for the tool carrier',10);
+            continue;
+          }
           const target=f.trenchAnchor?weaponCrewPoint(this.state,f,f.workOrder!.workerIds.indexOf(s.id)%2):this.workPoint(t.points[0],f,t.progress,s);
           if(s.duty?.kind==='construct'&&s.duty.facilityId===f.id&&this.state.elapsed<s.duty.until)continue;
           if(target&&this.assignDuty(s,g,'construct',target,'Explicit construction order',8,!this.network.corridorContains(target)))s.duty!.facilityId=f.id;
@@ -331,7 +357,7 @@ export class GarrisonSystem {
       g.lossRate=(people.length-alive.length)/Math.max(1,people.length);
       g.watchEffectiveness=alive.filter(s=>s.needs!.life==='active'&&s.combat?.owner!=='casualty'&&s.combat?.owner!=='reaction'&&s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&s.duty.rationUntil===undefined).reduce((sum,s)=>sum+.5+s.morale*.005,0);
       w.metrics.watchGapHours+=Math.max(0,g.watchRequired-g.watchPresent)*dt*CAMPAIGN_HOURS_PER_SECOND;
-      if(this.state.elapsed>=g.nextDecision){const phase=(g.id%10)*.5;g.nextDecision=(Math.floor((this.state.elapsed-phase)/5)+1)*5+phase;this.coordinate(g,people);}
+      if(this.state.elapsed>=g.nextDecision){const phase=(g.id%10)*.5;g.nextDecision=(Math.floor((this.state.elapsed-phase)/5)+1)*5+phase;this.coordinate(g,people);this.coordinateFiringEdges(g,people);}
       for(const s of people)this.execute(s,g,dt);
       const local=localInventory(this.state,g),noSupply=local.food<1||local.water<1;
       const criticalAccess=alive.some(s=>s.needs!.hungryHours>8||s.needs!.thirstyHours>3);
@@ -356,7 +382,8 @@ export class GarrisonSystem {
   private coordinate(g:Garrison,people:SoldierState[]):void {
     const w=this.state.living!,component=this.network.component(g.trenchId);if(component===undefined)return;
     if(g.cutoff==='withdraw')return;
-    const active=people.filter(s=>s.needs!.life==='active'&&!s.duty?.relocationExit&&s.combat?.owner!=='reaction'&&s.combat?.owner!=='casualty'&&s.combat?.owner!=='support'),local=localInventory(this.state,g),readiness=effectiveReadiness(g,this.state.elapsed);
+    const buildingOrders=new Set(this.state.squads.filter(q=>q.order.building).map(q=>q.id));
+    const active=people.filter(s=>s.needs!.life==='active'&&!s.building&&!buildingOrders.has(s.squadId)&&!s.duty?.relocationExit&&s.combat?.owner!=='reaction'&&s.combat?.owner!=='casualty'&&s.combat?.owner!=='support'),local=localInventory(this.state,g),readiness=effectiveReadiness(g,this.state.elapsed);
     g.scores=this.rulePolicy.decide(observation(this.state,g,people));
     g.policyStatus=g.policy==='rules'?'Deterministic needs-based coordinator':'Deterministic coordinator · previous experimental policy retired';
     g.policy='rules';
@@ -617,6 +644,21 @@ export class GarrisonSystem {
     if(exitPoint)s.duty.exitPoint={...exitPoint};
     s.duty.routeTrenches=[...new Set(route.flatMap(p=>{const h=this.network.nearest(p);return h?this.network.edges[h.edge].trenches:[];}))];return true;
   }
+  /** Short physical moves between temporary fighting edges. Never read hidden
+   * enemy movement, replace a player post, disrupt relief, or move a mounted gun. */
+  private coordinateFiringEdges(g:Garrison,people:SoldierState[]):void {
+    const component=this.network.component(g.trenchId);if(component===undefined)return;
+    for(const s of people){
+      const d=s.duty;if(d?.kind!=='watch'||d.arrivedAt===undefined||this.state.elapsed-d.arrivedAt<8||d.playerOrdered||d.facilityId||d.relieving!==undefined||people.some(p=>p.duty?.relieving===s.id)||s.combat?.owner!=='duty'||s.suppression>55)continue;
+      const contact=squadContacts(this.state,s.squadId).filter(c=>c.visible&&this.state.elapsed-c.lastSeen<2&&distance(s,c)<360).sort((a,b)=>distance(s,a)-distance(s,b)||a.soldierId-b.soldierId)[0];if(!contact)continue;
+      const front=Math.atan2(contact.x-s.x,contact.z-s.z),to={x:contact.x,z:contact.z,y:this.terrain.heightAt(contact.x,contact.z)+1.4};
+      const clear=(p:Vec2)=>{const from=muzzlePoint(this.terrain,{...s,...p,heading:front});return this.terrain.objects.trace(from,to,from.y,to.y,false,true).clear;};
+      if(clear(s)){s.heading=front;continue;}
+      const candidates=this.network.samples(component,2).filter(p=>distance(p,s)<10).map(p=>bankPoint(this.network,p,front)).filter(p=>distance(p,s)<=12&&distance(p,s)>.5&&!this.terrain.obstacleAt(p.x,p.z,.4)&&this.network.segmentInside(s,p)&&!people.some(o=>o!==s&&o.needs?.life!=='dead'&&(distance(p,o)<.9||o.duty&&distance(p,o.duty.destination)<.9))).sort((a,b)=>distance(s,a)-distance(s,b));
+      const point=candidates.find(clear);
+      if(point&&this.assignDuty(s,g,'watch',point,'Moving to a clear firing edge',Math.max(30,d.until-this.state.elapsed))){s.duty!.watchPost={...point};delete s.aimTargetId;}
+    }
+  }
   private execute(s:SoldierState,g:Garrison,dt:number):void {
     if(!ownsAction(s,'duty'))return;
     const w=this.state.living!;if(s.needs!.life!=='active'){s.action=s.needs!.life;return;}
@@ -728,7 +770,12 @@ export class GarrisonSystem {
         if(n.hunger>55&&carried.food>0||n.thirst>55&&carried.water>0){d.rationUntil=this.state.elapsed+6;s.action='eating';}
       }return;
     }
-    if(d.kind==='watch'){if(!this.state.operation||s.aimTargetId===undefined)s.heading=this.state.living!.facilities.find(f=>f.id===d.facilityId)?.facing??g.front;return;}
+    if(d.kind==='watch'){
+      if(!this.state.operation||s.aimTargetId===undefined){
+        const contact=squadContacts(this.state,s.squadId).find(c=>c.visible&&this.state.elapsed-c.lastSeen<2&&distance(s,c)<360);
+        s.heading=this.state.living!.facilities.find(f=>f.id===d.facilityId)?.facing??(contact?Math.atan2(contact.x-s.x,contact.z-s.z):g.front);
+      }return;
+    }
     if(d.kind==='meal'&&this.state.elapsed-d.arrivedAt>=6){
       const carried=s.carried??=inventory();
       const portion=['warning','hold','recover','decision'].includes(g.cutoff)?.5:1;

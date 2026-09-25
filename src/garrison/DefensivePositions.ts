@@ -8,8 +8,10 @@ export function bankPoint(network:TrenchNetwork,p:Vec2,front:number,forward=true
   const e=network.edges[hit.edge],a=network.nodes[e.a],b=network.nodes[e.b];
   const nx=(b.z-a.z)/e.length,nz=-(b.x-a.x)/e.length;
   const side=(nx*Math.sin(front)+nz*Math.cos(front)>=0?1:-1)*(forward?1:-1);
-  const offset=forward?Math.min(1.48,e.width*.35):Math.min(1.15,e.width*.27);
-  return {x:p.x+nx*offset*side,z:p.z+nz*offset*side};
+  // Stand on the excavated slope, with feet on real ground. Deep centreline
+  // guards cannot see/fire over spoil merely by being marked as watching.
+  const offset=forward?e.width*.395:Math.min(1.15,e.width*.27);
+  return {x:hit.point.x+nx*offset*side,z:hit.point.z+nz*offset*side};
 }
 
 export function defensivePost(network:TrenchNetwork,terrain:TerrainSystem,component:number,front:number,s:SoldierState,people:SoldierState[],entrance:Vec2,excluded:Vec2[],sector?:Vec2,frontage?:Vec2[]):Vec2|undefined {
@@ -31,7 +33,8 @@ export function defensivePost(network:TrenchNetwork,terrain:TerrainSystem,compon
   for(const c of shortlist){
     let clear=0;for(const arc of [-.45,0,.45]){
       const to={x:c.point.x+Math.sin(front+arc)*70,z:c.point.z+Math.cos(front+arc)*70};
-      if(terrain.objects.trace(c.point,to,Math.max(terrain.heightAt(c.point.x,c.point.z)+1.6,terrain.baseHeightAt(c.point.x,c.point.z)+.45),terrain.heightAt(to.x,to.z)+1.6).transmission>.2)clear++;
+      const ray=terrain.objects.trace(c.point,to,terrain.heightAt(c.point.x,c.point.z)+1.48,terrain.heightAt(to.x,to.z)+1.4,false,true);
+      if(ray.clear)clear++;
     }c.score+=clear*3;
   }
   return shortlist.sort((a,b)=>b.score-a.score||a.point.x-b.point.x||a.point.z-b.point.z)[0]?.point;

@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import type { BattlefieldState } from '../core/types';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import {playerVisibleEnemies} from '../operations/Visibility';
-import {contactGroups} from '../ui/ContactReadout';
 import {ImpactEffects} from './ImpactEffects';
 import type {VisualQuality} from './VisualQuality';
 
@@ -17,7 +16,6 @@ export class OperationRenderer {
   setQuality(q:VisualQuality):void{this.effects.setQuality(q);}
   get particleCount():number{return this.effects.particles.count;}
   private readonly danger=new THREE.InstancedMesh(new THREE.RingGeometry(.96,1,64).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xe8a16f,transparent:true,opacity:.65,side:THREE.DoubleSide,depthWrite:false}),32);
-  private readonly uncertainty=new THREE.InstancedMesh(new THREE.RingGeometry(.98,1,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd6be7f,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false}),64);
   constructor(private readonly getState: () => BattlefieldState, private readonly terrain: TerrainSystem) {
     const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3)); geometry.setDrawRange(0, 0);
     this.traces = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0xffd28b, transparent: true, opacity: .65 }));
@@ -26,8 +24,8 @@ export class OperationRenderer {
   update(): void {
     const state = this.getState(), op = state.operation;
     if (this.identity !== op) {
-      for (const child of [...this.group.children]) if (![this.traces,this.effects.particles.mesh,this.danger,this.uncertainty].some(o=>o===child)) child.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (o.material as THREE.Material).dispose(); } });
-      this.group.clear(); this.markers = []; this.identity = op; this.group.add(this.traces,this.effects.particles.mesh,this.danger,this.uncertainty);
+      for (const child of [...this.group.children]) if (![this.traces,this.effects.particles.mesh,this.danger].some(o=>o===child)) child.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (o.material as THREE.Material).dispose(); } });
+      this.group.clear(); this.markers = []; this.identity = op; this.group.add(this.traces,this.effects.particles.mesh,this.danger);
       for (const objective of op?.objectives ?? []) {
         const marker = new THREE.Group(), ground = this.terrain.baseHeightAt(objective.x, objective.z);
         const ring = new THREE.Mesh(new THREE.RingGeometry(objective.radius - .45, objective.radius, 80).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xe6c784, transparent: true, opacity: .45, depthWrite: false, side: THREE.DoubleSide }));
@@ -63,9 +61,8 @@ export class OperationRenderer {
     this.effects.update(state,this.terrain);
     for(const mission of op?.supportMissions??[]){if(dangers>=32||!['preparing','flight'].includes(mission.stage)||enemySquads.has(mission.squadId)||!mission.dangerRadius)continue;matrix.makeScale(mission.dangerRadius,1,mission.dangerRadius);matrix.setPosition(mission.target.x,this.terrain.heightAt(mission.target.x,mission.target.z)+1,mission.target.z);this.danger.setMatrixAt(dangers++,matrix);}
     this.danger.count=dangers;
-    const reports=(op?.intelligence?.sounds??[]).filter(s=>s.side==='player').map(s=>({x:s.x,z:s.z,radius:s.radius}));
-    for(const c of contactGroups(state))if(!c.visible)reports.push({...c,radius:Math.max(3,Math.min(60,(state.elapsed-c.lastSeen)*2))});
-    let rings=0;for(const p of reports.slice(-64)){matrix.makeScale(p.radius,1,p.radius);matrix.setPosition(p.x,this.terrain.heightAt(p.x,p.z)+.7,p.z);this.uncertainty.setMatrixAt(rings++,matrix);}this.uncertainty.count=rings;
-    for(const mesh of [this.danger,this.uncertainty]){mesh.frustumCulled=false;mesh.instanceMatrix.needsUpdate=true;}
+    // Reports remain as restrained, aged screen-space annotations in TacticalOverlay.
+    // Do not paint remembered/sound uncertainty as magic ground targeting circles.
+    this.danger.frustumCulled=false;this.danger.instanceMatrix.needsUpdate=true;
   }
 }

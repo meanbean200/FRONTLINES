@@ -10,9 +10,7 @@ export {SIGHT_RULES} from './SightRules';
 
 export function bodyFloor(terrain:TerrainSystem,s:Vec2&Partial<SoldierState>):number {
   if(s.building&&s.building.stage!=='approach'&&s.building.stage!=='exit'){const b=terrain.buildings[s.building.id];if(b)return terrain.baseHeightAt(b.x,b.z)+.14+s.building.vertical;}
-  const floor=terrain.heightAt(s.x,s.z);
-  const peeking=s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&postureOf(s)==='standing'&&(s.suppression??0)<65&&s.needs?.life==='active';
-  return peeking?Math.max(floor,terrain.baseHeightAt(s.x,s.z)-1.15):floor;
+  return terrain.heightAt(s.x,s.z);
 }
 export function eyeHeight(terrain:TerrainSystem,s:Vec2&Partial<SoldierState>):number {
   const floor=bodyFloor(terrain,s);

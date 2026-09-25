@@ -26,7 +26,7 @@ export function inlineGeometry(t:TrenchState,along:number,facing:number){
 }
 export function weaponCrewPoint(state:BattlefieldState,f:Facility,index:number):Vec2{
   const t=state.trenches.find(t=>t.id===(f.trenchAnchor?.trenchId??f.connectorId));
-  if(t&&f.trenchAnchor){const a=inlineGeometry(t,f.trenchAnchor.along,f.facing??0);return {x:a.center.x+a.normal.x*t.width*.18+a.tangent.x*(index?1.25:0),z:a.center.z+a.normal.z*t.width*.18+a.tangent.z*(index?1.25:0)};}
+  if(t&&f.trenchAnchor){const a=inlineGeometry(t,f.trenchAnchor.along,f.facing??0);return {x:a.center.x+a.normal.x*t.width*.395+a.tangent.x*(index?1.25:0),z:a.center.z+a.normal.z*t.width*.395+a.tangent.z*(index?1.25:0)};}
   const a=t?.points.at(-2),b=t?.points.at(-1),length=a&&b?distance(a,b)||1:1,dx=a&&b?(b.x-a.x)/length:0,dz=a&&b?(b.z-a.z)/length:1;
   return {x:f.x-dx*.8+dz*(index?-.7:.7),z:f.z-dz*.8-dx*(index?-.7:.7)};
 }

@@ -18,7 +18,7 @@ export type ConstructionRequest = {kind:'trench';points:Vec2[];engineerSquadId?:
 export interface SoldierState extends Vec2 {
   posture?:'standing'|'crouched'|'prone';
   equipment?:import('../combat/Equipment').InfantryEquipment;
-  building?:{id:number;floor:0|1;vertical:number;route:Vec2[];index:number;stage:'approach'|'inside'|'stairs'|'station'|'exit';target:Vec2;targetFloor:0|1;stairTime:number;stairFrom?:Vec2;exitRequested?:boolean};
+  building?:{id:number;floor:0|1;vertical:number;route:Vec2[];index:number;stage:'approach'|'inside'|'stairs'|'station'|'exit';target:Vec2;targetFloor:0|1;stairTime:number;stairFrom?:Vec2;exitRequested?:boolean;recovering?:boolean;routeReviewAt?:number};
   id: number;
   squadId: number;
   heading: number;

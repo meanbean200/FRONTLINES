@@ -8,6 +8,16 @@ import {preparedPosition} from './testing/PositionFixture';
 import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
 function setup(){const state=createOperation('advance'),sim=new BattlefieldSimulation(state),q=state.squads[0];state.operation!.supportRules=true;state.operation!.casualtyRules=true;q.x=0;q.z=0;for(const s of state.soldiers){s.x=2000;s.z=2000;}const crew=state.soldiers.filter(s=>s.squadId===q.id);crew.forEach((s,i)=>{s.x=0;s.z=i;});crew[0].equipment!.mortar=true;crew[0].carried!.mortarHE=4;state.living!.ledger.initial.mortarHE+=4;preparedPosition(state,q.id,'mortar');vi.spyOn(sim.terrain,'heightAt').mockReturnValue(0);vi.spyOn(sim.terrain,'baseHeightAt').mockReturnValue(0);vi.spyOn(sim.terrain.objects,'trace').mockReturnValue({clear:true,transmission:1});return{state,sim,q,crew};}
 describe('physical support missions',()=>{
+  it('explains a resting or suppressed mortar gunner without implying missing equipment',()=>{
+    const {state,q,crew}=setup();crew[0].action='sleeping';
+    const before=JSON.stringify(state);
+    expect(supportReadiness(state,'mortarHE',q.id).reason).toBe('Mortar gunner resting · recovering energy; equipment remains assigned');
+    expect(JSON.stringify(state)).toBe(before);
+    crew[0].action='holding';crew[0].suppression=80;
+    expect(supportReadiness(state,'mortarHE',q.id).reason).toBe('Mortar gunner under heavy suppression · waiting for recovery');
+    crew[0].suppression=0;
+    expect(supportReadiness(state,'mortarHE',q.id).reason).toBe('');
+  });
   it('rejects an already moving mortar before creating a mission or spending inventory',()=>{
     const {state,q,crew}=setup();q.order={type:'move',issuedAt:0,target:{x:20,z:0}};
     const before=JSON.stringify(state);expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0}).reason).toContain('Hold [H]');

@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { hash2D } from '../core/random';
 import { CHUNK_SIZE } from '../core/types';
 import { TerrainSystem, smoothStep } from '../terrain/TerrainSystem';
-import {intersectsCrossing} from '../terrain/WorldLayout';
+import {intersectsCrossing,nearestRoad} from '../terrain/WorldLayout';
+import {doorPoint} from '../terrain/BuildingGeometry';
 export {groundMaterial} from './TerrainMaterials';
 
 const fields = [0x62734c, 0x727647, 0x8a8054, 0x526747, 0x746747, 0x667348].map(hex => new THREE.Color(hex));
@@ -15,6 +16,7 @@ export function createGroundGeometry(terrain: TerrainSystem, x0: number, z0: num
   const vertices: number[] = [], colors: number[] = [], normals: number[] = [], indices: number[] = [], cover:number[]=[];
   const size = CHUNK_SIZE / divisions;
   const color = new THREE.Color();
+  const yards=terrain.buildings.filter(b=>b.x+b.width/2+60>=x0&&b.x-b.width/2-60<=x0+CHUNK_SIZE&&b.z+b.depth/2+60>=z0&&b.z-b.depth/2-60<=z0+CHUNK_SIZE).map(b=>{const door=doorPoint(b,1),road=nearestRoad(door).point;return {b,door,road};});
   const detailed=(x:number,z:number,size:number)=>terrain.intersectsModification(x,x+size,z,z+size)||intersectsCrossing(x,x+size,z,z+size);
   function vertex(x: number, z: number, override?:number): void {
     let h = override??terrain.heightAt(x, z);
@@ -29,7 +31,15 @@ export function createGroundGeometry(terrain: TerrainSystem, x0: number, z0: num
     color.copy(fields[Math.floor(parcel * fields.length) % fields.length]);
     color.lerp(woodland, smoothStep(.5, .66, terrain.forestValueAt(x, z)) * .85);
     const deformation = terrain.deformationAt(x, z);
-    cover.push(smoothStep(.5,.66,terrain.forestValueAt(x,z)),Math.min(1,Math.abs(deformation)*2.4));
+    let wear=0;
+    for(const {b,door,road} of yards){
+      const dx=Math.max(0,Math.abs(x-b.x)-b.width/2),dz=Math.max(0,Math.abs(z-b.z)-b.depth/2);
+      const yard=1-smoothStep(1.4,7,Math.hypot(dx,dz));
+      const vx=road.x-door.x,vz=road.z-door.z,len=Math.hypot(vx,vz),t=Math.max(0,Math.min(1,((x-door.x)*vx+(z-door.z)*vz)/(len*len||1)));
+      const path=len<60?1-smoothStep(1.2,4,Math.hypot(x-door.x-vx*t,z-door.z-vz*t)):0;
+      wear=Math.max(wear,yard*.64,path*.78);
+    }
+    cover.push(smoothStep(.5,.66,terrain.forestValueAt(x,z)),Math.min(1,Math.abs(deformation)*2.4),wear);
     if (Math.abs(deformation) > .025) color.lerp(deformation < -.5 ? floor : earth, Math.min(1, Math.abs(deformation) * 2.4));
     const lightNoise = .94 + hash2D(Math.floor(x * 2), Math.floor(z * 2), terrain.seed) * .12;
     colors.push(color.r * lightNoise, color.g * lightNoise, color.b * lightNoise);
@@ -67,7 +77,7 @@ export function createGroundGeometry(terrain: TerrainSystem, x0: number, z0: num
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  geometry.setAttribute('groundCover',new THREE.Float32BufferAttribute(cover,2));
+  geometry.setAttribute('groundCover',new THREE.Float32BufferAttribute(cover,3));
   geometry.setIndex(indices);
   geometry.computeBoundingSphere();
   return geometry;

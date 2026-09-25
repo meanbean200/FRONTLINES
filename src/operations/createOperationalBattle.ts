@@ -15,18 +15,26 @@ import type {OperationId} from './OperationalTypes';
 import type {Faction} from './types';
 import {configuredDefinition,validBattleSetup,type ResolvedBattleSetup} from './BattleSetup';
 import {equipInfantryForce} from './InfantryLoadout';
+import {placeMissionOperation} from './MissionContent';
 
 /** Shared force/deployment builder; no mission-specific soldier or combat behavior. */
-export function createOperationalBattle(id:OperationId,seed=1944,setup?:ResolvedBattleSetup):BattlefieldState {
+export function createOperationalBattle(id:OperationId,seed=1944,setup?:ResolvedBattleSetup,newContent=false,missionVersion:1|2=2):BattlefieldState {
   if(!Number.isSafeInteger(seed)||seed<1||seed>2147483647)throw new Error('Sector seed must be an integer from 1 to 2147483647');
   if(setup&&(!validBattleSetup(setup,true)||setup.seed!==seed||setup.operation!==id))throw new Error('Invalid battle setup');
   const state=createBattlefield(seed);state.soldiers=[];state.squads=[];state.trenches=[];state.craters=[];
-  const definition=setup?configuredDefinition(id,setup):OPERATION_DEFINITIONS[id],runtime=placeOperation(id,seed,setup);
+  const definition=structuredClone(setup?configuredDefinition(id,setup):OPERATION_DEFINITIONS[id]),runtime=newContent?placeMissionOperation(id,seed,setup,missionVersion):placeOperation(id,seed,setup),mission=runtime.missionPlan;
+  if(mission){definition.deployment=mission.deployment;definition.prepared=[...new Set(mission.prepared.map(p=>p.side))];definition.defenseSeconds=0;}
   const terrain=new TerrainSystem(state),navigation=new SquadNavigation(terrain),construction=new TrenchSystem(state);
   const prepared=new Map<Faction,number[]>(),groups=new Map<number,number[]>();
   const pathAt=(p:Vec2)=>[-60,-30,0,30,60].map((n,i)=>({x:p.x+runtime.front.right.x*n+runtime.front.forward.x*(i%2*5),z:p.z+runtime.front.right.z*n+runtime.front.forward.z*(i%2*5)}));
   for(const side of definition.prepared){
     const ids:number[]=[];
+    if(mission){
+      for(const work of mission.prepared.filter(p=>p.side===side)){
+        const t=construction.create(work.points);t.width=7.2;t.progress=1;t.status='complete';ids.push(t.id);groups.set(t.id,[]);
+      }
+      prepared.set(side,ids);continue;
+    }
     const sectors=setup?Math.max(3,Math.ceil(forceSize(definition.forces[side])/25)):3;
     for(const lateral of Array.from({length:sectors},(_,i)=>(i/(sectors-1)-.5)*1200)){
       let chosen:Vec2[]|undefined;
@@ -46,8 +54,8 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
     const f=definition.forces[side];
     const total=forceSize(f),roster=Array.from({length:Math.ceil(total/8)},(_,i)=>({count:Math.min(8,total-i*8),name:names[i]??`Formation ${i+1}`}));
     for(const [i,{count,name}] of roster.entries()){
-      const trenchIds=prepared.get(side),tId=trenchIds?.[i%trenchIds.length],t=state.trenches.find(t=>t.id===tId);
-      const p=navigation.freeDestination(t?t.points[2]:atDepth(runtime.front,definition.deployment[side]+Math.floor(i/4)*45,(i%4-1.5)*95));
+      const trenchIds=prepared.get(side),tId=mission?.kind==='line-defense'&&side==='player'&&i<roster.length-3?undefined:trenchIds?.[i%trenchIds.length],t=state.trenches.find(t=>t.id===tId);
+      const p=navigation.freeDestination(t?t.points[2]:atDepth(runtime.front,definition.deployment[side]+Math.floor(i/4)*(mission?35:45),(i%4-1.5)*(mission?35:95)));
       const q=addSquad(state,'rifle',count,p.x,p.z,side==='enemy'?`Opposing ${name}`:name);q.faction=side;
       if(tId)groups.get(tId)!.push(q.id);
       for(const s of state.soldiers.filter(s=>s.squadId===q.id)){Object.assign(s,navigation.freeDestination(s));s.heading=Math.atan2(runtime.front.forward.x,runtime.front.forward.z)+(side==='enemy'?Math.PI:0);}
@@ -70,11 +78,11 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
   const garrisons=new GarrisonSystem(state,terrain,navigation,construction);
   for(const [side,trenchIds] of prepared)for(const [index,trenchId] of trenchIds.entries()){
     const ids=groups.get(trenchId)!,component=garrisons.network.component(trenchId)!;
-    const positions=garrisons.network.samples(component,setup?3:4).filter(p=>terrain.coverAt(p.x,p.z)==='trench');
+    const positions=garrisons.network.samples(component,mission?1.5:setup?3:4).filter(p=>terrain.coverAt(p.x,p.z)==='trench');
     const people=state.soldiers.filter(s=>ids.includes(s.squadId));
     for(const [i,s] of people.entries()){if(!positions[i])throw new Error('Prepared sector capacity exceeded');Object.assign(s,positions[i]);s.cover='trench';}
     for(const q of state.squads.filter(q=>ids.includes(q.id))){const people=state.soldiers.filter(s=>s.squadId===q.id);q.x=people.reduce((n,p)=>n+p.x,0)/people.length;q.z=people.reduce((n,p)=>n+p.z,0)/people.length;}
-    if(!garrisons.assign(ids,trenchId))throw new Error(`Prepared ${side} sector unreachable`);
+    if(!garrisons.assign(ids,trenchId))throw new Error(`Prepared ${side} sector unreachable (${people.length} people / ${garrisons.network.capacity(component)} capacity)`);
     const g=w.garrisons.find(g=>g.trenchId===trenchId)!;g.name=`${side==='player'?'FRIENDLY':'OPPOSING'} SECTOR ${index+1}`;
     g.front=Math.atan2(runtime.front.forward.x,runtime.front.forward.z)+(side==='enemy'?Math.PI:0);g.nextSupport=30;
     g.cache=inventory({food:40,water:64,materials:80,ammo:200,medical:12,mortarHE:8,mortarSmoke:4,smokeGrenades:8});account(g.cache);
@@ -91,7 +99,7 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
   if(setup){state.operation.setup=structuredClone(setup);applyInitialOptions(state,setup);}
   if(definition.persistent){state.operation.campaign={playerTrench:prepared.get('player')![0],enemyTrench:prepared.get('enemy')![0],nextRaid:0,raidSquads:[],returnAt:0,phase:'preparing',playerHold:0,enemyHold:0};initializeReplacements(state);}
   // Clear separation is an invariant, not a camera trick hiding nearby enemies.
-  if(state.squads.some(a=>a.faction==='player'&&state.squads.some(b=>b.faction==='enemy'&&distance(a,b)<600)))throw new Error('Deployment zones overlap');
+  if(state.squads.some(a=>a.faction==='player'&&state.squads.some(b=>b.faction==='enemy'&&distance(a,b)<(mission?200:600))))throw new Error('Deployment zones overlap');
   return state;
 }
 

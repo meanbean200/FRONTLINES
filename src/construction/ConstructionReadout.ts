@@ -6,6 +6,7 @@ import type {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {insideWorld} from '../terrain/WorldLayout';
 import {squadHasEquipment} from '../combat/Equipment';
 import {placementCategory} from './PositionDefinitions';
+import {reservedConstructionTeam} from './WorkAssignments';
 
 export const MIN_TRENCH_LENGTH=10;
 export const SUPPORT_WORKS:Record<Facility['kind'],{name:string;cost:number;description:string}>={
@@ -21,7 +22,7 @@ export function fitEngineers(state:BattlefieldState):SquadState[]{
   return state.squads.filter(q=>q.faction!=='enemy'&&squadHasEquipment(state,q,'tools'));
 }
 export function chooseEngineer(state:BattlefieldState,selected:Set<number>):SquadState|undefined{
-  const teams=fitEngineers(state);
+  const teams=fitEngineers(state).filter(q=>!reservedConstructionTeam(state,q.id));
   return teams.find(q=>selected.has(q.id))??teams.find(q=>q.order.type==='hold')??teams.find(q=>q.order.type==='occupy-trench')??teams[0];
 }
 export function constructionStatus(state:BattlefieldState,q:SquadState):string|undefined{

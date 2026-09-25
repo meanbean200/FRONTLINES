@@ -3,6 +3,7 @@ import {defaultBattleSetup,resolveBattleSetup,validBattleSetup,applyPreset,confi
 import {createOperationalBattle} from './createOperationalBattle';
 import {OPERATION_IDS,forceSize} from './OperationDefinitions';
 import {placeOperation} from './OperationPlacement';
+import {placeMissionOperation} from './MissionContent';
 import {inZone} from './OperationGeometry';
 import {updateRouteAccess,stepOperationalRuntime} from './OperationalRuntime';
 import {observeEnemy} from './EnemyCommander';
@@ -62,7 +63,7 @@ describe('Complete setup matrix: 4 operations × 3 sizes × 2 sides × 3 seeds',
         const sim=new BattlefieldSimulation(state);sim.step(.05);
         const loaded=new SaveSystem().parse(JSON.stringify(state));expect(loaded.operation!.setup).toEqual(s);
         expect(loaded.soldiers).toEqual(state.soldiers);expect(loaded.operation!.runtime).toEqual(r);
-        const html=renderBattleBriefing(s);expect(html).toContain(forceSummary(s));expect(html).toContain(r.objectives[0].title);
+        const html=renderBattleBriefing(s);expect(html).toContain(forceSummary(s));expect(html).toContain(placeMissionOperation(s.operation,s.seed,s).objectives[0].title);
         expect(html).toContain(String(state.operation!.initialPlayer));
       }
     },60000);

@@ -8,6 +8,8 @@ export function validBuildings(s:BattlefieldState):boolean {
   if(s.buildingChanges&&(!Array.isArray(s.buildingChanges)||new Set(s.buildingChanges.map(b=>b?.id)).size!==s.buildingChanges.length||!s.buildingChanges.every(b=>b&&id(b.id)&&['intact','damaged','ruined'].includes(b.condition)&&Number.isFinite(b.damage)&&b.damage>=0)))return false;
   for(const q of s.squads){const b=q.order?.building;if(b&&(!id(b.id)||![0,1].includes(b.floor)||b.floor>=buildingFloors(sites[b.id])))return false;}
   for(const p of s.soldiers){const b=p.building;if(!b)continue;
+    if(b.recovering!==undefined&&typeof b.recovering!=='boolean')return false;
+    if(b.routeReviewAt!==undefined&&(!Number.isFinite(b.routeReviewAt)||b.routeReviewAt<0||b.routeReviewAt>s.elapsed+3.001))return false;
     if(b.stairFrom!==undefined&&!point(b.stairFrom)||b.exitRequested!==undefined&&typeof b.exitRequested!=='boolean')return false;
     if(!id(b.id)||![0,1].includes(b.floor)||![0,1].includes(b.targetFloor)||b.floor>=buildingFloors(sites[b.id])||b.targetFloor>=buildingFloors(sites[b.id])||!Number.isFinite(b.vertical)||b.vertical<0||b.vertical>floorHeight(sites[b.id])||!['approach','inside','stairs','station','exit'].includes(b.stage)||!Array.isArray(b.route)||!b.route.every(point)||!Number.isInteger(b.index)||b.index<0||b.index>b.route.length||!Number.isFinite(b.stairTime)||b.stairTime<0||b.stairTime>8||!point(b.target))return false;
   }return true;

@@ -2,11 +2,69 @@ import {describe,it,expect,vi} from 'vitest';
 import {createOperation} from '../operations/createOperation';
 import {BattlefieldSimulation} from './BattlefieldSimulation';
 import {stepBuildings} from './BuildingSystem';
-import {doorPoint,floorHeight,stairPoint} from '../terrain/BuildingGeometry';
+import {doorPoint,firingPoints,floorHeight,stairPoint} from '../terrain/BuildingGeometry';
 import {SaveSystem} from '../persistence/SaveSystem';
 import {bodyFloor} from '../operations/Visibility';
 import {distance} from '../core/types';
+import {updateNeeds} from '../garrison/NeedsSystem';
+import {clearAimPoint,resolveShot} from '../combat/Ballistics';
 describe('shared usable building geometry',()=>{
+  it.each([false,true])('cancels an exterior approach without routing through the house, including saved bad exits (%s)',savedExit=>{
+    const sim=new BattlefieldSimulation(createOperation('advance',1944)),s=sim.state,q=s.squads[0],p=s.soldiers[0],id=48,b=sim.terrain.buildings[id];
+    for(const other of s.soldiers){other.x=1800;other.z=1800;if(other!==p&&other.squadId===q.id)other.needs!.life='incapacitated';}
+    p.x=b.x-b.width/2-.48;p.z=b.z-1.42;
+    q.order=savedExit?{type:'hold',issuedAt:0,building:{id,floor:1}}:{type:'hold',issuedAt:0};
+    p.building={id,floor:0,vertical:0,route:savedExit?[{x:b.x,z:b.z-2},doorPoint(b,-1),doorPoint(b,4)]:[doorPoint(b,8)],index:0,stage:savedExit?'exit':'approach',target:firingPoints(b)[0],targetFloor:1,stairTime:0,exitRequested:savedExit||undefined};
+    const before={x:p.x,z:p.z};stepBuildings(s,sim.terrain,sim.navigation,.05);
+    expect(p.building).toBeUndefined();expect({x:p.x,z:p.z}).toEqual(before);
+    q.order={type:'hold',issuedAt:0,building:{id,floor:1}};
+    for(let i=0;i<2400;i++){s.elapsed+=.05;const last={x:p.x,z:p.z};stepBuildings(s,sim.terrain,sim.navigation,.05);expect(distance(p,last)).toBeLessThan(.12);}
+    expect(p.building?.stage).toBe('station');expect(p.building?.floor).toBe(1);
+  });
+  it('keeps doorway priority stable when a flank arrival must walk away from the door to finish its approach',()=>{
+    // Reduced from the normal-control meeting-battle failure: nearest-person
+    // priority swapped every few steps between two different approach routes.
+    const sim=new BattlefieldSimulation(createOperation('advance',1944)),s=sim.state,q=s.squads[0],id=48,b=sim.terrain.buildings[id],people=s.soldiers.filter(p=>p.squadId===q.id);
+    for(const p of s.soldiers){p.x=1800;p.z=1800;}
+    q.order={type:'hold',issuedAt:0,building:{id,floor:0}};
+    const starts=[[1044.50,1038.22],[1038.51,1032.08],[1031.69,1030.31],[1038.06,1030.18],[1031.68,1028.75],[1031.67,1028.76],[1038.06,1028.79],[1031.73,1027.41]];
+    people.forEach((p,i)=>{p.x=starts[i][0];p.z=starts[i][1];const target={x:b.x+(i%3-1)*b.width*.28,z:b.z+(i<3?-1:1)*(b.depth/2-.8)};
+      p.building={id,floor:0,vertical:0,route:[{x:1048,z:1040},doorPoint(b,8),doorPoint(b,-1),{x:b.x,z:b.z},target],index:0,stage:'approach',target,targetFloor:0,stairTime:0};});
+    people[4].needs!.life='incapacitated';delete people[4].building;
+    // Give the seven survivors distinct actual firing destinations.
+    people.filter(p=>p.needs!.life==='active').forEach((p,i)=>p.building!.target=firingPoints(b)[i]);
+    for(const p of people.filter(p=>p.building))p.building!.route[p.building!.route.length-1]=p.building!.target;
+    for(let i=0;i<4400;i++){s.elapsed+=.05;stepBuildings(s,sim.terrain,sim.navigation,.05);}
+    expect(people.filter(p=>p.needs!.life==='active').map(p=>p.building?.stage)).toEqual(Array(7).fill('station'));
+  });
+  it.each([false,true])('does not cut through the house corner when a helper approaches from its flank (old route: %s)',oldRoute=>{
+    const sim=new BattlefieldSimulation(createOperation('advance',1944)),state=sim.state,q=state.squads[0],p=state.soldiers[0],id=48,b=sim.terrain.buildings[id];
+    for(const s of state.soldiers){s.x=1800;s.z=1800;if(s!==p&&s.squadId===q.id)s.needs!.life='incapacitated';}
+    Object.assign(p,{x:b.x-b.width/2-.45,z:b.z-b.depth/2+.4});q.x=p.x;q.z=p.z;
+    q.order={type:'hold',issuedAt:0,building:{id,floor:0}};
+    if(oldRoute)p.building={id,floor:0,vertical:0,route:[doorPoint(b,8),doorPoint(b,-1),{x:b.x,z:b.z},{x:b.x-b.width*.28,z:b.z-b.depth/2+.8}],index:0,stage:'approach',target:{x:b.x-b.width*.28,z:b.z-b.depth/2+.8},targetFloor:0,stairTime:0};
+    for(let i=0;i<1600;i++){state.elapsed+=.05;const old={x:p.x,z:p.z};stepBuildings(state,sim.terrain,sim.navigation,.05);expect(distance(p,old)).toBeLessThan(.12);}
+    expect(p.building?.stage,JSON.stringify({x:p.x,z:p.z,route:p.building,reason:p.combat?.pauseReason})).toBe('station');
+  });
+  it('rests on a long building approach, consumes only personal food, saves and resumes the same order',()=>{
+    const sim=new BattlefieldSimulation(createOperation('advance')),state=sim.state,q=state.squads[0],p=state.soldiers[0],b=sim.terrain.buildings[0];
+    for(const s of state.soldiers){s.x=1800;s.z=1800;}Object.assign(p,doorPoint(b,24));q.x=p.x;q.z=p.z;p.needs!.energy=11;p.needs!.hunger=65;p.needs!.thirst=65;p.carried!.food=1;p.carried!.water=1;
+    sim.issueBuilding([q.id],0,0);const advance=()=>{state.elapsed+=.05;stepBuildings(state,sim.terrain,sim.navigation,.05);updateNeeds(state,p,.05);};advance();
+    expect(p.action).toBe('sleeping');const at={x:p.x,z:p.z},route=JSON.stringify(p.building!.route);
+    for(let i=0;i<100;i++)advance();expect({x:p.x,z:p.z}).toEqual(at);expect(p.carried!.food).toBe(0);expect(p.carried!.water).toBe(0);expect(p.needs!.life).toBe('active');
+    expect(new SaveSystem().parse(JSON.stringify(state)).soldiers[0].building?.recovering).toBe(true);
+    for(let i=0;i<2600;i++)advance();expect(p.building!.recovering).toBeUndefined();expect(JSON.stringify(p.building!.route)).toBe(route);expect(distance(p,at)).toBeGreaterThan(1);expect(q.order.building).toEqual({id:0,floor:0});
+  });
+  it('fires through a real window on both floors, never an adjacent masonry panel',()=>{
+    const sim=new BattlefieldSimulation(createOperation('advance')),state=sim.state,t=sim.terrain,id=t.buildings.findIndex(b=>b.height>6),b=t.buildings[id],p=state.soldiers[0],enemy=state.soldiers.find(s=>state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')!;
+    vi.spyOn(t,'baseHeightAt').mockReturnValue(0);vi.spyOn(t,'heightAt').mockReturnValue(0);vi.spyOn(t.objects,'trees').mockReturnValue([]);
+    for(const floor of [0,1] as const){
+      Object.assign(p,{x:b.x-b.width*.28,z:b.z-b.depth/2+.8,heading:Math.PI,action:'watching',posture:'standing'});delete p.duty;
+      p.building={id,floor,vertical:floorHeight(b)*floor,route:[],index:0,stage:'station',target:{x:p.x,z:p.z},targetFloor:floor,stairTime:0};enemy.x=p.x;enemy.z=p.z-50;delete enemy.duty;enemy.posture='standing';
+      const aim=clearAimPoint(t,p,enemy);expect(aim).toBeDefined();expect(resolveShot(state,t,p,aim!,[enemy],0).hitId).toBe(enemy.id);
+      p.x=b.x+b.width*.15;enemy.x=p.x;expect(clearAimPoint(t,p,enemy)).toBeUndefined();
+    }
+  });
   it('queues a second formation outside a full floor, then admits it after a physical exit',()=>{
     const sim=new BattlefieldSimulation(createOperation('advance')),state=sim.state,groups=state.squads.slice(0,2),id=0,site=sim.terrain.buildings[id],door=doorPoint(site,16);
     for(const p of state.soldiers){p.x=1800;p.z=1800;}

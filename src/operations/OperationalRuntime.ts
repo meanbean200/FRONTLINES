@@ -5,6 +5,7 @@ import {factionOf,type Faction} from './types';
 import {type ObjectiveSpec,type OperationRuntime,type OperationalPhase,type OperationalRoute} from './OperationalTypes';
 import {corridorDistance,frontDepth,inZone} from './OperationGeometry';
 import {configuredDefinition} from './BattleSetup';
+import {stepPhysicalMission} from './MissionRuntime';
 
 export function operationalForces(state:BattlefieldState):Record<Faction,SoldierState[]>{
   const squads=new Map(state.squads.map(q=>[q.id,q]));
@@ -43,6 +44,7 @@ function penetration(ctx:Context,spec:Extract<ObjectiveSpec,{type:'breakthrough'
 }
 /** Add an objective evaluator here, not a new mission branch in the simulation. */
 const EVALUATORS:{[K in ObjectiveSpec['type']]:(c:Context,s:Extract<ObjectiveSpec,{type:K}>)=>Evaluation}={
+  'physical-mission':()=>({satisfied:false,reason:'Evaluated by physical mission rules'}),
   'area-control':(c,s)=>{const held=s.zones.filter(id=>occupies(c,id).length>=s.minimum&&occupies(c,id,c.other).length===0).length;return {satisfied:held>=s.required,reason:held>=s.required?'Terrain secured; maintain a viable presence':'Establish control of the key terrain'};},
   'route-control':(c,s)=>({satisfied:s.routes.some(id=>c.r.routeAccess[id]),reason:'Keep at least one corridor open'}),
   breakthrough:(c,s)=>penetration(c,s),
@@ -58,6 +60,7 @@ function phase(r:OperationRuntime,next:OperationalPhase,at:number,reason:string)
 
 /** Fixed-clock, serialized evaluation schedule. Save/load cannot gain consolidation time. */
 export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSystem):void {
+  if(state.operation?.runtime?.missionPlan){stepPhysicalMission(state,terrain);return;}
   const op=state.operation!,r=op.runtime!;if(op.elapsed+1e-8<r.nextEvaluation)return;
   const dt=Math.max(0,op.elapsed-r.lastEvaluation);r.lastEvaluation=op.elapsed;r.nextEvaluation=op.elapsed+1;
   const forces=operationalForces(state);updateRouteAccess(r,terrain,forces);
@@ -66,7 +69,7 @@ export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSys
     const e=evaluate({state,r,side,own:forces[side],other:forces[side==='player'?'enemy':'player']},objective.spec);
     p.satisfied=e.satisfied;p.reason=e.reason;p.heldFor=e.satisfied?p.heldFor+dt:0;p.pressureFor=e.pressure?p.pressureFor+dt:0;
     p.failed=objective.spec.type==='hold-line'&&p.pressureFor>=objective.spec.breachSeconds;
-    p.complete=!p.failed&&e.satisfied&&(objective.spec.type==='hold-line'?op.elapsed>=objective.spec.duration||p.heldFor>=30:p.heldFor>=objective.spec.holdSeconds);
+    p.complete=!p.failed&&e.satisfied&&(objective.spec.type==='hold-line'?op.elapsed>=objective.spec.duration||p.heldFor>=30:'holdSeconds' in objective.spec&&p.heldFor>=objective.spec.holdSeconds);
   }
   const finish=(status:'victory'|'defeat',reason:string)=>{op.status=status;op.reason=reason;state.simSpeed=0;};
   const primary=r.objectives.find(o=>o.side==='player'&&o.priority==='primary')!,progress=r.progress.find(p=>p.id===primary.id)!;

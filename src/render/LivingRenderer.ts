@@ -4,7 +4,8 @@ import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {bodyFloor,playerVisibleEnemies,playerCanSeePoint} from '../operations/Visibility';
 import {supportAppearance} from './SupportAppearance';
 import {truckGeometry,truckWheelGeometry} from './VehicleVisual';
-import {crewOperator,positionReadiness} from '../combat/WeaponPositions';
+import {crewOperator} from '../combat/WeaponPositions';
+import {mortarGeometry} from './WeaponPositionVisual';
 export class LivingRenderer {
   readonly group=new THREE.Group();
   private readonly boxes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({roughness:1}),8192);
@@ -13,11 +14,12 @@ export class LivingRenderer {
   private readonly vehicles=new THREE.InstancedMesh(truckGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.88,side:THREE.DoubleSide}),64);
   private readonly wheels=new THREE.InstancedMesh(truckWheelGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95}),384);
   private readonly lastTrucks=new Map<number,{x:number;z:number;angle:number;roll:number}>();
+  private readonly mortars=new THREE.InstancedMesh(mortarGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.72}),128);
   private identity?:object;
-  constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem){this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes,this.vehicles,this.wheels);for(const mesh of [this.vehicles,this.wheels]){mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;mesh.count=0;}}
+  constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem){this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes,this.vehicles,this.wheels,this.mortars);for(const mesh of [this.vehicles,this.wheels,this.mortars]){mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;mesh.count=0;}}
   update(now:number,showRoutes:boolean,view?:Vec2&{zoom:number}):void {
     this.routes.visible=showRoutes;if(now-this.last<80)return;this.last=now;
-    const state=this.getState(),w=state.living;if(!w){this.boxes.count=this.vehicles.count=this.wheels.count=0;return;}
+    const state=this.getState(),w=state.living;if(!w){this.boxes.count=this.vehicles.count=this.wheels.count=this.mortars.count=0;return;}
     if(this.identity!==w){this.identity=w;this.lastTrucks.clear();}
     const visible=playerVisibleEnemies(state),enemies=new Set(state.squads.filter(q=>q.faction==='enemy').map(q=>q.id));
     const hidden=(s:BattlefieldState['soldiers'][number])=>Boolean(state.operation&&enemies.has(s.squadId)&&!visible.has(s.id));
@@ -39,18 +41,22 @@ export class LivingRenderer {
     this.vehicles.count=vehicleCount;this.wheels.count=wheelCount;this.vehicles.instanceMatrix.needsUpdate=this.wheels.instanceMatrix.needsUpdate=true;
     const piles=[{point:w.rear,stock:w.rearStock},...garrisons.flatMap(g=>[{point:g.entrance,stock:g.cache},...(g.faction!=='enemy'||seen(g.forward)?[{point:g.forward,stock:g.forwardStock}]:[])]),...(w.enemySupply&&seen(w.enemySupply.rear)?[{point:w.enemySupply.rear,stock:w.enemySupply.stock}]:[])];
     for(const {point:p,stock} of piles){const crates=Math.min(12,Math.ceil((stock.food+stock.water+stock.materials)/20));for(let i=0;i<crates;i++){const x=p.x+2+(i%4)*1.15,z=p.z+Math.floor(i/4)*1.1;box(x,this.terrain.heightAt(x,z)+.35,z,.9,.65,.8,i%2?0x80734c:0x686e49);}}
+    let mortarCount=0;
     for(const f of w.facilities){
       if(w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!seen(f))continue;
       const h=this.terrain.heightAt(f.x,f.z);
       const detail=!view||Math.hypot(f.x-view.x,f.z-view.z,view.zoom*.6)<230;
       for(const p of supportAppearance(f,state.trenches.find(t=>t.id===f.connectorId),(x,z)=>this.terrain.heightAt(x,z),detail))box(p.x,p.y,p.z,p.sx,p.sy,p.sz,p.color,p.angle,p.pitch??0);
       if((f.kind==='emplacement'||f.kind==='mortar')&&f.progress===1){
-        if(!positionReadiness(state,f)){
-          const operator=crewOperator(state,f)!,angle=operator.heading;
+        const operator=crewOperator(state,f);
+        // Empty ammunition or a reload must not make the physical weapon vanish.
+        if(operator&&Math.hypot(operator.x-f.x,operator.z-f.z)<4&&operator.duty?.facilityId===f.id&&operator.duty.arrivedAt!==undefined){
+          const angle=operator.heading;
           const x=operator.x+Math.sin(angle)*.55,z=operator.z+Math.cos(angle)*.55;
           if(f.kind==='mortar'){
-            box(x,h+.12,z,.65,.12,.65,0x454c3f,angle);box(x,h+.65,z,.16,1.2,.16,0x363b33,angle,.42);
-            for(const side of [-1,1])box(x+Math.cos(angle)*side*.32,h+.38,z-Math.sin(angle)*side*.32,.08,.75,.08,0x575c49,angle);
+            if(mortarCount<128){q.setFromAxisAngle(axis,angle);matrix.compose(position.set(x,this.terrain.heightAt(x,z)+.02,z),q,scale.setScalar(1));this.mortars.setMatrixAt(mortarCount++,matrix);}
+            const shells=operator.carried?.mortarHE??0;
+            if(shells>0)box(f.x+1.15,h+.17,f.z-.5,.7,.3,1,0x817758,angle);
           }else{
             // The gun remains the operator's actual equipment model; render its mount, not a free second gun.
             const top=bodyFloor(this.terrain,operator)+1.1,height=Math.max(.3,top-h);
@@ -60,6 +66,7 @@ export class LivingRenderer {
         continue;
       }
     }
+    this.mortars.count=mortarCount;this.mortars.instanceMatrix.needsUpdate=true;
     for(const s of state.soldiers){if(hidden(s)||s.needs?.life!=='active'||s.duty?.kind!=='haul')continue;const n=Object.values(s.carried??{}).reduce((a,b)=>a+b,0);if(n>0)box(s.x+Math.sin(s.heading)*.45,this.terrain.heightAt(s.x,s.z)+1,s.z+Math.cos(s.heading)*.45,.5,.42,.42,0xa18b5b,s.heading);}
     for(const c of w.crates)if(Object.values(c.stock).some(n=>n>0)){
       const supplyPoint=this.getState().operation?.objectives.some(o=>o.cacheId===c.id);

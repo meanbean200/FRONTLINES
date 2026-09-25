@@ -1,6 +1,7 @@
 import {OPERATION_IDS,OPERATION_DEFINITIONS} from '../operations/OperationDefinitions';
 import {ARMY_LABELS,SIZE_LABELS,SETUP_PRESETS,battlePopulation,configuredDefinition,forceSummary,type BattleSetup,type ResolvedBattleSetup} from '../operations/BattleSetup';
-import {placeOperation} from '../operations/OperationPlacement';
+
+import {MISSION_COPY,MISSION_SUCCESS,missionFailure,placeMissionOperation} from '../operations/MissionContent';
 import type {SavedSetup} from '../persistence/SetupPresets';
 
 export const escapeText=(value:string):string=>value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -15,7 +16,7 @@ const toggle=(id:string,label:string,value:boolean)=>`<label class="setup-check"
 export function renderBattleSetup(s:BattleSetup,advancedOpen:boolean,presets:SavedSetup[]):string {
   const a=s.advanced;
   return `<form id="quick-battle-form"><div class="setup-title"><span class="eyebrow">INTO THE FIELD</span><h2>Quick Battle</h2></div>
-    <fieldset class="operation-picker"><legend>Operation</legend><div class="quick-operations">${OPERATION_IDS.map(id=>`<button type="button" data-mode-choice="${id}" aria-pressed="${s.operation===id}" title="${descriptions[id][0]}"><strong>${OPERATION_DEFINITIONS[id].title}</strong></button>`).join('')}</div><p class="operation-choice-description">${descriptions[s.operation][0]}</p></fieldset>
+    <fieldset class="operation-picker"><legend>Operation</legend><div class="quick-operations">${OPERATION_IDS.map(id=>`<button type="button" data-mode-choice="${id}" aria-pressed="${s.operation===id}" title="${descriptions[id][0]}"><strong>${id==='open-front'?OPERATION_DEFINITIONS[id].title:MISSION_COPY[id].title}</strong></button>`).join('')}</div><p class="operation-choice-description">${s.operation==='open-front'?descriptions[s.operation][0]:MISSION_COPY[s.operation].situation}</p></fieldset>
     <div class="quick-fields">
       ${select('battle-size','Battle size',Object.entries(SIZE_LABELS),s.size)}
       ${select('battle-side','Your side',[...Object.entries(ARMY_LABELS),['random','Random side']],s.side)}
@@ -39,10 +40,12 @@ export function renderBattleSetup(s:BattleSetup,advancedOpen:boolean,presets:Sav
 }
 
 export function renderBattleBriefing(s:ResolvedBattleSetup):string {
-  const d=configuredDefinition(s.operation,s),r=placeOperation(s.operation,s.seed,s),primary=r.objectives.find(o=>o.side==='player'&&o.priority==='primary')!;
+  const d=configuredDefinition(s.operation,s),r=placeMissionOperation(s.operation,s.seed,s),primary=r.objectives.find(o=>o.side==='player'&&o.priority==='primary')!;
+  if(r.missionPlan)Object.assign(d,MISSION_COPY[r.missionPlan.kind],{duration:'OBJECT-BASED MISSION'});
   const hours={dawn:'06:00',day:'08:00',dusk:'18:00',night:'22:00'}[s.advanced.time];
   return `<section class="battle-briefing" aria-label="Operation briefing"><div class="setup-title"><span class="eyebrow">${ARMY_LABELS[s.side]} · ${hours}</span><h2>${escapeText(d.title)}</h2><p class="muted">Sector ${s.seed}</p></div>
-    <dl><div><dt>SITUATION</dt><dd>${escapeText(d.situation)}</dd></div><div class="briefing-primary"><dt>PRIMARY</dt><dd>${escapeText(primary.title)}</dd></div><div><dt>OPTIONAL</dt><dd>${r.objectives.filter(o=>o.priority==='optional').map(o=>escapeText(o.title)).join(' · ')}<small>Local supply stores. Choose what supports your plan.</small></dd></div><div><dt>YOUR FORCE</dt><dd>${forceSummary(s)}<small>${battlePopulation(s)}${d.persistent?` · ${s.advanced.reserves} reserve personnel per side`:''}</small></dd></div></dl>
+    <dl><div><dt>SITUATION</dt><dd>${escapeText(d.situation)}</dd></div><div class="briefing-primary"><dt>PRIMARY</dt><dd>${escapeText(primary.title)}</dd></div><div><dt>${r.missionPlan?'LANDMARK':'OPTIONAL'}</dt><dd>${r.missionPlan?escapeText(r.missionPlan.place+' · click the marked road house to manage its floors'):r.objectives.filter(o=>o.priority==='optional').map(o=>escapeText(o.title)).join(' · ')}<small>${r.missionPlan?'A forward trench receives real supplies by truck. No capture-score victory.':'Local supply stores. Choose what supports your plan.'}</small></dd></div><div><dt>YOUR FORCE</dt><dd>${forceSummary(s)}<small>${battlePopulation(s)}${d.persistent?` · ${s.advanced.reserves} reserve personnel per side`:''}</small></dd></div></dl>
+    ${r.missionPlan?`<p class="briefing-success">${escapeText(MISSION_SUCCESS[r.missionPlan.kind])}</p><p class="muted">${escapeText(missionFailure(r.missionPlan.kind))}</p>`:''}
     <p class="briefing-settings">${s.advanced.supply==='low'?'Limited supplies':'Standard supplies'} · ${s.advanced.smoke?'Smoke available':'No smoke'} · ${d.persistent?'Save and resume anytime':d.duration.toLowerCase()}</p>
     <button class="menu-primary" id="begin-operation">Begin operation <span>→</span></button><button class="briefing-back" id="back-to-setup">← Change settings</button></section>`;
 }

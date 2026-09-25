@@ -43,7 +43,7 @@ export interface Facility extends Vec2 {
   weaponCrewIds?:number[];
   /** Metres along the parent centreline; no detached connector for inline posts. */
   trenchAnchor?:{trenchId:number;along:number};
-  workOrder?:{explicit:boolean;workerIds:number[];createdAt:number;cancelledAt?:number};
+  workOrder?:{explicit:boolean;workerIds:number[];createdAt:number;cancelledAt?:number;autoWorkers?:boolean};
   connectorId: number; progress: number; capacity: number; paid: boolean;
   stock: Inventory; materialCost: number;
   facing?:number;

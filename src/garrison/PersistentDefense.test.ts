@@ -52,7 +52,7 @@ describe('persistent trench assignments',()=>{
   it('does not cancel queued support works or assign an unrelated moving squad on a group Hold',()=>{
     const {sim,state,g}=fixture(),engineer=state.squads.find(q=>q.kind==='engineer')!,moving=state.squads[0];
     const work=sim.garrisons.requestFacility(g.id,'rest',undefined,undefined,undefined,true);expect(work).toBeDefined();
-    const queue=structuredClone(engineer.constructionQueue);expect(queue?.length).toBeGreaterThan(0);
+    const queue=structuredClone(engineer.constructionQueue);expect(queue??[]).not.toContainEqual({kind:'facility',id:work});
     sim.issueMove([moving.id],{x:moving.x,z:moving.z-20});
     sim.issueHold([moving.id,engineer.id]);
     expect(moving.order.type).toBe('hold');expect(g.squadIds).not.toContain(moving.id);

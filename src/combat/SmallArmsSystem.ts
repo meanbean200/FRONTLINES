@@ -2,10 +2,10 @@ import {distance,type BattlefieldState,type SoldierState} from '../core/types';
 import {hash2D} from '../core/random';
 import {consume} from '../garrison/Inventory';
 import {dropCargo} from '../garrison/NeedsSystem';
-import {canSpot,lineOfFire,squadContacts} from '../operations/Visibility';
+import {canSpot,squadContacts} from '../operations/Visibility';
 import type {Faction} from '../operations/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
-import {aimPoint,bodyVolume,dispersionMultiplier,resolveShot,segmentDistance,rifleSpread,maximumShotOffset,muzzlePoint} from './Ballistics';
+import {clearAimPoint,bodyVolume,dispersionMultiplier,resolveShot,segmentDistance,rifleSpread,maximumShotOffset,muzzlePoint} from './Ballistics';
 import type {ShotEvent} from './types';
 import {registerIncoming} from './Reactions';
 import {equipWeapon,weaponReady,WEAPONS} from './Weapons';
@@ -22,6 +22,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
   for(const s of active){const key=`${Math.floor(s.x/cell)},${Math.floor(s.z/cell)}`;const row=buckets.get(key)??[];row.push(s);buckets.set(key,row);}
   for(const shooter of active){
     if(shooter.needs?.life!=='active')continue;
+    if(shooter.building?.recovering&&shooter.action==='sleeping')continue;
     if(['pinned','broken'].includes(shooter.combat?.reaction??'')||['casualty','support'].includes(shooter.combat?.owner??''))continue;
     if((shooter.carried?.ammo??0)<1||shooter.suppression>=90)continue;
     if(shooter.duty&&(shooter.duty.kind!=='watch'||shooter.duty.arrivedAt===undefined||shooter.duty.rationUntil!==undefined))continue;
@@ -39,9 +40,21 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     candidates.sort((a,b)=>distance(shooter,a)-distance(shooter,b)||a.id-b.id);
     const mount=isMountedGun(state,shooter)?state.living?.facilities.find(f=>f.kind==='emplacement'&&f.weaponCrewIds?.includes(shooter.id)):undefined;
     const inSector=(p:{x:number;z:number})=>!mount||mount.facing===undefined||Math.cos(Math.atan2(p.x-shooter.x,p.z-shooter.z)-mount.facing)>=.34;
-    const target=candidates.find(s=>inSector(s)&&known.has(s.id)&&canSpot(state,terrain,shooter,s)&&lineOfFire(terrain,shooter,s));
-    if(!target&&!area){delete shooter.aimTargetId;delete shooter.aimReadyAt;delete combat.aim;continue;}
-    const point=area?{...area,y:terrain.heightAt(area.x,area.z)+.8}:aimPoint(terrain,shooter,target!);
+    const observed=candidates.filter(s=>known.has(s.id)&&canSpot(state,terrain,shooter,s));
+    let target:SoldierState|undefined,solution:ReturnType<typeof clearAimPoint>;
+    for(const candidate of observed)if(inSector(candidate)){
+      solution=clearAimPoint(terrain,shooter,candidate);if(solution){target=candidate;break;}
+    }
+    if(!target&&!area){combat.pauseReason=observed.some(inSector)?'Firing edge obstructed · cannot clear cover':observed.length?'Outside mounted gun firing sector':'No observed target in weapon range';delete shooter.aimTargetId;delete shooter.aimReadyAt;delete combat.aim;continue;}
+    const point=area?{...area,y:terrain.heightAt(area.x,area.z)+.8}:solution!;
+    const muzzle=muzzlePoint(terrain,{...shooter,heading:Math.atan2(point.x-shooter.x,point.z-shooter.z)});
+    if(area){
+      // Suppression may deliberately strike the enemy's protection. Reject an
+      // obstructed local firing edge, not every distant parapet on the ray.
+      // The authoritative shot still stops at the first real obstacle.
+      const t=Math.min(1,8/Math.max(.01,distance(muzzle,point))),edge={x:muzzle.x+(point.x-muzzle.x)*t,z:muzzle.z+(point.z-muzzle.z)*t,y:muzzle.y+(point.y-muzzle.y)*t};
+      if(!terrain.objects.trace(muzzle,edge,muzzle.y,edge.y,false,true).clear){combat.pauseReason='Suppression firing edge blocked by cover';continue;}
+    }
     if(!inSector(point)){combat.pauseReason='Outside mounted gun firing sector';continue;}
     const heading=Math.atan2(point.x-shooter.x,point.z-shooter.z),range=distance(shooter,point),spread=dispersionMultiplier(state,shooter,area?undefined:target)*definition.spread;
     if(range>definition.range)continue;

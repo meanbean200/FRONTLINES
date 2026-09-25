@@ -11,6 +11,7 @@ export interface OperationalRoute {id:string; name:string; side:Faction; points:
 export interface StartingForce {rifles:number; engineers:number; machineguns:number; mortars:number; medics:number}
 export interface ReinforcementSource {side:Faction; rear:Vec2; entry:Vec2; reserve:number; intervalHours:number; releaseLimit:number}
 export type ObjectiveSpec =
+  | {type:'physical-mission'}
   | {type:'area-control'; zones:string[]; required:number; minimum:number; holdSeconds:number}
   | {type:'route-control'; routes:string[]; holdSeconds:number}
   | {type:'breakthrough'; zone:string; routes:string[]; minimum:number; squads:number; holdSeconds:number}
@@ -26,6 +27,8 @@ export interface OperationDefinition {
 export interface OperationalCommandMemory {phase:'scouting'|'committing'|'holding'|'withdrawing'; since:number; startingAble:number; reason:string; nextSupport?:number}
 /** Plain serialized state only. Rules are versioned independently of unchanged combat rules. */
 export interface OperationRuntime {
+  missionPlan?:import('./MissionContent').MissionPlan;
+  mission?:import('./MissionContent').MissionState;
   version:2; definitionId:OperationId; seed:number; front:FrontGeometry;
   zones:DeploymentZone[]; locations:StrategicLocation[]; routes:OperationalRoute[];
   reinforcements:ReinforcementSource[]; objectives:OperationalObjective[]; victory:VictoryCondition[];

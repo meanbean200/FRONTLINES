@@ -50,5 +50,11 @@ export function networkSupply(state:BattlefieldState,groups:Garrison[]){
   const jobs=state.living!.facilities.filter(f=>ids.has(f.garrisonId)&&f.progress<1&&f.workOrder?.cancelledAt===undefined),allocated=jobs.reduce((n,f)=>n+(f.paid?f.materialCost:f.stock.materials)+(constructionDemand(state,f.id)?.claims.reduce((n,c)=>n+c.amount,0)??0),0);
   const required=jobs.reduce((n,f)=>n+(f.paid?0:Math.max(0,f.materialCost-f.stock.materials)),0);
   const threshold=(key:Resource)=>key==='ammo'?Math.max(30,people.length*8):key==='food'||key==='water'?Math.max(2,people.length):key==='materials'?Math.max(8,required):key==='medical'?2:2;
-  return {local,inbound,carried,trucks,allocated,required,lastDelivery:Math.max(-1,...groups.map(g=>g.lastDeliveryAt??-1)),rows:(Object.keys(SUPPLY_LABELS) as Resource[]).map(key=>({key,label:SUPPLY_LABELS[key]!,local:local[key],inbound:inbound[key],carried:carried[key],status:local[key]<=0?'EMPTY':local[key]<threshold(key)?'LOW':'GOOD',threshold:threshold(key)}))};
+  const demands=state.living!.supplyDemands?.filter(d=>ids.has(d.garrisonId))??[];
+  return {local,inbound,carried,trucks,allocated,required,lastDelivery:Math.max(-1,...groups.map(g=>g.lastDeliveryAt??-1)),rows:(Object.keys(SUPPLY_LABELS) as Resource[]).map(key=>{
+    const requests=demands.filter(d=>d.resource===key),requested=requests.reduce((n,d)=>n+d.target-d.usable,0),missing=requests.reduce((n,d)=>n+unfulfilled(d),0);
+    const loads=trucks.filter(t=>t.cargo[key]>0),forward=groups.reduce((n,g)=>n+g.forwardStock[key],0);
+    const reason=loads.some(t=>t.state==='blocked')?'Supply truck route blocked':loads.length?'On truck '+loads.map(t=>t.id).join(', '):forward>0?'At delivery point · foot carriers collecting':inbound[key]>0?'Foot carrier approaching':missing>0&&state.living!.rearStock[key]<=0?'None at rear depot · awaiting scheduled convoy':missing>0?'Waiting for a supply truck load':requested>local[key]?'Reserved for positions / personnel':'Available in local stores';
+    return {key,label:SUPPLY_LABELS[key]!,local:local[key],inbound:inbound[key],carried:carried[key],requested,missing,reason,status:local[key]<=0?'EMPTY':local[key]<threshold(key)?'LOW':'GOOD',threshold:threshold(key)};
+  })};
 }

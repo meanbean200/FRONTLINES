@@ -44,7 +44,7 @@ describe('physical rifle shots',()=>{
     expect(segmentDistance({x:5,y:1,z:2},{x:0,y:1,z:0},{x:10,y:1,z:0})).toBe(2);
   });
   it('makes five-foot shots dangerous without making moving or stressed shooters perfect',()=>{
-    const {state,terrain,shooter,target}=fixture();target.x=1.524;
+    const {state,terrain,shooter,target}=fixture(),muzzle=muzzlePoint(terrain,shooter);target.x=muzzle.x+1.524;target.z=muzzle.z; // Five feet from the actual barrel, not the body's centre.
     const rates=[];
     for(const multiplier of [1,5.76,8.130857142857144,80.37668571428573]){
       shooter.combat={shotSequence:0};let hits=0;
@@ -70,7 +70,7 @@ describe('physical rifle shots',()=>{
   it('keeps the approved long-range spread values and repeatable sampled hit counts',()=>{
     const {terrain,shooter,target}=fixture();
     for(const [range,spread,hits] of [[50,.57,2792],[100,.95,1249],[200,2.2,268],[300,4.8,49],[350,6.4,32]]){
-      expect(rifleSpread(range)).toBeCloseTo(spread,12);shooter.combat={shotSequence:0};target.x=range;let actual=0;
+      expect(rifleSpread(range)).toBeCloseTo(spread,12);shooter.combat={shotSequence:0};const muzzle=muzzlePoint(terrain,shooter);target.x=muzzle.x+range;target.z=muzzle.z;let actual=0;
       const from=muzzlePoint(terrain,shooter),aim=aimPoint(terrain,shooter,target),body=bodyVolume(terrain,target);
       for(let i=0;i<10000;i++)if(boxIntersection(from,dispersedEndpoint(from,aim,spread,shotError(1944+i%7,shooter.id,i),range+15),body))actual++;
       expect(actual).toBe(hits);
@@ -80,7 +80,7 @@ describe('physical rifle shots',()=>{
     const {state,terrain,shooter,target}=fixture();target.x=1.524;
     const aim=aimPoint(terrain,shooter,target),from=muzzlePoint(terrain,shooter),render=new OperationRenderer(()=>state,terrain);
     for(let i=0;i<50;i++){
-      const expected=dispersedEndpoint(from,aim,rifleSpread(target.x)*20,shotError(state.seed,shooter.id,i),target.x+15);
+      const range=Math.hypot(aim.x-from.x,aim.z-from.z),expected=dispersedEndpoint(from,aim,rifleSpread(range)*20,shotError(state.seed,shooter.id,i),range+15);
       const intersection=boxIntersection(from,expected,bodyVolume(terrain,target));
       const event=resolveShot(state,terrain,shooter,aim,[target],20);
       expect(event.hitId!==undefined).toBe(Boolean(intersection));

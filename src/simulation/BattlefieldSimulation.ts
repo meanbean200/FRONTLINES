@@ -14,6 +14,7 @@ import { SquadNavigation } from '../navigation/SquadNavigation';
 import { TerrainSystem } from '../terrain/TerrainSystem';
 import { TrenchSystem } from '../construction/TrenchSystem';
 import {MIN_TRENCH_LENGTH} from '../construction/ConstructionReadout';
+import {reservedConstructionTeam} from '../construction/WorkAssignments';
 import {atDistance,simplifyRoute} from '../core/Polyline';
 import { GarrisonSystem } from '../garrison/GarrisonSystem';
 import { OperationSystem } from '../operations/OperationSystem';
@@ -214,6 +215,7 @@ export class BattlefieldSimulation {
     if (points.length < 2||points.length>4096||points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z))) return undefined;
     const bounded = points.map((point) => this.terrain.clampToWorld(point));
     const validEngineer = this.state.squads.find((squad) => squad.id === engineerSquadId && squadHasEquipment(this.state,squad,'tools') && factionOf(squad) === 'player');
+    if(validEngineer&&reservedConstructionTeam(this.state,validEngineer.id))return undefined;
     for(let i=1;i<bounded.length;i++){
       const a=bounded[i-1],b=bounded[i],n=Math.max(1,Math.ceil(distance(a,b)/2));
       for(let j=0;j<=n;j++){const x=a.x+(b.x-a.x)*j/n,z=a.z+(b.z-a.z)*j/n;if(this.terrain.obstacleAt(x,z,4)||this.terrain.groundTypeAt(x,z)==='river')return undefined;}

@@ -10,6 +10,7 @@ import {excavatedPoints} from '../core/TrenchGeometry';
 import {blocksGameplayKey} from '../input/GameplayKeys';
 import {drawOperationPlan} from './OperationalMap';
 import {OPERATION_DEFINITIONS} from '../operations/OperationDefinitions';
+import {MISSION_COPY} from '../operations/MissionContent';
 import {placeMapLabels,type MapLabel} from './MapLabels';
 
 /** Both map scales use the same delivered knowledge as battlefield markers. */
@@ -85,7 +86,7 @@ export class FieldMap {
     const labels:MapLabel[]=[];
     const label=(text:string,x:number,y:number,priority=1)=>{const width=ctx.measureText(text).width;labels.push({text,x:x+(ctx.textAlign==='left'?width/2:0),y,width,height:14*textScale,priority,font:ctx.font,color:String(ctx.fillStyle)});};
     const operation=state.operation?.runtime;
-    this.dialog.querySelector('h2')!.textContent=operation?`${OPERATION_DEFINITIONS[operation.definitionId].title.toUpperCase()} / SECTOR ${state.seed}`:'FIELD OPERATIONS';
+    this.dialog.querySelector('h2')!.textContent=operation?`${(operation.missionPlan?MISSION_COPY[operation.missionPlan.kind].title:OPERATION_DEFINITIONS[operation.definitionId].title).toUpperCase()} / SECTOR ${state.seed}`:'FIELD OPERATIONS';
     if(operation)drawOperationPlan(ctx,operation,screen,true,true,textScale,label);
     const line=(points:Vec2[],color:string,width:number,dash:number[]=[])=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();points.forEach((p,i)=>{const v=screen(p);if(i)ctx.lineTo(v.x,v.y);else ctx.moveTo(v.x,v.y);});ctx.stroke();ctx.setLineDash([]);};
     ctx.strokeStyle='#c0c6b51b';ctx.lineWidth=1;ctx.font=`${12*textScale}px Bahnschrift`;ctx.fillStyle='#b5bfab';

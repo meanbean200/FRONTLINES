@@ -53,8 +53,8 @@ describe('visual rescue contracts',()=>{
     lighting.setQuality('low');expect(renderer.shadowMap.enabled).toBe(false);expect(lighting.sun.castShadow).toBe(false);expect(material.version).toBeGreaterThan(version);
     lighting.setQuality('balanced');expect(renderer.shadowMap.enabled).toBe(true);expect(lighting.sun.castShadow).toBe(true);
     lighting.update(22,new THREE.Vector3(),60,0);const sky=scene.children.find(o=>o instanceof THREE.HemisphereLight) as THREE.HemisphereLight;
-    expect(sky.intensity).toBeGreaterThan(.8);expect(lighting.sun.intensity).toBeLessThan(.5);
-    lighting.update(12,new THREE.Vector3(),60,100);expect(sky.intensity).toBeCloseTo(1.2);expect(lighting.sun.intensity).toBeCloseTo(2.9);
+    expect(sky.intensity).toBeCloseTo(1.5);expect(lighting.sun.intensity).toBeLessThan(.5);expect(renderer.toneMappingExposure).toBeCloseTo(1.28);
+    lighting.update(12,new THREE.Vector3(),60,100);expect(sky.intensity).toBeCloseTo(1.25);expect(lighting.sun.intensity).toBeCloseTo(2.7);expect(renderer.toneMappingExposure).toBeCloseTo(1.05);
   });
   it('keeps effect aging paused, bounded, state-free and cleared by restoration',()=>{
     const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),p=state.soldiers[0],effects=new ImpactEffects();

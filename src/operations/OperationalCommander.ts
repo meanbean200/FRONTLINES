@@ -5,6 +5,7 @@ import {atDepth,frontDepth} from './OperationGeometry';
 import {type FrontGeometry,type OperationalCommandMemory} from './OperationalTypes';
 
 export interface OperationalKnowledge {
+  mission?:{kind:import('./MissionContent').MissionKind;houseId:number;house:Vec2;preparationSeconds:number;frontage:number};
   intent:'defend'|'penetrate'|'contest';front:FrontGeometry;rear:Vec2;deploymentDepth:number;
   targets:{id:string;point:Vec2}[];
 }
@@ -20,7 +21,7 @@ export function commandOperationalEnemy(o:EnemyObservation,terrain:TerrainSystem
   const phase=exhausted?'withdrawing':k.intent==='defend'?'holding':scoutProgress||report?'committing':old?.phase==='committing'?'committing':'scouting';
   const commander:OperationalCommandMemory={phase,since:old?.phase===phase?old.since:o.at,startingAble:start,nextSupport:old?.nextSupport??0,reason:exhausted?'Regroup: insufficient fit squads':k.intent==='defend'?'Protect the belt; react only to received reports':phase==='scouting'?'Scout approaches before committing the main force':'Advance toward operational depth with a reserve'};
   const assignments=combat.map((q,i)=>{
-    const target=k.targets[i%k.targets.length],reserve=i===combat.length-1&&combat.length>=4;
+    const target=k.targets[i%k.targets.length],reserve=i===(k.mission?.kind==='breakthrough'?Math.max(1,combat.length-3):combat.length-1)&&combat.length>=4;
     let goal:Vec2=target.point,defend=false;
     if(exhausted){goal=k.rear;defend=true;}
     else if(k.intent==='defend'){
@@ -37,9 +38,34 @@ export function commandOperationalEnemy(o:EnemyObservation,terrain:TerrainSystem
     if(!exhausted&&q.mortar&&(q.mortarAmmo??0)>0&&report&&distance(q,report)>750){
       const d=distance(q,report);goal={x:report.x+(q.x-report.x)/d*650,z:report.z+(q.z-report.z)/d*650};defend=true;
     }
+    if(k.mission&&!exhausted){
+      const m=k.mission;
+      if(o.at<m.preparationSeconds){goal={x:q.x,z:q.z};defend=true;}
+      else if(m.kind==='breakthrough'){
+        // Keep the firing line occupied; a real reserve walks into the defended house.
+        goal=reserve?m.house:{x:q.x,z:q.z};defend=!reserve;
+      }else if(m.kind==='line-defense'&&phase==='scouting'&&q.id!==scout?.id){
+        goal={x:q.x,z:q.z};defend=true;
+      }else if(reserve&&o.at<(old?.since??o.at)+45){goal={x:q.x,z:q.z};defend=true;}
+      else {goal=atDepth(k.front,15,(i%3-1)*32);defend=false;}
+    }
     return {squadId:q.id,objectiveId:target.id,goal,defend};
   });
   const result=commandEnemy({...o,assignments},terrain,previous);
+  if(k.mission&&o.at<k.mission.preparationSeconds){
+    // The tactical cover search must not turn a staging goal into an early
+    // advance. Local fire/reactions remain in the ordinary soldier loop.
+    result.commands=combat.map(q=>({squadId:q.id,type:'hold',goal:{x:q.x,z:q.z},role:'defend',reason:'Staging before the scout advance'}));
+  }
+  if(k.mission&&!exhausted&&o.at>=k.mission.preparationSeconds){
+    // The same Move command used by the player enters a physical building. No
+    // interior coordinates or targets are fabricated in the commander.
+    const candidate=combat.find(q=>q.buildingOrder===undefined&&!q.emplaced&&!q.working&&q.able>=3&&q.suppression<30&&distance(q,k.mission!.house)<65);
+    if(candidate&&!combat.some(q=>q.buildingOrder===k.mission!.houseId)){
+      result.commands=result.commands.filter(c=>c.squadId!==candidate.id);
+      result.commands.push({squadId:candidate.id,type:'move',goal:{...k.mission.house},role:'defend',reason:'Occupy the road house and cover its approaches'});
+    }
+  }
   let support:{squadId:number;target:Vec2}|undefined;
   const mortar=o.squads.find(q=>q.mortar&&q.mortarReady&&(q.mortarAmmo??0)>0&&q.able>=2&&!q.working&&!q.supportBusy&&q.suppression<65&&q.morale>=30&&report&&distance(q,report)>=50&&distance(q,report)<=900);
   if(!exhausted&&report&&mortar&&o.at>=commander.nextSupport!){

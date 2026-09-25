@@ -2,7 +2,7 @@ import type {BattlefieldState,Vec2} from '../core/types';
 import {SIGHT_RULES} from '../operations/SightRules';
 
 export interface ContactGroup extends Vec2 {
-  id:number; visible:boolean; lastSeen:number; members:number[];
+  id:number; visible:boolean; lastSeen:number; members:number[];heard?:boolean;
 }
 
 /** Presentation only. Nearby observed positions share a generic contact symbol;
@@ -26,3 +26,13 @@ export function contactGroups(state:BattlefieldState):ContactGroup[]{
 export const contactDescription=(visible:boolean)=>visible
   ?'Enemy contact area\nTroops observed here · nearby sightings grouped'
   :'Last-known enemy area\nSight lost · not live tracking';
+
+/** Approximate reports contain no soldier identity and never imply visual confirmation. */
+export function reportAnnotations(state:BattlefieldState):ContactGroup[]{
+  const groups=contactGroups(state);
+  for(const sound of state.operation?.intelligence?.sounds??[]){
+    if(sound.side!=='player'||state.elapsed-sound.at>15||groups.some(g=>Math.hypot(g.x-sound.x,g.z-sound.z)<60))continue;
+    const x=Math.round(sound.x/60)*60,z=Math.round(sound.z/60)*60;
+    groups.push({id:-1-(Math.round(x/60)+100)*201-Math.round(z/60)-100,x,z,visible:false,lastSeen:sound.at,members:[],heard:true});
+  }return groups;
+}

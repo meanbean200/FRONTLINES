@@ -8,6 +8,7 @@ import type {GroundRequest,GroundResponse} from './GroundWorker';
 import {excavationBoundsKey} from '../core/TrenchGeometry';
 import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
 import {setVegetationDetail} from './Vegetation';
+import {GroundDressing} from './GroundDressing';
 
 interface Chunk { cx:number; cz:number; mesh:THREE.Mesh; detail:boolean; revision:number; modified:boolean; vegetation?:THREE.Group; key?:string;candidateKey?:string;candidateRevision?:number;candidateDetail?:boolean }
 
@@ -28,14 +29,16 @@ export class TerrainRenderer {
   private coarseGenerationMs=0;
   private workerGenerationMs=0;
   private workerJobs=0;
+  private dressing:GroundDressing;
   chunkDebugVisible = false;
   constructor(private readonly terrain: TerrainSystem) {
+    this.dressing=new GroundDressing(terrain);
     this.worker.onmessage=({data:r}:MessageEvent<GroundResponse>)=>{
       const job=this.job;if(!job||job.id!==r.id)return;this.job=undefined;
       if(!this.chunks.includes(job.chunk))return;
       this.workerGenerationMs+=r.generationMs;this.workerJobs++;
       const geometry=new THREE.BufferGeometry();
-      geometry.setAttribute('position',new THREE.BufferAttribute(r.position,3));geometry.setAttribute('normal',new THREE.BufferAttribute(r.normal,3));geometry.setAttribute('color',new THREE.BufferAttribute(r.color,3));geometry.setAttribute('groundCover',new THREE.BufferAttribute(r.groundCover,2));geometry.setIndex(new THREE.BufferAttribute(r.index,1));geometry.computeBoundingSphere();
+      geometry.setAttribute('position',new THREE.BufferAttribute(r.position,3));geometry.setAttribute('normal',new THREE.BufferAttribute(r.normal,3));geometry.setAttribute('color',new THREE.BufferAttribute(r.color,3));geometry.setAttribute('groundCover',new THREE.BufferAttribute(r.groundCover,3));geometry.setIndex(new THREE.BufferAttribute(r.index,1));geometry.computeBoundingSphere();
       job.chunk.mesh.geometry.dispose();job.chunk.mesh.geometry=geometry;job.chunk.detail=job.detail;job.chunk.key=job.key;
       if(this.infrastructure)refreshRoadCuts(this.infrastructure,this.terrain,chunkOrigin(job.chunk.cx),chunkOrigin(job.chunk.cz));
       if(job.chunk.vegetation)refreshVegetationClearance(job.chunk.vegetation,this.terrain);
@@ -46,7 +49,7 @@ export class TerrainRenderer {
   reset(): void {
     for (const chunk of this.chunks) {chunk.mesh.geometry.dispose(); if (chunk.vegetation) this.disposeInstances(chunk.vegetation);}
     if (this.infrastructure) {const materials=new Set<THREE.Material>();this.infrastructure.traverse(o => {if (o instanceof THREE.Mesh) {o.geometry.dispose();for(const material of Array.isArray(o.material)?o.material:[o.material])materials.add(material);}});materials.forEach(m=>m.dispose());}
-    this.group.clear(); this.chunks=[];this.seed=this.terrain.seed;this.generation++;
+    this.dressing.reset();this.group.clear();this.group.add(this.dressing.group); this.chunks=[];this.seed=this.terrain.seed;this.generation++;
     const begin=performance.now();this.workerGenerationMs=0;this.workerJobs=0;
     for (const {cx,cz,x,z} of WORLD_CHUNKS) {
       const mesh=new THREE.Mesh(createGroundGeometry(this.terrain,x,z,8,false),this.material);
@@ -63,6 +66,7 @@ export class TerrainRenderer {
     this.terrain.syncModifications();
     const sorted=this.chunks.map(chunk=>({chunk,d:Math.hypot(chunkOrigin(chunk.cx)+CHUNK_SIZE/2-cameraX,chunkOrigin(chunk.cz)+CHUNK_SIZE/2-cameraZ)})).sort((a,b)=>a.d-b.d);
     const now=performance.now();let budget=now-this.lastVegetation>80?1:0;
+    this.dressing.update(cameraX,cameraZ,zoom,now);
     for(const {chunk,d} of sorted) {
       const detail=d<1100;
       const x=chunkOrigin(chunk.cx),z=chunkOrigin(chunk.cz);
@@ -94,7 +98,7 @@ export class TerrainRenderer {
     return parts.join('|');
   }
   setChunkDebug(visible:boolean):void {this.chunkDebugVisible=visible;this.material.wireframe=visible;}
-  setQuality(quality:VisualQuality):void{this.quality=quality;this.material.userData.detail.value=VISUAL_QUALITY[quality].groundDetail;}
+  setQuality(quality:VisualQuality):void{this.quality=quality;this.material.userData.detail.value=VISUAL_QUALITY[quality].groundDetail;this.dressing.setQuality(quality);}
   showInteriors(cutaways:Map<number,number>):void{if(this.infrastructure)refreshBuildingMeshes(this.infrastructure,this.terrain,cutaways);}
   get visibleChunkCount():number {return this.chunks.filter(c=>c.detail).length;}
   stats(camera:THREE.Camera){

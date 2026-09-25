@@ -47,6 +47,11 @@ async function clickAlignment(page,frame,label){
   assert.ok(screen.visible);await page.mouse.click(screen.x+offset.x,screen.y+offset.y,{button:'right'});
   await frame.waitForFunction(()=>window.__FRONTLINES__.getState().squads[0].order.type==='move');
   const actual=await frame.evaluate(()=>window.__FRONTLINES__.getState().squads[0].order.target);
+  const feedback=await frame.evaluate(()=>{
+    const a=document.querySelector('#toast').getBoundingClientRect(),b=document.querySelector('.selection-docket').getBoundingClientRect();
+    return {overlap:Math.min(a.right,b.right)>Math.max(a.left,b.left)&&Math.min(a.bottom,b.bottom)>Math.max(a.top,b.top),toast:{x:a.x,y:a.y,width:a.width,height:a.height},selection:{x:b.x,y:b.y,width:b.width,height:b.height}};
+  });
+  evidence.checks.push({label,feedback});assert.equal(feedback.overlap,false,`${label}: order feedback covers selected unit`);
   evidence.checks.push({label,actual,point,screen});
   assert.ok(Math.hypot(actual.x-point.x,actual.z-point.z)<1,`${label}: offset picking`);
   // Labels are positioned from the same projection as the rendered scene.

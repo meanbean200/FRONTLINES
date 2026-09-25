@@ -7,6 +7,14 @@ import {zoneCorners} from '../operations/OperationGeometry';
 export function drawOperationPlan(ctx:CanvasRenderingContext2D,r:OperationRuntime,screen:(p:Vec2)=>{x:number;y:number},labels=false,dark=false,textScale=1,label?:(text:string,x:number,y:number,priority:number)=>void):void {
   ctx.save();
   const line=(points:Vec2[],color:string,dash:number[],width=1)=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();points.forEach((p,i)=>{const v=screen(p);if(i)ctx.lineTo(v.x,v.y);else ctx.moveTo(v.x,v.y);});ctx.stroke();};
+  if(r.missionPlan){
+    const m=r.missionPlan,p=screen(m.house),ink=dark?'#ded1a8':'#645330';
+    for(const work of m.prepared)line(work.points,work.side==='player'?(dark?'#a6bdc6':'#456170'):(dark?'#c38e80':'#854c41'),[4,3],2);
+    for(const route of r.routes.filter(r=>r.side==='player'))line(route.points,dark?'#c0b288':'#766741',[3,7],1.4);
+    ctx.setLineDash([]);ctx.strokeStyle=ink;ctx.lineWidth=1.5;ctx.strokeRect(p.x-7,p.y-7,14,14);
+    if(labels){ctx.fillStyle=ink;ctx.font=`${12*textScale}px Bahnschrift`;ctx.textAlign='left';label?label(m.place+' / ROAD HOUSE',p.x+13,p.y+4,1):ctx.fillText(m.place+' / ROAD HOUSE',p.x+13,p.y+4);}
+    ctx.restore();return;
+  }
   for(const id of ['player-deployment',r.definitionId==='line-defense'?'fallback':r.definitionId==='meeting'?'contested':'enemy-belt',...(r.definitionId==='breakthrough'||r.definitionId==='open-front'?['deep']:[])]){
     const z=r.zones.find(z=>z.id===id)!,corners=zoneCorners(z);
     line([...corners,corners[0]],id==='player-deployment'?(dark?'#a6bdc6':'#456170'):id==='deep'?(dark?'#bac39b':'#626847'):(dark?'#c38e80':'#854c41'),[8,5]);

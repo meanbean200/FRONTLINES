@@ -244,6 +244,7 @@ export class FrontlinesApp {
     this.input.updatePreview();
     this.terrainRenderer.update(this.camera.target.x, this.camera.target.z,this.camera.zoomDistance);
     const interiors=new Map<number,number>();for(const s of this.state.soldiers)if(this.selectedSquads.has(s.squadId)&&s.building&&this.state.squads.find(q=>q.id===s.squadId)?.faction!=='enemy')interiors.set(s.building.id,Math.min(interiors.get(s.building.id)??1,s.building.floor));
+    const inspected=this.trenchPanel.inspectedBuilding;if(inspected!==undefined&&this.state.soldiers.some(s=>s.building?.id===inspected&&this.state.squads.some(q=>q.id===s.squadId&&q.faction!=='enemy')))interiors.set(inspected,this.trenchPanel.inspectedFloor);
     this.terrainRenderer.showInteriors(interiors);
     this.unitRenderer.update(this.selectedSquads,realDt,this.camera.zoomDistance);
     this.trenchRenderer.update(this.camera.zoomDistance);
@@ -358,7 +359,7 @@ export class FrontlinesApp {
   }
 
   private startGame(mode:GameMode,seed=1944,setup?:ResolvedBattleSetup):void {
-    const fresh=setup?createOperationalBattle(setup.operation,setup.seed,setup):mode==='sandbox'?createPlayableSandbox(seed):createOperation(mode,seed);
+    const fresh=setup?createOperationalBattle(setup.operation,setup.seed,setup,true):mode==='sandbox'?createPlayableSandbox(seed):createOperation(mode,seed);
     this.replaceWorld(fresh);
     if(mode==='sandbox')this.simulation.issueOccupyNearest([fresh.squads[0].id,fresh.squads[1].id,fresh.squads.find(s=>s.kind==='engineer')!.id],fresh.trenches[0].id);
     const start=mode==='campaign'?fresh.operation?.objectives[0]:restoredViewTarget(fresh);if(start)this.camera.focus(start,mode==='sandbox'||mode==='campaign'?360:520);
@@ -368,7 +369,7 @@ export class FrontlinesApp {
   private previewBattle(setup:ResolvedBattleSetup):void {
     this.cancelBattlePreview();
     // Construct first: a failed preparation must not discard the current world.
-    const fresh=createOperationalBattle(setup.operation,setup.seed,setup);
+    const fresh=createOperationalBattle(setup.operation,setup.seed,setup,true);
     this.battlePreview={state:this.state,point:{x:this.camera.target.x,z:this.camera.target.z},zoom:this.camera.zoomDistance,selected:[...this.selectedSquads]};
     this.replaceWorld(fresh);
     const target=restoredViewTarget(fresh);if(target)this.camera.focus(target,820);
@@ -449,7 +450,7 @@ export class FrontlinesApp {
       getPerf: () => ({ ...this.perf }),
       getVisualStats:()=>({triangles:this.renderer.info.render.triangles,drawCalls:this.renderer.info.render.calls,particles:this.operationRenderer.particleCount,submittedSoldiers:this.unitRenderer.visibleCount,residentTrees:this.terrainRenderer.residentTreeCount,visibleTrees:this.terrainRenderer.visibleTrees(this.camera.camera),cameraTarget:{x:this.camera.target.x,z:this.camera.target.z},zoomDistance:this.camera.zoomDistance,...this.terrainRenderer.stats(this.camera.camera)}),
       getState: () => structuredClone(this.state),
-      getCombatDiagnostics:()=>combatDiagnostics(this.state),
+      getCombatDiagnostics:()=>combatDiagnostics(this.state,this.simulation.terrain),
       getPolicyPerf:()=>({inferenceMs:0,coordinator:'deterministic'}),
       setReadiness:(id,value)=>this.simulation.garrisons.setReadiness(id,value),
       resolveEmergency:(id,choice)=>this.simulation.garrisons.resolveEmergency(id,choice),

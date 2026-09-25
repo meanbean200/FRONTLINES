@@ -43,7 +43,9 @@ export class TrenchSystem {
       connector=hit.t;anchor={trenchId:hit.t.id,along:hit.a.along};position=inlineGeometry(hit.t,anchor.along,facing).position;
     }else{connector=this.create([request.origin,request.position]);connector.width=7.2;connector.progress=.001;connector.status='building';}
     w.facilities.push({id,...position,garrisonId:g.id,kind,facing,connectorId:connector.id,trenchAnchor:anchor,weaponCrewIds:['emplacement','mortar'].includes(kind)?[]:undefined,workOrder:{explicit:request.explicit??false,workerIds:[],createdAt:this.state.elapsed},progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'||kind==='mortar'?WEAPON_POSITIONS[kind].crew:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
-    for(const q of engineers)(q.constructionQueue??=[]).push({kind:'facility',id});
+    // Explicit works have one authority: their person-level work order. The
+    // squad queue belongs to trench excavation / legacy automatic support.
+    if(!request.explicit)for(const q of engineers)(q.constructionQueue??=[]).push({kind:'facility',id});
     reconcileSupplyDemands(this.state);
     return id;
   }

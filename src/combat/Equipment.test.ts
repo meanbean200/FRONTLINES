@@ -24,6 +24,8 @@ describe('equipment, not classes',()=>{
     q.kind='rifle';s.equipment!.weapon='crew-mg';s.equipment!.tools=true;
     expect(squadHasEquipment(state,q,'automatic')).toBe(true);expect(squadHasEquipment(state,q,'tools')).toBe(true);
     expect(equipWeapon(state,s).id).toBe('crew-mg');preparedPosition(state,q.id,'emplacement');state.elapsed=10;expect(weaponReady(state,s,state.soldiers)).toBe(true);
+    // A new excavation must not steal a person explicitly manning a weapon.
+    sim.garrisons.removeCrew(state.living!.facilities.find(f=>f.weaponCrewIds?.includes(s.id))!.id);
     const id=sim.createTrench([{x:-1400,z:-1400},{x:-1370,z:-1400}],q.id);expect(id).toBeDefined();expect(q.order.type).toBe('construct-trench');
     s.equipment!.tools=false;expect(squadHasEquipment(state,q,'tools')).toBe(false);
   });

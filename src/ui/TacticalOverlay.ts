@@ -5,7 +5,7 @@ import type { TerrainSystem } from '../terrain/TerrainSystem';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {pointAlongPolyline,polylineLength} from '../core/types';
 import { factionOf } from '../operations/types';
-import {contactGroups,contactDescription,type ContactGroup} from './ContactReadout';
+import {reportAnnotations,contactDescription,type ContactGroup} from './ContactReadout';
 import {excavatedSpan} from '../core/TrenchGeometry';
 import {trenchPresence} from './GarrisonReadout';
 import {fieldIcon} from './FieldSymbols';
@@ -64,7 +64,7 @@ export class TacticalOverlay {
       text.textContent=able===0?'OUT OF ACTION':withdrawn?'WITHDRAWAL':relocating.has(squad.id)?'RELOCATING':squad.order.type==='construct-trench'&&trench?`${Math.floor(trench.progress*100)}%`:squad.order.type==='occupy-trench'?'DEFENDING':squad.movementState==='planning'?'PLANNING':squad.movementState==='moving'?'MOVING':'';
       let tip=marker.querySelector<HTMLElement>('.marker-tip');if(!tip){tip=document.createElement('span');tip.className='marker-tip';tip.setAttribute('aria-hidden','true');marker.append(tip);}tip.textContent=`${squad.name}\n${able} / ${squad.soldierIds.length} able · ${text.textContent||'Holding'}\nClick to select · double-click to focus`;
     });
-    const contacts=contactGroups(state),contactIds=new Set(contacts.map(c=>c.id));
+    const contacts=reportAnnotations(state),contactIds=new Set(contacts.map(c=>c.id));
     for(const[id,m]of this.contactMarkers)if(!contactIds.has(id)){m.element.remove();this.contactMarkers.delete(id);}
     for(const contact of contacts){
       let marker=this.contactMarkers.get(contact.id);
@@ -75,7 +75,7 @@ export class TacticalOverlay {
       }
       marker.contact=contact;marker.element.classList.toggle('last-seen',!contact.visible);
       marker.element.dataset.x=String(contact.x);marker.element.dataset.z=String(contact.z);
-      const description=contactDescription(contact.visible);marker.element.setAttribute('aria-label',description.replace('\n',' · '));
+      const description=(contact.heard?'Heard gunfire · approximate area\nNot a visual sighting':contactDescription(contact.visible))+'\nReported '+Math.floor(state.elapsed-contact.lastSeen)+' seconds ago';marker.element.setAttribute('aria-label',description.replace('\n',' · '));
       marker.element.querySelector('.marker-tip')!.textContent=description;
     }
     const trenchIds=new Set(state.trenches.map(t=>t.id));
