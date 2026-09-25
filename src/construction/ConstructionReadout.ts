@@ -5,6 +5,7 @@ import type {SquadNavigation} from '../navigation/SquadNavigation';
 import type {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {insideWorld} from '../terrain/WorldLayout';
 import {squadHasEquipment} from '../combat/Equipment';
+import {placementCategory} from './PositionDefinitions';
 
 export const MIN_TRENCH_LENGTH=10;
 export const SUPPORT_WORKS:Record<Facility['kind'],{name:string;cost:number;description:string}>={
@@ -13,8 +14,8 @@ export const SUPPORT_WORKS:Record<Facility['kind'],{name:string;cost:number;desc
   store:{name:'Supply store',cost:10,description:'Stores delivered supplies'},
   ammo:{name:'Ammunition dugout',cost:14,description:'Stores delivered ammunition'},
   aid:{name:'Aid post',cost:18,description:'Treatment and evacuation · 4 places'},
-  emplacement:{name:'MG nest',cost:16,description:'Trench gun mount · assign 2 crew in Support'},
-  mortar:{name:'Mortar pit',cost:12,description:'Open-air firing pit · assign 2 crew in Support'},
+  emplacement:{name:'MG position',cost:16,description:'Snap to trench edge · choose facing · 2 crew'},
+  mortar:{name:'Mortar pit',cost:12,description:'Open firing pit · short trench connection · 2 crew'},
 };
 export function fitEngineers(state:BattlefieldState):SquadState[]{
   return state.squads.filter(q=>q.faction!=='enemy'&&squadHasEquipment(state,q,'tools'));
@@ -39,10 +40,26 @@ export function selectedConstructionNetwork(state:BattlefieldState,selected:Read
     (squads.length?[...networks].sort((a,b)=>Math.min(...squads.map(q=>distance(q,a.entrance)))-Math.min(...squads.map(q=>distance(q,b.entrance)))||a.id-b.id)[0]?.id:networks.find(g=>g.id===current)?.id??networks[0]?.id);
 }
 /** The preview and construction command use precisely the same site checks. */
-export function facilitySiteReason(state:BattlefieldState,g:Garrison,from:Vec2,to:Vec2,terrain:TerrainSystem,navigation:SquadNavigation,network:TrenchNetwork):string|undefined{
+export function facilitySiteReason(state:BattlefieldState,g:Garrison,from:Vec2,to:Vec2,terrain:TerrainSystem,navigation:SquadNavigation,network:TrenchNetwork,kind:Facility['kind']='rest'):string|undefined{
   if(!Number.isFinite(to.x)||!Number.isFinite(to.z))return 'Choose a point on the battlefield.';
   if(!insideWorld(to,8)||!insideWorld(from,5))return 'Worksite crosses the battlefield edge · leave 8 m clearance.';
   const length=distance(from,to);
+  const category=placementCategory(kind);
+  if((network.nearest(from,network.component(g.trenchId))?.distance??Infinity)>=.3)return 'Connect to excavated trench floor.';
+  if(category==='inline'){
+    const hit=network.nearest(from,network.component(g.trenchId)),trench=hit&&state.trenches.find(t=>network.edges[hit.edge].trenches.includes(t.id));
+    if(!trench||length>trench.width/2+.1)return 'MG positions attach directly to a trench edge.';
+    if(state.living!.facilities.some(f=>distance(f,to)<3.5))return 'Another position is too close · leave 3.5 m clearance.';
+    if(terrain.obstacleAt(to.x,to.z,1)||terrain.groundTypeAt(to.x,to.z)==='river')return 'Weapon post overlaps blocked ground.';
+    return;
+  }
+  if(category==='adjacent'){
+    if(length<4||length>20)return 'Place the open mortar pit 4–20 m from excavated trench.';
+    if(state.living!.facilities.some(f=>distance(f,to)<7))return 'Another position is too close · leave 7 m clearance.';
+    if(terrain.obstacleAt(to.x,to.z,3)||terrain.groundTypeAt(to.x,to.z)==='river')return 'Mortar pit needs clear open ground.';
+    if(!navigation.segmentClear(from,to,3.6))return 'Short connecting trench crosses blocked ground.';
+    return;
+  }
   if(length<6)return 'Too close to the trench · move at least 6 m away.';
   if(length>40)return 'Too far from completed trench · maximum connector is 40 m.';
   if(state.living!.facilities.some(f=>distance(f,to)<8))return 'Another worksite is too close · leave 8 m clearance.';
@@ -53,4 +70,4 @@ export function facilitySiteReason(state:BattlefieldState,g:Garrison,from:Vec2,t
   if((to.x-from.x)*Math.sin(g.front)+(to.z-from.z)*Math.cos(g.front)>=0)return 'Build on the rear side of the line, opposite its facing.';
   return undefined;
 }
-export interface FacilityPreview {name:string;valid:boolean;reason:string;origin?:Vec2;position:Vec2;cost:number;materials:number}
+export interface FacilityPreview {name:string;valid:boolean;reason:string;origin?:Vec2;position:Vec2;cost:number;materials:number;kind?:Facility['kind'];facing?:number;segment?:Vec2[]}

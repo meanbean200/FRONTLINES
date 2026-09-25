@@ -46,13 +46,12 @@ describe('construction controls match actual work rules',()=>{
     expect(reason({x:-2001,z:0})).toContain('battlefield');
     expect(JSON.stringify(sim.state)).toBe(before);
   });
-  it('requires assigned engineers and preserves unfinished excavation when reassigning',()=>{
+  it('accepts a work order without whole-squad reassignment and preserves existing excavation',()=>{
     const sim=createStudyScenario(),g=sim.state.living!.garrisons[0],q=fitEngineers(sim.state)[0],from=sim.garrisons.network.samples(sim.garrisons.network.component(g.trenchId)!,10)[3],position={x:from.x,z:from.z-12};
     const trench=sim.createTrench([{x:from.x,z:from.z+45},{x:from.x+15,z:from.z+45}],q.id)!;
     expect(sim.state.trenches.some(t=>t.id===trench)).toBe(true);
-    expect(sim.requestConstruction({kind:'facility',garrisonId:g.id,facilityKind:'meal',origin:from,position})).toBeUndefined();
-    expect(sim.issueOccupyNearest([q.id],g.trenchId)).toBeDefined();
     const id=sim.requestConstruction({kind:'facility',garrisonId:g.id,facilityKind:'meal',origin:from,position});
+    expect(q.order.type).toBe('construct-trench');
     expect(id).toBeDefined();expect(sim.state.trenches.some(t=>t.id===trench)).toBe(true);
     expect(sim.state.living!.facilities.find(f=>f.id===id)?.materialCost).toBe(SUPPORT_WORKS.meal.cost);
   });

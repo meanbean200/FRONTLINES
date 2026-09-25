@@ -245,7 +245,7 @@ export class BattlefieldSimulation {
   requestConstruction(request:ConstructionRequest):number|undefined {
     if(this.commandsLocked)return;
     if(request.kind==='trench')return this.createTrench(request.points,request.engineerSquadId);
-    return this.garrisons.requestFacility(request.garrisonId,request.facilityKind,request.position,request.origin);
+    return this.garrisons.requestFacility(request.garrisonId,request.facilityKind,request.position,request.origin,request.facing,request.explicit??true);
   }
 
   createCrater(point: Vec2, radius = 24, depth = 5): number {
@@ -274,7 +274,7 @@ export class BattlefieldSimulation {
     }
     const soldiersById = new Map(this.state.soldiers.map((soldier) => [soldier.id, soldier]));
     for (const squad of this.state.squads) {
-      const soldiers = squad.soldierIds.map((id) => soldiersById.get(id)).filter((soldier): soldier is SoldierState => Boolean(soldier)&&(!soldier!.needs||soldier!.needs.life==='active'));
+      const soldiers = squad.soldierIds.map((id) => soldiersById.get(id)).filter((soldier): soldier is SoldierState => Boolean(soldier)&&!soldier!.personalArea&&(!soldier!.needs||soldier!.needs.life==='active'));
       if (soldiers.length === 0) continue;
       if (squad.order.type === 'move') this.updateMovingSquad(squad, soldiers, dt);
       else if (squad.order.type === 'occupy-trench') squad.movementState='entrenching';
@@ -373,7 +373,7 @@ export class BattlefieldSimulation {
     const soldiersById = new Map(this.state.soldiers.map((soldier) => [soldier.id, soldier]));
     for (const squad of this.state.squads) {
       // Casualties stay where they fell; they cannot anchor the survivors' route or flag.
-      const soldiers = squad.soldierIds.map((id) => soldiersById.get(id)).filter((soldier): soldier is SoldierState => Boolean(soldier) && soldier!.health > 0 && (!soldier!.needs || soldier!.needs.life === 'active'));
+      const soldiers = squad.soldierIds.map((id) => soldiersById.get(id)).filter((soldier): soldier is SoldierState => Boolean(soldier) && !soldier!.personalArea && soldier!.health > 0 && (!soldier!.needs || soldier!.needs.life === 'active'));
       if (soldiers.length === 0) continue;
       squad.x = soldiers.reduce((sum, soldier) => sum + soldier.x, 0) / soldiers.length;
       squad.z = soldiers.reduce((sum, soldier) => sum + soldier.z, 0) / soldiers.length;

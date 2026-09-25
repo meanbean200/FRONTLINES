@@ -13,7 +13,7 @@ export type SquadKind = 'rifle' | 'engineer'|'machinegun'|'mortar'|'medical';
 export type OrderType = 'hold' | 'move' | 'occupy-trench' | 'construct-trench';
 export type TrenchStatus = 'planned' | 'building' | 'complete';
 export type ConstructionJob = {kind:'trench'|'facility';id:number};
-export type ConstructionRequest = {kind:'trench';points:Vec2[];engineerSquadId?:number}|{kind:'facility';garrisonId:number;facilityKind:import('../garrison/types').Facility['kind'];origin:Vec2;position:Vec2};
+export type ConstructionRequest = {kind:'trench';points:Vec2[];engineerSquadId?:number}|{kind:'facility';garrisonId:number;facilityKind:import('../garrison/types').Facility['kind'];origin:Vec2;position:Vec2;facing?:number;explicit?:boolean};
 
 export interface SoldierState extends Vec2 {
   posture?:'standing'|'crouched'|'prone';
@@ -38,6 +38,8 @@ export interface SoldierState extends Vec2 {
   duty?: Duty;
   carried?: Inventory;
   garrisonId?: number;
+  /** Individually attached to an area, without rewriting their formation order. */
+  personalArea?:boolean;
   nextShotAt?: number;
   lastShotAt?: number;
   lastTarget?: Vec2;

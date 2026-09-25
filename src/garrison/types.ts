@@ -39,6 +39,11 @@ export interface Facility extends Vec2 {
   id: number; garrisonId: number; kind: 'rest' | 'meal' | 'store' | 'ammo'|'aid'|'emplacement'|'mortar';
   /** Explicit crew reservation; equipment remains owned and carried by people. */
   weaponSquadId?:number;
+  /** Authoritative personnel reservations. The legacy squad field is migration-only. */
+  weaponCrewIds?:number[];
+  /** Metres along the parent centreline; no detached connector for inline posts. */
+  trenchAnchor?:{trenchId:number;along:number};
+  workOrder?:{explicit:boolean;workerIds:number[];createdAt:number};
   connectorId: number; progress: number; capacity: number; paid: boolean;
   stock: Inventory; materialCost: number;
   facing?:number;
@@ -58,6 +63,7 @@ export interface Garrison {
   threatSector?:Vec2&{front:number};
   reserveRequired?:number;
   frontage?:Vec2[];
+  lastDeliveryAt?:number;
 }
 export function effectiveReadiness(garrison:Garrison,elapsed:number):Readiness {
   return (garrison.underFireUntil??0)>elapsed&&garrison.cutoff!=='withdraw'&&garrison.readiness==='routine'?'alert':garrison.readiness;

@@ -31,7 +31,9 @@ import {combatDiagnostics} from '../combat/Diagnostics';
 import {CombatAudio} from '../render/CombatAudio';
 import {trenchDraft} from '../ui/TrenchDraft';
 import {BuildPanel} from '../ui/BuildPanel';
-import {chooseEngineer,fitEngineers,facilitySiteReason,MIN_TRENCH_LENGTH,SUPPORT_WORKS,type FacilityPreview} from '../construction/ConstructionReadout';
+import {chooseEngineer,facilitySiteReason,MIN_TRENCH_LENGTH,SUPPORT_WORKS,type FacilityPreview} from '../construction/ConstructionReadout';
+import {trenchAnchorAt,inlineGeometry} from '../construction/PositionDefinitions';
+import {crewOperator} from '../combat/WeaponPositions';
 import {localInventory} from '../garrison/Inventory';
 import {EnvironmentLighting} from '../render/EnvironmentLighting';
 import {VISUAL_QUALITY,type VisualQuality} from '../render/VisualQuality';
@@ -62,7 +64,8 @@ export class FrontlinesApp {
   private readonly tactical: TacticalOverlay;
   private readonly lighting:EnvironmentLighting;
   private mode: InteractionMode = 'select';
-  private pendingFacility?:{id:number;kind:import('../garrison/types').Facility['kind']};
+  private pendingFacility?:{id:number;kind:import('../garrison/types').Facility['kind'];anchor?:Vec2};
+  private supportPosition?:number;
   private lastTime = performance.now();
   private accumulator = 0;
   private graphicsLost = false;
@@ -120,7 +123,7 @@ export class FrontlinesApp {
       support:kind=>this.setMode(kind),
       buildWeapons:()=>this.buildPanel.open(undefined,true,true),
       crewWeapon:(squadId,facilityId)=>{if(this.simulation.commandsLocked)return;const result=this.simulation.garrisons.assignWeapon(squadId,facilityId);this.ui.notify(result.reason,result.accepted?'normal':'warn');},
-      focusPosition:id=>{const f=this.state.living!.facilities.find(f=>f.id===id);if(f)this.camera.focus(f,70);},
+      focusPosition:id=>{const f=this.state.living!.facilities.find(f=>f.id===id);if(f){this.camera.focus(f,70);this.trenchPanel.inspectFacility(id);}},
       buildingFloor:floor=>{if(document.documentElement.dataset.replay||document.documentElement.dataset.help||this.simulation.commandsLocked)return;for(const q of this.state.squads.filter(q=>this.selectedSquads.has(q.id)&&q.order.building)){const b=this.simulation.terrain.buildings[q.order.building!.id];if(floor&&b.height<=6){this.ui.notify('This building has one usable floor','warn');continue;}q.order.building!.floor=floor;}},
       mute:muted=>{this.audio.muted=muted;},
       resume:()=>{const count=this.simulation.resumeConstruction([...this.selectedSquads]);this.ui.notify(count?`${count} engineer team(s) resuming unfinished works`:'Select a formation with tools near unfinished works',count?'normal':'warn');},
@@ -144,12 +147,13 @@ export class FrontlinesApp {
       const assigned=this.simulation.issueOccupyNearest([engineer.id],g?.trenchId);
       this.ui.notify(assigned?`${engineer.name} assigned · unfinished earthworks are preserved`:'No reachable completed trench with room for the engineers. Finish excavation first.',assigned?'normal':'warn');
       if(assigned)this.selectSquads([engineer.id]);
-    }},()=>this.selectedSquads);
+    }},()=>this.selectedSquads,this.simulation.garrisons.network);
     this.trenchPanel=new TrenchPanel(this.simulation,this.camera,this.selectedSquads,{
       defend:id=>this.occupyTrench(id,false),
       resume:id=>{const q=chooseEngineer(this.state,this.selectedSquads);if(!q){this.ui.notify('Select a fit formation carrying tools.','warn');return;}const ok=this.simulation.resumeConstruction([q.id],id);this.ui.notify(ok?'Work detail assigned to this trench.':'Worksite already assigned or unavailable. Hold the current job first to switch.');},
       area:id=>{const component=this.simulation.garrisons.network.component(id),g=this.state.living!.garrisons.find(g=>g.faction!=='enemy'&&component!==undefined&&this.simulation.garrisons.network.component(g.trenchId)===component);if(g?.squadIds[0])this.garrisonPanel.showForSquad(g.squadIds[0]);},
       move:()=>this.setMode('person-move'),cancel:()=>{if(this.mode==='person-move')this.setMode('select');},notify:text=>this.ui.notify(text),
+      place:(id,kind)=>this.beginFacility(id,kind),person:()=>{this.selectedSquads.clear();},fire:(id,kind)=>{this.supportPosition=id;this.setMode(kind);this.ui.notify('Choose target area · this position’s assigned crew will fire.');},
     });
     this.tactical=new TacticalOverlay(()=>this.state,this.selectedSquads,this.camera,this.simulation.terrain,(ids,add)=>this.selectSquads(ids,add),id=>this.trenchPanel.open(id),point=>{this.simulation.issueMove([...this.selectedSquads],point);this.ui.notify('Map move order issued');});
     this.deploymentPanel=new DeploymentPanel(()=>this.state,(kind,count)=>{this.pendingDeployment={kind,count};this.setMode('deploy');this.ui.notify(`Place ${count} ${kind==='rifle'?'rifle squad':'engineer team'}${count>1?'s':''} · click clear ground · Esc finishes`);},point=>this.camera.focus(point,90),text=>this.ui.notify(text));
@@ -160,7 +164,7 @@ export class FrontlinesApp {
       getMode: () => this.mode,
       setMode: (mode) => this.setMode(mode),
       selectedSquads: this.selectedSquads,
-      onSelectionChanged: () => undefined,
+      onSelectionChanged: () => this.trenchPanel.clearPerson(),
       onInspectPerson:id=>this.trenchPanel.inspectPerson(id),
       onInspectTrench:point=>this.trenchPanel.inspectAt(point),
       onPersonMove:point=>this.trenchPanel.movePerson(point),
@@ -168,7 +172,7 @@ export class FrontlinesApp {
       onDeploy:point=>{if(this.simulation.commandsLocked||document.documentElement.dataset.replay)return;const result=deploySandbox(this.state,this.simulation.terrain,this.pendingDeployment.kind,this.pendingDeployment.count,point);if(result.ids.length)this.selectSquads(result.ids);this.ui.notify(result.reason,result.ids.length?'normal':'warn');},
       onMove: (point) => {this.simulation.issueMove([...this.selectedSquads], point);if(this.selectedSquads.size)this.ui.notify(`Move order · ${this.selectedSquads.size} squad${this.selectedSquads.size===1?'':'s'}`);},
       onTactical:(mode,point)=>{this.simulation.issueTactical([...this.selectedSquads],mode,point);this.ui.notify(`${mode} order issued`);},
-      onSupport:(kind,point)=>{const squad=selectedSupportTeam(this.state,this.selectedSquads,kind,this.simulation.terrain);if(squad===undefined){this.ui.notify(kind==='smokeGrenades'?'Select a squad with smoke grenades':'Select a formation carrying mortar equipment','warn');return false;}let result=requestSupport(this.state,kind,squad,point,false,this.simulation.terrain,'PLAYER');if(result.warning&&window.confirm(result.reason))result=requestSupport(this.state,kind,squad,point,true,this.simulation.terrain,'PLAYER');this.ui.notify(result.reason,result.accepted?'normal':'warn');return result.accepted;},
+      onSupport:(kind,point)=>{const position=this.state.living!.facilities.find(f=>f.id===this.supportPosition),squad=position?crewOperator(this.state,position)?.squadId:selectedSupportTeam(this.state,this.selectedSquads,kind,this.simulation.terrain);if(squad===undefined){this.ui.notify(kind==='smokeGrenades'?'Select a squad with smoke grenades':'Select a formation carrying mortar equipment','warn');return false;}let result=requestSupport(this.state,kind,squad,point,false,this.simulation.terrain,'PLAYER');if(result.warning&&window.confirm(result.reason))result=requestSupport(this.state,kind,squad,point,true,this.simulation.terrain,'PLAYER');this.ui.notify(result.reason,result.accepted?'normal':'warn');return result.accepted;},
       onDrawPath:(points,append,intent)=>{const ok=this.simulation.issueDrawnPath([...this.selectedSquads],points,append);if(ok&&intent)for(const q of this.state.squads.filter(q=>this.selectedSquads.has(q.id)&&factionOf(q)==='player'))q.order.intent=intent;this.ui.notify(ok?`${append?'Extended':'Drawn'} ${intent??'move'} route · ${this.selectedSquads.size} squad(s)`:'Route crosses a building or cannot be reached · adjust the corridor',ok?'normal':'warn');},
       onTrench: (points) => this.buildTrench(points),
       previewTrench:points=>trenchDraft(points,this.simulation.terrain),
@@ -178,9 +182,10 @@ export class FrontlinesApp {
       onFacility:position=>{
         const pending=this.pendingFacility,preview=this.facilityPreview(position);if(!pending||!preview)return false;
         if(!preview.valid||!preview.origin){this.ui.notify(preview.reason,'warn');return false;}
-        const id=this.simulation.requestConstruction({kind:'facility',garrisonId:pending.id,facilityKind:pending.kind,origin:preview.origin,position});
+        if(pending.kind==='emplacement'&&!pending.anchor){pending.anchor={...preview.origin};this.ui.notify('Choose the gun facing with the pointer · click to confirm.');return false;}
+        const id=this.simulation.requestConstruction({kind:'facility',garrisonId:pending.id,facilityKind:pending.kind,origin:preview.origin,position:preview.position,facing:preview.facing});
         this.ui.notify(id?`${preview.name} queued · ${this.state.simSpeed===0?'paused: press Space to start crews':'carriers deliver materials, then engineers dig and build'}`:'Worksite changed · reopen Build and check the assigned engineers.',id?'normal':'warn');
-        return Boolean(id);
+        if(id){this.trenchPanel.inspectFacility(id);}return Boolean(id);
       },
       onCrater: (point) => {
         this.simulation.createCrater(point,9,2.7);
@@ -238,7 +243,7 @@ export class FrontlinesApp {
     this.trenchRenderer.update(this.camera.zoomDistance);
     this.debugRenderer.update(realDt, this.flags, this.selectedSquads);
     this.tactical.update(realDt);
-    this.livingRenderer.update(now,this.garrisonPanel.showRoutes||this.deploymentPanel.showRoutes,{...this.camera.target,zoom:this.camera.zoomDistance});this.garrisonPanel.update(now);
+    this.livingRenderer.update(now,this.garrisonPanel.showRoutes||this.deploymentPanel.showRoutes||this.trenchPanel.showRoutes,{...this.camera.target,zoom:this.camera.zoomDistance});this.garrisonPanel.update(now);
     this.trenchPanel.update();
     this.buildPanel.update();this.deploymentPanel.update();
     this.operationRenderer.update();this.operationUI.update(now);
@@ -271,6 +276,7 @@ export class FrontlinesApp {
 
   private beginFacility(id:number,kind:import('../garrison/types').Facility['kind']):void{
     if(this.simulation.commandsLocked)return;
+    if(id<0){const g=this.simulation.garrisons.ensureArea(-id);if(!g){this.ui.notify('Choose an excavated friendly trench.','warn');return;}id=g.id;}
     this.setMode('facility');this.pendingFacility={id,kind};
     this.ui.notify(`${SUPPORT_WORKS[kind].name} · move over ground to preview; click to place, Esc to cancel`);
   }
@@ -279,10 +285,12 @@ export class FrontlinesApp {
     const g=this.state.living!.garrisons.find(g=>g.id===pending.id&&g.faction!=='enemy'),work=SUPPORT_WORKS[pending.kind];
     this.simulation.garrisons.network.sync(this.state.trenches);
     const network=this.simulation.garrisons.network,component=g?network.component(g.trenchId):undefined;
-    const origin=component===undefined?undefined:network.nearest(position,component)?.point;
+    const hit=component===undefined?undefined:network.nearest(pending.anchor??position,component),origin=pending.anchor??hit?.point;
+    let facing=g?.front??0,site=position,segment:Vec2[]|undefined;
+    if(pending.kind==='emplacement'&&hit&&origin){const t=this.state.trenches.find(t=>network.edges[hit.edge].trenches.includes(t.id)),anchor=t&&trenchAnchorAt(t,origin);if(t&&anchor){facing=pending.anchor?Math.atan2(position.x-origin.x,position.z-origin.z):g?.front??0;site=inlineGeometry(t,anchor.along,facing).position;segment=[network.nodes[network.edges[hit.edge].a],network.nodes[network.edges[hit.edge].b]];}}
     const materials=g?localInventory(this.state,g).materials:0;
-    const reason=!g||!origin?'Assign engineers to a completed trench first.':g.cutoff==='withdraw'?'This network is withdrawn. Reassign engineers before building.':!fitEngineers(this.state).some(q=>g.squadIds.includes(q.id)&&q.order.type==='occupy-trench')?'No engineers assigned here · open Build and assign a team.':facilitySiteReason(this.state,g,origin,position,this.simulation.terrain,this.simulation.navigation,network);
-    return {name:work.name,cost:work.cost,position,origin,materials,valid:!reason,reason:reason??(materials<work.cost?'Clear site · will wait for delivered materials.':'Clear site · click to queue construction.')};
+    const reason=!g||!origin?'Choose an excavated friendly trench.':g.cutoff==='withdraw'?'Network is withdrawing.':pending.kind==='emplacement'&&!pending.anchor&&(hit?.distance??Infinity)>6?'Hover the trench to attach an MG position.':facilitySiteReason(this.state,g,origin,site,this.simulation.terrain,this.simulation.navigation,network,pending.kind);
+    return {name:work.name,cost:work.cost,position:site,origin,materials,kind:pending.kind,facing,segment,valid:!reason,reason:reason??(pending.kind==='emplacement'?(pending.anchor?'Click to confirm facing.':'Click trench, then choose facing.'):'Click to place work order.')};
   }
 
   private occupyTrench(requestedId?:number,showArea=true): void {
@@ -302,6 +310,7 @@ export class FrontlinesApp {
     if(mode==='crater'&&this.state.operation)return;
     this.mode = mode;
     if(mode!=='facility')this.pendingFacility=undefined;
+    if(mode!=='mortarHE'&&mode!=='mortarSmoke')this.supportPosition=undefined;
     this.canvas.dataset.mode = mode;
     document.documentElement.dataset.commandMode=mode;
   }

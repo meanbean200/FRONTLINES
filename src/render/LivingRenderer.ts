@@ -4,7 +4,7 @@ import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {bodyFloor,playerVisibleEnemies,playerCanSeePoint} from '../operations/Visibility';
 import {supportAppearance} from './SupportAppearance';
 import {truckGeometry,truckWheelGeometry} from './VehicleVisual';
-import {positionOperator,weaponPositionReadiness} from '../combat/WeaponPositions';
+import {crewOperator,positionReadiness} from '../combat/WeaponPositions';
 export class LivingRenderer {
   readonly group=new THREE.Group();
   private readonly boxes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({roughness:1}),8192);
@@ -45,8 +45,8 @@ export class LivingRenderer {
       const detail=!view||Math.hypot(f.x-view.x,f.z-view.z,view.zoom*.6)<230;
       for(const p of supportAppearance(f,state.trenches.find(t=>t.id===f.connectorId),(x,z)=>this.terrain.heightAt(x,z),detail))box(p.x,p.y,p.z,p.sx,p.sy,p.sz,p.color,p.angle,p.pitch??0);
       if((f.kind==='emplacement'||f.kind==='mortar')&&f.progress===1){
-        if(f.weaponSquadId!==undefined&&!weaponPositionReadiness(state,f.weaponSquadId,f.kind)){
-          const operator=positionOperator(state,f.weaponSquadId,f.kind)!,angle=operator.heading;
+        if(!positionReadiness(state,f)){
+          const operator=crewOperator(state,f)!,angle=operator.heading;
           const x=operator.x+Math.sin(angle)*.55,z=operator.z+Math.cos(angle)*.55;
           if(f.kind==='mortar'){
             box(x,h+.12,z,.65,.12,.65,0x454c3f,angle);box(x,h+.65,z,.16,1.2,.16,0x363b33,angle,.42);

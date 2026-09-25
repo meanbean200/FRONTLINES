@@ -10,6 +10,12 @@ export function supportAppearance(f:Facility,connector:TrenchState|undefined,hei
   const add=(x:number,y:number,z:number,sx:number,sy:number,sz:number,color:number,angle=frame.angle)=>out.push({x,y,z,sx,sy,sz,color,angle});
   const at=(x:number,z:number)=>{const p=facilityPoint(frame,x,z);return {...p,h:height(p.x,p.z)};};
   const grounded=(x:number,z:number,sx:number,sy:number,sz:number,color:number,offset=0)=>{const p=at(x,z);add(p.x,p.h+offset+sy/2,p.z,sx,sy,sz,color);};
+  if(f.trenchAnchor){
+    // Small revetted firing step built into the parapet, not a detached support building.
+    for(const x of [-1.15,1.15])grounded(x,0,.12,.65,.12,wood);
+    if(progress>0){grounded(0,-.3,1.7,.08,.7,darkWood);for(const side of [-1,1])grounded(side,.1,.28,.5*progress,1.2,0x92886c);grounded(0,.65,1.3,.5*progress,.3,0xaaa080);}
+    return out;
+  }
   // Survey pegs and available material stacks precede structural work.
   if(progress===0){for(const x of [-2.65,2.65])for(const z of [-2.65,2.65])grounded(x,z,.12,.8,.12,0xc1af78);return out;}
   const gun=f.kind==='emplacement'||f.kind==='mortar';

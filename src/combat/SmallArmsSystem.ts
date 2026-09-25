@@ -10,6 +10,7 @@ import type {ShotEvent} from './types';
 import {registerIncoming} from './Reactions';
 import {equipWeapon,weaponReady,WEAPONS} from './Weapons';
 import {combatWound} from './Casualties';
+import {isMountedGun} from './WeaponPositions';
 
 export const RIFLE_RULES=Object.freeze({range:360,shotInterval:3.8,damage:60});
 
@@ -36,9 +37,12 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     for(let x=cx-1;x<=cx+1;x++)for(let z=cz-1;z<=cz+1;z++)for(const s of buckets.get(`${x},${z}`)??[])
       if(factions.get(s.squadId)!==faction&&distance(shooter,s)<definition.range)candidates.push(s);
     candidates.sort((a,b)=>distance(shooter,a)-distance(shooter,b)||a.id-b.id);
-    const target=candidates.find(s=>known.has(s.id)&&canSpot(state,terrain,shooter,s)&&lineOfFire(terrain,shooter,s));
+    const mount=isMountedGun(state,shooter)?state.living?.facilities.find(f=>f.kind==='emplacement'&&f.weaponCrewIds?.includes(shooter.id)):undefined;
+    const inSector=(p:{x:number;z:number})=>!mount||mount.facing===undefined||Math.cos(Math.atan2(p.x-shooter.x,p.z-shooter.z)-mount.facing)>=.34;
+    const target=candidates.find(s=>inSector(s)&&known.has(s.id)&&canSpot(state,terrain,shooter,s)&&lineOfFire(terrain,shooter,s));
     if(!target&&!area){delete shooter.aimTargetId;delete shooter.aimReadyAt;delete combat.aim;continue;}
     const point=area?{...area,y:terrain.heightAt(area.x,area.z)+.8}:aimPoint(terrain,shooter,target!);
+    if(!inSector(point)){combat.pauseReason='Outside mounted gun firing sector';continue;}
     const heading=Math.atan2(point.x-shooter.x,point.z-shooter.z),range=distance(shooter,point),spread=dispersionMultiplier(state,shooter,area?undefined:target)*definition.spread;
     if(range>definition.range)continue;
     // A conservative envelope for fire discipline, bounded by the same physical

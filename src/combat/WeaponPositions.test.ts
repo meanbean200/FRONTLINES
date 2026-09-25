@@ -22,7 +22,7 @@ describe('physical crewed weapon positions',()=>{
   it.each(['player','enemy'] as const)('%s cannot fire an unmounted heavy MG, while BARs stay portable',side=>{
     const state=createOperation('campaign'),q=state.squads.find(q=>q.faction===side&&state.soldiers.some(s=>s.squadId===q.id&&isMountedGun(state,s)))!,gun=positionOperator(state,q.id,'emplacement')!;
     equipWeapon(state,gun);state.elapsed=10;
-    expect(weaponReady(state,gun,state.soldiers)).toBe(false);expect(gun.combat!.pauseReason).toContain('MG nest');
+    expect(weaponReady(state,gun,state.soldiers)).toBe(false);expect(gun.combat!.pauseReason).toContain('MG position');
     const f=preparedPosition(state,q.id,'emplacement');state.elapsed=20;
     expect(weaponReady(state,gun,state.soldiers)).toBe(true);
     f.progress=.99;expect(weaponReady(state,gun,state.soldiers)).toBe(false);f.progress=1;
@@ -36,8 +36,8 @@ describe('physical crewed weapon positions',()=>{
     expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,source).reason).toContain('mortar pit');
     const f=preparedPosition(state,q.id,'mortar');expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,source).accepted).toBe(true);
     sim.issueHold([q.id],side==='enemy');state.elapsed=1;stepSupport(state,sim.terrain);
-    expect(f.weaponSquadId).toBe(q.id);expect(state.operation!.supportMissions![0].stage).toBe('preparing');
-    const ammo=operator.carried!.mortarHE;delete f.weaponSquadId;state.elapsed=16;stepSupport(state,sim.terrain);
+    expect(f.weaponCrewIds).toContain(operator.id);expect(state.operation!.supportMissions![0].stage).toBe('preparing');
+    const ammo=operator.carried!.mortarHE;f.weaponCrewIds=[];state.elapsed=16;stepSupport(state,sim.terrain);
     expect(state.operation!.supportMissions![0].stage).toBe('cancelled');expect(operator.carried!.mortarHE).toBe(ammo);
   });
   it('engineers deliver and build; selected crews walk in, hold their post, save and unmount on a new order',()=>{
@@ -56,10 +56,10 @@ describe('physical crewed weapon positions',()=>{
     expect(weaponPositionReadiness(state,q.id,'emplacement')).toBe('');
     expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);
     for(const n of Object.values(balance(state)))expect(Math.abs(n)).toBeLessThan(1e-6);
-    sim.issueTactical([q.id],'suppress',{x:f.x,z:f.z+100});expect(f.weaponSquadId).toBe(q.id);
-    sim.issueHold([q.id]);expect(f.weaponSquadId).toBe(q.id);expect(weaponPositionReadiness(state,q.id,'emplacement')).toBe('');
+    sim.issueTactical([q.id],'suppress',{x:f.x,z:f.z+100});expect(f.weaponCrewIds).toHaveLength(2);
+    sim.issueHold([q.id]);expect(f.weaponCrewIds).toHaveLength(2);expect(weaponPositionReadiness(state,q.id,'emplacement')).toBe('');
     expect(q.order.intent).toBeUndefined();
-    sim.issueMove([q.id],{x:q.x,z:q.z-20});expect(f.weaponSquadId).toBeUndefined();expect(weaponPositionReadiness(state,q.id,'emplacement')).toContain('Assign');
+    sim.issueMove([q.id],{x:q.x,z:q.z-20});expect(f.weaponCrewIds).toHaveLength(0);expect(weaponPositionReadiness(state,q.id,'emplacement')).toContain('Assign');
   },20000);
   it('refuses cross-faction, wrong equipment, double crew and corrupt save assignments',()=>{
     const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),q=state.squads.find(q=>q.kind==='machinegun'&&q.faction==='player')!,f=preparedPosition(state,q.id,'emplacement');
@@ -67,8 +67,9 @@ describe('physical crewed weapon positions',()=>{
     f.weaponSquadId=enemy.id;expect(()=>new SaveSystem().parse(JSON.stringify(state))).toThrow();
   });
   it('a direct crew order releases the operator from routine digging without deleting the work queue',()=>{
-    const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),q=state.squads.find(q=>q.kind==='mortar'&&q.faction==='player')!,f=preparedPosition(state,q.id,'mortar'),s=positionOperator(state,q.id,'mortar')!;
-    s.duty!.kind='construct';q.constructionQueue=[{kind:'facility',id:f.id}];delete f.weaponSquadId;
-    expect(sim.garrisons.assignWeapon(q.id,f.id).accepted).toBe(true);expect(s.duty).toBeUndefined();expect(q.constructionQueue).toEqual([{kind:'facility',id:f.id}]);
+    const sim=createStudyScenario(),state=sim.state,q=state.squads[0];state.soldiers.find(s=>s.squadId===q.id)!.equipment!.mortar=true;
+    const f=preparedPosition(state,q.id,'mortar'),s=positionOperator(state,q.id,'mortar')!;sim.garrisons.network.sync(state.trenches);
+    s.duty!.kind='construct';q.constructionQueue=[{kind:'facility',id:f.id}];f.weaponCrewIds=[];
+    expect(sim.garrisons.assignWeapon(q.id,f.id).accepted).toBe(true);expect(s.duty?.kind).toBe('watch');expect(q.constructionQueue).toEqual([{kind:'facility',id:f.id}]);
   });
 });

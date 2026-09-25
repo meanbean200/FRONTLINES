@@ -53,6 +53,16 @@ test('pause save/load keeps exact campaign state and manual pause',async({page})
   expect(await page.evaluate(()=>window.__FRONTLINES__.getState())).toEqual(saved);
   await expect(page.locator('[data-speed="0"]')).toHaveClass('active');
 });
+test('a supply decision cannot be obscured by the Position inspector',async({page})=>{
+  await page.goto('/');await page.locator('#sandbox-session').click();await page.locator('[data-speed="0"]').click();
+  await page.locator('.hud-tools>summary').click();await page.locator('#trenches-command').click();await expect(page.locator('#trench-panel')).toBeVisible();
+  await page.evaluate(()=>{const s=window.__FRONTLINES__.getState();s.living!.garrisons[0].cutoff='decision';window.__FRONTLINES__.restoreState(s);});
+  await expect(page.locator('#trench-panel')).toBeHidden();await expect(page.getByRole('button',{name:'Hold & ration',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Hold & ration',exact:true}).click();
+  await page.locator('.garrison-panel>summary').click();
+  if(!await page.locator('#trenches-command').isVisible())await page.locator('.hud-tools>summary').click();
+  await page.locator('#trenches-command').click();await expect(page.locator('#trench-panel')).toBeVisible();
+});
 for(const [width,height] of [[1920,1080],[2560,1440],[1654,910],[1366,768],[1280,720],[1024,768],[2560,1080],[1280,540]]){
   test('full canvas and usable menus at '+width+'×'+height,async({page})=>{
     await page.setViewportSize({width,height});await quick(page);
@@ -62,7 +72,7 @@ for(const [width,height] of [[1920,1080],[2560,1440],[1654,910],[1366,768],[1280
     await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
     await page.locator('.hud-tools>summary').click();await page.locator('#open-build').click();
     await expect(page.locator('#trench-command')).toBeInViewport();
-    await page.locator('[data-build-category="support"]').click();
+    await page.locator('[data-build-category="weapons"]').click();
     await page.locator('[data-build-kind="emplacement"]').scrollIntoViewIfNeeded();await expect(page.locator('[data-build-kind="emplacement"]')).toBeInViewport();
     await page.locator('[data-build-close]').click();
     await page.locator('.hud-tools>summary').click();await page.locator('#roster-toggle').click();

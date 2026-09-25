@@ -80,16 +80,21 @@ export class LogisticsSystem {
             const medical=['medical','mortarHE','mortarSmoke','smokeGrenades'] as const;
             return emergencies+construction+reinforcements*10+(peopleTrip(g)?100:0)+medical.reduce((n,key)=>n+Math.max(0,6-local[key]-g.forwardStock[key]),0)+Math.max(0,80-g.forwardStock.water)+Math.max(0,80-g.forwardStock.food)+(this.state.operation?Math.max(0,count*20-local.ammo-g.forwardStock.ammo)*.3:0);
           };
-          const g=w.garrisons.filter(g=>(g.faction??'player')===side&&!this.reserved.has(g.id)&&g.squadIds.length>0&&(total(g.forwardStock)<config.forwardCapacity||peopleTrip(g))&&demand(g)>0).sort((a,b)=>demand(b)-demand(a)||a.id-b.id)[0];
+          const g=w.garrisons.filter(g=>(g.faction??'player')===side&&!this.reserved.has(g.id)&&(g.squadIds.length>0||this.state.soldiers.some(s=>s.garrisonId===g.id&&s.needs?.life==='active'))&&(total(g.forwardStock)<config.forwardCapacity||peopleTrip(g))&&demand(g)>0).sort((a,b)=>demand(b)-demand(a)||a.id-b.id)[0];
           if(!g)continue;
           const fuel=transfer(rearStock,t.cargo,'fuel',Math.max(0,30-t.fuel));t.cargo.fuel-=fuel;t.fuel+=fuel;
           if(t.fuel<2){t.reason='Depot fuel shortage';continue;}
           const local=localInventory(this.state,g);
           const count=this.state.soldiers.filter(s=>s.garrisonId===g.id&&s.needs?.life!=='dead').length;
           let capacity=Math.min(config.shuttleCapacity-total(t.cargo),config.forwardCapacity-total(g.forwardStock));
+          // Reserve scarce cargo space for an explicit waiting job before routine
+          // stock top-ups. Critical food/water or frontline ammunition still win.
+          const pending=w.facilities.filter(f=>f.garrisonId===g.id&&!f.paid&&f.workOrder?.explicit).reduce((n,f)=>n+Math.max(0,f.materialCost-f.stock.materials),0);
+          const urgent=local.water<count*.5||local.food<count*.5||Boolean(this.state.operation&&local.ammo<count*2);
+          if(pending>local.materials+g.forwardStock.materials&&!urgent)capacity-=transfer(rearStock,t.cargo,'materials',Math.min(capacity,24,pending-local.materials-g.forwardStock.materials));
           for(const key of ['medical','mortarHE','mortarSmoke','smokeGrenades'] as const)capacity-=transfer(rearStock,t.cargo,key,Math.min(capacity,Math.max(0,(key==='medical'?8:6)-g.forwardStock[key]-local[key])));
           const keys=this.state.operation&&local.ammo<count*2?['ammo','water','food','materials','fuel'] as const:['water','food','materials','ammo','fuel'] as const;
-          for(const key of keys){const wanted=key==='materials'?Math.min(24,Math.max(0,32-g.forwardStock.materials-local.materials)):key==='fuel'?0:key==='ammo'?Math.min(90,Math.max(0,(this.state.operation?count*30:5)-g.forwardStock.ammo-local.ammo)):Math.min(55,Math.max(0,100-g.forwardStock[key]));capacity-=transfer(rearStock,t.cargo,key,Math.min(capacity,wanted));}
+          for(const key of keys){const wanted=key==='materials'?Math.min(24,Math.max(0,32-g.forwardStock.materials-local.materials-t.cargo.materials)):key==='fuel'?0:key==='ammo'?Math.min(90,Math.max(0,(this.state.operation?count*30:5)-g.forwardStock.ammo-local.ammo)):Math.min(55,Math.max(0,100-g.forwardStock[key]));capacity-=transfer(rearStock,t.cargo,key,Math.min(capacity,wanted));}
           if(total(t.cargo)===0&&!peopleTrip(g)){t.reason='Depot empty';continue;}
           t.garrisonId=g.id;this.reserved.add(g.id);t.state='loading';t.timer=6;t.reason='Loading forward shipment';
         }
@@ -100,7 +105,8 @@ export class LogisticsSystem {
         t.timer-=dt;if(t.timer>0)continue;
         const stock=t.role==='convoy'?rearStock:assigned?.forwardStock??rearStock;
         const capacity=t.role==='convoy'?config.rearCapacity:config.forwardCapacity;
-        for(const key of RESOURCES)transferBounded(t.cargo,stock,key,t.cargo[key],capacity);
+        let delivered=0;for(const key of RESOURCES)delivered+=transferBounded(t.cargo,stock,key,t.cargo[key],capacity);
+        if(delivered>0&&t.role==='shuttle'&&assigned)assigned.lastDeliveryAt=this.state.elapsed;
         if(total(t.cargo)>0){
           if(t.role==='convoy'){this.depart(t,edge,'returning');t.reason='Rear depot full; returning undelivered cargo';}
           else {t.reason='Destination storage full; remaining cargo retained';t.timer=5;}

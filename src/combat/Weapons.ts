@@ -1,6 +1,6 @@
 import type {BattlefieldState,SoldierState,Vec2} from '../core/types';
 import {equipmentOf} from './Equipment';
-import {isMountedGun,weaponPositionReadiness} from './WeaponPositions';
+import {isMountedGun,positionReadiness} from './WeaponPositions';
 export type WeaponId='m1'|'bar'|'kar98k'|'mg42'|'smg'|'crew-mg';
 export interface WeaponDefinition {id:WeaponId;name:string;range:number;magazine:number;reload:number;interval:number;burst:number;burstGap:number;spread:number;setup:number;crew:number}
 export interface WeaponState {id:WeaponId;loaded:number;reloadUntil:number;setupUntil:number;burstLeft:number;position:Vec2;effectiveUntil?:number;effectivePoint?:Vec2}
@@ -23,11 +23,12 @@ export function weaponReady(state:BattlefieldState,s:SoldierState,active:Soldier
   const w=equipWeapon(state,s),def=WEAPONS[w.id],now=state.elapsed;
   if(Math.hypot(s.x-w.position.x,s.z-w.position.z)>.15){w.position={x:s.x,z:s.z};w.setupUntil=now+def.setup;w.burstLeft=0;}
   if(isMountedGun(state,s)){
-    const reason=weaponPositionReadiness(state,s.squadId,'emplacement');
+    const f=state.living?.facilities.find(f=>f.kind==='emplacement'&&f.weaponCrewIds?.includes(s.id));
+    const reason=f?positionReadiness(state,f):'Assign this gunner to a built MG position';
     if(reason){s.combat!.pauseReason=reason;w.setupUntil=now+def.setup;w.burstLeft=0;return false;}
   }
   if(now<w.setupUntil){s.combat!.pauseReason=`Setting up ${def.name}`;return false;}
-  if(def.crew>1&&active.filter(other=>other.squadId===s.squadId&&other.needs?.life==='active'&&other.action!=='sleeping'&&!other.combat?.careTask&&Math.hypot(other.x-s.x,other.z-s.z)<10&&other.suppression<70).length<def.crew){s.combat!.pauseReason='Weapon crew unavailable';return false;}
+  if(def.crew>1&&active.filter(other=>state.living?.facilities.some(f=>f.weaponCrewIds?.includes(s.id)&&f.weaponCrewIds.includes(other.id))&&other.needs?.life==='active'&&other.action!=='sleeping'&&!other.combat?.careTask&&Math.hypot(other.x-s.x,other.z-s.z)<10&&other.suppression<70).length<def.crew){s.combat!.pauseReason='Weapon crew unavailable';return false;}
   if(w.reloadUntil){
     if(now<w.reloadUntil){s.combat!.pauseReason=`Reloading ${def.name}`;return false;}
     w.loaded=Math.min(def.magazine,Math.floor(s.carried?.ammo??0));w.reloadUntil=0;

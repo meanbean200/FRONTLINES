@@ -10,7 +10,8 @@ import {actionableWeaponReason} from './WeaponReadout';
 import {squadHasEquipment} from '../combat/Equipment';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {initialReserveCapacity} from '../operations/Replacements';
-import {positionOperator,weaponPositionReadiness,type WeaponPositionKind} from '../combat/WeaponPositions';
+import {positionReadiness} from '../combat/WeaponPositions';
+import {facilityName} from '../construction/PositionDefinitions';
 
 export interface PerfSnapshot {fps:number;frameMs:number;simulationMs:number;drawCalls:number;chunks:number;p95Ms?:number}
 interface UIActions {
@@ -57,7 +58,7 @@ export class BattlefieldUI {
     for(const [kind,label] of [['mortarHE','Mortar HE'],['mortarSmoke','Mortar smoke'],['smokeGrenades','Throw smoke']] as const){const b=document.createElement('button');b.dataset.support=kind;b.textContent=label;b.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help){this.actions.support?.(kind);support.open=false;}});support.querySelector('div')!.append(b);}
     const reviews=document.createElement('div');reviews.className='rescue-reviews';support.insertBefore(reviews,support.querySelector('div'));
     const missions=document.createElement('div');missions.className='support-status';support.append(missions);
-    const guide=document.createElement('p');guide.className='support-guide';guide.textContent='1. Build an MG nest or mortar pit. 2. Select a formation carrying that weapon and crew the position below. 3. MGs engage visible targets; mortars fire only on your order (50–900 m, 15 s preparation, one shell). Hold, Observe and Suppress keep the crew assigned. Move or Withdraw leaves the position. BARs remain portable.';support.insertBefore(guide,missions);
+    const guide=document.createElement('p');guide.className='support-guide';guide.textContent='Select a weapon position to manage its crew, ammunition and fire orders.';support.insertBefore(guide,missions);
     const supportButton=document.createElement('button');supportButton.id='support-command';supportButton.innerHTML=fieldIcon('mortar')+'Support';dock.append(supportButton);supportButton.onclick=()=>{support.open=!support.open;};
     const defend=this.root.querySelector<HTMLButtonElement>('#occupy-command')!;
     optional.prepend(defend);
@@ -110,20 +111,8 @@ export class BattlefieldUI {
     const supportKey=JSON.stringify([locked,[...this.selected],mortar,readiness,this.state.operation?.supportMissions?.map(m=>[m.id,m.reason]),this.state.operation?.rescueDecisions,replacements?.reserve.player,replacements?.manifests.length,replacements?.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length,Math.floor(this.state.elapsed)]);
     if(support.open&&supportKey!==this.supportKey){this.supportKey=supportKey;const status=support.querySelector('.support-status')!,reviews=support.querySelector('.rescue-reviews')!;status.replaceChildren();reviews.replaceChildren();
       const build=document.createElement('button');build.textContent='Build weapon positions →';build.disabled=locked;build.onclick=()=>{support.open=false;this.actions.buildWeapons?.();};status.append(build);
-      for(const q of this.state.squads.filter(q=>factionOf(q)==='player'&&(positionOperator(this.state,q.id,'mortar')||positionOperator(this.state,q.id,'emplacement')))){
-        const b=document.createElement('button');b.textContent=`Select ${q.name} · ${positionOperator(this.state,q.id,'mortar')?'mortar':'MG'} equipment`;b.disabled=locked;b.onclick=()=>this.actions.select([q.id]);status.append(b);
-        if(!this.selected.has(q.id))continue;
-        for(const kind of ['emplacement','mortar'] as WeaponPositionKind[]){
-          if(!positionOperator(this.state,q.id,kind))continue;
-          const p=document.createElement('p');p.textContent=weaponPositionReadiness(this.state,q.id,kind)||`${kind==='mortar'?'Mortar':'MG'} crew in position`;status.append(p);
-          for(const f of this.state.living!.facilities.filter(f=>f.kind===kind&&this.state.living!.garrisons.some(g=>g.id===f.garrisonId&&g.faction!=='enemy'))){
-            const row=document.createElement('div'),crew=document.createElement('button'),locate=document.createElement('button');
-            const name=`${kind==='mortar'?'Mortar pit':'MG nest'} ${f.id}`;
-            crew.textContent=f.progress<1?`${name} · building ${Math.floor(f.progress*100)}%`:f.weaponSquadId===q.id?`${name} · assigned`:`Crew ${name}`;
-            crew.disabled=locked||f.progress<1||f.weaponSquadId!==undefined;crew.onclick=()=>this.actions.crewWeapon?.(q.id,f.id);
-            locate.textContent='Locate';locate.setAttribute('aria-label',`Locate ${name}`);locate.onclick=()=>this.actions.focusPosition?.(f.id);row.append(crew,locate);status.append(row);
-          }
-        }
+      for(const f of this.state.living!.facilities.filter(f=>['emplacement','mortar'].includes(f.kind)&&this.state.living!.garrisons.some(g=>g.id===f.garrisonId&&g.faction!=='enemy'))){
+        const b=document.createElement('button');b.textContent=facilityName(this.state,f)+' · '+(positionReadiness(this.state,f)||'READY');b.onclick=()=>{support.open=false;this.actions.focusPosition?.(f.id);};status.append(b);
       }
       if(readiness){const p=document.createElement('p');p.textContent=readiness;status.append(p);}
       for(const mission of this.state.operation?.supportMissions?.filter(m=>this.state.squads.some(q=>q.id===m.squadId&&factionOf(q)==='player')).slice(-3)??[]){const p=document.createElement('p');p.textContent=`${this.state.squads.find(q=>q.id===mission.squadId)?.name} · ${SUPPORT_NAMES[mission.kind]}: ${supportMissionText(mission,this.state.elapsed)}`;status.append(p);}
@@ -243,7 +232,7 @@ export class BattlefieldUI {
     <header class="brand"><strong>FRONTLINES</strong><small>BATTLEFIELD SANDBOX</small></header>
     <nav class="session-controls"><span id="battle-time">00:00</span><div class="sim-controls" aria-label="Simulation speed"><button data-speed="0" title="Pause [Space]">Ⅱ</button><button data-speed="1" class="active">1×</button><button data-speed="2">2×</button><button data-speed="5">5×</button></div><button id="save-command">Save</button><button id="load-command">Load</button><button id="help-toggle" title="Controls">?</button></nav>
     <nav class="battle-tools"><button id="map-expand" title="Operational map [M]">${fieldIcon('map')}Map</button><details class="hud-tools"><summary>Command</summary><button id="roster-toggle" data-hud-panel="force" aria-label="Your force" aria-expanded="false" aria-controls="force-roster">${fieldIcon('force')}Forces</button><button id="defense-toggle">${fieldIcon('defend')}Defense status</button><button id="open-build">${fieldIcon('engineer')}Build</button></details></nav>
-    <section id="selection-docket" class="selection-docket" aria-label="Selected formation" hidden><div id="selection-summary"></div><div class="selection-links"><button data-hud-panel="selection" aria-expanded="false" aria-controls="selection-card">Details</button><button id="selection-orders">Options</button></div></section>
+    <section id="selection-docket" class="selection-docket" aria-label="Selected formation" hidden><small class="selection-level">FORMATION SELECTED</small><div id="selection-summary"></div><div class="selection-links"><button data-hud-panel="selection" aria-expanded="false" aria-controls="selection-card">Details</button><button id="selection-orders">Options</button></div></section>
     <div id="battle-alerts" aria-label="Battlefield alerts"></div>
     <aside id="force-roster" class="force-roster"><div class="roster-heading"><small>YOUR FORCE</small><span id="unit-count"></span></div><button id="rifle-select" class="section-heading">INFANTRY <span>SELECT ALL ↗</span></button><div id="rifle-roster"></div><div class="section-heading engineers-title">ENGINEER TEAMS</div><div id="engineer-roster"></div><p class="roster-help">Double-click a squad to focus.<br>Shift-click to add to selection.</p></aside>
     <div class="mode-label" id="mode-label"></div>

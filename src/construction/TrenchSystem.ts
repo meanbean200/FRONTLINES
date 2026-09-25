@@ -13,6 +13,7 @@ import {atDistance} from '../core/Polyline';
 import {excavatedSpan} from '../core/TrenchGeometry';
 import {SUPPORT_WORKS} from './ConstructionReadout';
 import {squadHasEquipment,hasEquipment} from '../combat/Equipment';
+import {trenchAnchorAt,inlineGeometry,WEAPON_POSITIONS} from './PositionDefinitions';
 
 export const METRES_PER_PERSON=2.5;
 export const ENTRANCE_LENGTH=5;
@@ -31,10 +32,16 @@ export class TrenchSystem {
     if(request.kind==='trench')return this.create(request.points,request.engineerSquadId).id;
     const w=this.state.living,g=w?.garrisons.find(g=>g.id===request.garrisonId);
     const engineers=this.state.squads.filter(q=>squadHasEquipment(this.state,q,'tools')&&g?.squadIds.includes(q.id)&&q.order.type==='occupy-trench');
-    if(!w||!g||!engineers.length||distance(request.origin,request.position)>40)return;
-    const connector=this.create([request.origin,request.position]);connector.width=7.2;connector.progress=.001;connector.status='building';
+    if(!w||!g||distance(request.origin,request.position)>40)return;
     const kind=request.facilityKind,id=this.state.nextEntityId++;
-    w.facilities.push({id,...request.position,garrisonId:g.id,kind,facing:g.front,connectorId:connector.id,progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'||kind==='mortar'?2:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
+    const facing=request.facing??g.front;
+    let connector:TrenchState,anchor:{trenchId:number;along:number}|undefined,position=request.position;
+    if(kind==='emplacement'){
+      const hit=this.state.trenches.map(t=>({t,a:trenchAnchorAt(t,request.origin)})).filter(v=>v.a&&v.a.distance<.3).sort((a,b)=>a.a!.distance-b.a!.distance)[0];
+      if(!hit?.a)return;
+      connector=hit.t;anchor={trenchId:hit.t.id,along:hit.a.along};position=inlineGeometry(hit.t,anchor.along,facing).position;
+    }else{connector=this.create([request.origin,request.position]);connector.width=7.2;connector.progress=.001;connector.status='building';}
+    w.facilities.push({id,...position,garrisonId:g.id,kind,facing,connectorId:connector.id,trenchAnchor:anchor,weaponCrewIds:['emplacement','mortar'].includes(kind)?[]:undefined,workOrder:{explicit:request.explicit??false,workerIds:[],createdAt:this.state.elapsed},progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'||kind==='mortar'?WEAPON_POSITIONS[kind].crew:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
     for(const q of engineers)(q.constructionQueue??=[]).push({kind:'facility',id});
     return id;
   }
@@ -48,9 +55,10 @@ export class TrenchSystem {
     }else{
       const f=this.state.living?.facilities.find(f=>f.id===job.id);if(!f?.paid||f.progress===1)return;
       const t=this.state.trenches.find(t=>t.id===f.connectorId);if(!t)return;
-      if(t.progress<1)this.applyWork({kind:'trench',id:t.id},seconds,rate*.2);
+      if(!f.trenchAnchor&&t.progress<1)this.applyWork({kind:'trench',id:t.id},seconds,rate*.2);
       else f.progress=Math.min(1,f.progress+seconds*rate/90);
       if(f.progress===1)for(const q of this.state.squads)q.constructionQueue=q.constructionQueue?.filter(j=>typeof j==='number'||j.kind!=='facility'||j.id!==f.id);
+      if(f.progress===1&&f.workOrder)f.workOrder.workerIds=[];
     }
   }
 

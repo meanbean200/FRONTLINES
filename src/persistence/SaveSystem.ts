@@ -16,6 +16,8 @@ import {validBuildings} from '../terrain/BuildingValidation';
 import {validOperationalRuntime} from '../operations/OperationalValidation';
 import {isOperationId} from '../operations/OperationDefinitions';
 import {initializeEquipment} from '../combat/Equipment';
+import {migrateWeaponCrews} from '../combat/WeaponPositions';
+import {validPositionState} from '../construction/PositionValidation';
 
 export const SAVE_KEY = 'frontlines-battlefield-v3-world2-4km';
 const V3_KEY = 'frontlines-battlefield-v3';
@@ -85,6 +87,7 @@ export class SaveSystem {
         initializeReplacements(state);
       }
     }
+    migrateWeaponCrews(state);
     state.schemaVersion=3;state.combatRules=RULES_VERSION;
     return state;
   }
@@ -277,7 +280,8 @@ function validLiving(state:BattlefieldState):boolean {
   for(const c of w.crates)if(!point(c)||!stock(c.stock)||c.droppedBy!==undefined&&!sIds.has(c.droppedBy))return false;
   for(const s of state.soldiers){
     const n=s.needs;if(!n||!['active','incapacitated','dead'].includes(n.life)||!['energy','hunger','thirst','hungryHours','thirstyHours','sleepHours','day','watchHours','interruptedSleep','taskChanges'].every(k=>nonnegative(n[k as keyof typeof n]))||n.energy>100||n.hunger>100||n.thirst>100||!stock(s.carried))return false;
-    if(s.garrisonId!==undefined&&!w.garrisons.find(g=>g.id===s.garrisonId)?.squadIds.includes(s.squadId))return false;
+    if(s.personalArea!==undefined&&typeof s.personalArea!=='boolean')return false;
+    if(s.garrisonId!==undefined){const g=w.garrisons.find(g=>g.id===s.garrisonId),q=state.squads.find(q=>q.id===s.squadId);if(!g||!q||(g.faction??'player')!==(q.faction??'player')||!s.personalArea&&!g.squadIds.includes(s.squadId))return false;}
     const d=s.duty;if(d&&(!['watch','patrol','sleep','rest','meal','haul','construct'].includes(d.kind)||!point(d.destination)||!Array.isArray(d.route)||!d.route.every(point)||!Number.isInteger(d.routeIndex)||d.routeIndex<0||d.routeIndex>d.route.length||!nonnegative(d.since)||!nonnegative(d.until)||!nonnegative(d.blockedFor)||(d.arrivedAt!==undefined&&!nonnegative(d.arrivedAt))||(d.patientId!==undefined&&!sIds.has(d.patientId))))return false;
     if(d){
       if(d.playerOrdered!==undefined&&(typeof d.playerOrdered!=='boolean'||d.playerOrdered&&(!['watch','sleep','rest','meal'].includes(d.kind)||state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')))return false;
@@ -293,5 +297,5 @@ function validLiving(state:BattlefieldState):boolean {
       for(const id of [d.facilityId,d.pickupStoreId,d.dropStoreId])if(id!==undefined&&facilities.get(id)?.garrisonId!==s.garrisonId)return false;
     }
   }
-  return true;
+  return validPositionState(state);
 }

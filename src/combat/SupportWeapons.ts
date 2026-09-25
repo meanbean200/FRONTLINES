@@ -7,7 +7,7 @@ import {combatWound} from './Casualties';
 import {registerIncoming} from './Reactions';
 import {signalEngagement} from './Engagement';
 import {equipmentOf,squadHasEquipment} from './Equipment';
-import {weaponPositionReadiness} from './WeaponPositions';
+import {weaponPositionReadiness,assignedWeaponPosition,crewAt} from './WeaponPositions';
 export type SupportKind='mortarHE'|'mortarSmoke'|'smokeGrenades';
 export type SupportSource='PLAYER'|'ENEMY_AI'|'CAMPAIGN_AI'|'SCRIPTED_SCENARIO'|'LEGACY_UNKNOWN';
 export interface SupportRequest {at:number;squadId:number;side:'player'|'enemy';source:SupportSource;kind:SupportKind;target:Vec2;accepted:boolean;reason:string}
@@ -19,7 +19,8 @@ export function supportSourceMatchesSide(side:'player'|'enemy',source:SupportSou
 /** Read-only readiness, shared by command validation, live missions and the HUD. */
 export function supportReadiness(state:BattlefieldState,kind:SupportKind,squadId:number,terrain?:TerrainSystem,checkBusy=true){
   const q=state.squads.find(q=>q.id===squadId),grenade=kind==='smokeGrenades';
-  const people=state.soldiers.filter(s=>s.squadId===squadId&&s.needs?.life==='active');
+  const position=!grenade?assignedWeaponPosition(state,squadId,'mortar'):undefined;
+  const people=(position?crewAt(state,position):state.soldiers.filter(s=>s.squadId===squadId)).filter(s=>s.needs?.life==='active');
   const available=people.filter(s=>s.suppression<70&&s.action!=='sleeping'&&!s.combat?.careTask);
   const operator=grenade?available.find(s=>(s.carried?.[kind]??0)>=1):available.find(s=>equipmentOf(state,s).mortar);
   const crew=available.filter(s=>operator&&distance(s,operator)<12),ammo=crew.reduce((n,s)=>n+(s.carried?.[kind]??0),0);
@@ -29,7 +30,7 @@ export function supportReadiness(state:BattlefieldState,kind:SupportKind,squadId
   else if(!grenade&&!operator)reason='No ready mortar equipment carrier';
   else if(checkBusy&&state.operation.supportMissions?.some(m=>m.squadId===q.id&&['preparing','flight'].includes(m.stage)))reason='Support mission already in progress';
   else if(ammo<1)reason=`No ${SUPPORT_NAMES[kind].toLowerCase()} ammunition`;
-  else if(!grenade&&q.order.type==='move')reason='Team moving · Hold [H] before setting up the mortar';
+  else if(!grenade&&q.order.type==='move'&&!operator?.personalArea)reason='Team moving · Hold [H] before setting up the mortar';
   else if(!pack)reason='Ammunition carrier unavailable: pinned, asleep or treating a casualty';
   else if(!grenade&&crew.length<2)reason='Need 2 ready crew within 12 m · regroup the team';
   else if(!grenade&&terrain&&[pack,...crew].some(s=>{const id=terrain.buildingAt(s);return id!==undefined&&state.buildingChanges?.find(b=>b.id===id)?.condition!=='ruined';}))reason='Mortar needs an open-air position clear of roofs';
@@ -78,7 +79,7 @@ export function stepSupport(state:BattlefieldState,terrain:TerrainSystem):void {
   op.blastEvents=(op.blastEvents??[]).filter(b=>state.elapsed-b.at<1);
   for(const mission of op.supportMissions??[]){
     if(mission.stage==='preparing'){
-      const squad=state.squads.find(q=>q.id===mission.squadId)!,people=state.soldiers.filter(s=>s.squadId===squad.id&&s.needs?.life==='active'&&s.suppression<70&&s.action!=='sleeping'&&!s.combat?.careTask),grenade=mission.kind==='smokeGrenades';
+      const squad=state.squads.find(q=>q.id===mission.squadId)!,people=state.soldiers.filter(s=>(mission.crewIds?.includes(s.id)??s.squadId===squad.id)&&s.needs?.life==='active'&&s.suppression<70&&s.action!=='sleeping'&&!s.combat?.careTask),grenade=mission.kind==='smokeGrenades';
       const operator=people.find(s=>grenade?(mission.crewIds??[]).includes(s.id):equipmentOf(state,s).mortar);
       const pack=people.find(s=>(s.carried?.[mission.kind]??0)>=1&&(!operator||distance(s,operator)<12));
       const ready=supportReadiness(state,mission.kind,mission.squadId,terrain,false);

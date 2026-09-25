@@ -227,9 +227,10 @@ export class CommandInput {
     if(mode!=='facility'||!this.hover||document.documentElement.dataset.menu||document.documentElement.dataset.help||document.documentElement.dataset.fieldMap)return;
     const point=this.options.camera.groundPoint(this.hover.x,this.hover.y);if(!point)return;
     const report=this.options.previewFacility?.(point);if(!report)return;
-    const tint=report.valid?'#dbca96':'#b8796b',outline=[[-2.8,-2.8],[2.8,-2.8],[2.8,2.8],[-2.8,2.8],[-2.8,-2.8]].map(([x,z])=>this.options.camera.project({x:point.x+x,z:point.z+z},.35));
+    const tint=report.valid?'#dbca96':'#b8796b',shape=report.kind==='emplacement'?[[-1.2,-.6],[-1.2,.7],[1.2,.7],[1.2,-.6]]:report.kind==='mortar'?Array.from({length:9},(_,i)=>[Math.sin(i*Math.PI/4)*2.8,Math.cos(i*Math.PI/4)*2.8]):[[-2.8,-2.8],[2.8,-2.8],[2.8,2.8],[-2.8,2.8],[-2.8,-2.8]],angle=report.facing??0,outline=shape.map(([x,z])=>this.options.camera.project({x:report.position.x+x*Math.cos(angle)+z*Math.sin(angle),z:report.position.z-x*Math.sin(angle)+z*Math.cos(angle)},.35));
     this.routePreview.style.display='block';this.routeLine.setAttribute('points',outline.map(p=>`${p.x},${p.y}`).join(' '));this.routeLine.setAttribute('fill',report.valid?'#dbca9630':'#b8796b30');this.routeLine.setAttribute('stroke',tint);this.routeLine.setAttribute('stroke-width','2');this.routeLine.setAttribute('stroke-dasharray','none');this.routeLine.setAttribute('marker-end','none');this.plotted.replaceChildren();
-    if(report.origin){const a=this.options.camera.project(report.origin,.35),b=this.options.camera.project(point,.35),line=document.createElementNS('http://www.w3.org/2000/svg','line');for(const[k,v]of Object.entries({x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:tint,'stroke-width':2,'stroke-dasharray':'5 3'}))line.setAttribute(k,String(v));this.plotted.append(line);}
+    const segment=(a:Vec2,b:Vec2,arrow=false)=>{const aa=this.options.camera.project(a,.35),bb=this.options.camera.project(b,.35),line=document.createElementNS('http://www.w3.org/2000/svg','line');for(const[k,v]of Object.entries({x1:aa.x,y1:aa.y,x2:bb.x,y2:bb.y,stroke:tint,'stroke-width':3,'marker-end':arrow?'url(#plot-arrow)':'none'}))line.setAttribute(k,String(v));this.plotted.append(line);};
+    if(report.kind==='emplacement'){if(report.segment)segment(report.segment[0],report.segment[1]);segment(report.position,{x:report.position.x+Math.sin(angle)*9,z:report.position.z+Math.cos(angle)*9},true);}else if(report.origin)segment(report.origin,report.position);
     this.draft.hidden=false;this.draft.dataset.invalid=String(!report.valid);
     const text=`${report.name.toUpperCase()} / ${report.cost} MATERIALS\n${report.reason}\n${Math.floor(report.materials)} in trench stores · Esc / right-click cancels`;
     if(this.draft.textContent!==text)this.draft.textContent=text;
@@ -240,7 +241,9 @@ export class CommandInput {
     if(individual){
       const people=state.soldiers.filter(s=>s.needs?.life!=='dead'&&state.squads.some(q=>q.id===s.squadId&&q.faction!=='enemy')).map(s=>({s,p:this.options.camera.project(s,1)})).filter(({p})=>p.visible&&Math.hypot(p.x-x,p.y-y)<18).sort((a,b)=>Math.hypot(a.p.x-x,a.p.y-y)-Math.hypot(b.p.x-x,b.p.y-y));
       if(people[0]&&this.options.onInspectPerson?.(people[0].s.id))return;
+      this.options.notify?.('Alt-click a friendly person at closer zoom.');return;
     }
+    const ground=this.options.camera.groundPoint(x,y);if(ground&&this.options.onInspectTrench?.(ground))return;
     let bestId: number | undefined;
     let bestDistance = 32;
     for (const squad of state.squads) {

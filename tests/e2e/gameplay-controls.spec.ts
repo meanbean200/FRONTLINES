@@ -34,7 +34,7 @@ test('support identifies an eligible team within a mixed selection',async({page}
 });
 test('machine-gun inspection separates crew readiness from urgent warnings',async({page})=>{
   await meeting(page);await select(page,'Easy');await expect(page.locator('.crew-readiness')).toBeVisible();await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');
-  await page.locator('[data-speed="1"]').click();await expect(page.locator('.crew-readiness')).toContainText('MG nest',{timeout:12000});await page.locator('[data-speed="0"]').click();
+  await page.locator('[data-speed="1"]').click();await expect(page.locator('.crew-readiness')).toContainText('MG position',{timeout:12000});await page.locator('[data-speed="0"]').click();
 });
 
 // Synthetic saved-world fixtures isolate readiness, not building navigation.
@@ -89,7 +89,7 @@ test('paused Hold updates support readiness without discarding the prepared crew
   await page.keyboard.press('h');
   await expect(page.locator('[data-support="mortarHE"]')).toBeEnabled();
   await expect(page.locator('.support-status')).not.toContainText('Team moving');await expect(page.locator('[data-support="mortarHE"]')).toHaveAttribute('title',/Order one round/);
-  expect(await page.evaluate(id=>{const s=window.__FRONTLINES__.getState();return {order:s.squads.find(q=>q.id===id)!.order.type,assigned:s.soldiers.filter(p=>p.squadId===id&&p.garrisonId!==undefined).length,position:s.living!.facilities.some(f=>f.kind==='mortar'&&f.weaponSquadId===id)};},outside.id)).toEqual({order:'occupy-trench',assigned:8,position:true});
+  expect(await page.evaluate(id=>{const s=window.__FRONTLINES__.getState();return {order:s.squads.find(q=>q.id===id)!.order.type,assigned:s.soldiers.filter(p=>p.squadId===id&&p.garrisonId!==undefined).length,position:s.living!.facilities.some(f=>f.kind==='mortar'&&f.weaponCrewIds?.length===2&&f.weaponCrewIds.every(person=>s.soldiers.find(p=>p.id===person)?.squadId===id))};},outside.id)).toEqual({order:'occupy-trench',assigned:8,position:true});
   expect(await page.evaluate(()=>window.__FRONTLINES__.getState().simSpeed)).toBe(0);
 });
 

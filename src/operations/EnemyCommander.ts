@@ -6,7 +6,7 @@ import {factionOf,type Contact,type OperationMode} from './types';
 import {configuredDefinition} from './BattleSetup';
 import type {OperationalKnowledge} from './OperationalCommander';
 import {squadHasEquipment} from '../combat/Equipment';
-import {weaponPositionReadiness} from '../combat/WeaponPositions';
+import {weaponPositionReadiness,crewAt} from '../combat/WeaponPositions';
 
 export const ENEMY_AI_VERSION=1;
 export const ENEMY_ROLES=['defend','advance','support','flank','withdraw','resupply','search','pinned'] as const;
@@ -43,7 +43,7 @@ export function observeEnemy(state:BattlefieldState):EnemyObservation {
       // Keep the prepared area's support detail in place while its engineers build;
       // the ordinary maneuver groups still receive tactical movement orders.
       const supportDetail=q.order.type==='occupy-trench'&&people.some(s=>s.equipment?.mortar||s.equipment?.weapon==='crew-mg')&&state.living!.garrisons.some(g=>g.squadIds.includes(q.id));
-      return {id:q.id,x:q.x,z:q.z,kind:q.kind,emplaced:supportDetail||state.living!.facilities.some(f=>f.weaponSquadId===q.id),mortarReady:!weaponPositionReadiness(state,q.id,'mortar'),working:q.order.type==='construct-trench'||q.order.type==='occupy-trench'&&squadHasEquipment(state,q,'tools')&&state.living!.facilities.some(f=>f.progress<1&&state.living!.garrisons.some(g=>g.id===f.garrisonId&&g.squadIds.includes(q.id))),supportBusy:op.supportMissions?.some(m=>m.squadId===q.id&&m.stage==='preparing')??false,mortar:squadHasEquipment(state,q,'mortar'),mortarAmmo:people.reduce((n,s)=>n+(s.carried?.mortarHE??0),0),automatic:squadHasEquipment(state,q,'automatic'),effectiveUntil:Math.max(0,...people.map(s=>s.combat?.weapon?.effectiveUntil??0)),able:people.length,initial:q.soldierIds.length,health:mean(s=>s.health),morale:mean(s=>s.morale),energy:mean(s=>s.needs!.energy),suppression:mean(s=>s.suppression),ammo:mean(s=>s.carried?.ammo??0),moving:q.order.type==='move',planning:q.movementState==='planning',orderTarget:q.order.target?{...q.order.target}:undefined};
+      return {id:q.id,x:q.x,z:q.z,kind:q.kind,emplaced:supportDetail||state.living!.facilities.some(f=>crewAt(state,f).some(s=>s.squadId===q.id)),mortarReady:!weaponPositionReadiness(state,q.id,'mortar'),working:q.order.type==='construct-trench'||q.order.type==='occupy-trench'&&squadHasEquipment(state,q,'tools')&&state.living!.facilities.some(f=>f.progress<1&&state.living!.garrisons.some(g=>g.id===f.garrisonId&&g.squadIds.includes(q.id))),supportBusy:op.supportMissions?.some(m=>m.squadId===q.id&&m.stage==='preparing')??false,mortar:squadHasEquipment(state,q,'mortar'),mortarAmmo:people.reduce((n,s)=>n+(s.carried?.mortarHE??0),0),automatic:squadHasEquipment(state,q,'automatic'),effectiveUntil:Math.max(0,...people.map(s=>s.combat?.weapon?.effectiveUntil??0)),able:people.length,initial:q.soldierIds.length,health:mean(s=>s.health),morale:mean(s=>s.morale),energy:mean(s=>s.needs!.energy),suppression:mean(s=>s.suppression),ammo:mean(s=>s.carried?.ammo??0),moving:q.order.type==='move',planning:q.movementState==='planning',orderTarget:q.order.target?{...q.order.target}:undefined};
     }).filter(q=>q.able>0),
     contacts:(op.intelligence?.command.enemy??op.contacts?.enemy??[]).filter(c=>c.active&&state.elapsed-c.lastSeen<=12).map(c=>({...c})),
     // Flag ownership is public to both players. Enemy-owned caches are finite friendly stock.
