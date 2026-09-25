@@ -7,6 +7,7 @@ import {combatWound} from './Casualties';
 import {registerIncoming} from './Reactions';
 import {signalEngagement} from './Engagement';
 import {equipmentOf,squadHasEquipment} from './Equipment';
+import {weaponPositionReadiness} from './WeaponPositions';
 export type SupportKind='mortarHE'|'mortarSmoke'|'smokeGrenades';
 export type SupportSource='PLAYER'|'ENEMY_AI'|'CAMPAIGN_AI'|'SCRIPTED_SCENARIO'|'LEGACY_UNKNOWN';
 export interface SupportRequest {at:number;squadId:number;side:'player'|'enemy';source:SupportSource;kind:SupportKind;target:Vec2;accepted:boolean;reason:string}
@@ -32,6 +33,7 @@ export function supportReadiness(state:BattlefieldState,kind:SupportKind,squadId
   else if(!pack)reason='Ammunition carrier unavailable: pinned, asleep or treating a casualty';
   else if(!grenade&&crew.length<2)reason='Need 2 ready crew within 12 m · regroup the team';
   else if(!grenade&&terrain&&[pack,...crew].some(s=>{const id=terrain.buildingAt(s);return id!==undefined&&state.buildingChanges?.find(b=>b.id===id)?.condition!=='ruined';}))reason='Mortar needs an open-air position clear of roofs';
+  else if(!grenade&&weaponPositionReadiness(state,squadId,'mortar'))reason=weaponPositionReadiness(state,squadId,'mortar');
   const crewIds=[...new Set([operator?.id,pack?.id,...crew.map(s=>s.id)].filter((id):id is number=>id!==undefined))].slice(0,grenade?1:2);
   return {ammo:Math.floor(ammo),crew:crew.length,reason,operatorId:operator?.id,crewIds};
 }

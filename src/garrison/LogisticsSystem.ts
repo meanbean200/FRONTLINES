@@ -55,7 +55,12 @@ export class LogisticsSystem {
       if(t.state==='idle'){
         if(t.role==='shuttle'&&total(t.cargo)>0){for(const key of RESOURCES)transferBounded(t.cargo,rearStock,key,t.cargo[key],config.rearCapacity);if(total(t.cargo)>0){t.reason='Depot full; returned cargo retained';continue;}}
         if(t.role==='convoy'){
-          if(this.state.elapsed<(enemy?.nextDelivery??w.nextDelivery))continue;
+          if(this.state.elapsed<(enemy?.nextDelivery??w.nextDelivery)){
+            const passengers=this.state.operation?.campaign?.replacements?.manifests.some(m=>m.side===side&&m.stage==='edge');
+            if(passengers&&t.fuel>=2){t.state='loading';t.timer=8;t.reason='Reserve passengers boarding · supplies remain scheduled';}
+            else if(passengers)t.reason='Reserve transport waiting for scheduled fuel delivery';
+            continue;
+          }
           // A manifest enters the world at the map edge, never at the depot.
           if(total(config.manifest)>config.convoyCapacity){t.reason='Manifest exceeds convoy capacity';continue;}
           // Returned, undelivered stock stays aboard. A later scheduled delivery

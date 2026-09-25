@@ -9,6 +9,7 @@ import {coordinateMovement} from './Cooperation';
 import {equipWeapon} from './Weapons';
 import {prepareActions} from './Reactions';
 import {requestSupport} from './SupportWeapons';
+import {preparedPosition} from './testing/PositionFixture';
 describe('combat overhaul release regressions',()=>{
   it('spreading fast-forward across browser frames preserves every fixed tick',()=>{
     const initial=createPlayableSandbox(),a=new BattlefieldSimulation(structuredClone(initial)),b=new BattlefieldSimulation(structuredClone(initial));a.setSpeed(5);b.setSpeed(5);
@@ -21,6 +22,7 @@ describe('combat overhaul release regressions',()=>{
   });
   it('support owns crew actions while preparing, but cannot override physical pinning',()=>{
     const s=createOperation('campaign'),sim=new BattlefieldSimulation(s),q=s.squads.find(q=>q.kind==='mortar'&&q.faction==='player')!,crew=s.soldiers.filter(p=>p.squadId===q.id);q.x=crew[0].x;q.z=crew[0].z;
+    preparedPosition(s,q.id,'mortar');
     expect(requestSupport(s,'mortarSmoke',q.id,{x:q.x+100,z:q.z}).accepted).toBe(true);prepareActions(s,sim.terrain,sim.navigation,.05);expect(crew.filter(p=>p.combat?.owner==='support')).toHaveLength(2);expect(new SaveSystem().parse(JSON.stringify(s)).operation!.supportMissions).toEqual(s.operation!.supportMissions);crew[0].suppression=90;prepareActions(s,sim.terrain,sim.navigation,.05);expect(crew[0].combat?.reaction).toBe('pinned');
   });
   it('unrelated supporting fire cannot authorize an advance',()=>{

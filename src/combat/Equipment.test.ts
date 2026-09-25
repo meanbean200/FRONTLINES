@@ -8,6 +8,7 @@ import {requestSupport,stepSupport,supportReadiness} from './SupportWeapons';
 import {SaveSystem} from '../persistence/SaveSystem';
 import {observeEnemy} from '../operations/EnemyCommander';
 import {balance} from '../garrison/Inventory';
+import {preparedPosition} from './testing/PositionFixture';
 describe('equipment, not classes',()=>{
   it('takes the rest of a mixed formation along to cover its tool carriers, without inventing additional workers',()=>{
     const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),q=state.squads[0],people=state.soldiers.filter(s=>s.squadId===q.id);
@@ -22,7 +23,7 @@ describe('equipment, not classes',()=>{
     expect(squadHasEquipment(state,q,'tools')).toBe(false);q.kind='engineer';expect(squadHasEquipment(state,q,'tools')).toBe(false);
     q.kind='rifle';s.equipment!.weapon='crew-mg';s.equipment!.tools=true;
     expect(squadHasEquipment(state,q,'automatic')).toBe(true);expect(squadHasEquipment(state,q,'tools')).toBe(true);
-    expect(equipWeapon(state,s).id).toBe('crew-mg');state.elapsed=10;expect(weaponReady(state,s,state.soldiers)).toBe(true);
+    expect(equipWeapon(state,s).id).toBe('crew-mg');preparedPosition(state,q.id,'emplacement');state.elapsed=10;expect(weaponReady(state,s,state.soldiers)).toBe(true);
     const id=sim.createTrench([{x:-1400,z:-1400},{x:-1370,z:-1400}],q.id);expect(id).toBeDefined();expect(q.order.type).toBe('construct-trench');
     s.equipment!.tools=false;expect(squadHasEquipment(state,q,'tools')).toBe(false);
   });
@@ -48,6 +49,7 @@ describe('equipment, not classes',()=>{
     const people=state.soldiers.filter(s=>s.squadId===q.id),carrier=people.find(s=>s.equipment!.mortar)!;
     vi.spyOn(sim.terrain,'buildingAt').mockReturnValue(undefined);vi.spyOn(sim.terrain.objects,'trace').mockReturnValue({clear:true,transmission:1});
     people.forEach((s,i)=>{s.x=q.x+i;s.z=q.z;});const target={x:q.x+150,z:q.z};
+    preparedPosition(state,q.id,'mortar');
     expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,'ENEMY_AI').accepted).toBe(false);
     expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,'CAMPAIGN_AI').accepted).toBe(false);
     const before=carrier.carried!.mortarHE;expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,'PLAYER').accepted).toBe(true);
@@ -56,6 +58,7 @@ describe('equipment, not classes',()=>{
     expect(new SaveSystem().parse(JSON.stringify(state)).operation!.supportMissions).toEqual(state.operation!.supportMissions);
     const enemy=state.squads.find(q=>q.faction==='enemy'&&squadHasEquipment(state,q,'mortar'))!,ep=state.soldiers.filter(s=>s.squadId===enemy.id);ep.forEach((s,i)=>{s.x=enemy.x+i;s.z=enemy.z;});
     const report={soldierId:state.soldiers[0].id,squadId:q.id,x:enemy.x+150,z:enemy.z,lastSeen:state.elapsed,visible:false,active:true};
+    preparedPosition(state,enemy.id,'mortar');
     expect(requestSupport(state,'mortarHE',enemy.id,report,false,sim.terrain,'ENEMY_AI').reason).toContain('report');
     state.operation!.contacts={player:[],enemy:[report]};
     expect(observeEnemy(state).squads.find(q=>q.id===enemy.id)?.mortar).toBe(true);

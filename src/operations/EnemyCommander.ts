@@ -6,6 +6,7 @@ import {factionOf,type Contact,type OperationMode} from './types';
 import {configuredDefinition} from './BattleSetup';
 import type {OperationalKnowledge} from './OperationalCommander';
 import {squadHasEquipment} from '../combat/Equipment';
+import {weaponPositionReadiness} from '../combat/WeaponPositions';
 
 export const ENEMY_AI_VERSION=1;
 export const ENEMY_ROLES=['defend','advance','support','flank','withdraw','resupply','search','pinned'] as const;
@@ -22,6 +23,7 @@ export interface OwnSquad extends Vec2 {
   kind?:import('../core/types').SquadKind;effectiveUntil?:number;
   mortar?:boolean;mortarAmmo?:number;automatic?:boolean;
   working?:boolean;supportBusy?:boolean;
+  emplaced?:boolean;mortarReady?:boolean;
 }
 export interface KnownObjective extends Vec2 {id:string;radius:number;owner:'player'|'enemy'|'neutral';contested:boolean;ammo:number}
 export interface EnemyObservation {
@@ -38,7 +40,10 @@ export function observeEnemy(state:BattlefieldState):EnemyObservation {
     squads:state.squads.filter(q=>factionOf(q)==='enemy').map(q=>{
       const people=state.soldiers.filter(s=>s.squadId===q.id&&s.health>0&&s.needs?.life==='active');
       const mean=(f:(s:typeof people[number])=>number)=>people.reduce((n,s)=>n+f(s),0)/Math.max(1,people.length);
-      return {id:q.id,x:q.x,z:q.z,kind:q.kind,working:q.order.type==='construct-trench',supportBusy:op.supportMissions?.some(m=>m.squadId===q.id&&m.stage==='preparing')??false,mortar:squadHasEquipment(state,q,'mortar'),mortarAmmo:people.reduce((n,s)=>n+(s.carried?.mortarHE??0),0),automatic:squadHasEquipment(state,q,'automatic'),effectiveUntil:Math.max(0,...people.map(s=>s.combat?.weapon?.effectiveUntil??0)),able:people.length,initial:q.soldierIds.length,health:mean(s=>s.health),morale:mean(s=>s.morale),energy:mean(s=>s.needs!.energy),suppression:mean(s=>s.suppression),ammo:mean(s=>s.carried?.ammo??0),moving:q.order.type==='move',planning:q.movementState==='planning',orderTarget:q.order.target?{...q.order.target}:undefined};
+      // Keep the prepared area's support detail in place while its engineers build;
+      // the ordinary maneuver groups still receive tactical movement orders.
+      const supportDetail=q.order.type==='occupy-trench'&&people.some(s=>s.equipment?.mortar||s.equipment?.weapon==='crew-mg')&&state.living!.garrisons.some(g=>g.squadIds.includes(q.id));
+      return {id:q.id,x:q.x,z:q.z,kind:q.kind,emplaced:supportDetail||state.living!.facilities.some(f=>f.weaponSquadId===q.id),mortarReady:!weaponPositionReadiness(state,q.id,'mortar'),working:q.order.type==='construct-trench'||q.order.type==='occupy-trench'&&squadHasEquipment(state,q,'tools')&&state.living!.facilities.some(f=>f.progress<1&&state.living!.garrisons.some(g=>g.id===f.garrisonId&&g.squadIds.includes(q.id))),supportBusy:op.supportMissions?.some(m=>m.squadId===q.id&&m.stage==='preparing')??false,mortar:squadHasEquipment(state,q,'mortar'),mortarAmmo:people.reduce((n,s)=>n+(s.carried?.mortarHE??0),0),automatic:squadHasEquipment(state,q,'automatic'),effectiveUntil:Math.max(0,...people.map(s=>s.combat?.weapon?.effectiveUntil??0)),able:people.length,initial:q.soldierIds.length,health:mean(s=>s.health),morale:mean(s=>s.morale),energy:mean(s=>s.needs!.energy),suppression:mean(s=>s.suppression),ammo:mean(s=>s.carried?.ammo??0),moving:q.order.type==='move',planning:q.movementState==='planning',orderTarget:q.order.target?{...q.order.target}:undefined};
     }).filter(q=>q.able>0),
     contacts:(op.intelligence?.command.enemy??op.contacts?.enemy??[]).filter(c=>c.active&&state.elapsed-c.lastSeen<=12).map(c=>({...c})),
     // Flag ownership is public to both players. Enemy-owned caches are finite friendly stock.
@@ -102,6 +107,7 @@ export function commandEnemy(o:EnemyObservation,terrain:Ground,previous?:EnemyMe
     const weak=q.able<3||q.morale<25||q.energy<18||q.health<32;
     const shock=q.able<=q.initial*.45&&nearest<145;
     const emergency=(weak||shock)&&nearest<180||q.ammo<4&&nearest<145||q.suppression>72;
+    if(q.emplaced&&!emergency)continue;
     if(old){
       old.stalledFor=!q.planning&&distance(q,old.goal)>6&&distance(q,old.lastPosition)<.6?old.stalledFor+3:0;
       old.lastPosition=point(q);

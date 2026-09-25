@@ -4,11 +4,13 @@ import {requestSupport,type SupportRequest,type SupportSource} from './SupportWe
 import {SaveSystem} from '../persistence/SaveSystem';
 import {TerrainSystem} from '../terrain/TerrainSystem';
 import {RULES_VERSION} from '../garrison/GarrisonPolicy';
+import {preparedPosition} from './testing/PositionFixture';
 
 function fixture(){
   const state=createOperationalBattle('meeting'),terrain=new TerrainSystem(state);
   const q=state.squads.find(q=>q.faction==='player'&&state.soldiers.some(s=>s.squadId===q.id&&s.equipment?.mortar))!;
   const enemy=state.squads.find(q=>q.faction==='enemy')!;
+  preparedPosition(state,q.id,'mortar');
   return {state,terrain,q,enemy,target:{x:q.x,z:q.z+200}};
 }
 const row=(squadId:number,side:'player'|'enemy',source:SupportSource):SupportRequest=>({at:0,squadId,side,source,kind:'mortarHE',target:{x:100,z:100},accepted:false,reason:'No ammunition'});

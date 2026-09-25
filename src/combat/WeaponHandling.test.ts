@@ -3,11 +3,13 @@ import {createOperation} from '../operations/createOperation';
 import {TerrainSystem} from '../terrain/TerrainSystem';
 import {fireSmallArms} from './SmallArmsSystem';
 import {equipWeapon} from './Weapons';
+import {preparedPosition} from './testing/PositionFixture';
 
 function fixture(){
   const state=createOperation('meeting'),terrain=new TerrainSystem(state),q=state.squads.find(q=>q.faction!=='enemy'&&state.soldiers.some(s=>s.squadId===q.id&&s.equipment?.weapon==='crew-mg'))!;
   const crew=state.soldiers.filter(s=>s.squadId===q.id).sort((a,b)=>Number(b.equipment?.weapon==='crew-mg')-Number(a.equipment?.weapon==='crew-mg'));crew.forEach((s,i)=>{s.x=i;s.z=0;s.nextShotAt=100;});
   const tick=(at:number)=>{state.elapsed=state.operation!.elapsed=at;fireSmallArms(state,terrain,crew,new Map([[q.id,'player']]),()=>{});};
+  preparedPosition(state,q.id,'emplacement');
   return {state,crew,tick};
 }
 describe('weapon handling is independent of firing cooldown',()=>{

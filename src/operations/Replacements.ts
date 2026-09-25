@@ -14,7 +14,32 @@ export interface ReplacementManifest {
 }
 export interface ReplacementSystem {
   reserve:Record<Faction,number>;nextAt:Record<Faction,number>;
+  /** Shared daily dispatch allowance for requested squads and automatic loss replacement. */
+  dispatchAt?:Partial<Record<Faction,number>>;
   establishment:{squadId:number;strength:number}[];manifests:ReplacementManifest[];
+}
+export function reserveDispatchAt(r:ReplacementSystem,side:Faction):number{
+  // Older saves predate the explicit shared cooldown, but retain their release ledger.
+  const previous=r.manifests.filter(m=>m.side===side&&!m.returning).map(m=>m.releasedAt+24);
+  return Math.max(r.dispatchAt?.[side]??0,...previous);
+}
+/** Reserve personnel become visible soldiers only after physical truck unloading. */
+export function requestReserveSquad(state:BattlefieldState,garrisonId:number):{accepted:boolean;reason:string}{
+  const r=state.operation?.campaign?.replacements,w=state.living,g=w?.garrisons.find(g=>g.id===garrisonId&&g.faction!=='enemy');
+  const reject=(reason:string)=>({accepted:false,reason});
+  if(!r||!w||state.operation?.status!=='active')return reject('Extra troops are available only in open-ended campaigns.');
+  if(!g||g.cutoff==='withdraw'||!g.squadIds.length)return reject('Choose an occupied friendly trench as the arrival area.');
+  if(r.reserve.player<8)return reject('Need 8 personnel remaining in the finite reserve pool.');
+  if(w.campaignHours<reserveDispatchAt(r,'player'))return reject(`Next dispatch in ${(reserveDispatchAt(r,'player')-w.campaignHours).toFixed(1)} campaign hours.`);
+  const occupied=state.soldiers.filter(s=>s.garrisonId===g.id&&s.needs?.life!=='dead').length;
+  const incoming=r.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived'&&!m.returning&&g.squadIds.includes(m.squadId)).length;
+  if(g.capacity<occupied+incoming+8)return reject('This trench needs room for 8 more people. Expand it or choose another area.');
+  const id=state.nextEntityId++,name=`Reserve ${state.squads.filter(q=>q.faction!=='enemy'&&q.name.startsWith('Reserve ')).length+1}`;
+  state.squads.push({id,name,kind:'rifle',faction:'player',soldierIds:[],...w.rear,order:{type:'occupy-trench',trenchId:g.trenchId,issuedAt:state.elapsed},route:[],routeIndex:0,movementState:'entrenching',orderNote:'Inbound by truck · not yet on the battlefield'});
+  g.squadIds.push(id);r.establishment.push({squadId:id,strength:8});
+  for(let i=0;i<8;i++)r.manifests.push({id:state.nextEntityId++,side:'player',squadId:id,personId:state.nextEntityId++,returning:false,stage:'edge',stock:inventory(),releasedAt:w.campaignHours});
+  r.reserve.player-=8;(r.dispatchAt??={}).player=w.campaignHours+24;r.nextAt.player=w.campaignHours+24;
+  return {accepted:true,reason:`${name}: 8 riflemen requested. Next available convoy → rear depot → truck to ${g.name}.`};
 }
 /** Configured capacity is immutable as reserves are spent. Pre-setup campaigns
  * and V2 factory scenarios without setup used the original 48-person pool. */
@@ -31,9 +56,9 @@ export function initializeReplacements(state:BattlefieldState):void {
 export function stepReplacements(state:BattlefieldState,dt:number):void {
   const r=state.operation?.campaign?.replacements,w=state.living;if(!r||!w)return;
   for(const side of ['player','enemy'] as const){
-    if(w.campaignHours>=r.nextAt[side]){
+    if(w.campaignHours>=r.nextAt[side]&&w.campaignHours>=(r.dispatchAt?.[side]??0)){
       // No accumulated wave after a loaded clock jump, and no army growth.
-      r.nextAt[side]=w.campaignHours+24;let allowance=Math.min(8,r.reserve[side]);
+      r.nextAt[side]=w.campaignHours+24;let allowance=Math.min(8,r.reserve[side]),released=0;
       for(const row of r.establishment){
         const q=state.squads.find(q=>q.id===row.squadId&&(q.faction??'player')===side);if(!q)continue;
         const alive=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life!=='dead').length;
@@ -41,8 +66,9 @@ export function stepReplacements(state:BattlefieldState,dt:number):void {
         const count=Math.min(allowance,Math.max(0,row.strength-alive-pending));
         const losses=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life==='dead'&&!r.manifests.some(m=>m.replacesId===s.id));
         for(let i=0;i<count;i++)r.manifests.push({id:state.nextEntityId++,side,squadId:q.id,personId:state.nextEntityId++,returning:false,stage:'edge',stock:inventory(),releasedAt:w.campaignHours,replacesId:losses[i]?.id});
-        allowance-=count;r.reserve[side]-=count;
+        allowance-=count;r.reserve[side]-=count;released+=count;
       }
+      if(released)(r.dispatchAt??={})[side]=w.campaignHours+24;
     }
   }
   for(const s of state.soldiers){
@@ -77,6 +103,8 @@ export function stepReplacements(state:BattlefieldState,dt:number):void {
       else {delete person.combat!.wound;delete person.combat!.careTask;person.health=100;person.needs=freshNeeds();person.suppression=0;person.morale=Math.max(60,person.morale);}
       for(const key of RESOURCES)transfer(m.stock,person.carried!,key,m.stock[key]);
       person.ammunition=person.carried!.ammo;person.x=truck.x;person.z=truck.z;person.garrisonId=g.id;person.action='arriving replacement';delete person.duty;
+      const arrivedSquad=state.squads.find(q=>q.id===m.squadId)!;delete arrivedSquad.orderNote;
+      if(arrivedSquad.soldierIds.length===1){arrivedSquad.x=truck.x;arrivedSquad.z=truck.z;}
       // New arrivals bring one ordinary rifle, not cloned heavy equipment from
       // a casualty elsewhere. Returning people retain their original kit.
       person.posture='standing';

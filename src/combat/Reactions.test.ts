@@ -4,6 +4,7 @@ import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {prepareActions} from './Reactions';
 import {equipWeapon,weaponReady,WEAPONS} from './Weapons';
 import {SaveSystem} from '../persistence/SaveSystem';
+import {preparedPosition} from './testing/PositionFixture';
 function setup(){const state=createOperation('advance'),sim=new BattlefieldSimulation(state),s=state.soldiers[0],q=state.squads[0];state.operation!.nextOrders=1e9;for(const p of state.soldiers)p.nextShotAt=1e9;return{state,sim,s,q};}
 describe('human reactions and action authority',()=>{
   it('pinning pauses a persistent drawn order, defeats push-through, then resumes',()=>{
@@ -34,7 +35,7 @@ describe('finite weapons',()=>{
   });
   it('machine guns need a present crew and setup, not nationality bonuses',()=>{
     const {state}=setup(),q=state.squads.find(q=>q.faction==='enemy')!,team=state.soldiers.filter(s=>s.squadId===q.id),gunner=team[1],w=equipWeapon(state,gunner);
-    expect(w.id).toBe('mg42');state.elapsed=10;expect(weaponReady(state,gunner,[gunner])).toBe(false);expect(weaponReady(state,gunner,team)).toBe(true);
+    expect(w.id).toBe('mg42');preparedPosition(state,q.id,'emplacement');state.elapsed=10;expect(weaponReady(state,gunner,[gunner])).toBe(false);expect(weaponReady(state,gunner,team)).toBe(true);
     gunner.x+=1;expect(weaponReady(state,gunner,team)).toBe(false);expect(w.setupUntil).toBe(13);
   });
 });

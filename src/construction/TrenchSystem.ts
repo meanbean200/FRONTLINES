@@ -34,7 +34,7 @@ export class TrenchSystem {
     if(!w||!g||!engineers.length||distance(request.origin,request.position)>40)return;
     const connector=this.create([request.origin,request.position]);connector.width=7.2;connector.progress=.001;connector.status='building';
     const kind=request.facilityKind,id=this.state.nextEntityId++;
-    w.facilities.push({id,...request.position,garrisonId:g.id,kind,facing:g.front,connectorId:connector.id,progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'?3:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
+    w.facilities.push({id,...request.position,garrisonId:g.id,kind,facing:g.front,connectorId:connector.id,progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'||kind==='mortar'?2:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
     for(const q of engineers)(q.constructionQueue??=[]).push({kind:'facility',id});
     return id;
   }

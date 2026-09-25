@@ -14,6 +14,7 @@ import {insideWorld} from '../terrain/WorldLayout';
 import {distance,type BattlefieldState,type Vec2} from '../core/types';
 import type {Faction} from './types';
 import {stepReplacements} from './Replacements';
+import {preparedPosition} from '../combat/testing/PositionFixture';
 
 function move(state:BattlefieldState,side:Faction,p:Vec2,limit=1000){
   const squads=state.squads.filter(q=>q.faction===side&&q.kind==='rifle').slice(0,limit);
@@ -156,6 +157,8 @@ describe('information firewall and persistence',()=>{
     const state=createOperation('open-front'),terrain=new TerrainSystem(state),before=commandOperationalEnemy(observeEnemy(state),terrain);
     expect(before.support).toBeUndefined();
     const q=state.squads[0],mortar=state.soldiers.find(s=>s.equipment?.mortar&&state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')!,target={x:mortar.x+200,z:mortar.z};state.operation!.contacts={player:[],enemy:[{soldierId:q.soldierIds[0],squadId:q.id,...target,lastSeen:0,visible:false,active:true,status:'last-reported'}]};
+    expect(commandOperationalEnemy(observeEnemy(state),terrain).support).toBeUndefined();
+    preparedPosition(state,mortar.squadId,'mortar');
     const after=commandOperationalEnemy(observeEnemy(state),terrain);expect(after.support?.target).toEqual(target);
     expect(commandOperationalEnemy(observeEnemy(state),terrain,after.memory,after.commander).support).toBeUndefined();
   });

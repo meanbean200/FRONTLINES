@@ -1,5 +1,6 @@
 import {test,expect,type Page} from '@playwright/test';
 import {buildingsForSeed} from '../../src/terrain/WorldFeatures';
+import {preparedPosition} from '../../src/combat/testing/PositionFixture';
 
 async function meeting(page:Page){
   await page.goto('/');await page.locator('#choose-operation').click();await page.locator('[data-mode-choice="meeting"]').click();await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
@@ -22,25 +23,25 @@ test('Add troops is a normal sandbox action with repeatable batch placement',asy
   await page.locator('#deployment-command').click();await page.locator('.hud-tools summary').click();await page.locator('#open-build').click();await expect(page.locator('#deployment-panel')).toBeHidden();
 });
 test('finite operations explain reserves without offering sandbox spawning',async({page})=>{
-  await meeting(page);const before=await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length);await page.getByRole('button',{name:'Reserves',exact:true}).click();
+  await meeting(page);const before=await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length);await page.getByRole('button',{name:'Reinforcements',exact:true}).click();
   await expect(page.locator('.operation-topline')).toContainText('Meeting Engagement');await expect(page.locator('.operation-topline')).toContainText('NO TIME LIMIT');
-  await expect(page.locator('.deployment-status')).toContainText('finite-force');await expect(page.locator('[data-deploy="rifle"]')).toBeHidden();
+  await expect(page.locator('.deployment-status')).toContainText('Finite-force');await expect(page.locator('[data-deploy="rifle"]')).toBeHidden();
   await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length)).toBe(before);
 });
 test('support identifies an eligible team within a mixed selection',async({page})=>{
   await meeting(page);await select(page,'Able');await page.locator('#support-command').click();await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();await expect(page.locator('.support-status')).toContainText('mortar equipment');
-  await select(page,'Fox',true);await expect(page.locator('[data-support="mortarHE"]')).toBeEnabled();await expect(page.locator('[data-support="mortarHE"]')).toContainText('12');
+  await select(page,'Fox',true);await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();await expect(page.locator('[data-support="mortarHE"]')).toContainText('12');await expect(page.locator('[data-support="mortarHE"]')).toHaveAttribute('title',/built mortar pit/);
 });
 test('machine-gun inspection separates crew readiness from urgent warnings',async({page})=>{
   await meeting(page);await select(page,'Easy');await expect(page.locator('.crew-readiness')).toBeVisible();await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');
-  await page.locator('[data-speed="1"]').click();await expect(page.locator('.crew-readiness')).toContainText('watching sector',{timeout:12000});await page.locator('[data-speed="0"]').click();
+  await page.locator('[data-speed="1"]').click();await expect(page.locator('.crew-readiness')).toContainText('MG nest',{timeout:12000});await page.locator('[data-speed="0"]').click();
 });
 
 // Synthetic saved-world fixtures isolate readiness, not building navigation.
 // They use real generated roof geometry and the normal validated restore path.
 async function placeMortar(page:Page,underRoof:boolean,moving=false){
   const building=buildingsForSeed(1944)[0];
-  return page.evaluate(({building,underRoof,moving})=>{
+  const result=await page.evaluate(({building,underRoof,moving})=>{
     const state=window.__FRONTLINES__.getState(),operator=state.soldiers.find(s=>s.equipment?.mortar&&state.squads.find(q=>q.id===s.squadId)?.faction==='player')!;
     const q=state.squads.find(q=>q.id===operator.squadId)!,crew=state.soldiers.filter(s=>s.squadId===q.id);
     q.x=building.x;q.z=building.z+(underRoof?0:building.depth/2+6);
@@ -50,6 +51,8 @@ async function placeMortar(page:Page,underRoof:boolean,moving=false){
     window.__FRONTLINES__.restoreState(state);
     return {name:q.name,id:q.id,target:{x:q.x+70,z:q.z}};
   },{building,underRoof,moving});
+  if(!underRoof){const state=await page.evaluate(()=>window.__FRONTLINES__.getState());preparedPosition(state,result.id,'mortar');await page.evaluate(state=>window.__FRONTLINES__.restoreState(state),state);}
+  return result;
 }
 
 test('mortar buttons and status reject roofs, then permit a real outdoor mission',async({page},testInfo)=>{
@@ -84,7 +87,7 @@ test('paused Hold updates support status as well as button readiness',async({pag
   await page.locator('#support-command').click();await expect(page.locator('.support-status')).toContainText('Team moving');
   await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();
   await page.keyboard.press('h');
-  await expect(page.locator('[data-support="mortarHE"]')).toBeEnabled();
-  await expect(page.locator('.support-status')).not.toContainText('Team moving');
+  await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();
+  await expect(page.locator('.support-status')).not.toContainText('Team moving');await expect(page.locator('[data-support="mortarHE"]')).toHaveAttribute('title',/built mortar pit/);
   expect(await page.evaluate(()=>window.__FRONTLINES__.getState().simSpeed)).toBe(0);
 });

@@ -1,11 +1,13 @@
 import {distance,type BattlefieldState,type SquadState} from '../core/types';
 import {WEAPONS} from '../combat/Weapons';
 import {equipmentOf} from '../combat/Equipment';
+import {isMountedGun,weaponPositionReadiness} from '../combat/WeaponPositions';
 
 /** Presentation only: the gun never gains crew, targets or readiness from this readout. */
 export function crewWeaponReadout(state:BattlefieldState,q:SquadState):string|undefined{
   const gunner=state.soldiers.find(s=>s.squadId===q.id&&['crew-mg','mg42','bar'].includes(equipmentOf(state,s).weapon));if(!gunner)return undefined;
   if(gunner.needs?.life!=='active')return 'Gunner out of action';
+  if(isMountedGun(state,gunner)){const reason=weaponPositionReadiness(state,q.id,'emplacement');if(reason)return reason;}
   const weapon=gunner.combat?.weapon,def=WEAPONS[equipmentOf(state,gunner).weapon];
   const crew=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life==='active'&&s.action!=='sleeping'&&!s.combat?.careTask&&s.suppression<70&&distance(s,gunner)<10).length;
   if(gunner.suppression>=70)return 'Gunner pinned · cannot operate weapon';

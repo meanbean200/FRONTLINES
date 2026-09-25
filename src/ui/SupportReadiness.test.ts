@@ -3,6 +3,7 @@ import {createOperationalBattle} from '../operations/createOperationalBattle';
 import {TerrainSystem} from '../terrain/TerrainSystem';
 import {supportReadiness,requestSupport} from '../combat/SupportWeapons';
 import {selectionReadout} from './FieldReadout';
+import {preparedPosition} from '../combat/testing/PositionFixture';
 
 describe('terrain-aware support presentation',()=>{
   it('matches authoritative roof readiness, then updates outside without changing target rules',()=>{
@@ -11,6 +12,7 @@ describe('terrain-aware support presentation',()=>{
     const crew=state.soldiers.filter(s=>s.squadId===q.id),ids=new Set([q.id]);
     q.order={type:'hold',issuedAt:state.elapsed};
     crew.forEach((s,i)=>Object.assign(s,{x:building.x+i*.2,z:building.z,action:'holding',suppression:0}));
+    preparedPosition(state,q.id,'mortar');
     for(const kind of ['mortarHE','mortarSmoke'] as const){
       const ready=supportReadiness(state,kind,q.id,terrain);
       expect(ready.ammo).toBeGreaterThan(0);expect(ready.crew).toBeGreaterThanOrEqual(2);
@@ -20,6 +22,7 @@ describe('terrain-aware support presentation',()=>{
     expect(underRoof.he.reason).toContain('roofs');expect(underRoof.smoke.reason).toContain('roofs');
     expect(JSON.stringify(state)).toBe(before);
     crew.forEach(s=>s.z=building.z+building.depth/2+6);
+    preparedPosition(state,q.id,'mortar');
     expect(crew.every(s=>terrain.buildingAt(s)===undefined)).toBe(true);
     const outside=selectionReadout(state,ids,terrain)!.support!;
     expect(outside.he.reason).toBe('');expect(outside.smoke.reason).toBe('');

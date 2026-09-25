@@ -5,16 +5,17 @@ import {crewWeaponReadout,actionableWeaponReason} from './WeaponReadout';
 import {selectionReadout} from './FieldReadout';
 import {createPlayableSandbox} from '../simulation/createBattlefield';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
+import {preparedPosition} from '../combat/testing/PositionFixture';
 
 describe('honest crew weapon feedback',()=>{
   it('distinguishes travel, setup, crew loss and ready observation without changing state',()=>{
     const state=createOperation('meeting'),q=state.squads.find(q=>q.faction!=='enemy'&&state.soldiers.some(s=>s.squadId===q.id&&s.equipment?.weapon==='crew-mg'))!;
     const crew=state.soldiers.filter(s=>s.squadId===q.id).sort((a,b)=>Number(b.equipment?.weapon==='crew-mg')-Number(a.equipment?.weapon==='crew-mg'));crew.forEach((s,i)=>{s.x=i;s.z=0;});q.x=1;q.z=0;
-    const w=equipWeapon(state,crew[0]);state.elapsed=1;expect(crewWeaponReadout(state,q)).toContain('Setting up · 4 s');
+    preparedPosition(state,q.id,'emplacement');const w=equipWeapon(state,crew[0]);state.elapsed=1;expect(crewWeaponReadout(state,q)).toContain('Setting up · 4 s');
     q.order.type='move';expect(crewWeaponReadout(state,q)).toContain('Travelling');q.order.type='hold';state.elapsed=6;
     expect(crewWeaponReadout(state,q)).toContain('Set · watching sector');
     for(const s of crew.slice(1))s.x=100;
-    expect(crewWeaponReadout(state,q)).toContain('Crew 1/2');crew[1].x=1;w.reloadUntil=9;
+    expect(crewWeaponReadout(state,q)).toContain('Need 2 ready crew');crew[1].x=1;w.reloadUntil=9;
     expect(crewWeaponReadout(state,q)).toContain('Reloading · 3 s');crew[0].needs!.life='incapacitated';expect(crewWeaponReadout(state,q)).toBe('Gunner out of action');
     const before=JSON.stringify(state);crewWeaponReadout(state,q);expect(JSON.stringify(state)).toBe(before);
   });

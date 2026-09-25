@@ -118,6 +118,9 @@ export class FrontlinesApp {
       moveMode: () => this.setMode('move'),
       tactical:mode=>this.setMode(mode),pushThrough:()=>this.simulation.setPushThrough([...this.selectedSquads]),
       support:kind=>this.setMode(kind),
+      buildWeapons:()=>this.buildPanel.open(undefined,true,true),
+      crewWeapon:(squadId,facilityId)=>{if(this.simulation.commandsLocked)return;const result=this.simulation.garrisons.assignWeapon(squadId,facilityId);this.ui.notify(result.reason,result.accepted?'normal':'warn');},
+      focusPosition:id=>{const f=this.state.living!.facilities.find(f=>f.id===id);if(f)this.camera.focus(f,70);},
       buildingFloor:floor=>{if(document.documentElement.dataset.replay||document.documentElement.dataset.help||this.simulation.commandsLocked)return;for(const q of this.state.squads.filter(q=>this.selectedSquads.has(q.id)&&q.order.building)){const b=this.simulation.terrain.buildings[q.order.building!.id];if(floor&&b.height<=6){this.ui.notify('This building has one usable floor','warn');continue;}q.order.building!.floor=floor;}},
       mute:muted=>{this.audio.muted=muted;},
       resume:()=>{const count=this.simulation.resumeConstruction([...this.selectedSquads]);this.ui.notify(count?`${count} engineer team(s) resuming unfinished works`:'Select a formation with tools near unfinished works',count?'normal':'warn');},
@@ -149,7 +152,7 @@ export class FrontlinesApp {
       move:()=>this.setMode('person-move'),cancel:()=>{if(this.mode==='person-move')this.setMode('select');},notify:text=>this.ui.notify(text),
     });
     this.tactical=new TacticalOverlay(()=>this.state,this.selectedSquads,this.camera,this.simulation.terrain,(ids,add)=>this.selectSquads(ids,add),id=>this.trenchPanel.open(id),point=>{this.simulation.issueMove([...this.selectedSquads],point);this.ui.notify('Map move order issued');});
-    this.deploymentPanel=new DeploymentPanel(()=>this.state,(kind,count)=>{this.pendingDeployment={kind,count};this.setMode('deploy');this.ui.notify(`Place ${count} ${kind==='rifle'?'rifle squad':'engineer team'}${count>1?'s':''} · click clear ground · Esc finishes`);});
+    this.deploymentPanel=new DeploymentPanel(()=>this.state,(kind,count)=>{this.pendingDeployment={kind,count};this.setMode('deploy');this.ui.notify(`Place ${count} ${kind==='rifle'?'rifle squad':'engineer team'}${count>1?'s':''} · click clear ground · Esc finishes`);},point=>this.camera.focus(point,90),text=>this.ui.notify(text));
     this.input=new CommandInput({
       canvas,
       camera: this.camera,
@@ -235,7 +238,7 @@ export class FrontlinesApp {
     this.trenchRenderer.update(this.camera.zoomDistance);
     this.debugRenderer.update(realDt, this.flags, this.selectedSquads);
     this.tactical.update(realDt);
-    this.livingRenderer.update(now,this.garrisonPanel.showRoutes);this.garrisonPanel.update(now);
+    this.livingRenderer.update(now,this.garrisonPanel.showRoutes||this.deploymentPanel.showRoutes);this.garrisonPanel.update(now);
     this.trenchPanel.update();
     this.buildPanel.update();this.deploymentPanel.update();
     this.operationRenderer.update();this.operationUI.update(now);

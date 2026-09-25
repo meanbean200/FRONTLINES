@@ -8,6 +8,7 @@ export function validCampaignSystems(s:BattlefieldState):boolean {
   if(c.plan){const p=c.plan;if(!['scout','prepare','commit','reassess','consolidate','withdraw','recover'].includes(p.phase)||!s.operation!.objectives.some(o=>o.id===p.objectiveId)||!enemy(p.scoutId)||!Array.isArray(p.forceIds)||!p.forceIds.every(enemy)||new Set(p.forceIds).size!==p.forceIds.length||![p.since,p.reviewAt,p.startingAble,p.attempts,p.nextSupport].every(nonnegative)||typeof p.reason!=='string')return false;}
   if(c.lastPlan&&(!s.operation!.objectives.some(o=>o.id===c.lastPlan!.objectiveId)||typeof c.lastPlan.reason!=='string'||!nonnegative(c.lastPlan.at)))return false;
   const r=c.replacements;if(!r)return true;
+  if(r.dispatchAt&&(!(['player','enemy'] as const).every(side=>r.dispatchAt![side]===undefined||nonnegative(r.dispatchAt![side]))||Object.keys(r.dispatchAt).some(key=>!['player','enemy'].includes(key))))return false;
   if(!r.reserve||!r.nextAt||!(['player','enemy'] as const).every(side=>Number.isInteger(r.reserve[side])&&r.reserve[side]>=0&&r.reserve[side]<=48&&nonnegative(r.nextAt[side]))||!Array.isArray(r.manifests)||!Array.isArray(r.establishment))return false;
   if(r.establishment.length!==s.squads.length||new Set(r.establishment.map(row=>row?.squadId)).size!==r.establishment.length||!r.establishment.every(row=>row&&s.squads.some(q=>q.id===row.squadId)&&Number.isInteger(row.strength)&&row.strength>0&&row.strength<=1000))return false;
   const unique=new Set<number>(),pending=new Set<number>();

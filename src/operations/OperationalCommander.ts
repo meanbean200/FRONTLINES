@@ -41,10 +41,9 @@ export function commandOperationalEnemy(o:EnemyObservation,terrain:TerrainSystem
   });
   const result=commandEnemy({...o,assignments},terrain,previous);
   let support:{squadId:number;target:Vec2}|undefined;
-  const mortar=o.squads.find(q=>q.mortar&&(q.mortarAmmo??0)>0&&q.able>=2&&!q.working&&!q.supportBusy&&q.suppression<65&&q.morale>=30&&report&&distance(q,report)>=50&&distance(q,report)<=900);
+  const mortar=o.squads.find(q=>q.mortar&&q.mortarReady&&(q.mortarAmmo??0)>0&&q.able>=2&&!q.working&&!q.supportBusy&&q.suppression<65&&q.morale>=30&&report&&distance(q,report)>=50&&distance(q,report)<=900);
   if(!exhausted&&report&&mortar&&o.at>=commander.nextSupport!){
     result.commands=result.commands.filter(c=>c.squadId!==mortar.id);
-    result.commands.push({squadId:mortar.id,type:'hold',goal:{x:mortar.x,z:mortar.z},role:'support',reason:'Deploy carried mortar against delivered report'});
     if(!mortar.moving){commander.nextSupport=o.at+30;support={squadId:mortar.id,target:{x:report.x,z:report.z}};}
   }
   return {...result,commander,support};

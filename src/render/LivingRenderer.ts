@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import type {BattlefieldState,Vec2} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
-import {playerVisibleEnemies,playerCanSeePoint} from '../operations/Visibility';
+import {bodyFloor,playerVisibleEnemies,playerCanSeePoint} from '../operations/Visibility';
 import {emplacementBoxes} from '../terrain/SupportGeometry';
 import {truckGeometry,truckWheelGeometry} from './VehicleVisual';
+import {positionOperator,weaponPositionReadiness} from '../combat/WeaponPositions';
 export class LivingRenderer {
   readonly group=new THREE.Group();
   private readonly boxes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({roughness:1}),8192);
@@ -24,7 +25,7 @@ export class LivingRenderer {
     const garrisons=w.garrisons.filter(g=>g.faction!=='enemy'||seen(g.entrance));
     const trucks=w.trucks.filter(t=>t.faction!=='enemy'||seen(t));
     const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),color=new THREE.Color(),position=new THREE.Vector3(),scale=new THREE.Vector3();let count=0;
-    const box=(x:number,y:number,z:number,sx:number,sy:number,sz:number,tint:number,angle=0)=>{if(count>=8192)return;position.set(x,y,z);scale.set(sx,sy,sz);q.setFromAxisAngle(new THREE.Vector3(0,1,0),angle);matrix.compose(position,q,scale);this.boxes.setMatrixAt(count,matrix);this.boxes.setColorAt(count++,color.setHex(tint));};
+    const box=(x:number,y:number,z:number,sx:number,sy:number,sz:number,tint:number,angle=0,pitch=0)=>{if(count>=8192)return;position.set(x,y,z);scale.set(sx,sy,sz);q.setFromEuler(new THREE.Euler(pitch,angle,0,'YXZ'));matrix.compose(position,q,scale);this.boxes.setMatrixAt(count,matrix);this.boxes.setColorAt(count++,color.setHex(tint));};
     let vehicleCount=0,wheelCount=0;const axis=new THREE.Vector3(0,1,0),wheelAxis=new THREE.Vector3(1,0,0),wheelRotation=new THREE.Quaternion();
     for(const t of trucks.slice(0,64)){
       const next=t.route[t.routeIndex],last=this.lastTrucks.get(t.id),angle=next&&Math.hypot(next.x-t.x,next.z-t.z)>.1?Math.atan2(next.x-t.x,next.z-t.z):last?.angle??Math.PI/2,h=this.terrain.heightAt(t.x,t.z);
@@ -32,6 +33,8 @@ export class LivingRenderer {
       q.setFromAxisAngle(axis,angle);matrix.compose(position.set(t.x,h,t.z),q,scale.setScalar(1));this.vehicles.setMatrixAt(vehicleCount++,matrix);
       wheelRotation.copy(q).multiply(new THREE.Quaternion().setFromAxisAngle(wheelAxis,roll));
       for(const side of [-1,1])for(const z of [-2.23,-1.28,1.9]){position.set(side*1.04,.52,z).applyQuaternion(q).add(new THREE.Vector3(t.x,h,t.z));matrix.compose(position,wheelRotation,scale);this.wheels.setMatrixAt(wheelCount++,matrix);}
+      const passengers=state.operation?.campaign?.replacements?.manifests.filter(m=>m.truckId===t.id&&['convoy','shuttle'].includes(m.stage)).length??0;
+      for(let i=0;i<passengers;i++){const x=(i%2?1:-1)*.72,z=-.6-Math.floor(i/2)*.52,px=t.x+x*Math.cos(angle)+z*Math.sin(angle),pz=t.z-x*Math.sin(angle)+z*Math.cos(angle);box(px,h+1.85,pz,.4,.65,.4,0x616744,angle);box(px,h+2.27,pz,.3,.19,.3,0x4c543b,angle);}
     }
     this.vehicles.count=vehicleCount;this.wheels.count=wheelCount;this.vehicles.instanceMatrix.needsUpdate=this.wheels.instanceMatrix.needsUpdate=true;
     const piles=[{point:w.rear,stock:w.rearStock},...garrisons.flatMap(g=>[{point:g.entrance,stock:g.cache},...(g.faction!=='enemy'||seen(g.forward)?[{point:g.forward,stock:g.forwardStock}]:[])]),...(w.enemySupply&&seen(w.enemySupply.rear)?[{point:w.enemySupply.rear,stock:w.enemySupply.stock}]:[])];
@@ -40,7 +43,22 @@ export class LivingRenderer {
       if(w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!seen(f))continue;
       const h=this.terrain.heightAt(f.x,f.z);
       if(f.progress<=0){for(const x of [-2.7,2.7])for(const z of [-2.7,2.7])box(f.x+x,h+.5,f.z+z,.15,1,.15,0xd9b56b);continue;}
-      if(f.kind==='emplacement'&&f.progress===1){for(const b of emplacementBoxes(f))box(b.x,h+b.y,b.z,b.rx*2,b.ry*2,b.rz*2,0x958965);continue;}
+      if((f.kind==='emplacement'||f.kind==='mortar')&&f.progress===1){
+        for(const b of emplacementBoxes(f))box(b.x,h+b.y,b.z,b.rx*2,b.ry*2,b.rz*2,0x958965);
+        if(f.weaponSquadId!==undefined&&!weaponPositionReadiness(state,f.weaponSquadId,f.kind)){
+          const operator=positionOperator(state,f.weaponSquadId,f.kind)!,angle=operator.heading;
+          const x=operator.x+Math.sin(angle)*.55,z=operator.z+Math.cos(angle)*.55;
+          if(f.kind==='mortar'){
+            box(x,h+.12,z,.65,.12,.65,0x454c3f,angle);box(x,h+.65,z,.16,1.2,.16,0x363b33,angle,.42);
+            for(const side of [-1,1])box(x+Math.cos(angle)*side*.32,h+.38,z-Math.sin(angle)*side*.32,.08,.75,.08,0x575c49,angle);
+          }else{
+            // The gun remains the operator's actual equipment model; render its mount, not a free second gun.
+            const top=bodyFloor(this.terrain,operator)+1.1,height=Math.max(.3,top-h);
+            box(x,h+height/2,z,.13,height,.13,0x414739,angle);box(x,h+.12,z,.8,.13,.65,0x454b3c,angle);
+          }
+        }
+        continue;
+      }
       box(f.x,h+.08,f.z,5.5,.14,5.5,0x827357);
       for(const side of [-1,1])box(f.x+side*2.7,h+.7*f.progress,f.z,.18,1.4*f.progress,5.5,0x695540);
       box(f.x,h+.7*f.progress,f.z+2.7,5.5,1.4*f.progress,.18,0x695540);

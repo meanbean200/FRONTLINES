@@ -138,7 +138,7 @@ export class BattlefieldSimulation {
     const building=this.terrain.buildingAt(target);
     if(building!==undefined){this.issueBuilding(squadIds,building,0,enemyOrder);return;}
     const clamped = this.terrain.clampToWorld(target);
-    const selected = this.state.squads.filter(squad => squadIds.includes(squad.id) && (enemyOrder || factionOf(squad) === 'player'));
+    const selected = this.state.squads.filter(squad => squad.soldierIds.length>0&&squadIds.includes(squad.id) && (enemyOrder || factionOf(squad) === 'player'));
     const columns = Math.ceil(Math.sqrt(selected.length));
     for (const [index, squad] of selected.entries()) {
       this.pauseConstruction(squad);
@@ -158,7 +158,7 @@ export class BattlefieldSimulation {
 
   issueTactical(squadIds:number[],intent:TacticalIntent,target:Vec2):void {
     if(this.commandsLocked||!Number.isFinite(target.x)||!Number.isFinite(target.z))return;
-    if(intent==='observe'||intent==='suppress')this.issueHold(squadIds);else this.issueMove(squadIds,target);
+    if(intent==='observe'||intent==='suppress')this.issueHold(squadIds.filter(id=>!this.state.living!.facilities.some(f=>f.weaponSquadId===id)));else this.issueMove(squadIds,target);
     for(const q of this.state.squads.filter(q=>squadIds.includes(q.id)&&factionOf(q)==='player')){
       q.order.intent=intent;q.order.target={...target};
       if(intent==='observe')for(const s of this.soldiersFor(q))s.heading=Math.atan2(target.x-s.x,target.z-s.z);
@@ -172,7 +172,7 @@ export class BattlefieldSimulation {
   issueHold(squadIds: number[], enemyOrder=false): void {
     if(this.commandsLocked)return;
     for (const squad of this.state.squads) {
-      if (!squadIds.includes(squad.id) || !enemyOrder && factionOf(squad) === 'enemy') continue;
+      if (!squad.soldierIds.length||!squadIds.includes(squad.id) || !enemyOrder && factionOf(squad) === 'enemy') continue;
       this.pauseConstruction(squad);
       squad.orderNote=undefined;
       squad.order = { type: 'hold', issuedAt: this.state.elapsed };
@@ -416,7 +416,7 @@ export class BattlefieldSimulation {
     const path=simplifyRoute(points.map(p=>this.terrain.clampToWorld(p)),.6);
     if(polylineLength(path)<2)return false;
     for(let i=1;i<path.length;i++)if(!this.navigation.segmentClear(path[i-1],path[i],1.3))return false;
-    const selected=this.state.squads.filter(s=>squadIds.includes(s.id)&&factionOf(s)==='player');if(!selected.length)return false;
+    const selected=this.state.squads.filter(s=>s.soldierIds.length>0&&squadIds.includes(s.id)&&factionOf(s)==='player');if(!selected.length)return false;
     for(const squad of selected){const prior=append?squad.order.drawnPath:undefined;if(prior&&!this.navigation.segmentClear(prior.at(-1)!,path[0],1.3))return false;}
     let endOffset=0;
     for(const squad of selected){

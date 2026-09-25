@@ -32,11 +32,15 @@ export class BuildPanel {
     root.querySelectorAll('[data-hud-panel]').forEach(b=>b.addEventListener('click',()=>this.close()));
     window.addEventListener('keydown',e=>{if(!this.element.hidden&&e.code==='Escape'){e.preventDefault();e.stopImmediatePropagation();this.close();}},true);
   }
-  open(id?:number):void{
+  open(id?:number,support=false,weapons=false):void{
     window.dispatchEvent(new Event('frontlines-menu'));
     document.querySelectorAll<HTMLDetailsElement>('.garrison-panel,.support-controls').forEach(p=>p.open=false);
     this.networkId=id??selectedConstructionNetwork(this.getState(),this.selected(),this.networkId)??0;
-    this.element.querySelector<HTMLElement>('.build-categories')!.hidden=false;for(const el of this.element.querySelectorAll<HTMLElement>('[data-build-page]'))el.hidden=true;
+    this.element.querySelector<HTMLElement>('.build-categories')!.hidden=support;for(const el of this.element.querySelectorAll<HTMLElement>('[data-build-page]'))el.hidden=!(support&&el.dataset.buildPage==='support');
+    this.element.querySelector('[data-build-page="support"] h3')!.textContent=weapons?'Weapon positions':'Support structures';
+    const catalog=this.element.querySelector('.build-catalog')!;
+    const kinds=Object.keys(SUPPORT_WORKS);if(weapons)kinds.sort((a,b)=>Number(['emplacement','mortar'].includes(b))-Number(['emplacement','mortar'].includes(a)));
+    for(const kind of kinds)catalog.append(catalog.querySelector(`[data-build-kind="${kind}"]`)!);
     this.element.hidden=false;this.element.scrollTop=0;this.button.setAttribute('aria-expanded','true');this.button.classList.add('active');document.documentElement.dataset.buildOpen='true';this.update(true);
   }
   close():void{this.element.hidden=true;this.button.setAttribute('aria-expanded','false');this.button.classList.remove('active');delete document.documentElement.dataset.buildOpen;}

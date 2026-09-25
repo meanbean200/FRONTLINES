@@ -15,6 +15,7 @@ import {placeMapLabels,type MapLabel} from './MapLabels';
 /** Both map scales use the same delivered knowledge as battlefield markers. */
 export function mapUnits(state:BattlefieldState){
   return state.squads.flatMap(q=>{
+    if(!q.soldierIds.length)return [];
     if(factionOf(q)==='player')return [{id:q.id,x:q.x,z:q.z,enemy:false,reported:false,name:q.name}];
     const c=observedEnemySquad(state,q.id);
     return c?[{id:q.id,x:c.x,z:c.z,enemy:true,reported:!c.visible,name:c.visible?'Confirmed contact':'Last report'}]:[];

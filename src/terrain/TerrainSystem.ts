@@ -77,7 +77,7 @@ export class TerrainSystem {
   }
   syncModifications(): void {
     const signature = `${this.state.seed}|${this.state.trenches.map(t => {let routeId=this.routeIds.get(t.points);if(!routeId){routeId=this.nextRouteId++;this.routeIds.set(t.points,routeId);}return `${t.id}:${excavationKey(t,.5)}:${t.width}:${t.depth}:${routeId}`;}).join('|')}|${JSON.stringify(this.state.craters)}|${JSON.stringify(this.state.buildingChanges)}`;
-    const withSupport=signature+'|'+this.state.living?.facilities.filter(f=>f.kind==='emplacement'&&f.progress===1).map(f=>`${f.id}:${f.facing}`).join(',');
+    const withSupport=signature+'|'+this.state.living?.facilities.filter(f=>['emplacement','mortar'].includes(f.kind)&&f.progress===1).map(f=>`${f.id}:${f.facing}`).join(',');
     if (withSupport === this.signature) return;
     this.signature = withSupport;
     this.revision++;

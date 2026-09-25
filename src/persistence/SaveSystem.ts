@@ -268,7 +268,10 @@ function validLiving(state:BattlefieldState):boolean {
     if(g.recoveredSince!==undefined&&!nonnegative(g.recoveredSince)||g.supplyIssue!==undefined&&typeof g.supplyIssue!=='string')return false;
     for(const id of g.squadIds){if(claimedSquads.has(id))return false;claimedSquads.add(id);}
   }
-  for(const f of w.facilities)if(!gIds.has(f.garrisonId)||!tIds.has(f.connectorId)||!point(f)||!['rest','meal','store','ammo','aid','emplacement'].includes(f.kind)||!nonnegative(f.progress)||f.progress>1||!nonnegative(f.capacity)||typeof f.paid!=='boolean'||!stock(f.stock)||!nonnegative(f.materialCost))return false;
+  for(const f of w.facilities){
+    if(!gIds.has(f.garrisonId)||!tIds.has(f.connectorId)||!point(f)||!['rest','meal','store','ammo','aid','emplacement','mortar'].includes(f.kind)||!nonnegative(f.progress)||f.progress>1||!nonnegative(f.capacity)||typeof f.paid!=='boolean'||!stock(f.stock)||!nonnegative(f.materialCost))return false;
+    if(f.weaponSquadId!==undefined&&(!['emplacement','mortar'].includes(f.kind)||!w.garrisons.find(g=>g.id===f.garrisonId)?.squadIds.includes(f.weaponSquadId)||w.facilities.some(other=>other!==f&&other.kind===f.kind&&other.weaponSquadId===f.weaponSquadId)))return false;
+  }
   if(w.trucks.some(t=>t.faction!==undefined&&!['player','enemy'].includes(t.faction)||t.faction==='enemy'&&!w.enemySupply))return false;
   for(const t of w.trucks)if(!point(t)||!stock(t.cargo)||!nonnegative(t.fuel)||!finite(t.timer)||!['convoy','shuttle'].includes(t.role)||!['idle','loading','outbound','unloading','returning','blocked'].includes(t.state)||!Array.isArray(t.route)||!t.route.every(point)||!Number.isInteger(t.routeIndex)||t.routeIndex<0||t.routeIndex>t.route.length||(t.garrisonId!==undefined&&!gIds.has(t.garrisonId)))return false;
   for(const c of w.crates)if(!point(c)||!stock(c.stock)||c.droppedBy!==undefined&&!sIds.has(c.droppedBy))return false;

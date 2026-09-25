@@ -94,6 +94,7 @@ export class TacticalOverlay {
     const state=this.getState();
     for(const squad of state.squads){
       const marker=this.markers.get(squad.id);if(!marker)continue;
+      if(!squad.soldierIds.length){marker.style.display='none';continue;}
       const enemy=factionOf(squad)==='enemy',contact=enemy?observedEnemySquad(state,squad.id):undefined;
       if(enemy&&!contact){marker.style.display='none';continue;}
       const p=this.camera.project(contact??squad,3);marker.style.display=p.visible?'':'none';

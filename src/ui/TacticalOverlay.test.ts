@@ -3,7 +3,7 @@ import {TacticalOverlay} from './TacticalOverlay';
 
 function fixture(){
   const marker={style:{display:'',transform:''}};
-  const squad={id:1,x:10,z:20,faction:'player'};
+  const squad={id:1,x:10,z:20,faction:'player',soldierIds:[2]};
   const projected={x:300,y:250,visible:true};
   // Exercise the actual update/projection methods without a WebGL/DOM environment.
   const view=Object.assign(Object.create(TacticalOverlay.prototype),{

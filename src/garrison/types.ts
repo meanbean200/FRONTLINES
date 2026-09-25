@@ -36,7 +36,9 @@ export interface Duty {
   exitPoint?:Vec2;
 }
 export interface Facility extends Vec2 {
-  id: number; garrisonId: number; kind: 'rest' | 'meal' | 'store' | 'ammo'|'aid'|'emplacement';
+  id: number; garrisonId: number; kind: 'rest' | 'meal' | 'store' | 'ammo'|'aid'|'emplacement'|'mortar';
+  /** Explicit crew reservation; equipment remains owned and carried by people. */
+  weaponSquadId?:number;
   connectorId: number; progress: number; capacity: number; paid: boolean;
   stock: Inventory; materialCost: number;
   facing?:number;

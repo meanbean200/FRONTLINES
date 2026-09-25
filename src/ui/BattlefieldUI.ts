@@ -10,6 +10,7 @@ import {actionableWeaponReason} from './WeaponReadout';
 import {squadHasEquipment} from '../combat/Equipment';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {initialReserveCapacity} from '../operations/Replacements';
+import {positionOperator,weaponPositionReadiness,type WeaponPositionKind} from '../combat/WeaponPositions';
 
 export interface PerfSnapshot {fps:number;frameMs:number;simulationMs:number;drawCalls:number;chunks:number;p95Ms?:number}
 interface UIActions {
@@ -19,6 +20,9 @@ interface UIActions {
   resume:()=>void;quality:(level:string)=>void;
   tactical?:(mode:'observe'|'suppress'|'assault'|'fall-back')=>void;pushThrough?:()=>void;
   support?:(kind:'mortarHE'|'mortarSmoke'|'smokeGrenades')=>void;
+  crewWeapon?:(squadId:number,facilityId:number)=>void;
+  buildWeapons?:()=>void;
+  focusPosition?:(id:number)=>void;
   buildingFloor?:(floor:0|1)=>void;
   mute?:(muted:boolean)=>void;
 }
@@ -52,7 +56,7 @@ export class BattlefieldUI {
     const support=document.createElement('details');support.className='support-controls';support.innerHTML='<summary>Support & rescue</summary><div></div>';this.root.append(support);
     for(const [kind,label] of [['mortarHE','Mortar HE'],['mortarSmoke','Mortar smoke'],['smokeGrenades','Throw smoke']] as const){const b=document.createElement('button');b.dataset.support=kind;b.textContent=label;b.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help){this.actions.support?.(kind);support.open=false;}});support.querySelector('div')!.append(b);}
     const missions=document.createElement('div');missions.className='support-status';support.append(missions);
-    const guide=document.createElement('p');guide.className='support-guide';guide.textContent='Mortars: 2 ready crew together, stopped in the open · 50–900 m range · 15 s preparation · one shell per order. Smoke grenades: 30 m throw. H holds your formation. Friendly support fires only on your request.';support.insertBefore(guide,missions);
+    const guide=document.createElement('p');guide.className='support-guide';guide.textContent='1. Build an MG nest or mortar pit. 2. Select a formation carrying that weapon and crew the position below. 3. MGs engage visible targets; mortars fire only on your order (50–900 m, 15 s preparation, one shell). Move or Hold releases the crew. BARs remain portable.';support.insertBefore(guide,missions);
     const supportButton=document.createElement('button');supportButton.id='support-command';supportButton.innerHTML=fieldIcon('mortar')+'Support';dock.append(supportButton);supportButton.onclick=()=>{support.open=!support.open;};
     const defend=this.root.querySelector<HTMLButtonElement>('#occupy-command')!;
     optional.prepend(defend);
@@ -104,11 +108,26 @@ export class BattlefieldUI {
     const readiness=mortar===undefined?'Select a formation with mortar equipment below.':supportReadiness(this.state,'mortarHE',mortar,this.terrain).reason;
     const supportKey=JSON.stringify([locked,[...this.selected],mortar,readiness,this.state.operation?.supportMissions?.map(m=>[m.id,m.reason]),this.state.operation?.rescueDecisions,replacements?.reserve.player,replacements?.manifests.length,replacements?.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length,Math.floor(this.state.elapsed)]);
     if(support.open&&supportKey!==this.supportKey){this.supportKey=supportKey;const status=support.querySelector('.support-status')!;status.replaceChildren();
-      for(const q of this.state.squads.filter(q=>factionOf(q)==='player'&&squadHasEquipment(this.state,q,'mortar'))){const b=document.createElement('button');b.textContent=`Select ${q.name} · mortar equipment`;b.disabled=locked;b.onclick=()=>this.actions.select([q.id]);status.append(b);}
+      const build=document.createElement('button');build.textContent='Build weapon positions →';build.disabled=locked;build.onclick=()=>{support.open=false;this.actions.buildWeapons?.();};status.append(build);
+      for(const q of this.state.squads.filter(q=>factionOf(q)==='player'&&(positionOperator(this.state,q.id,'mortar')||positionOperator(this.state,q.id,'emplacement')))){
+        const b=document.createElement('button');b.textContent=`Select ${q.name} · ${positionOperator(this.state,q.id,'mortar')?'mortar':'MG'} equipment`;b.disabled=locked;b.onclick=()=>this.actions.select([q.id]);status.append(b);
+        if(!this.selected.has(q.id))continue;
+        for(const kind of ['emplacement','mortar'] as WeaponPositionKind[]){
+          if(!positionOperator(this.state,q.id,kind))continue;
+          const p=document.createElement('p');p.textContent=weaponPositionReadiness(this.state,q.id,kind)||`${kind==='mortar'?'Mortar':'MG'} crew in position`;status.append(p);
+          for(const f of this.state.living!.facilities.filter(f=>f.kind===kind&&this.state.living!.garrisons.some(g=>g.id===f.garrisonId&&g.faction!=='enemy'))){
+            const row=document.createElement('div'),crew=document.createElement('button'),locate=document.createElement('button');
+            const name=`${kind==='mortar'?'Mortar pit':'MG nest'} ${f.id}`;
+            crew.textContent=f.progress<1?`${name} · building ${Math.floor(f.progress*100)}%`:f.weaponSquadId===q.id?`${name} · assigned`:`Crew ${name}`;
+            crew.disabled=locked||f.progress<1||f.weaponSquadId!==undefined;crew.onclick=()=>this.actions.crewWeapon?.(q.id,f.id);
+            locate.textContent='Locate';locate.setAttribute('aria-label',`Locate ${name}`);locate.onclick=()=>this.actions.focusPosition?.(f.id);row.append(crew,locate);status.append(row);
+          }
+        }
+      }
       if(readiness){const p=document.createElement('p');p.textContent=readiness;status.append(p);}
       for(const mission of this.state.operation?.supportMissions?.filter(m=>this.state.squads.some(q=>q.id===m.squadId&&factionOf(q)==='player')).slice(-3)??[]){const p=document.createElement('p');p.textContent=`${this.state.squads.find(q=>q.id===mission.squadId)?.name} · ${SUPPORT_NAMES[mission.kind]}: ${supportMissionText(mission,this.state.elapsed)}`;status.append(p);}
       for(const decision of this.state.operation?.rescueDecisions?.filter(d=>d.side==='player'&&d.choice==='pending')??[]){const row=document.createElement('div'),p=document.createElement('p');p.textContent=`Soldier ${decision.patientId}: ${decision.reason}`;row.append(p);for(const [choice,label] of [['approved',decision.reason.startsWith('Casualty route blocked')?'Retry rescue':'Accept rescue risk'],['hold','Wait for safety']] as const){const b=document.createElement('button');b.textContent=label;b.disabled=locked;b.onclick=()=>{if(locked)return;decision.choice=choice;decision.reviewAt=this.state.elapsed+30;};row.append(b);}status.append(row);}
-      if(replacements){const p=document.createElement('p');p.textContent=`Reserve ${replacements.reserve.player}/${initialReserveCapacity(this.state)} · ${replacements.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length} in transit · next release in ${Math.max(0,replacements.nextAt.player-hours).toFixed(1)} campaign hours`;status.append(p);}
+      if(replacements){const p=document.createElement('p');p.textContent=`Reserve ${replacements.reserve.player}/${initialReserveCapacity(this.state)} · ${replacements.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length} in transit. Request squads in Reinforcements. Automatic loss-replacement check in ${Math.max(0,replacements.nextAt.player-hours).toFixed(1)} campaign hours.`;status.append(p);}
     }
     support.querySelector('summary')!.textContent=this.state.operation?.rescueDecisions?.some(d=>d.side==='player'&&d.choice==='pending')?'Rescue decision needed':'Support & rescue';
     for(const id of ['trench-command','crater-command','stress-command'])this.root.querySelector<HTMLButtonElement>('#'+id)!.disabled=locked;
