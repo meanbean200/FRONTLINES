@@ -41,7 +41,8 @@ export function validCombatSystems(state:BattlefieldState):boolean {
       if(m.source!==undefined&&!['PLAYER','ENEMY_AI','CAMPAIGN_AI','SCRIPTED_SCENARIO','LEGACY_UNKNOWN'].includes(m.source)||m.side!==undefined&&!['player','enemy'].includes(m.side)||m.ammoConsumed!==undefined&&![0,1].includes(m.ammoConsumed))return false;
       const side=state.squads.find(q=>q.id===m.squadId)!.faction??'player';
       if(m.side!==undefined&&m.side!==side||m.source!==undefined&&!storedSupportSource(side,m.source))return false;
-      if(m.crewIds!==undefined&&(!Array.isArray(m.crewIds)||m.crewIds.length<1||m.crewIds.length>2||new Set(m.crewIds).size!==m.crewIds.length||!m.crewIds.every(id=>state.soldiers.some(s=>s.id===id&&s.squadId===m.squadId))))return false;
+      if(m.positionId!==undefined&&(m.kind==='smokeGrenades'||!state.living?.facilities.some(f=>f.id===m.positionId&&f.kind==='mortar'&&(state.living!.garrisons.find(g=>g.id===f.garrisonId)?.faction??'player')===side)))return false;
+      if(m.crewIds!==undefined&&(!Array.isArray(m.crewIds)||m.crewIds.length<1||m.crewIds.length>2||new Set(m.crewIds).size!==m.crewIds.length||!m.crewIds.every(id=>state.soldiers.some(s=>s.id===id&&(state.squads.find(q=>q.id===s.squadId)?.faction??'player')===side))))return false;
       if(![m.requestedAt,m.launchAt,m.impactAt,m.dangerRadius].every(nonnegative)||m.impactAt<m.launchAt||!point(m.target)||!point(m.impact)||typeof m.confirmedRisk!=='boolean'||typeof m.reason!=='string')return false;
     }
   }

@@ -1,6 +1,7 @@
 import { createStudyScenario } from './StudyScenario';
 import { inventory, RESOURCES } from './types';
 import { transfer } from './Inventory';
+import {reconcileSupplyDemands} from './SupplyDemand';
 
 /** Explicit diagnostic setup, never normal gameplay or an invisible refill. */
 export function createRecoveryScenario() {
@@ -17,6 +18,7 @@ export function createRecoveryScenario() {
     delete s.duty;s.needs!.energy=90;s.needs!.hunger=80;s.needs!.thirst=80;
   }
   g.cutoff='decision';g.nextDecision=0;w.emergencyResumeSpeed=1;state.simSpeed=0;
+  reconcileSupplyDemands(state);
   return {sim,g,crate};
 }
 

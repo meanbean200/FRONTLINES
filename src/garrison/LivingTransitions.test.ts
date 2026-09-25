@@ -172,7 +172,11 @@ describe('living-trench transition contracts',()=>{
   },20000);
 
   it('conserves stock and completes a supplied 72-hour loop-network soak',()=>{
-    const sim=createStudyScenario(1944,2);advance(sim,72*75);
+    const sim=createStudyScenario(1944,2),g=sim.state.living!.garrisons[0];
+    // Player support works now require explicit orders; exercise the same
+    // physical construction/72-hour conservation gate without auto-building.
+    for(const kind of ['rest','meal','store'] as const){expect(sim.garrisons.requestFacility(g.id,kind,undefined,undefined,undefined,true)).toBeDefined();advance(sim,300);}
+    advance(sim,72*75-900);
     expect(sim.state.living!.campaignHours).toBeCloseTo(80,5);
     expect(sim.state.living!.metrics.deaths).toBe(0);
     expect(sim.state.living!.facilities.filter(f=>f.progress===1)).toHaveLength(3);

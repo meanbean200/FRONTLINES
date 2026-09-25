@@ -1,6 +1,7 @@
 import {test,expect,type Page} from '@playwright/test';
 import {buildingsForSeed} from '../../src/terrain/WorldFeatures';
 import {preparedPosition} from '../../src/combat/testing/PositionFixture';
+import {reconcileSupplyDemands} from '../../src/garrison/SupplyDemand';
 
 async function meeting(page:Page){
   await page.goto('/');await page.locator('#choose-operation').click();await page.locator('[data-mode-choice="meeting"]').click();await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
@@ -28,9 +29,10 @@ test('finite operations explain reserves without offering sandbox spawning',asyn
   await expect(page.locator('.deployment-status')).toContainText('Finite-force');await expect(page.locator('[data-deploy="rifle"]')).toBeHidden();
   await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length)).toBe(before);
 });
-test('support identifies an eligible team within a mixed selection',async({page})=>{
-  await meeting(page);await select(page,'Able');await page.locator('#support-command').click();await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();await expect(page.locator('.support-status')).toContainText('mortar equipment');
-  await select(page,'Fox',true);await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();await expect(page.locator('[data-support="mortarHE"]')).toContainText('12');await expect(page.locator('[data-support="mortarHE"]')).toHaveAttribute('title',/built mortar pit/);
+test('Support routes players to physical positions rather than abstract mortar formations',async({page})=>{
+  await meeting(page);await select(page,'Able');await page.locator('#support-command').click();
+  await expect(page.locator('[data-support="mortarHE"]')).toHaveCount(0);await expect(page.locator('.support-status')).toContainText('Click a weapon position');
+  await expect(page.locator('[data-support="smokeGrenades"]')).toBeVisible();
 });
 test('machine-gun inspection separates crew readiness from urgent warnings',async({page})=>{
   await meeting(page);await select(page,'Easy');await expect(page.locator('.crew-readiness')).toBeVisible();await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');
@@ -40,57 +42,48 @@ test('machine-gun inspection separates crew readiness from urgent warnings',asyn
 // Synthetic saved-world fixtures isolate readiness, not building navigation.
 // They use real generated roof geometry and the normal validated restore path.
 async function placeMortar(page:Page,underRoof:boolean,moving=false){
-  const building=buildingsForSeed(1944)[0];
-  const result=await page.evaluate(({building,underRoof,moving})=>{
-    const state=window.__FRONTLINES__.getState(),operator=state.soldiers.find(s=>s.equipment?.mortar&&state.squads.find(q=>q.id===s.squadId)?.faction==='player')!;
-    const q=state.squads.find(q=>q.id===operator.squadId)!,crew=state.soldiers.filter(s=>s.squadId===q.id);
-    q.x=building.x;q.z=building.z+(underRoof?0:building.depth/2+6);
-    q.order=moving?{type:'move',issuedAt:state.elapsed,target:{x:q.x+20,z:q.z}}:{type:'hold',issuedAt:state.elapsed};
-    q.route=[];q.routeIndex=0;
-    crew.forEach((s,i)=>{s.x=q.x+(i%4)*.3;s.z=q.z+Math.floor(i/4)*.3;s.action='holding';s.suppression=0;delete s.building;delete s.duty;delete s.garrisonId;});
-    window.__FRONTLINES__.restoreState(state);
-    return {name:q.name,id:q.id,target:{x:q.x+70,z:q.z}};
-  },{building,underRoof,moving});
-  if(!underRoof){const state=await page.evaluate(()=>window.__FRONTLINES__.getState());preparedPosition(state,result.id,'mortar');await page.evaluate(state=>window.__FRONTLINES__.restoreState(state),state);}
-  return result;
+  const state=await page.evaluate(()=>window.__FRONTLINES__.getState()),building=buildingsForSeed(1944)[0];
+  const operator=state.soldiers.find(s=>s.equipment?.mortar&&state.squads.find(q=>q.id===s.squadId)?.faction==='player')!;
+  const q=state.squads.find(q=>q.id===operator.squadId)!;
+  q.x=building.x;q.z=building.z+(underRoof?0:building.depth/2+6);operator.x=q.x;operator.z=q.z;
+  const f=preparedPosition(state,q.id,'mortar'),helper=state.soldiers.find(s=>s.squadId!==q.id&&state.squads.find(q=>q.id===s.squadId)?.faction==='player')!;
+  for(const other of state.living!.facilities)if(other!==f)other.weaponCrewIds=other.weaponCrewIds?.filter(id=>id!==helper.id);
+  f.weaponCrewIds=[operator.id,helper.id];helper.garrisonId=f.garrisonId;helper.personalArea=true;helper.x=f.x+1;helper.z=f.z;helper.suppression=0;helper.action='watching';
+  helper.duty={kind:'watch',facilityId:f.id,destination:{x:helper.x,z:helper.z},route:[],routeIndex:0,since:state.elapsed,arrivedAt:state.elapsed,until:state.elapsed+150,blockedFor:0,reason:'Synthetic mixed-formation helper'};
+  q.order=moving?{type:'move',issuedAt:state.elapsed,target:{x:q.x+20,z:q.z}}:{type:'hold',issuedAt:state.elapsed};q.route=[];q.routeIndex=0;
+  reconcileSupplyDemands(state);await page.evaluate(state=>window.__FRONTLINES__.restoreState(state),state);
+  return {name:q.name,id:q.id,positionId:f.id,crew:f.weaponCrewIds,point:{x:f.x,z:f.z},target:{x:f.x+75,z:f.z}};
 }
-
-test('mortar buttons and status reject roofs, then permit a real outdoor mission',async({page},testInfo)=>{
-  await meeting(page);const roof=await placeMortar(page,true);await select(page,roof.name);
-  await page.locator('#support-command').click();
-  for(const kind of ['mortarHE','mortarSmoke']){
-    await expect(page.locator(`[data-support="${kind}"]`)).toBeDisabled();
-    await expect(page.locator(`[data-support="${kind}"]`)).toHaveAttribute('title',/open-air.*roofs/);
-  }
-  await expect(page.locator('.support-status')).toContainText('open-air');
-  await expect(page.locator('.support-readiness')).toContainText('roofs');
-  await expect(page.locator('#battlefield')).toHaveAttribute('data-mode','select');
-  await page.screenshot({path:testInfo.outputPath('mortar-under-roof.png')});
-  const outside=await placeMortar(page,false);await select(page,outside.name);await page.keyboard.press('f');
-  await page.mouse.move(720,350);await page.mouse.wheel(0,650);
-  await page.locator('#support-command').click();
-  await expect(page.locator('[data-support="mortarHE"]')).toBeEnabled();
-  await expect(page.locator('[data-support="mortarSmoke"]')).toBeEnabled();
-  await expect(page.locator('.support-status')).not.toContainText('roofs');
-  await page.screenshot({path:testInfo.outputPath('mortar-outdoors.png')});
-  await page.locator('[data-support="mortarHE"]').click();
-  await expect(page.locator('#battlefield')).toHaveAttribute('data-mode','mortarHE');
-  await expect.poll(()=>page.evaluate(target=>{const p=window.__FRONTLINES__.projectWorld(target.x,target.z,.1);return p.visible&&p.x>200&&p.x<innerWidth-100&&p.y>180&&p.y<innerHeight-200;},outside.target)).toBe(true);
-  const target=await page.evaluate(target=>window.__FRONTLINES__.projectWorld(target.x,target.z,.1),outside.target);
-  await page.mouse.click(target.x,target.y);
-  await expect.poll(()=>page.evaluate(()=>window.__FRONTLINES__.getState().operation?.supportRequests?.at(-1)?.accepted)).toBe(true);
-  expect(await page.evaluate(()=>window.__FRONTLINES__.getState().operation?.supportMissions?.at(-1))).toMatchObject({squadId:outside.id,kind:'mortarHE',stage:'preparing',source:'PLAYER'});
+async function inspectPit(page:Page,pit:Awaited<ReturnType<typeof placeMortar>>){
+  await select(page,pit.name);await page.keyboard.press('f');await page.mouse.move(720,350);await page.mouse.wheel(0,650);
+  // An empty box deselects formations through normal controls.
+  await page.mouse.move(170,200);await page.mouse.down();await page.mouse.move(185,215);await page.mouse.up();await expect(page.locator('#selection-docket')).toBeHidden();
+  let last:{x:number;y:number}|undefined;
+  await expect.poll(async()=>{const p=await page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.1),pit.point),settled=last&&p.visible&&Math.hypot(p.x-last.x,p.y-last.y)<.15;last=p;return Boolean(settled);}).toBe(true);
+  const point=await page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.1),pit.point);await page.mouse.click(point.x,point.y);
+  await expect(page.locator('#trench-panel h2')).toContainText('Mortar pit');
+}
+test('actual pit inspector rejects roofs and fires a mixed-formation outdoor mortar without a squad selected',async({page},testInfo)=>{
+  await meeting(page);const roof=await placeMortar(page,true);await inspectPit(page,roof);
+  await expect(page.locator('[data-fire="mortarHE"]')).toBeDisabled();await expect(page.locator('.weapon-blocker')).toContainText('roofs');
+  await page.screenshot({path:testInfo.outputPath('position-roof-blocker.png')});
+  await page.keyboard.press('Escape');const pit=await placeMortar(page,false);await inspectPit(page,pit);
+  await expect(page.locator('.crew-slots>div')).toHaveCount(2);await expect(page.locator('#trench-panel')).toContainText('HE /');
+  await expect(page.locator('.position-status')).toHaveText('READY');await expect(page.locator('[data-fire="mortarHE"]')).toBeEnabled();await expect(page.locator('[data-fire="mortarSmoke"]')).toBeEnabled();
+  await page.screenshot({path:testInfo.outputPath('mixed-crew-pit-ready.png')});
+  await page.locator('[data-fire="mortarHE"]').click();await expect(page.locator('#battlefield')).toHaveAttribute('data-mode','mortarHE');await expect(page.locator('#selection-docket')).toBeHidden();
+  const target=await page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.1),pit.target);await page.mouse.click(target.x,target.y);
+  await expect.poll(()=>page.evaluate(()=>window.__FRONTLINES__.getState().operation?.supportMissions?.at(-1)?.positionId)).toBe(pit.positionId);
+  expect(await page.evaluate(()=>window.__FRONTLINES__.getState().operation?.supportMissions?.at(-1))).toMatchObject({positionId:pit.positionId,crewIds:pit.crew,kind:'mortarHE',stage:'preparing',source:'PLAYER'});
+  await page.locator('.operation-menu-button').click();await page.locator('#save-session').click();await expect(page.locator('.menu-status')).toContainText('Session saved.');
+  await page.reload();await page.locator('#main-continue').click();
+  expect(await page.evaluate(()=>window.__FRONTLINES__.getState().operation?.supportMissions?.at(-1))).toMatchObject({positionId:pit.positionId,crewIds:pit.crew});
 });
-
-test('paused Hold updates support readiness without discarding the prepared crew assignment',async({page})=>{
-  await meeting(page);const outside=await placeMortar(page,false,true);await select(page,outside.name);
-  await page.locator('#support-command').click();await expect(page.locator('.support-status')).toContainText('Team moving');
-  await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();
-  await page.keyboard.press('h');
-  await expect(page.locator('[data-support="mortarHE"]')).toBeEnabled();
-  await expect(page.locator('.support-status')).not.toContainText('Team moving');await expect(page.locator('[data-support="mortarHE"]')).toHaveAttribute('title',/Order one round/);
-  expect(await page.evaluate(id=>{const s=window.__FRONTLINES__.getState();return {order:s.squads.find(q=>q.id===id)!.order.type,assigned:s.soldiers.filter(p=>p.squadId===id&&p.garrisonId!==undefined).length,position:s.living!.facilities.some(f=>f.kind==='mortar'&&f.weaponCrewIds?.length===2&&f.weaponCrewIds.every(person=>s.soldiers.find(p=>p.id===person)?.squadId===id))};},outside.id)).toEqual({order:'occupy-trench',assigned:8,position:true});
-  expect(await page.evaluate(()=>window.__FRONTLINES__.getState().simSpeed)).toBe(0);
+test('position reports a moving crew and retains it after a normal Hold',async({page})=>{
+  await meeting(page);const pit=await placeMortar(page,false,true);await inspectPit(page,pit);
+  await expect(page.locator('[data-fire="mortarHE"]')).toBeDisabled();await expect(page.locator('.weapon-blocker')).toContainText('Crew moving');
+  await page.keyboard.press('Escape');await select(page,pit.name);await page.keyboard.press('h');await inspectPit(page,pit);
+  await expect(page.locator('[data-fire="mortarHE"]')).toBeEnabled();expect(await page.evaluate(()=>window.__FRONTLINES__.getState().simSpeed)).toBe(0);
 });
 
 test('grouped contact symbols stay quiet and allow tactical orders through them',async({page},testInfo)=>{

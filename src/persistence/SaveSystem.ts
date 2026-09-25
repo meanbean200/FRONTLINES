@@ -18,6 +18,8 @@ import {isOperationId} from '../operations/OperationDefinitions';
 import {initializeEquipment} from '../combat/Equipment';
 import {migrateWeaponCrews} from '../combat/WeaponPositions';
 import {validPositionState} from '../construction/PositionValidation';
+import {reconcileSupplyDemands,validSupplyDemands} from '../garrison/SupplyDemand';
+import {migrateSupportPositions} from '../combat/SupportWeapons';
 
 export const SAVE_KEY = 'frontlines-battlefield-v3-world2-4km';
 const V3_KEY = 'frontlines-battlefield-v3';
@@ -27,8 +29,12 @@ const LEGACY_KEY = 'frontlines-battlefield-v1';
 export class SaveSystem {
   lastError='';
   save(state: BattlefieldState): string {
-    if(!isBattlefieldState(state))throw new Error('Battlefield contains invalid state; existing save preserved.');
-    const snapshot=structuredClone(state);initializeEquipment(snapshot);for(const s of snapshot.soldiers)s.posture??='standing';
+    // Claims are derived accounting. A paused command can release a carrier
+    // between fixed ticks; validate physical authority, then refresh this copy.
+    // Loading still rejects malformed or oversubscribed serialized claims.
+    const physical={...state,living:state.living?{...state.living,supplyDemands:undefined}:undefined};
+    if(!isBattlefieldState(physical))throw new Error('Battlefield contains invalid state; existing save preserved.');
+    const snapshot=structuredClone(state);initializeEquipment(snapshot);reconcileSupplyDemands(snapshot);for(const s of snapshot.soldiers)s.posture??='standing';
     const json = JSON.stringify({...snapshot,schemaVersion:3,combatRules:RULES_VERSION,policySchema:{observationVersion:OBSERVATION_VERSION,rulesVersion:RULES_VERSION}});
     localStorage.setItem(SAVE_KEY, json);
     return json;
@@ -88,6 +94,8 @@ export class SaveSystem {
       }
     }
     migrateWeaponCrews(state);
+    migrateSupportPositions(state);
+    if(!state.living!.supplyDemands)reconcileSupplyDemands(state);
     state.schemaVersion=3;state.combatRules=RULES_VERSION;
     return state;
   }
@@ -297,5 +305,5 @@ function validLiving(state:BattlefieldState):boolean {
       for(const id of [d.facilityId,d.pickupStoreId,d.dropStoreId])if(id!==undefined&&facilities.get(id)?.garrisonId!==s.garrisonId)return false;
     }
   }
-  return validPositionState(state);
+  return validPositionState(state)&&validSupplyDemands(state);
 }

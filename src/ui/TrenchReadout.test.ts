@@ -2,8 +2,14 @@ import {describe,it,expect} from 'vitest';
 import {createBattlefield} from '../simulation/createBattlefield';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {friendlyTrenches,trenchName,trenchPeople,trenchWorkforce} from './TrenchReadout';
+import {createOperation} from '../operations/createOperation';
 
 describe('trench inspection identity',()=>{
+  it('hides unexcavated enemy support connectors even before they form a network',()=>{
+    const state=createOperation('campaign'),g=state.living!.garrisons.find(g=>g.faction==='enemy')!,t={id:state.nextEntityId++,points:[{x:g.entrance.x,z:g.entrance.z},{x:g.entrance.x,z:g.entrance.z+12}],width:4.2,depth:1.75,progress:0,status:'planned' as const};
+    state.trenches.push(t);state.living!.facilities.push({id:state.nextEntityId++,garrisonId:g.id,connectorId:t.id,kind:'mortar',x:t.points[1].x,z:t.points[1].z,capacity:2,materialCost:12,progress:0,paid:false,stock:{...state.living!.ledger.lost}});
+    const network=new TrenchNetwork();network.sync(state.trenches);expect(network.component(t.id)).toBeUndefined();expect(friendlyTrenches(state,network)).not.toContain(t);
+  });
   it('keeps distinct names across saved copies, hides enemy works, and never counts undug floor',()=>{
     const state=createBattlefield(),q=state.squads[0];q.faction='player';const enemy=state.squads[1];enemy.faction='enemy';
     const a={id:state.nextEntityId++,points:[{x:-1800,z:-1700},{x:-1700,z:-1700}],width:4.2,depth:1.75,progress:.5,status:'building' as const};

@@ -28,6 +28,7 @@ import {stepReplacements} from '../operations/Replacements';
 import {stepBuildings} from './BuildingSystem';
 import {postureSpeed} from '../combat/Posture';
 import {initializeEquipment,squadHasEquipment} from '../combat/Equipment';
+import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
 
 export class BattlefieldSimulation {
   readonly terrain: TerrainSystem;
@@ -131,6 +132,7 @@ export class BattlefieldSimulation {
     this.updateSquadCenters();
     this.operations.step(dt, (ids, target) => this.issueMove(ids, target, true), ids => this.issueHold(ids, true),(ids,trench)=>this.garrisons.assign(ids,trench));
     stepSupport(this.state,this.terrain);
+    reconcileSupplyDemands(this.state);
   }
 
   issueMove(squadIds: number[], target: Vec2, enemyOrder = false): void {

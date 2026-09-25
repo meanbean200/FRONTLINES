@@ -2,7 +2,8 @@ import { distance, lerpVec,WORLD_VERSION,WORLD_SIZE, type BattlefieldState, type
 import {supplyRoadZ,nearestRoad,roadRoute,convoyEntry,rearDepot} from '../terrain/WorldLayout';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import { inventory, RESOURCES, type Garrison, type Inventory, type Truck, type LogisticsConfig } from './types';
-import { localInventory, total, transfer, transferBounded } from './Inventory';
+import { total, transfer, transferBounded } from './Inventory';
+import {reconcileSupplyDemands,unfulfilled} from './SupplyDemand';
 import { freshNeeds } from './NeedsSystem';
 import {RULES_VERSION} from './GarrisonPolicy';
 import {initializeEquipment} from '../combat/Equipment';
@@ -19,7 +20,7 @@ export function initializeLiving(state:BattlefieldState):void {
   state.combatRules=RULES_VERSION;
   state.living={version:1,campaignHours:8,lethalNeeds:false,garrisons:[],facilities:[],trucks:[],crates:[],rear,rearStock:stock,nextDelivery:0,
     ledger:{initial:{...stock},imported:inventory(),consumed:inventory(),lost:inventory()},
-    metrics:{watchGapHours:0,criticalNeedHours:0,distance:0,blockedHours:0,deaths:0},emergencyResumeSpeed:1,logistics:defaultLogistics()};
+    metrics:{watchGapHours:0,criticalNeedHours:0,distance:0,blockedHours:0,deaths:0},emergencyResumeSpeed:1,logistics:defaultLogistics(),supplyDemands:[]};
   for(const s of state.soldiers){s.needs=freshNeeds(s.fatigue);s.carried=inventory({food:2,water:3});state.living.ledger.initial.food+=2;state.living.ledger.initial.water+=3;}
   for(let i=0;i<4;i++){
     const p=i===0?convoyEntry():rear;
@@ -39,9 +40,10 @@ export class LogisticsSystem {
       if(this.terrain.obstacleAt(p.x,p.z,1.6)||this.terrain.groundTypeAt(p.x,p.z)==='river'||this.terrain.deformationAt(p.x,p.z)<-.35)return false;
     }return true;
   }
-  private depart(t:Truck,destination:Vec2,state:'outbound'|'returning'):void{t.route=roadRoute(t,destination);t.routeIndex=0;t.state=state;t.reason=state==='outbound'?'Delivering physical cargo':'Returning to depot';}
+  private depart(t:Truck,destination:Vec2,state:'outbound'|'returning'):void{t.route=roadRoute(t,destination);t.routeIndex=0;t.state=state;delete t.resume;t.reason=state==='outbound'?'En route':'Returning to depot';}
   step(dt:number):void {
     const w=this.state.living!,config=w.logistics!;
+    reconcileSupplyDemands(this.state);
     this.reserved=new Set(w.trucks.filter(t=>t.garrisonId!==undefined&&t.state!=='idle').map(t=>t.garrisonId!));
     for(const t of w.trucks){
       const side=t.faction??'player',enemy=side==='enemy'?w.enemySupply:undefined;
@@ -72,31 +74,17 @@ export class LogisticsSystem {
           t.state='loading';t.timer=8;t.reason='Scheduled rear manifest loading';
         }else{
           const peopleTrip=(g:Garrison)=>Boolean(this.state.operation?.campaign?.replacements?.manifests.some(m=>m.side===side&&m.stage==='rear'&&g.squadIds.includes(m.squadId)))||this.state.soldiers.some(s=>s.combat?.careTask?.stage==='evacuate'&&distance(s.combat.careTask.destination,g.forward)<5);
-          const demand=(g:Garrison)=>{
-            const local=localInventory(this.state,g),count=this.state.soldiers.filter(s=>s.garrisonId===g.id&&s.needs?.life!=='dead').length;
-            const emergencies=Math.max(0,count*.5-local.water-g.forwardStock.water)*10+Math.max(0,count*.5-local.food-g.forwardStock.food)*8;
-            const construction=Math.max(0,32-local.materials-g.forwardStock.materials)*2;
-            const reinforcements=this.state.operation?.campaign?.replacements?.manifests.filter(m=>m.side===side&&m.stage==='rear'&&g.squadIds.includes(m.squadId)).length??0;
-            const medical=['medical','mortarHE','mortarSmoke','smokeGrenades'] as const;
-            return emergencies+construction+reinforcements*10+(peopleTrip(g)?100:0)+medical.reduce((n,key)=>n+Math.max(0,6-local[key]-g.forwardStock[key]),0)+Math.max(0,80-g.forwardStock.water)+Math.max(0,80-g.forwardStock.food)+(this.state.operation?Math.max(0,count*20-local.ammo-g.forwardStock.ammo)*.3:0);
-          };
-          const g=w.garrisons.filter(g=>(g.faction??'player')===side&&!this.reserved.has(g.id)&&(g.squadIds.length>0||this.state.soldiers.some(s=>s.garrisonId===g.id&&s.needs?.life==='active'))&&(total(g.forwardStock)<config.forwardCapacity||peopleTrip(g))&&demand(g)>0).sort((a,b)=>demand(b)-demand(a)||a.id-b.id)[0];
+          const demands=(g:Garrison)=>(w.supplyDemands??[]).filter(d=>d.garrisonId===g.id&&unfulfilled(d)>.00001&&rearStock[d.resource]>0);
+          const priority=(g:Garrison)=>Math.min(peopleTrip(g)?3:6,...demands(g).map(d=>d.priority));
+          const g=w.garrisons.filter(g=>(g.faction??'player')===side&&!this.reserved.has(g.id)&&(g.squadIds.length>0||this.state.soldiers.some(s=>s.garrisonId===g.id&&s.needs?.life==='active')||w.facilities.some(f=>f.garrisonId===g.id&&f.workOrder?.explicit&&f.workOrder.cancelledAt===undefined))&&(total(g.forwardStock)<config.forwardCapacity||peopleTrip(g))&&(demands(g).length>0||peopleTrip(g))).sort((a,b)=>priority(a)-priority(b)||a.id-b.id)[0];
           if(!g)continue;
           const fuel=transfer(rearStock,t.cargo,'fuel',Math.max(0,30-t.fuel));t.cargo.fuel-=fuel;t.fuel+=fuel;
           if(t.fuel<2){t.reason='Depot fuel shortage';continue;}
-          const local=localInventory(this.state,g);
-          const count=this.state.soldiers.filter(s=>s.garrisonId===g.id&&s.needs?.life!=='dead').length;
           let capacity=Math.min(config.shuttleCapacity-total(t.cargo),config.forwardCapacity-total(g.forwardStock));
-          // Reserve scarce cargo space for an explicit waiting job before routine
-          // stock top-ups. Critical food/water or frontline ammunition still win.
-          const pending=w.facilities.filter(f=>f.garrisonId===g.id&&!f.paid&&f.workOrder?.explicit).reduce((n,f)=>n+Math.max(0,f.materialCost-f.stock.materials),0);
-          const urgent=local.water<count*.5||local.food<count*.5||Boolean(this.state.operation&&local.ammo<count*2);
-          if(pending>local.materials+g.forwardStock.materials&&!urgent)capacity-=transfer(rearStock,t.cargo,'materials',Math.min(capacity,24,pending-local.materials-g.forwardStock.materials));
-          for(const key of ['medical','mortarHE','mortarSmoke','smokeGrenades'] as const)capacity-=transfer(rearStock,t.cargo,key,Math.min(capacity,Math.max(0,(key==='medical'?8:6)-g.forwardStock[key]-local[key])));
-          const keys=this.state.operation&&local.ammo<count*2?['ammo','water','food','materials','fuel'] as const:['water','food','materials','ammo','fuel'] as const;
-          for(const key of keys){const wanted=key==='materials'?Math.min(24,Math.max(0,32-g.forwardStock.materials-local.materials-t.cargo.materials)):key==='fuel'?0:key==='ammo'?Math.min(90,Math.max(0,(this.state.operation?count*30:5)-g.forwardStock.ammo-local.ammo)):Math.min(55,Math.max(0,100-g.forwardStock[key]));capacity-=transfer(rearStock,t.cargo,key,Math.min(capacity,wanted));}
+          for(const d of demands(g)){const reserveLimit=d.priority<5?Infinity:d.resource==='ammo'?90:d.resource==='food'||d.resource==='water'?55:d.resource==='materials'?24:6;capacity-=transfer(rearStock,t.cargo,d.resource,Math.min(capacity,reserveLimit,unfulfilled(d)));}
           if(total(t.cargo)===0&&!peopleTrip(g)){t.reason='Depot empty';continue;}
           t.garrisonId=g.id;this.reserved.add(g.id);t.state='loading';t.timer=6;t.reason='Loading forward shipment';
+          reconcileSupplyDemands(this.state);
         }
       }else if(t.state==='loading'){
         t.timer-=dt;if(t.timer>0)continue;

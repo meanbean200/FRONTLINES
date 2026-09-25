@@ -43,7 +43,7 @@ export interface Facility extends Vec2 {
   weaponCrewIds?:number[];
   /** Metres along the parent centreline; no detached connector for inline posts. */
   trenchAnchor?:{trenchId:number;along:number};
-  workOrder?:{explicit:boolean;workerIds:number[];createdAt:number};
+  workOrder?:{explicit:boolean;workerIds:number[];createdAt:number;cancelledAt?:number};
   connectorId: number; progress: number; capacity: number; paid: boolean;
   stock: Inventory; materialCost: number;
   facing?:number;
@@ -76,6 +76,12 @@ export interface Truck extends Vec2 {
   garrisonId?: number; reason: string; resume?: 'outbound' | 'returning';
 }
 export interface Crate extends Vec2 { id: number; stock: Inventory; droppedBy?:number }
+/** Accounting claims, never another inventory. Sources refer to physical holders. */
+export interface SupplyClaim { source:'local'|'store'|'forward'|'truck'|'carrier'; id:number; amount:number }
+export interface SupplyDemand {
+  key:string; garrisonId:number; consumer:'construction'|'weapon'|'personnel'|'reserve'; consumerId:number;
+  resource:Resource; target:number; usable:number; priority:number; createdAt:number; claims:SupplyClaim[];
+}
 export interface LogisticsConfig {
   deliveryInterval: number; manifest: Inventory;
   rearCapacity: number; forwardCapacity: number; cacheCapacity: number; storeCapacity: number;
@@ -90,4 +96,5 @@ export interface LivingWorld {
   metrics: { watchGapHours: number; criticalNeedHours: number; distance: number; blockedHours: number; deaths: number };
   emergencyResumeSpeed: number; migrationNote?: string;
   logistics?: LogisticsConfig;
+  supplyDemands?:SupplyDemand[];
 }

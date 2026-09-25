@@ -62,7 +62,7 @@ describe('V1 position management command boundary',()=>{
     run(f.sim,160);expect(f.p.progress).toBe(1);expect(f.p.workOrder!.workerIds).toHaveLength(0);expect(workReadout(f.state,f.p).status).toBe('COMPLETE');
   });
   it('unfunded jobs wait truthfully and deliver materials before work',()=>{
-    const f=post();transfer(f.g.cache,f.state.living!.rearStock,'materials',f.g.cache.materials);run(f.sim,.1);expect(workReadout(f.state,f.p).status).toBe('WAITING FOR MATERIALS');expect(f.p.progress).toBe(0);
+    const f=post();transfer(f.g.cache,f.state.living!.rearStock,'materials',f.g.cache.materials);run(f.sim,.1);expect(workReadout(f.state,f.p).status).toBe('MATERIALS IN TRANSIT');expect(f.p.progress).toBe(0);
     transfer(f.state.living!.rearStock,f.g.cache,'materials',16);f.g.nextDecision=0;run(f.sim,8);expect(f.p.paid).toBe(false);run(f.sim,250);expect(f.p.paid).toBe(true);expect(f.p.progress).toBe(1);expect(Math.max(...Object.values(balance(f.state)).map(Math.abs))).toBeLessThan(1e-6);
   });
   it('two physically present workers build faster than one; untooled labor cannot build alone',()=>{
@@ -108,7 +108,19 @@ describe('V1 position management command boundary',()=>{
     const others=structuredClone(f.state.soldiers.filter(s=>s!==gun&&s!==helper)),orders=structuredClone(f.state.squads.map(q=>q.order));
     expect(f.sim.garrisons.assignCrew(helper.id,f.p.id).reason).toContain('MG REQUIRED');expect(f.sim.garrisons.assignCrew(gun.id,f.p.id).accepted).toBe(true);expect(f.sim.garrisons.assignCrew(helper.id,f.p.id).accepted).toBe(true);expect(f.p.weaponCrewIds).toEqual([gun.id,helper.id]);expect(f.state.soldiers.filter(s=>s!==gun&&s!==helper)).toEqual(others);expect(f.state.squads.map(q=>q.order)).toEqual(orders);
     expect(f.sim.garrisons.assignCrew(f.state.soldiers[3].id,f.p.id).reason).toContain('CREW FULL');run(f.sim,100);expect(positionReadiness(f.state,f.p)).toBe('');
+    const saved=new SaveSystem().parse(JSON.stringify(f.state));expect(saved.living!.facilities.find(p=>p.id===f.p.id)!.weaponCrewIds).toEqual([gun.id,helper.id]);expect(positionReadiness(saved,saved.living!.facilities.find(p=>p.id===f.p.id)!)).toBe('');expect(saved.squads.map(q=>q.order)).toEqual(orders);
     const gunBefore=structuredClone(gun);f.sim.garrisons.removeCrew(f.p.id,helper.id);expect(gun).toEqual(gunBefore);expect(positionReadiness(f.state,f.p)).toBe('NO ASSISTANT');expect(new SaveSystem().parse(JSON.stringify(f.state))).toEqual(f.state);
+  });
+  it('automatic crew selection prefers a local cross-formation helper and never recruits across the map',()=>{
+    const f=post();fund(f);f.p.progress=1;f.p.workOrder!.workerIds=[];
+    const gun=f.state.soldiers[0],helper=f.state.soldiers.find(s=>s.squadId===f.state.squads[1].id)!,nearby=f.state.soldiers[1];
+    for(const s of f.state.soldiers){s.x=f.origin.x+700;s.z=f.origin.z+700;delete s.duty;}
+    for(const q of f.state.squads)q.order={type:'hold',issuedAt:0};
+    gun.equipment!.weapon='crew-mg';gun.carried!.ammo=60;f.state.living!.ledger.initial.ammo+=60;
+    Object.assign(gun,weaponCrewPoint(f.state,f.p,0));Object.assign(helper,weaponCrewPoint(f.state,f.p,1));Object.assign(nearby,{x:f.p.x,z:f.p.z+6});
+    const orders=structuredClone(f.state.squads.map(q=>q.order));expect(f.sim.garrisons.autoCrew(f.p.id,gun.squadId).accepted).toBe(true);expect(f.p.weaponCrewIds).toEqual([gun.id,helper.id]);expect(f.state.squads.map(q=>q.order)).toEqual(orders);
+    f.sim.garrisons.removeCrew(f.p.id);for(const s of [gun,helper,nearby]){s.x+=700;s.z+=700;}
+    expect(f.sim.garrisons.autoCrew(f.p.id).accepted).toBe(false);expect(f.p.weaponCrewIds).toEqual([]);
   });
   it('retains distinct crew in saved travel, rejects double assignment, and migrates legacy crews without inventing stock',()=>{
     const state=createOperation('campaign'),q=state.squads.find(q=>q.kind==='mortar'&&q.faction==='player')!,f=preparedPosition(state,q.id,'mortar');delete f.weaponCrewIds;f.weaponSquadId=q.id;const before=structuredClone(state.soldiers),stock=balance(state);migrateWeaponCrews(state);

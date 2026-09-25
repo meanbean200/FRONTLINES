@@ -23,7 +23,7 @@ describe('deterministic garrison acceptance contracts',()=>{
   });
   it('queues supplied facility jobs without stealing a player-ordered engineer',()=>{
     const sim=createStudyScenario(),g=sim.state.living!.garrisons[0],engineer=sim.state.squads.find(q=>q.kind==='engineer')!;
-    const id=sim.garrisons.requestFacility(g.id,'rest');expect(id).toBeDefined();
+    const id=sim.garrisons.requestFacility(g.id,'rest',undefined,undefined,undefined,true);expect(id).toBeDefined();
     expect(engineer.constructionQueue).toContainEqual({kind:'facility',id});
     expect(sim.state.living!.facilities.find(f=>f.id===id)?.progress).toBe(0);
     expect(new SaveSystem().parse(JSON.stringify(sim.state)).squads).toEqual(sim.state.squads);
@@ -61,7 +61,7 @@ describe('deterministic garrison acceptance contracts',()=>{
     for(const n of Object.values(balance(sim.state)))expect(Math.abs(n)).toBeLessThan(1e-6);
   });
   it('grants sheltered sleep benefits only in a completed nearby dugout',()=>{
-    const sim=createStudyScenario(),g=sim.state.living!.garrisons[0],s=sim.state.soldiers[0],id=sim.garrisons.requestFacility(g.id,'rest')!;
+    const sim=createStudyScenario(),g=sim.state.living!.garrisons[0],s=sim.state.soldiers[0],id=sim.garrisons.requestFacility(g.id,'rest',undefined,undefined,undefined,true)!;
     const f=sim.state.living!.facilities.find(f=>f.id===id)!;s.x=f.x;s.z=f.z;
     s.duty={kind:'sleep',destination:{x:s.x,z:s.z},route:[],routeIndex:0,since:0,arrivedAt:0,until:300,facilityId:id,reason:'Rest test',blockedFor:0};
     s.needs!.energy=30;updateNeeds(sim.state,s,75);const floor=s.needs!.energy;
@@ -74,7 +74,7 @@ describe('deterministic garrison acceptance contracts',()=>{
     expect(Math.hypot(s.duty!.destination.x-g.entrance.x,s.duty!.destination.z-g.entrance.z)).toBeGreaterThan(12);
   });
   it('rejoins the centreline before leaving a wide support bay',()=>{
-    const sim=createStudyScenario(),g=sim.state.living!.garrisons[0],id=sim.garrisons.requestFacility(g.id,'rest')!;
+    const sim=createStudyScenario(),g=sim.state.living!.garrisons[0],id=sim.garrisons.requestFacility(g.id,'rest',undefined,undefined,undefined,true)!;
     const f=sim.state.living!.facilities.find(f=>f.id===id)!,t=sim.state.trenches.find(t=>t.id===f.connectorId)!;t.progress=1;t.status='complete';f.progress=1;
     const s=sim.state.soldiers[0];for(const other of sim.state.soldiers)other.needs!.energy=40;
     s.x=f.x+1.8;s.z=f.z+1.8;s.needs!.energy=100;sim.step(.05);

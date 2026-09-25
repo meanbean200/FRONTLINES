@@ -5,6 +5,7 @@ import {requestSupport,stepSupport,smokeTransmission,selectedSupportTeam,support
 import {balance} from '../garrison/Inventory';
 import {SaveSystem} from '../persistence/SaveSystem';
 import {preparedPosition} from './testing/PositionFixture';
+import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
 function setup(){const state=createOperation('advance'),sim=new BattlefieldSimulation(state),q=state.squads[0];state.operation!.supportRules=true;state.operation!.casualtyRules=true;q.x=0;q.z=0;for(const s of state.soldiers){s.x=2000;s.z=2000;}const crew=state.soldiers.filter(s=>s.squadId===q.id);crew.forEach((s,i)=>{s.x=0;s.z=i;});crew[0].equipment!.mortar=true;crew[0].carried!.mortarHE=4;state.living!.ledger.initial.mortarHE+=4;preparedPosition(state,q.id,'mortar');vi.spyOn(sim.terrain,'heightAt').mockReturnValue(0);vi.spyOn(sim.terrain,'baseHeightAt').mockReturnValue(0);vi.spyOn(sim.terrain.objects,'trace').mockReturnValue({clear:true,transmission:1});return{state,sim,q,crew};}
 describe('physical support missions',()=>{
   it('rejects an already moving mortar before creating a mission or spending inventory',()=>{
@@ -47,7 +48,7 @@ describe('physical support missions',()=>{
     const {state,sim,q}=setup();requestSupport(state,'mortarHE',q.id,{x:100,z:0},true);const m=state.operation!.supportMissions![0];sim.terrain.buildings=[{...sim.terrain.buildings[0],...m.impact}];state.buildingChanges=[{id:0,condition:'damaged',damage:100}];const patient=state.soldiers.find(s=>s.squadId!==q.id)!;Object.assign(patient,m.impact);vi.mocked(sim.terrain.objects.trace).mockImplementation(()=>({clear:state.buildingChanges![0].condition==='ruined',transmission:0}));state.elapsed=30;stepSupport(state,sim.terrain);expect(patient.combat?.wound).toBeUndefined();expect(state.buildingChanges[0].condition).toBe('ruined');
   });
   it('consumes only on launch; preparation and shell flight save exactly',()=>{
-    const {state,sim,q,crew}=setup();expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0}).accepted).toBe(true);expect(crew[0].carried!.mortarHE).toBe(4);state.elapsed=15;stepSupport(state,sim.terrain);expect(crew[0].carried!.mortarHE).toBe(3);expect(state.operation!.supportMissions![0].stage).toBe('flight');expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);state.elapsed=30;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions![0].stage).toBe('complete');for(const n of Object.values(balance(state)))expect(Math.abs(n)).toBeLessThan(1e-8);
+    const {state,sim,q,crew}=setup();expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0}).accepted).toBe(true);expect(crew[0].carried!.mortarHE).toBe(4);state.elapsed=15;stepSupport(state,sim.terrain);expect(crew[0].carried!.mortarHE).toBe(3);expect(state.operation!.supportMissions![0].stage).toBe('flight');reconcileSupplyDemands(state);expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);state.elapsed=30;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions![0].stage).toBe('complete');for(const n of Object.values(balance(state)))expect(Math.abs(n)).toBeLessThan(1e-8);
   });
   it('warns of friendly danger and cancellation does not consume a shell',()=>{
     const {state,sim,q,crew}=setup();const friendly=state.soldiers.find(s=>s.squadId===state.squads[1].id)!;friendly.x=100;friendly.z=0;

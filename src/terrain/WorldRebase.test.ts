@@ -47,6 +47,9 @@ describe('canonical 4 km world',()=>{
  it('conserves cargo and continues cross-map road shipments after save/load',()=>{
   const s=createOperation('campaign'),a=new BattlefieldSimulation(s);s.operation!.nextOrders=s.operation!.nextCombat=1e9;
   const g=s.living!.garrisons[0];g.forward=nearestRoad({x:1080,z:1000}).point;
+  // A stocked network no longer requests arbitrary extra water. Create an
+  // accounted real shortage for this cross-map delivery fixture.
+  g.cache.water-=50;s.living!.rearStock.water+=50;
   for(let i=0;i<700;i++){s.elapsed+=.05;a.garrisons.logistics.step(.05);}
   expect(s.living!.trucks.some(t=>t.state==='outbound')).toBe(true);
   const b=new BattlefieldSimulation(new SaveSystem().parse(JSON.stringify(s)));

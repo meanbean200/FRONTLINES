@@ -15,8 +15,8 @@ describe('campaign logistics',()=>{
   });
   it('queues chosen ammunition works, rejects forward/overlapping placement, and charges no invisible stock',()=>{
     const sim=new BattlefieldSimulation(createOperation('campaign')),g=sim.state.living!.garrisons[0],origin=sim.garrisons.network.nearest({x:-1464,z:-1510})!.point;
-    expect(sim.garrisons.requestFacility(g.id,'ammo',{x:origin.x+20,z:origin.z},origin)).toBeUndefined();
-    const p={x:origin.x-20,z:origin.z},id=sim.garrisons.requestFacility(g.id,'ammo',p,origin);expect(id).toBeDefined();expect(sim.garrisons.requestFacility(g.id,'store',p,origin)).toBeUndefined();
+    expect(sim.garrisons.requestFacility(g.id,'ammo',{x:origin.x+20,z:origin.z},origin,undefined,true)).toBeUndefined();
+    const p={x:origin.x-20,z:origin.z},id=sim.garrisons.requestFacility(g.id,'ammo',p,origin,undefined,true);expect(id).toBeDefined();expect(sim.garrisons.requestFacility(g.id,'store',p,origin,undefined,true)).toBeUndefined();
     const f=sim.state.living!.facilities.find(f=>f.id===id)!;expect(f.progress).toBe(0);expect(f.paid).toBe(false);expect(f.materialCost).toBe(14);for(const n of Object.values(balance(sim.state)))expect(Math.abs(n)).toBeLessThan(1e-7);
   });
   it('clears defeated ownership when a player squad occupies an empty enemy network and still saves',()=>{

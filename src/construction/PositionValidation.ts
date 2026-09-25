@@ -16,6 +16,7 @@ export function validPositionState(state:BattlefieldState):boolean {
     }
     if(f.workOrder){
       const o=f.workOrder;if(typeof o.explicit!=='boolean'||!Number.isFinite(o.createdAt)||o.createdAt<0||!Array.isArray(o.workerIds)||o.workerIds.length>16)return false;
+      if(o.cancelledAt!==undefined&&(!Number.isFinite(o.cancelledAt)||o.cancelledAt<o.createdAt||o.cancelledAt>state.elapsed||o.workerIds.length>0))return false;
       for(const id of o.workerIds){const s=state.soldiers.find(s=>s.id===id),q=state.squads.find(q=>q.id===s?.squadId);if(!s||!q||workers.has(id)||(q.faction??'player')!==(g.faction??'player'))return false;workers.add(id);}
     }
   }

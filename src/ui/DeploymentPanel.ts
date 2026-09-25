@@ -2,7 +2,7 @@ import type {BattlefieldState,Vec2} from '../core/types';
 import {SANDBOX_PERSONNEL_LIMIT,type DeploymentKind} from '../simulation/SandboxDeployment';
 import {fieldIcon} from './FieldSymbols';
 import {requestReserveSquad,reserveDispatchAt} from '../operations/Replacements';
-import {trenchName} from './TrenchReadout';
+import {trenchName,networkName} from './TrenchReadout';
 
 /** Normal player controls, separate from the developer stress fixture. */
 export class DeploymentPanel {
@@ -41,7 +41,7 @@ export class DeploymentPanel {
     const section=this.element.querySelector<HTMLElement>('.reinforcement-orders')!;section.hidden=!pool;if(!pool)return;
     const w=state.living!,select=section.querySelector<HTMLSelectElement>('select')!,networks=w.garrisons.filter(g=>g.faction!=='enemy'&&g.cutoff!=='withdraw'&&g.squadIds.length);
     const networkKey=networks.map(g=>g.id+g.name).join('|');
-    if(select.dataset.key!==networkKey){const chosen=select.value;select.dataset.key=networkKey;select.replaceChildren();for(const g of networks)select.add(new Option(`${trenchName(state,g.trenchId)} · ${g.name}`,String(g.id)));if(!networks.length)select.add(new Option('Assign a formation to a completed trench','0'));if([...select.options].some(o=>o.value===chosen))select.value=chosen;}
+    if(select.dataset.key!==networkKey){const chosen=select.value;select.dataset.key=networkKey;select.replaceChildren();for(const g of networks)select.add(new Option(`${trenchName(state,g.trenchId)} · ${networkName(state,g.id)}`,String(g.id)));if(!networks.length)select.add(new Option('Assign a formation to a completed trench','0'));if([...select.options].some(o=>o.value===chosen))select.value=chosen;}
     const delay=Math.max(0,reserveDispatchAt(pool,'player')-w.campaignHours),request=section.querySelector<HTMLButtonElement>('[data-request-reserves]')!;
     request.disabled=this.button.disabled||pool.reserve.player<8||!networks.length||delay>0;
     section.querySelector('.dispatch-reason')!.textContent=delay?`Next dispatch in ${delay.toFixed(1)} campaign hours.`:pool.reserve.player<8?'Fewer than 8 reserve personnel remain. Remaining reserves replace losses automatically.':!networks.length?'Defend a completed trench first to establish a safe arrival area.':'Dispatch available · request uses 8 reserve personnel.';

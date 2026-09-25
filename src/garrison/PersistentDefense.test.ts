@@ -30,7 +30,7 @@ describe('persistent trench assignments',()=>{
   });
   it('retains membership through night duties, alarm recovery and a completed support connector',()=>{
     const {sim,state,g}=fixture(),members=state.soldiers.map(s=>[s.id,s.garrisonId]);
-    const work=sim.garrisons.requestFacility(g.id,'rest');expect(work).toBeDefined();
+    const work=sim.garrisons.requestFacility(g.id,'rest',undefined,undefined,undefined,true);expect(work).toBeDefined();
     for(let i=0;i<12000&&state.living!.facilities.find(f=>f.id===work)!.progress<1;i++)sim.step(.05);
     expect(state.living!.facilities.find(f=>f.id===work)!.progress).toBe(1);
     state.living!.campaignHours=20;g.nextDecision=0;advance(sim,120);
@@ -51,7 +51,7 @@ describe('persistent trench assignments',()=>{
   });
   it('does not cancel queued support works or assign an unrelated moving squad on a group Hold',()=>{
     const {sim,state,g}=fixture(),engineer=state.squads.find(q=>q.kind==='engineer')!,moving=state.squads[0];
-    const work=sim.garrisons.requestFacility(g.id,'rest');expect(work).toBeDefined();
+    const work=sim.garrisons.requestFacility(g.id,'rest',undefined,undefined,undefined,true);expect(work).toBeDefined();
     const queue=structuredClone(engineer.constructionQueue);expect(queue?.length).toBeGreaterThan(0);
     sim.issueMove([moving.id],{x:moving.x,z:moving.z-20});
     sim.issueHold([moving.id,engineer.id]);

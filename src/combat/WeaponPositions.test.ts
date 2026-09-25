@@ -12,7 +12,7 @@ import {balance} from '../garrison/Inventory';
 describe('physical crewed weapon positions',()=>{
   it('does not divert a fit tool carrier from funded works to routine forward hauling',()=>{
     const sim=createStudyScenario(),s=sim.state,g=s.living!.garrisons[0];g.nextSupport=1e9;
-    const id=sim.garrisons.requestFacility(g.id,'mortar')!,f=s.living!.facilities.find(f=>f.id===id)!;
+    const id=sim.garrisons.requestFacility(g.id,'mortar',undefined,undefined,undefined,true)!,f=s.living!.facilities.find(f=>f.id===id)!;
     // Isolate allocation after a real material delivery; stock accounting is checked in the full build test.
     f.paid=true;g.forwardStock.water=100;g.forwardStock.food=100;
     sim.step(.05);
@@ -44,7 +44,7 @@ describe('physical crewed weapon positions',()=>{
     const sim=createStudyScenario(),state=sim.state,g=state.living!.garrisons[0],q=state.squads[0];g.nextSupport=1e9;
     const people=state.soldiers.filter(s=>s.squadId===q.id);people[0].equipment!.weapon='crew-mg';
     for(const s of state.soldiers){s.carried!.ammo=60;state.living!.ledger.initial.ammo+=60;}
-    const id=sim.garrisons.requestFacility(g.id,'emplacement')!,f=state.living!.facilities.find(f=>f.id===id)!;
+    const id=sim.garrisons.requestFacility(g.id,'emplacement',undefined,undefined,undefined,true)!,f=state.living!.facilities.find(f=>f.id===id)!;
     expect(id).toBeDefined();expect(sim.garrisons.assignWeapon(q.id,id).accepted).toBe(false);
     for(let i=0;i<12000&&f.progress<1;i++)sim.step(.05);
     expect(f.paid).toBe(true);expect(f.progress).toBe(1);expect(state.living!.ledger.consumed.materials).toBe(16);
@@ -59,7 +59,8 @@ describe('physical crewed weapon positions',()=>{
     sim.issueTactical([q.id],'suppress',{x:f.x,z:f.z+100});expect(f.weaponCrewIds).toHaveLength(2);
     sim.issueHold([q.id]);expect(f.weaponCrewIds).toHaveLength(2);expect(weaponPositionReadiness(state,q.id,'emplacement')).toBe('');
     expect(q.order.intent).toBeUndefined();
-    sim.issueMove([q.id],{x:q.x,z:q.z-20});expect(f.weaponCrewIds).toHaveLength(0);expect(weaponPositionReadiness(state,q.id,'emplacement')).toContain('Assign');
+    const otherCrew=f.weaponCrewIds!.filter(id=>state.soldiers.find(s=>s.id===id)?.squadId!==q.id);
+    sim.issueMove([q.id],{x:q.x,z:q.z-20});expect(f.weaponCrewIds).toEqual(otherCrew);expect(weaponPositionReadiness(state,q.id,'emplacement')).toContain('Assign');
   },20000);
   it('refuses cross-faction, wrong equipment, double crew and corrupt save assignments',()=>{
     const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),q=state.squads.find(q=>q.kind==='machinegun'&&q.faction==='player')!,f=preparedPosition(state,q.id,'emplacement');

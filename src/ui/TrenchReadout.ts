@@ -4,10 +4,12 @@ import type {TrenchNetwork} from '../garrison/TrenchNetwork';
 
 /** A saved trench's array order is stable; use the same short name on every surface. */
 export const trenchName=(state:BattlefieldState,id:number)=>`Trench ${String(state.trenches.findIndex(t=>t.id===id)+1).padStart(2,'0')}`;
+export const networkName=(state:BattlefieldState,id:number)=>`Trench network ${String((state.living?.garrisons.filter(g=>g.faction!=='enemy').findIndex(g=>g.id===id)??-1)+1).padStart(2,'0')}`;
 export const distanceToPolyline=(point:Vec2,points:Vec2[])=>({distance:points.slice(1).reduce((best,p,i)=>Math.min(best,distanceToSegment(point,points[i],p).distance),Infinity)});
 export function friendlyTrenches(state:BattlefieldState,network:TrenchNetwork):TrenchState[]{
   return state.trenches.filter(t=>{
     if(state.squads.some(q=>q.id===t.engineerSquadId&&q.faction==='enemy'))return false;
+    if(state.living?.facilities.some(f=>f.connectorId===t.id&&state.living?.garrisons.some(g=>g.id===f.garrisonId&&g.faction==='enemy')))return false;
     const component=network.component(t.id);
     return component===undefined||!state.living?.garrisons.some(g=>g.faction==='enemy'&&network.component(g.trenchId)===component);
   });

@@ -14,6 +14,7 @@ import {excavatedSpan} from '../core/TrenchGeometry';
 import {SUPPORT_WORKS} from './ConstructionReadout';
 import {squadHasEquipment,hasEquipment} from '../combat/Equipment';
 import {trenchAnchorAt,inlineGeometry,WEAPON_POSITIONS} from './PositionDefinitions';
+import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
 
 export const METRES_PER_PERSON=2.5;
 export const ENTRANCE_LENGTH=5;
@@ -32,7 +33,7 @@ export class TrenchSystem {
     if(request.kind==='trench')return this.create(request.points,request.engineerSquadId).id;
     const w=this.state.living,g=w?.garrisons.find(g=>g.id===request.garrisonId);
     const engineers=this.state.squads.filter(q=>squadHasEquipment(this.state,q,'tools')&&g?.squadIds.includes(q.id)&&q.order.type==='occupy-trench');
-    if(!w||!g||distance(request.origin,request.position)>40)return;
+    if(!w||!g||distance(request.origin,request.position)>40||(g.faction??'player')==='player'&&!request.explicit)return;
     const kind=request.facilityKind,id=this.state.nextEntityId++;
     const facing=request.facing??g.front;
     let connector:TrenchState,anchor:{trenchId:number;along:number}|undefined,position=request.position;
@@ -43,6 +44,7 @@ export class TrenchSystem {
     }else{connector=this.create([request.origin,request.position]);connector.width=7.2;connector.progress=.001;connector.status='building';}
     w.facilities.push({id,...position,garrisonId:g.id,kind,facing,connectorId:connector.id,trenchAnchor:anchor,weaponCrewIds:['emplacement','mortar'].includes(kind)?[]:undefined,workOrder:{explicit:request.explicit??false,workerIds:[],createdAt:this.state.elapsed},progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'||kind==='mortar'?WEAPON_POSITIONS[kind].crew:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
     for(const q of engineers)(q.constructionQueue??=[]).push({kind:'facility',id});
+    reconcileSupplyDemands(this.state);
     return id;
   }
 
@@ -53,7 +55,7 @@ export class TrenchSystem {
       if(t.excavation)this.applyFrontWork(t,1,seconds*rate);
       else {t.progress=Math.min(1,t.progress+seconds*rate/Math.max(1,polylineLength(t.points)));if(t.progress===1)t.status='complete';}
     }else{
-      const f=this.state.living?.facilities.find(f=>f.id===job.id);if(!f?.paid||f.progress===1)return;
+      const f=this.state.living?.facilities.find(f=>f.id===job.id);if(!f?.paid||f.progress===1||f.workOrder?.cancelledAt!==undefined)return;
       const t=this.state.trenches.find(t=>t.id===f.connectorId);if(!t)return;
       if(!f.trenchAnchor&&t.progress<1)this.applyWork({kind:'trench',id:t.id},seconds,rate*.2);
       else f.progress=Math.min(1,f.progress+seconds*rate/90);
