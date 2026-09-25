@@ -27,7 +27,8 @@ describe('deterministic garrison acceptance contracts',()=>{
     expect(engineer.constructionQueue).toContainEqual({kind:'facility',id});
     expect(sim.state.living!.facilities.find(f=>f.id===id)?.progress).toBe(0);
     expect(new SaveSystem().parse(JSON.stringify(sim.state)).squads).toEqual(sim.state.squads);
-    sim.issueHold([engineer.id]);expect(engineer.constructionQueue).toEqual([]);
+    sim.issueHold([engineer.id]);expect(engineer.constructionQueue).toContainEqual({kind:'facility',id});
+    sim.issueMove([engineer.id],{x:engineer.x,z:engineer.z-20});expect(engineer.constructionQueue).toEqual([]);
     expect(sim.garrisons.requestFacility(g.id,'meal')).toBeUndefined();
   });
   it('rejects support connectors beyond forty metres or facing forward',()=>{

@@ -46,7 +46,8 @@ describe('garrison lifecycle',()=>{
     expect(assigned).toHaveLength(18);expect(assigned.every(s=>s.trenchAlong===undefined)).toBe(true);
     expect(assigned.some(s=>s.duty?.kind==='watch')).toBe(true);
     expect(new SaveSystem().parse(JSON.stringify(sim.state))).toEqual(sim.state);
-    sim.issueHold([sim.state.squads[0].id]);expect(sim.state.soldiers.filter(s=>s.squadId===sim.state.squads[0].id).every(s=>!s.duty&&s.garrisonId===undefined)).toBe(true);
+    const q=sim.state.squads[0];sim.issueHold([q.id]);expect(sim.state.soldiers.filter(s=>s.squadId===q.id).every(s=>s.garrisonId!==undefined)).toBe(true);
+    sim.issueMove([q.id],{x:q.x,z:q.z-20});expect(sim.state.soldiers.filter(s=>s.squadId===q.id).every(s=>!s.duty&&s.garrisonId===undefined)).toBe(true);
   });
   it('moves scheduled cargo physically and conserves every resource through save/load',()=>{
     const sim=camp();for(let i=0;i<9000;i++)sim.step(.05);

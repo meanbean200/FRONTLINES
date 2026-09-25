@@ -17,6 +17,7 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>,
   const first=squads[0],orders=new Set(squads.map(q=>q.order.intent??q.order.type));
   const names:Record<string,string>={'hold':'Holding','move':'Moving','occupy-trench':'Defending','construct-trench':'Excavating','observe':'Observing','suppress':'Suppressing','assault':'Assaulting','fall-back':'Withdrawing'};
   let order=orders.size>1?'Mixed orders':names[[...orders][0]]??'Following orders';
+  if(orders.size===1&&squads.every(q=>q.order.type==='occupy-trench')&&['observe','suppress'].includes(first.order.intent??''))order=`Defending · ${order.toLowerCase()}`;
   if(squads.length===1)order=constructionStatus(state,first)??order;
   if(squads.length===1&&first.orderNote?.startsWith('Route blocked'))order=first.orderNote;
   const mission=state.operation?.supportMissions?.filter(m=>selected.has(m.squadId)).at(-1);

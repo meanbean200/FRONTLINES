@@ -63,13 +63,14 @@ describe('complex works and drawn orders',()=>{
     expect(sim.createTrench([{x:NaN,z:0},{x:40,z:0}])).toBeUndefined();
   });
 
-  it('uses built linear capacity, releases it on hold, and never grants cover on an unbuilt plan',()=>{
+  it('holds built capacity until departure and never grants cover on an unbuilt plan',()=>{
     const sim=new BattlefieldSimulation(createBattlefield()),trench=sim.state.trenches[0];
     expect(sim.trenches.capacity(trench)).toBe(Math.floor((polylineLength(trench.points)-6)/2.5));
     const ids=sim.state.squads.slice(0,5).map(s=>s.id);expect(sim.issueOccupyNearest(ids,trench.id)).toBe(trench.id);
     expect(sim.trenches.used(trench)).toBe(50);
     expect(sim.issueOccupyNearest([sim.state.squads[5].id],trench.id)).toBeUndefined();
-    sim.issueHold([ids[0]]);expect(sim.trenches.used(trench)).toBe(40);
+    sim.issueHold([ids[0]]);expect(sim.trenches.used(trench)).toBe(50);
+    const q=sim.state.squads[0];sim.issueMove([q.id],{x:q.x,z:q.z-20});expect(sim.trenches.used(trench)).toBe(40);
     expect(sim.issueOccupyNearest([sim.state.squads[5].id],trench.id)).toBe(trench.id);
     const plan=sim.createTrench([{x:-1700,z:-1600},{x:-1750,z:-1640}])!,t=sim.state.trenches.find(t=>t.id===plan)!;
     const p=atDistance(t.points,20);expect(sim.trenches.capacity(t)).toBe(0);expect(sim.terrain.coverAt(p.x,p.z)).not.toBe('trench');

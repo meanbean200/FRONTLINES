@@ -153,12 +153,16 @@ export class BattlefieldSimulation {
   issueBuilding(squadIds:number[],id:number,floor:0|1=0,enemyOrder=false):void {
     if(this.commandsLocked||!this.terrain.buildings[id])return;
     this.issueHold(squadIds,enemyOrder);
-    for(const q of this.state.squads.filter(q=>squadIds.includes(q.id)&&(enemyOrder||factionOf(q)==='player'))){q.order.building={id,floor};q.orderNote='Enter through doors; occupy temporary firing positions';}
+    for(const q of this.state.squads.filter(q=>squadIds.includes(q.id)&&(enemyOrder||factionOf(q)==='player'))){
+      this.pauseConstruction(q);this.clearTrenchAssignments(q);
+      q.order={type:'hold',issuedAt:this.state.elapsed,building:{id,floor}};
+      q.movementState='idle';q.orderNote='Enter through doors; occupy temporary firing positions';
+    }
   }
 
   issueTactical(squadIds:number[],intent:TacticalIntent,target:Vec2):void {
     if(this.commandsLocked||!Number.isFinite(target.x)||!Number.isFinite(target.z))return;
-    if(intent==='observe'||intent==='suppress')this.issueHold(squadIds.filter(id=>!this.state.living!.facilities.some(f=>f.weaponSquadId===id)));else this.issueMove(squadIds,target);
+    if(intent==='observe'||intent==='suppress')this.issueHold(squadIds);else this.issueMove(squadIds,target);
     for(const q of this.state.squads.filter(q=>squadIds.includes(q.id)&&factionOf(q)==='player')){
       q.order.intent=intent;q.order.target={...target};
       if(intent==='observe')for(const s of this.soldiersFor(q))s.heading=Math.atan2(target.x-s.x,target.z-s.z);
@@ -173,6 +177,15 @@ export class BattlefieldSimulation {
     if(this.commandsLocked)return;
     for (const squad of this.state.squads) {
       if (!squad.soldierIds.length||!squadIds.includes(squad.id) || !enemyOrder && factionOf(squad) === 'enemy') continue;
+      const garrison=this.state.living!.garrisons.find(g=>g.squadIds.includes(squad.id));
+      if(garrison){
+        // Hold clears a tactical override, not the standing defense assignment.
+        // Preserve actual entry/duty routes, relief, deliveries and weapon crews.
+        // Replacing the order object also invalidates stale navigation callbacks.
+        squad.order={type:'occupy-trench',trenchId:squad.order.trenchId??garrison.trenchId,issuedAt:this.state.elapsed};
+        squad.route=[];squad.routeIndex=0;squad.movementState='entrenching';squad.orderNote=undefined;
+        continue;
+      }
       this.pauseConstruction(squad);
       squad.orderNote=undefined;
       squad.order = { type: 'hold', issuedAt: this.state.elapsed };

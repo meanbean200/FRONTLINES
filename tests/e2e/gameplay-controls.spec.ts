@@ -82,12 +82,13 @@ test('mortar buttons and status reject roofs, then permit a real outdoor mission
   expect(await page.evaluate(()=>window.__FRONTLINES__.getState().operation?.supportMissions?.at(-1))).toMatchObject({squadId:outside.id,kind:'mortarHE',stage:'preparing',source:'PLAYER'});
 });
 
-test('paused Hold updates support status as well as button readiness',async({page})=>{
+test('paused Hold updates support readiness without discarding the prepared crew assignment',async({page})=>{
   await meeting(page);const outside=await placeMortar(page,false,true);await select(page,outside.name);
   await page.locator('#support-command').click();await expect(page.locator('.support-status')).toContainText('Team moving');
   await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();
   await page.keyboard.press('h');
-  await expect(page.locator('[data-support="mortarHE"]')).toBeDisabled();
-  await expect(page.locator('.support-status')).not.toContainText('Team moving');await expect(page.locator('[data-support="mortarHE"]')).toHaveAttribute('title',/built mortar pit/);
+  await expect(page.locator('[data-support="mortarHE"]')).toBeEnabled();
+  await expect(page.locator('.support-status')).not.toContainText('Team moving');await expect(page.locator('[data-support="mortarHE"]')).toHaveAttribute('title',/Order one round/);
+  expect(await page.evaluate(id=>{const s=window.__FRONTLINES__.getState();return {order:s.squads.find(q=>q.id===id)!.order.type,assigned:s.soldiers.filter(p=>p.squadId===id&&p.garrisonId!==undefined).length,position:s.living!.facilities.some(f=>f.kind==='mortar'&&f.weaponSquadId===id)};},outside.id)).toEqual({order:'occupy-trench',assigned:8,position:true});
   expect(await page.evaluate(()=>window.__FRONTLINES__.getState().simSpeed)).toBe(0);
 });

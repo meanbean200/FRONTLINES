@@ -25,7 +25,7 @@ export class GarrisonPanel {
     this.element.querySelector<HTMLOptionElement>('#garrison-front option[value="0"]')!.textContent='South';
     this.element.querySelector<HTMLOptionElement>('#garrison-front option[value="3.141592653589793"]')!.textContent='North';
     const guide=document.createElement('p');guide.className='trench-explanation';
-    guide.textContent='Squads rotate watch, rest and supply duties. Move or Hold releases them from this area.';
+    guide.textContent='Squads rotate watch, rest and supply duties. Hold, Observe and Suppress keep them assigned. Move or Withdraw leaves this area.';
     this.element.querySelector('[data-defense-page="defense"]')!.append(guide);
     const diagnostics=document.createElement('details');diagnostics.innerHTML='<summary>Coordinator diagnostics</summary>';
     const policy=this.element.querySelector('.policy-status')!;policy.previousElementSibling?.remove();policy.before(diagnostics);diagnostics.append(policy);

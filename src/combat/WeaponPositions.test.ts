@@ -35,6 +35,8 @@ describe('physical crewed weapon positions',()=>{
     const source=side==='player'?'PLAYER':'ENEMY_AI';
     expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,source).reason).toContain('mortar pit');
     const f=preparedPosition(state,q.id,'mortar');expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,source).accepted).toBe(true);
+    sim.issueHold([q.id],side==='enemy');state.elapsed=1;stepSupport(state,sim.terrain);
+    expect(f.weaponSquadId).toBe(q.id);expect(state.operation!.supportMissions![0].stage).toBe('preparing');
     const ammo=operator.carried!.mortarHE;delete f.weaponSquadId;state.elapsed=16;stepSupport(state,sim.terrain);
     expect(state.operation!.supportMissions![0].stage).toBe('cancelled');expect(operator.carried!.mortarHE).toBe(ammo);
   });
@@ -55,7 +57,9 @@ describe('physical crewed weapon positions',()=>{
     expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);
     for(const n of Object.values(balance(state)))expect(Math.abs(n)).toBeLessThan(1e-6);
     sim.issueTactical([q.id],'suppress',{x:f.x,z:f.z+100});expect(f.weaponSquadId).toBe(q.id);
-    sim.issueHold([q.id]);expect(f.weaponSquadId).toBeUndefined();expect(weaponPositionReadiness(state,q.id,'emplacement')).toContain('Assign');
+    sim.issueHold([q.id]);expect(f.weaponSquadId).toBe(q.id);expect(weaponPositionReadiness(state,q.id,'emplacement')).toBe('');
+    expect(q.order.intent).toBeUndefined();
+    sim.issueMove([q.id],{x:q.x,z:q.z-20});expect(f.weaponSquadId).toBeUndefined();expect(weaponPositionReadiness(state,q.id,'emplacement')).toContain('Assign');
   },20000);
   it('refuses cross-faction, wrong equipment, double crew and corrupt save assignments',()=>{
     const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),q=state.squads.find(q=>q.kind==='machinegun'&&q.faction==='player')!,f=preparedPosition(state,q.id,'emplacement');

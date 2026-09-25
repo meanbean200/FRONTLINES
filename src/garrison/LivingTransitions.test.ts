@@ -110,10 +110,12 @@ describe('living-trench transition contracts',()=>{
     expect(old.duty?.kind).not.toBe('watch');expect(relief.duty?.relieving).toBeUndefined();
   });
 
-  it('player orders interrupt sleep once and retain carried inventory',()=>{
+  it('leaving defense interrupts sleep once and retains carried inventory; Hold does neither',()=>{
     const sim=createStudyScenario(),s=sim.state.soldiers[0],g=sim.state.living!.garrisons[0];
     s.duty={kind:'sleep',destination:{x:s.x,z:s.z},route:[],routeIndex:0,since:0,arrivedAt:0,until:600,reason:'test rest',blockedFor:0};
     const stock={...s.carried!};sim.issueHold([s.squadId]);
+    expect(s.needs!.interruptedSleep).toBe(0);expect(s.duty?.kind).toBe('sleep');expect(s.garrisonId).toBe(g.id);
+    sim.issueMove([s.squadId],{x:s.x,z:s.z-20});
     expect(s.needs!.interruptedSleep).toBe(1);expect(s.duty).toBeUndefined();expect(s.garrisonId).toBeUndefined();
     expect(g.squadIds).not.toContain(s.squadId);expect(s.carried).toEqual(stock);
     for(const n of Object.values(balance(sim.state)))expect(Math.abs(n)).toBeLessThan(1e-8);

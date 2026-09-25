@@ -72,10 +72,12 @@ describe('explicit reassignment between disconnected trenches',()=>{
     for(let i=0;i<3600;i++)sim.step(.05);
     for(const s of state.soldiers){expect(distance(s,g.forward)).toBeLessThan(3);expect(s.duty?.relocationExit).toBeUndefined();}
   });
-  it('validates saved transfer portals and lets player Hold cancel the trip',()=>{
+  it('validates transfer portals; Hold preserves the destination while Move cancels the trip',()=>{
     const {state,sim,q,target}=fixture();expect(sim.assignGarrison([q.id],target.id)).toBe(true);
     const invalid=structuredClone(state);invalid.soldiers[0].duty!.relocationExit={x:NaN,z:0};
     expect(()=>new SaveSystem().parse(JSON.stringify(invalid))).toThrow();
-    sim.issueHold([q.id]);expect(state.soldiers.every(s=>!s.duty&&!s.garrisonId)).toBe(true);
+    const duties=structuredClone(state.soldiers.map(s=>s.duty));
+    sim.issueHold([q.id]);expect(state.soldiers.map(s=>s.duty)).toEqual(duties);expect(q.order.trenchId).toBe(target.id);
+    sim.issueMove([q.id],{x:q.x,z:q.z-20});expect(state.soldiers.every(s=>!s.duty&&!s.garrisonId)).toBe(true);
   });
 });

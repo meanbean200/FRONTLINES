@@ -6,6 +6,13 @@ import {trenchDraft} from './TrenchDraft';
 import {fieldIcon} from './FieldSymbols';
 
 describe('field command presentation is truthful and read only',()=>{
+  it('shows that Observe and Suppress are still defending, not detached from the trench',()=>{
+    const state=createOperation('campaign'),q=state.squads[0],ids=new Set([q.id]);
+    q.order={type:'occupy-trench',trenchId:state.trenches[0].id,issuedAt:0,intent:'observe'};
+    expect(selectionReadout(state,ids)!.order).toBe('Defending · observing');
+    q.order.intent='suppress';expect(selectionReadout(state,ids)!.order).toBe('Defending · suppressing');
+    q.order.type='hold';expect(selectionReadout(state,ids)!.order).toBe('Suppressing');
+  });
   it('discloses one meaningful formation warning instead of permanent stat meters',()=>{
     const state=createOperation('advance'),q=state.squads[0],ids=new Set([q.id]);
     expect(selectionReadout(state,ids)!.warning).toBe('');

@@ -75,6 +75,8 @@ describe('combat and living-garrison transitions',()=>{
     expect(restored.state).toEqual(state);
     expect(g.underFireUntil).toBeUndefined();expect(g.readiness).toBe('routine');expect(g.watchRequired).toBe(2);
     sim.issueHold([people[0].squadId]);
+    expect(people.every(s=>s.garrisonId===g.id)).toBe(true);
+    sim.issueMove([people[0].squadId],{x:people[0].x,z:people[0].z-20});
     expect(people.every(s=>s.garrisonId===undefined&&s.duty===undefined)).toBe(true);
   });
   it('does not wake a garrison without actual ammunition or overwrite an authorized withdrawal',()=>{
