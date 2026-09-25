@@ -4,7 +4,7 @@ import {mapCenter,mapProject,mapUnproject,ROADS,pointOnRoad} from '../terrain/Wo
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {StrategyCamera} from '../render/StrategyCamera';
 import {factionOf} from '../operations/types';
-import {observedEnemySquad} from '../operations/Visibility';
+import {contactGroups} from './ContactReadout';
 import {SETTLEMENTS} from '../terrain/WorldFeatures';
 import {excavatedPoints} from '../core/TrenchGeometry';
 import {blocksGameplayKey} from '../input/GameplayKeys';
@@ -14,12 +14,10 @@ import {placeMapLabels,type MapLabel} from './MapLabels';
 
 /** Both map scales use the same delivered knowledge as battlefield markers. */
 export function mapUnits(state:BattlefieldState){
-  return state.squads.flatMap(q=>{
-    if(!q.soldierIds.length)return [];
-    if(factionOf(q)==='player')return [{id:q.id,x:q.x,z:q.z,enemy:false,reported:false,name:q.name}];
-    const c=observedEnemySquad(state,q.id);
-    return c?[{id:q.id,x:c.x,z:c.z,enemy:true,reported:!c.visible,name:c.visible?'Confirmed contact':'Last report'}]:[];
-  });
+  return [
+    ...state.squads.filter(q=>q.soldierIds.length&&factionOf(q)==='player').map(q=>({id:q.id,x:q.x,z:q.z,enemy:false,reported:false,name:q.name})),
+    ...contactGroups(state).map(c=>({id:c.id,x:c.x,z:c.z,enemy:true,reported:!c.visible,name:c.visible?'Confirmed contact':'Last report'})),
+  ];
 }
 
 /** Cluster symbols at map scale, not people or simulation units. Known hostile

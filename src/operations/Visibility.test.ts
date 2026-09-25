@@ -2,7 +2,7 @@ import {describe,expect,it,vi} from 'vitest';
 import {createOperation} from './createOperation';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {SaveSystem} from '../persistence/SaveSystem';
-import {canSpot,observedEnemySquad,playerVisibleEnemies,updateContacts,visibilitySignal} from './Visibility';
+import {canSpot,observedEnemySquad,playerVisibleEnemies,squadContacts,updateContacts,visibilitySignal,SIGHT_RULES} from './Visibility';
 import {UnitRenderer} from '../render/UnitRenderer';
 import {LivingRenderer} from '../render/LivingRenderer';
 import {dropCargo} from '../garrison/NeedsSystem';
@@ -54,7 +54,9 @@ describe('human sight and remembered contacts',()=>{
     expect(hidden[2]).toBe(0);expect(hidden[3]).toBe(48*2);expect(hidden[5]).toBe(48);expect(hidden[6]).toBe(0);
     updateContacts(state,sim.terrain);render.update(selection);
     expect((render.group.children[2] as unknown as {count:number}).count).toBe(1);
-    target.x=600;target.lastShotAt=.9;state.elapsed=1;updateContacts(state,sim.terrain);render.update(selection);
+    // A flash in an open field may remain tracked briefly; use actual loss of
+    // sight (beyond the search bound) to verify hidden geometry is not drawn.
+    target.x=900;target.lastShotAt=.9;state.elapsed=1;updateContacts(state,sim.terrain);render.update(selection);
     expect((render.group.children[2] as unknown as {count:number}).count).toBe(0);
     expect((render.group.children[5] as unknown as {count:number}).count).toBe(48);
     expect((render.group.children[6] as unknown as {count:number}).count).toBe(0);
@@ -87,5 +89,86 @@ describe('human sight and remembered contacts',()=>{
     const save=new SaveSystem();expect(()=>save.parse(JSON.stringify(state))).not.toThrow();
     drop.droppedBy=999999;expect(()=>save.parse(JSON.stringify(state))).toThrow();
     delete drop.droppedBy;expect(()=>save.parse(JSON.stringify(state))).not.toThrow();
+  });
+  it('keeps a recognized soldier in clear open ground through a brief weak signal, without improving fire control',()=>{
+    const {state,sim,observer,target}=fixture();updateContacts(state,sim.terrain);
+    const known=()=>squadContacts(state,observer.squadId).find(c=>c.soldierId===target.id)!;
+    expect(known()).toMatchObject({observerId:observer.id,trackedUntil:SIGHT_RULES.trackingSeconds});
+    target.x=450;
+    expect(canSpot(state,sim.terrain,observer,target)).toBe(false);
+    for(let t=.5;t<6;t+=.5){
+      state.elapsed=t;updateContacts(state,sim.terrain,target.id%10);
+      expect(known()).toMatchObject({visible:true,x:450,trackedUntil:6,lastSeen:t});
+    }
+    state.elapsed=6;target.x=460;updateContacts(state,sim.terrain,target.id%10);
+    expect(known()).toMatchObject({visible:false,x:450,lastSeen:5.5});
+    state.elapsed=7;updateContacts(state,sim.terrain,target.id%10);
+    expect(known().visible).toBe(false); // Weak tracking never refreshes its own deadline.
+  });
+  it('does not acquire an unknown enemy from the weaker tracking signal',()=>{
+    const {state,sim,observer,target}=fixture();target.x=450;
+    for(let t=0;t<=8;t+=.5){state.elapsed=t;updateContacts(state,sim.terrain);}
+    expect(squadContacts(state,observer.squadId)).toEqual([]);
+    expect(playerVisibleEnemies(state).has(target.id)).toBe(false);
+  });
+  it('refreshes the tracking window only after clear recognition returns',()=>{
+    const {state,sim,observer,target}=fixture();updateContacts(state,sim.terrain);
+    target.x=450;state.elapsed=4;updateContacts(state,sim.terrain);
+    target.x=150;state.elapsed=5;updateContacts(state,sim.terrain);
+    target.x=450;state.elapsed=7;updateContacts(state,sim.terrain);
+    expect(squadContacts(state,observer.squadId).find(c=>c.soldierId===target.id)).toMatchObject({visible:true,trackedUntil:11});
+  });
+  it('retains the actual observer when the distant-squad sweep rotates away from them',()=>{
+    const {state,sim,observer,target}=fixture();
+    const scouts=state.soldiers.filter(s=>s.squadId===observer.squadId).slice(0,4);
+    scouts.forEach((s,i)=>Object.assign(s,{x:i,z:0,heading:Math.PI/2}));
+    const selected=scouts[1];
+    const trace=vi.spyOn(sim.terrain.objects,'trace').mockImplementation(a=>({clear:a===selected,transmission:1} as ReturnType<typeof sim.terrain.objects.trace>));
+    for(let t=0;t<3;t+=.5){state.elapsed=t;updateContacts(state,sim.terrain,target.id%10);}
+    expect(squadContacts(state,observer.squadId).find(c=>c.soldierId===target.id)?.observerId).toBe(selected.id);
+    for(let t=3;t<10;t+=.5){
+      state.elapsed=t;trace.mockClear();updateContacts(state,sim.terrain,target.id%10);
+      expect(squadContacts(state,observer.squadId).find(c=>c.soldierId===target.id)?.visible).toBe(true);
+      expect(trace.mock.calls.filter(([a,b])=>scouts.includes(a as typeof observer)&&b===target)).toHaveLength(1);
+    }
+  });
+  it.each(['building','ridge','woods','smoke'] as const)('loses live tracking at the next scan behind %s and freezes the last-known position',obstacle=>{
+    const {state,sim,observer,target}=fixture();updateContacts(state,sim.terrain);
+    if(obstacle==='building')sim.terrain.buildings=[{x:70,z:0,width:20,depth:20,height:8,angle:0}];
+    if(obstacle==='ridge')vi.mocked(sim.terrain.heightAt).mockImplementation(x=>x>60&&x<80?10:0);
+    if(obstacle==='woods')vi.mocked(sim.terrain.groundTypeAt).mockReturnValue('forest');
+    if(obstacle==='smoke')state.operation!.smokeFields=[{id:9000,x:70,z:0,radius:40,born:0,until:60}];
+    sim.terrain.revision++;
+    target.x=450;state.elapsed=.5;updateContacts(state,sim.terrain);
+    const c=squadContacts(state,observer.squadId).find(c=>c.soldierId===target.id)!;
+    expect(c).toMatchObject({visible:false,x:150,z:0,lastSeen:0});
+    target.x=470;state.elapsed=1;updateContacts(state,sim.terrain);
+    expect(squadContacts(state,observer.squadId).find(c=>c.soldierId===target.id)).toMatchObject({visible:false,x:150});
+  });
+  it.each(['sleeping','incapacitated','dead'] as const)('does not retain tracking through a %s observer',condition=>{
+    const {state,sim,observer,target}=fixture();updateContacts(state,sim.terrain);
+    if(condition==='sleeping')observer.action='sleeping';else observer.needs!.life=condition;
+    target.x=450;state.elapsed=.5;updateContacts(state,sim.terrain);
+    expect(playerVisibleEnemies(state).has(target.id)).toBe(false);
+  });
+  it('uses the same bounded tracking rules for the enemy faction',()=>{
+    const {state,sim,observer,target}=fixture();updateContacts(state,sim.terrain);
+    expect(squadContacts(state,target.squadId).find(c=>c.soldierId===observer.id)?.visible).toBe(true);
+    observer.x=-300;state.elapsed=.5;updateContacts(state,sim.terrain);
+    expect(squadContacts(state,target.squadId).find(c=>c.soldierId===observer.id)).toMatchObject({visible:true,x:-300,trackedUntil:6});
+    state.elapsed=6;updateContacts(state,sim.terrain);
+    expect(squadContacts(state,target.squadId).find(c=>c.soldierId===observer.id)?.visible).toBe(false);
+  });
+  it('continues tracking identically after save/load and rejects forged observers or extended windows',()=>{
+    const {state,sim,observer,target}=fixture();updateContacts(state,sim.terrain);
+    target.x=450;state.elapsed=2;updateContacts(state,sim.terrain);
+    const saves=new SaveSystem(),copy=saves.parse(JSON.stringify(state));
+    expect(copy).toEqual(state);
+    for(let t=2.5;t<=7;t+=.5){state.elapsed=copy.elapsed=t;updateContacts(state,sim.terrain);updateContacts(copy,sim.terrain);expect(copy.operation!.intelligence).toEqual(state.operation!.intelligence);expect(copy.operation!.contacts).toEqual(state.operation!.contacts);}
+    const valid=JSON.stringify(state);
+    for(const mutation of [(c:{trackedUntil?:number})=>{c.trackedUntil=1000;},(c:{observerId?:number})=>{c.observerId=target.id;}]){
+      const bad=JSON.parse(valid);mutation(bad.operation.contacts.player[0]);expect(()=>saves.parse(JSON.stringify(bad))).toThrow();
+      const badLocal=JSON.parse(valid);mutation(badLocal.operation.intelligence.squads.find((q:{squadId:number})=>q.squadId===observer.squadId).contacts[0]);expect(()=>saves.parse(JSON.stringify(badLocal))).toThrow();
+    }
   });
 });

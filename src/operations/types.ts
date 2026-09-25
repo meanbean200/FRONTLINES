@@ -11,6 +11,8 @@ export type Faction = 'player' | 'enemy';
 export interface Contact extends Vec2 {
   soldierId:number; squadId:number; lastSeen:number; visible:boolean; active:boolean;
   status?:'confirmed'|'last-reported';uncertainty?:number;
+  /** Last real observer; tracking never grants sight through occlusion. */
+  observerId?:number; trackedUntil?:number;
 }
 export interface LocalIntelligence {
   squads:{squadId:number;contacts:Contact[];exposure:{soldierId:number;exposure:number}[];link:'connected'|'isolated';nextReport:number}[];

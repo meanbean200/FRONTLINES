@@ -92,3 +92,34 @@ test('paused Hold updates support readiness without discarding the prepared crew
   expect(await page.evaluate(id=>{const s=window.__FRONTLINES__.getState();return {order:s.squads.find(q=>q.id===id)!.order.type,assigned:s.soldiers.filter(p=>p.squadId===id&&p.garrisonId!==undefined).length,position:s.living!.facilities.some(f=>f.kind==='mortar'&&f.weaponSquadId===id)};},outside.id)).toEqual({order:'occupy-trench',assigned:8,position:true});
   expect(await page.evaluate(()=>window.__FRONTLINES__.getState().simSpeed)).toBe(0);
 });
+
+test('grouped contact symbols stay quiet and allow tactical orders through them',async({page},testInfo)=>{
+  await meeting(page);
+  // Synthetic observed positions isolate presentation/input. Visibility and
+  // memory are exercised separately in the deterministic sight regressions.
+  const squadId=await page.evaluate(()=>{
+    const state=window.__FRONTLINES__.getState(),q=state.squads.find(q=>q.name==='Able')!;
+    const enemies=state.soldiers.filter(s=>state.squads.find(q=>q.id===s.squadId)?.faction==='enemy').slice(0,2);
+    state.operation!.contacts={player:enemies.map((s,i)=>({soldierId:s.id,squadId:s.squadId,x:q.x+15+i*2,z:q.z+12,lastSeen:state.elapsed,visible:true,active:true})),enemy:[]};
+    window.__FRONTLINES__.restoreState(state);return q.id;
+  });
+  await select(page,'Able');await page.keyboard.press('f');
+  await expect(page.locator('.contact-marker')).toHaveCount(1);
+  await expect(page.locator('.squad-marker.enemy')).toHaveCount(0);
+  const contact=page.locator('.contact-marker');await contact.hover();
+  await expect(contact.locator('.marker-tip')).toContainText('Enemy contact area');
+  await page.mouse.move(700,700);await expect(contact.locator('.marker-tip')).toBeHidden();
+  await page.getByRole('button',{name:'Options',exact:true}).click();
+  await page.getByRole('button',{name:'Suppress',exact:true}).click();
+  const point=await contact.evaluate(e=>({x:Number((e as HTMLElement).dataset.x),z:Number((e as HTMLElement).dataset.z)}));
+  await contact.click();
+  await expect.poll(()=>page.evaluate(id=>window.__FRONTLINES__.getState().squads.find(q=>q.id===id)?.order.intent,squadId)).toBe('suppress');
+  expect(await page.evaluate(id=>window.__FRONTLINES__.getState().squads.find(q=>q.id===id)?.order.target,squadId)).toEqual(point);
+  await page.evaluate(()=>{
+    const state=window.__FRONTLINES__.getState();state.operation!.contacts!.player.forEach(c=>{c.visible=false;c.status='last-reported';});window.__FRONTLINES__.restoreState(state);
+  });
+  await expect(page.locator('.contact-marker')).toHaveCount(1);
+  await expect(page.locator('.contact-marker')).toHaveClass(/last-seen/);
+  await expect(page.locator('.contact-marker')).toHaveAttribute('aria-label',/not live tracking/);
+  await page.screenshot({path:testInfo.outputPath('grouped-last-report.png')});
+});

@@ -289,7 +289,7 @@ export class FrontlinesApp {
     if(document.documentElement.dataset.replay||this.simulation.commandsLocked)return;
     const trenchId = this.simulation.issueOccupyNearest([...this.selectedSquads],requestedId);
     if(trenchId&&showArea)this.garrisonPanel.showForSquad([...this.selectedSquads][0]);
-    this.ui.notify(trenchId ? 'Defend trench: enter nearby, rotate watch and rest. Move / H leaves the routine.' : 'Select squads and a dug trench with enough room and a reachable approach.', trenchId ? 'normal' : 'warn');
+    this.ui.notify(trenchId ? 'Defend trench: enter nearby, rotate watch and rest. Hold keeps this assignment; Move / Withdraw leaves it.' : 'Select squads and a dug trench with enough room and a reachable approach.', trenchId ? 'normal' : 'warn');
   }
   private setQuality(level:string):void {
     if(!['low','balanced','high'].includes(level))return;

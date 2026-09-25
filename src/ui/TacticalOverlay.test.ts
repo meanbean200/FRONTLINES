@@ -10,7 +10,7 @@ function fixture(){
     markerTimer:1/30,mapTimer:-1000,networkTimer:0,
     layer:{classList:{toggle:vi.fn()},inert:false},
     getState:()=>({squads:[squad],trenches:[]}),
-    markers:new Map([[1,marker]]),trenchMarkers:new Map(),objectiveMarkers:new Map(),labels:[],
+    markers:new Map([[1,marker]]),contactMarkers:new Map(),trenchMarkers:new Map(),objectiveMarkers:new Map(),labels:[],
     camera:{project:vi.fn(()=>({...projected})),zoomDistance:490},updateMarkers:vi.fn(),
   });
   return {view,marker,projected};
@@ -34,6 +34,16 @@ describe('continuous world labels',()=>{
     view.update(1/240);
     expect(view.updateMarkers).toHaveBeenCalledOnce();
     expect(marker.style.transform).toBe('translate(300px,232px) translate(-50%,-100%)');
+  });
+  it('keeps contact symbols aligned every frame, with no camera-lag tween',()=>{
+    const {view,projected}=fixture(),element={style:{display:'',transform:''}};
+    view.markers.clear();view.contactMarkers.set(10,{element,contact:{id:10,x:20,z:30,visible:true,lastSeen:0,members:[10,11]}});
+    for(let i=0;i<12;i++){
+      projected.x+=3;projected.y-=2;view.update(1/144);
+      expect(element.style.transform).toBe(`translate(${projected.x}px,${projected.y-18}px) translate(-50%,-100%)`);
+      expect(element.style.display).toBe('');
+    }
+    expect(view.camera.project).toHaveBeenCalledTimes(12);
   });
   it('only hides a marker when its projected anchor leaves the view, with no return delay',()=>{
     const {view,marker,projected}=fixture();projected.visible=false;view.update(1/144);

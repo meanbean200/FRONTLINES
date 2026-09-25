@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import type { BattlefieldState } from '../core/types';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
-import {playerVisibleEnemies,observedEnemySquad} from '../operations/Visibility';
+import {playerVisibleEnemies} from '../operations/Visibility';
+import {contactGroups} from '../ui/ContactReadout';
 import {ImpactEffects} from './ImpactEffects';
 import type {VisualQuality} from './VisualQuality';
 
@@ -63,7 +64,7 @@ export class OperationRenderer {
     for(const mission of op?.supportMissions??[]){if(dangers>=32||!['preparing','flight'].includes(mission.stage)||enemySquads.has(mission.squadId)||!mission.dangerRadius)continue;matrix.makeScale(mission.dangerRadius,1,mission.dangerRadius);matrix.setPosition(mission.target.x,this.terrain.heightAt(mission.target.x,mission.target.z)+1,mission.target.z);this.danger.setMatrixAt(dangers++,matrix);}
     this.danger.count=dangers;
     const reports=(op?.intelligence?.sounds??[]).filter(s=>s.side==='player').map(s=>({x:s.x,z:s.z,radius:s.radius}));
-    for(const id of enemySquads){const c=observedEnemySquad(state,id);if(c&&!c.visible)reports.push({...c,radius:Math.max(3,Math.min(60,(state.elapsed-c.lastSeen)*2))});}
+    for(const c of contactGroups(state))if(!c.visible)reports.push({...c,radius:Math.max(3,Math.min(60,(state.elapsed-c.lastSeen)*2))});
     let rings=0;for(const p of reports.slice(-64)){matrix.makeScale(p.radius,1,p.radius);matrix.setPosition(p.x,this.terrain.heightAt(p.x,p.z)+.7,p.z);this.uncertainty.setMatrixAt(rings++,matrix);}this.uncertainty.count=rings;
     for(const mesh of [this.danger,this.uncertainty]){mesh.frustumCulled=false;mesh.instanceMatrix.needsUpdate=true;}
   }

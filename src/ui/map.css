@@ -1,4 +1,10 @@
 .tactical-overlay{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden}
+.contact-marker{position:absolute;left:0;top:0;width:28px;height:28px;color:var(--enemy);pointer-events:auto;cursor:crosshair;outline:none}
+.contact-marker>svg{display:block;width:28px;height:28px;overflow:visible;filter:drop-shadow(0 1px 2px #000a)}
+.contact-marker path{fill:#302321e8;stroke:currentColor;stroke-width:1.7}.contact-marker circle{fill:currentColor}
+.contact-marker.last-seen path{fill:#30232188;stroke-dasharray:3 3}.contact-marker.last-seen circle{display:none}
+.contact-marker:hover path,.contact-marker:focus-visible path{stroke:var(--text);stroke-width:2}
+.contact-marker:hover .marker-tip,.contact-marker:focus-visible .marker-tip{display:block}
 .squad-marker{position:absolute;left:0;top:0;display:flex;align-items:center;min-height:0;height:28px;padding:0;border:1px solid var(--friendly);border-radius:1px;background:#172623e8;color:var(--friendly);pointer-events:auto;font:12px var(--mono);box-shadow:0 2px 6px #0005;transition:background-color 100ms,border-color 100ms}
 .squad-marker i{font-style:normal;width:29px;height:26px;display:grid;place-items:center}.squad-marker i .field-icon{width:25px;height:22px}.squad-marker b{padding:0 6px;font-weight:500;border-left:1px solid #90a5a76b}
 .squad-marker small{position:absolute;top:31px;left:50%;transform:translateX(-50%);white-space:nowrap;font:11px var(--heading);background:#172623eb;padding:3px 5px;color:var(--text)}.squad-marker small:empty,.squad-marker:not(.selected):not(.enemy):not(:hover):not(:focus-visible) small{display:none}

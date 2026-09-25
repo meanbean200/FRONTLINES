@@ -6,6 +6,15 @@ import {MIN_TRENCH_LENGTH,type FacilityPreview} from '../construction/Constructi
 
 export type InteractionMode = 'select' | 'trench' | 'crater' | 'move' | 'facility'|'observe'|'suppress'|'assault'|'fall-back'|'defend'|'mortarHE'|'mortarSmoke'|'smokeGrenades'|'deploy'|'person-move';
 
+/** The symbol is drawn above its observed ground location. Clicking it must
+ * target that knowledge, not the unrelated terrain behind the floating icon. */
+function observedMarkerPoint(event:PointerEvent):Vec2|undefined {
+  const marker=event.target instanceof Element?event.target.closest<HTMLElement>('.contact-marker'):null;
+  if(!marker||marker.dataset.x===undefined||marker.dataset.z===undefined)return;
+  const x=Number(marker.dataset.x),z=Number(marker.dataset.z);
+  return Number.isFinite(x)&&Number.isFinite(z)?{x,z}:undefined;
+}
+
 interface CommandInputOptions {
   canvas: HTMLCanvasElement;
   camera: StrategyCamera;
@@ -37,6 +46,7 @@ export class CommandInput {
   private readonly routePreview: SVGSVGElement;
   private readonly routeLine: SVGPolylineElement;
   private pointerStart?: { x: number; y: number };
+  private contactPoint?:Vec2;
   private trenchPoints: Vec2[] = [];
   private lastTrenchScreen?: { x: number; y: number };
   private gesture?:InteractionMode;
@@ -67,11 +77,12 @@ export class CommandInput {
     options.canvas.addEventListener('contextmenu', this.onContextMenu);
     // A flag is part of the battlefield, not an obstacle to drawing from the unit.
     window.addEventListener('pointerdown',event=>{
-      if(event.target instanceof Element&&event.target.closest('.squad-marker,.trench-capacity')&&(event.button===2||this.options.getMode()!=='select')){
+      if(event.target instanceof Element&&event.target.closest('.squad-marker,.trench-capacity,.contact-marker')&&(event.button===2||this.options.getMode()!=='select')){
         event.preventDefault();this.onPointerDown(event);
       }
     },true);
     window.addEventListener('contextmenu',event=>{if(event.target instanceof Element&&event.target.closest('.tactical-overlay'))event.preventDefault();});
+    window.addEventListener('pointermove',event=>{if(event.target instanceof Element&&event.target.closest('.contact-marker'))this.onPointerMove(event);},true);
     options.canvas.addEventListener('pointercancel',()=>this.cancel());
     window.addEventListener('blur',()=>this.cancel());
     window.addEventListener('frontlines-menu',()=>this.cancel());
@@ -91,9 +102,10 @@ export class CommandInput {
     this.options.canvas.dataset.gesture=this.gesture;
     this.options.canvas.focus({preventScroll:true});
     this.pointerStart = { x: event.clientX, y: event.clientY };
+    this.contactPoint=observedMarkerPoint(event);
     this.options.canvas.setPointerCapture(event.pointerId);
     if (this.gesture === 'trench'||this.gesture==='move'||this.gesture==='defend'||this.gesture==='assault'||this.gesture==='fall-back') {
-      const point = this.options.camera.groundPoint(event.clientX, event.clientY);
+      const point = ['move','assault','fall-back'].includes(this.gesture)?this.contactPoint??this.options.camera.groundPoint(event.clientX,event.clientY):this.options.camera.groundPoint(event.clientX,event.clientY);
       this.trenchPoints = point ? [point] : [];
       this.lastTrenchScreen = { x: event.clientX, y: event.clientY };
       this.routePreview.style.display='block';
@@ -114,7 +126,7 @@ export class CommandInput {
     this.hover={x:event.clientX,y:event.clientY};
     const preview=this.options.getMode();
     if(preview==='facility'||preview==='deploy'){this.updatePreview();return;}
-    if(['mortarHE','mortarSmoke','smokeGrenades'].includes(preview)&&!document.documentElement.dataset.menu){const p=this.options.camera.groundPoint(event.clientX,event.clientY);if(p){const radius=preview==='mortarHE'?40:preview==='mortarSmoke'?18:11;const points=Array.from({length:49},(_,i)=>this.options.camera.project({x:p.x+Math.sin(i*Math.PI/24)*radius,z:p.z+Math.cos(i*Math.PI/24)*radius},.6));this.plotted.replaceChildren();this.routeLine.setAttribute('marker-end','none');this.routeLine.setAttribute('stroke-dasharray','5 4');this.routeLine.setAttribute('points',points.map(p=>`${p.x},${p.y}`).join(' '));this.routeLine.setAttribute('stroke',preview==='mortarHE'?'#b8796b':'#b8bbaa');this.routeLine.setAttribute('fill',preview==='mortarHE'?'#b8796b18':'#e6e0cb18');this.routePreview.style.display='block';}return;}
+    if(['mortarHE','mortarSmoke','smokeGrenades'].includes(preview)&&!document.documentElement.dataset.menu){const p=observedMarkerPoint(event)??this.options.camera.groundPoint(event.clientX,event.clientY);if(p){const radius=preview==='mortarHE'?40:preview==='mortarSmoke'?18:11;const points=Array.from({length:49},(_,i)=>this.options.camera.project({x:p.x+Math.sin(i*Math.PI/24)*radius,z:p.z+Math.cos(i*Math.PI/24)*radius},.6));this.plotted.replaceChildren();this.routeLine.setAttribute('marker-end','none');this.routeLine.setAttribute('stroke-dasharray','5 4');this.routeLine.setAttribute('points',points.map(p=>`${p.x},${p.y}`).join(' '));this.routeLine.setAttribute('stroke',preview==='mortarHE'?'#b8796b':'#b8bbaa');this.routeLine.setAttribute('fill',preview==='mortarHE'?'#b8796b18':'#e6e0cb18');this.routePreview.style.display='block';}return;}
     if (!this.pointerStart) return;
     const mode = this.gesture;
     if (mode === 'select') this.updateBox(event.clientX, event.clientY);
@@ -137,6 +149,8 @@ export class CommandInput {
     if(document.documentElement.dataset.replay&&this.gesture!=='select'){this.cancel();return;}
     if (event.button !== this.button || !this.pointerStart) return;
     const start = this.pointerStart;
+    const contactPoint=Math.hypot(event.clientX-start.x,event.clientY-start.y)<8?this.contactPoint:undefined;
+    this.contactPoint=undefined;
     this.pointerStart = undefined;
     const mode = this.gesture;this.gesture=undefined;
     delete this.options.canvas.dataset.gesture;
@@ -155,23 +169,23 @@ export class CommandInput {
       this.trenchPoints = [];
       this.options.setMode('select');
     } else if(mode==='person-move') {
-      const point=this.options.camera.groundPoint(event.clientX,event.clientY);if(point&&this.options.onPersonMove?.(point))this.options.setMode('select');
+      const point=contactPoint??this.options.camera.groundPoint(event.clientX,event.clientY);if(point&&this.options.onPersonMove?.(point))this.options.setMode('select');
     } else if(mode==='deploy') {
       const point=this.options.camera.groundPoint(event.clientX,event.clientY);if(point)this.options.onDeploy?.(point);
     } else if(mode==='facility') {
       const point=this.options.camera.groundPoint(event.clientX,event.clientY);
       if(point&&this.options.onFacility?.(point)){this.options.setMode('select');this.routePreview.style.display='none';this.draft.hidden=true;}
     } else if(mode==='observe'||mode==='suppress'||mode==='assault'||mode==='fall-back'){
-      const point=this.options.camera.groundPoint(event.clientX,event.clientY);if(point&&(mode==='assault'||mode==='fall-back')&&this.drawDistance>8){this.trenchPoints.push(point);this.options.onDrawPath(this.trenchPoints,event.shiftKey,mode);}else if(point)this.options.onTactical?.(mode,point);this.trenchPoints=[];this.routePreview.style.display='none';this.options.setMode('select');
+      const point=contactPoint??this.options.camera.groundPoint(event.clientX,event.clientY);if(point&&(mode==='assault'||mode==='fall-back')&&this.drawDistance>8){this.trenchPoints.push(point);this.options.onDrawPath(this.trenchPoints,event.shiftKey,mode);}else if(point)this.options.onTactical?.(mode,point);this.trenchPoints=[];this.routePreview.style.display='none';this.options.setMode('select');
     } else if(mode==='mortarHE'||mode==='mortarSmoke'||mode==='smokeGrenades'){
-      const point=this.options.camera.groundPoint(event.clientX,event.clientY);if(point&&this.options.onSupport?.(mode,point)){this.routePreview.style.display='none';this.options.setMode('select');}
+      const point=contactPoint??this.options.camera.groundPoint(event.clientX,event.clientY);if(point&&this.options.onSupport?.(mode,point)){this.routePreview.style.display='none';this.options.setMode('select');}
     } else if (mode === 'crater') {
       const point = this.options.camera.groundPoint(event.clientX, event.clientY);
       if (point) this.options.onCrater(point);
       this.options.setMode('select');
     } else if(mode==='move') {
       this.routePreview.style.display='none';
-      const point=this.options.camera.groundPoint(event.clientX,event.clientY);
+      const point=contactPoint??this.options.camera.groundPoint(event.clientX,event.clientY);
       if(point)this.trenchPoints.push(point);
       if(this.drawDistance>8&&this.trenchPoints.length>=2)this.options.onDrawPath(this.trenchPoints,event.shiftKey);
       else if(point)this.options.onMove(point);
@@ -189,7 +203,7 @@ export class CommandInput {
       this.cancel();
     }
   };
-  private cancel():void {this.pointerStart=undefined;this.gesture=undefined;delete this.options.canvas.dataset.gesture;this.options.setMode('select');this.trenchPoints=[];this.box.hidden=true;this.routePreview.style.display='none';this.draft.hidden=true;}
+  private cancel():void {this.pointerStart=undefined;this.contactPoint=undefined;this.gesture=undefined;delete this.options.canvas.dataset.gesture;this.options.setMode('select');this.trenchPoints=[];this.box.hidden=true;this.routePreview.style.display='none';this.draft.hidden=true;}
 
   private showDraft(screens:{x:number;y:number}[]):void {
     const report=this.options.previewTrench?.(this.trenchPoints);if(!report)return;

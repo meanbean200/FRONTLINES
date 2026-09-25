@@ -8,7 +8,7 @@ import { OBSERVATION_VERSION, RULES_VERSION } from '../garrison/GarrisonPolicy';
 import {ENEMY_AI_VERSION,ENEMY_ROLES} from '../operations/EnemyCommander';
 import {excavatedSpan} from '../core/TrenchGeometry';
 import {WEAPONS,type WeaponId} from '../combat/Weapons';
-import {validIntelligence} from '../operations/IntelligenceValidation';
+import {validIntelligence,validContactTracking} from '../operations/IntelligenceValidation';
 import {validCombatSystems} from '../combat/CombatValidation';
 import {validCampaignSystems} from '../operations/CampaignValidation';
 import {initializeReplacements} from '../operations/Replacements';
@@ -227,7 +227,7 @@ function validOperation(state:BattlefieldState):boolean {
       const contacts=op.contacts[side];if(!Array.isArray(contacts)||new Set(contacts.map(c=>c?.soldierId)).size!==contacts.length)return false;
       for(const c of contacts){
         const soldier=state.soldiers.find(s=>s.id===c?.soldierId),squad=state.squads.find(s=>s.id===soldier?.squadId);
-        if(!c||!soldier||!squad||c.squadId!==squad.id||(squad.faction??'player')===side||!Number.isFinite(c.x)||!Number.isFinite(c.z)||!nonnegative(c.lastSeen)||c.lastSeen>state.elapsed+.001||typeof c.visible!=='boolean'||typeof c.active!=='boolean')return false;
+        if(!c||!soldier||!squad||c.squadId!==squad.id||(squad.faction??'player')===side||!Number.isFinite(c.x)||!Number.isFinite(c.z)||!nonnegative(c.lastSeen)||c.lastSeen>state.elapsed+.001||typeof c.visible!=='boolean'||typeof c.active!=='boolean'||!validContactTracking(state,c,side))return false;
       }
     }
   }
