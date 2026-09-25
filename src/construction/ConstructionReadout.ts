@@ -27,7 +27,7 @@ export function constructionStatus(state:BattlefieldState,q:SquadState):string|u
   const t=state.trenches.find(t=>t.id===q.order.trenchId),people=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life!=='dead');
   const digging=people.filter(s=>s.action==='digging').length,progress=t?`${Math.floor(t.progress*100)}%`:'planned';
   if(state.simSpeed===0)return `Paused · excavation ${progress} · press Space to work`;
-  if(digging)return `${digging} digging · ${progress} excavated${q.constructionQueue?.length?` · ${q.constructionQueue.length} queued`:''}`;
+  if(digging)return `${digging} digging · ${people.filter(s=>s.action==='clearing spoil').length} clearing spoil · ${progress} excavated${q.constructionQueue?.length?` · ${q.constructionQueue.length} queued`:''}`;
   if(people.some(s=>s.combat?.reaction==='pinned'||s.combat?.reaction==='broken'))return 'Taking cover · excavation interrupted';
   if(q.movementState==='planning')return 'Planning approach to worksite';
   return `Approaching work fronts · ${progress} excavated`;

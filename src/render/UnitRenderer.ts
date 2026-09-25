@@ -118,7 +118,7 @@ export class UnitRenderer {
       weaponPosition.copy(position).add(local);
       if(lying){weaponRotation.setFromAxisAngle(axis,soldier.heading);local.set(.14,.33,.53).applyQuaternion(weaponRotation);weaponPosition.copy(position).add(local);}
       const weapon=soldier.combat?.weapon?.id,kind=weapon==='crew-mg'||weapon==='mg42'?'machinegun':weapon==='bar'?'automatic':weapon==='smg'?'smg':'rifle';scale.setScalar(1);matrix.compose(weaponPosition,weaponRotation,scale);
-      const digging=soldier.action==='digging',care=soldier.action.startsWith('treating')||soldier.action==='carrying casualty';
+      const digging=soldier.action==='digging'||soldier.action==='clearing spoil',care=soldier.action.startsWith('treating')||soldier.action==='carrying casualty';
       if(!care&&!digging&&soldier.action!=='being carried'){if(kind==='rifle')this.weapons!.setMatrixAt(weapons++,matrix);else this.variants.get(kind)!.setMatrixAt(variantCounts[kind]++,matrix);}
       if(shot){p.set(shot.from.x,shot.from.y,shot.from.z);matrix.compose(p,weaponRotation,scale);this.flashes!.setMatrixAt(flashes++,matrix);}
       for(let leg=0;leg<2;leg++) {
@@ -141,7 +141,7 @@ export class UnitRenderer {
         for(let n=0;n<2;n++){a.fromArray(points[n]).applyMatrix4(bodyMatrix);b.fromArray(points[n+1]).applyMatrix4(bodyMatrix);p.copy(a).add(b).multiplyScalar(.5);b.sub(a);const length=b.length();jointRotation.setFromUnitVectors(axis,b.normalize());scale.set(1,length/.28,1);matrix.compose(p,jointRotation,scale);this.arms!.setMatrixAt(arms,matrix);this.arms!.setColorAt(arms++,tint.setHex(cloth));}
         if(close){p.fromArray(hand).applyMatrix4(bodyMatrix);scale.setScalar(1);matrix.compose(p,rotation,scale);this.hands!.setMatrixAt(hands++,matrix);}
       }
-      if(digging&&close){p.set(.03,.70,.48).applyMatrix4(bodyMatrix);jointRotation.copy(rotation).multiply(new THREE.Quaternion().setFromAxisAngle(axis,.15));scale.setScalar(1);matrix.compose(p,jointRotation,scale);this.tools!.setMatrixAt(tools++,matrix);}
+      if(soldier.action==='digging'&&close){p.set(.03,.70,.48).applyMatrix4(bodyMatrix);jointRotation.copy(rotation).multiply(new THREE.Quaternion().setFromAxisAngle(axis,.15));scale.setScalar(1);matrix.compose(p,jointRotation,scale);this.tools!.setMatrixAt(tools++,matrix);}
       scale.setScalar(1);
       if(selected.has(soldier.squadId)&&soldier.needs?.life==='active'&&soldier.cover!=='trench') {p.copy(position);p.y+=.1;matrix.compose(p,new THREE.Quaternion(),scale);this.rings!.setMatrixAt(ringCount++,matrix);}
     });

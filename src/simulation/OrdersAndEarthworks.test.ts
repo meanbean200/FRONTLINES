@@ -35,10 +35,24 @@ describe('complex works and drawn orders',()=>{
     const trench=sim.state.trenches.find(t=>t.id===id)!,before=trench.progress;
     sim.issueHold([squad.id]);for(let i=0;i<100;i++)sim.step(.05);
     expect(trench.progress).toBe(before);expect(trench.status).toBe('planned');
+    const faces=sim.engineers.workFaces(trench,squad),span={...trench.excavation!};
     expect(sim.resumeConstruction([squad.id])).toBe(1);
-    expect(distance(squad.route.at(-1)!,sim.trenches.constructionHead(trench))).toBeLessThan(1);
+    // Centre-out work has two faces. Resume the nearest unfinished face, not
+    // an arbitrarily preferred end just because it is called constructionHead.
+    expect(distance(squad.route.at(-1)!,faces[0])).toBeLessThan(1);
+    expect(trench.excavation).toEqual(span);
     for(let i=0;i<1400;i++)sim.step(.05);
     expect(trench.progress).toBe(1);
+  });
+
+  it('resumes the inspected worksite rather than a nearer unrelated trench',()=>{
+    const sim=engineersOnly(),squad=sim.state.squads[0];
+    squad.x=-1800;squad.z=-1700;sim.state.soldiers.filter(s=>s.squadId===squad.id).forEach(s=>{s.x=squad.x;s.z=squad.z;});
+    const near=sim.createTrench([{x:-1840,z:-1680},{x:-1760,z:-1680}])!;
+    const chosen=sim.createTrench([{x:-1840,z:-1800},{x:-1760,z:-1800}])!;
+    expect(near).toBeDefined();expect(chosen).toBeDefined();
+    expect(sim.resumeConstruction([squad.id],chosen)).toBe(1);
+    expect(squad.order.trenchId).toBe(chosen);expect(sim.state.trenches.find(t=>t.id===near)!.engineerSquadId).toBeUndefined();
   });
 
   it('rejects a trench segment crossing a building even when both control points are clear',()=>{

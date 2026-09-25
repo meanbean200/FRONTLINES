@@ -48,8 +48,11 @@ export class EngineerSystem {
   }
 
   step(squad:SquadState,people:SoldierState[],dt:number,move:Move):void {
-    people=people.filter(s=>hasEquipment(this.state,s,'tools'));
-    if(!people.length){squad.orderNote='No available construction tools';return;}
+    people=people.filter(s=>s.health>0&&(!s.needs||s.needs.life==='active'));
+    if(!people.some(s=>hasEquipment(this.state,s,'tools'))){
+      for(const s of people)if(!s.combat?.owner||s.combat.owner==='order')s.action='waiting for tool crew';
+      squad.workStarted=false;squad.orderNote='No available construction tools';return;
+    }
     const work=squad.engineerWork??(squad.engineerWork={version:1,nextReview:0,crews:[]});
     const ids=new Set([squad.order.trenchId,...(squad.constructionQueue??[]).map(jobId)]);
     const jobs=this.state.trenches.filter(t=>ids.has(t.id));
@@ -88,8 +91,9 @@ export class EngineerSystem {
         squad.constructionQueue=(squad.constructionQueue??[]).filter(j=>jobId(j)!==next.id&&jobs.find(t=>t.id===jobId(j))?.status!=='complete');
       }
     }
-    let digging=0;
+    let digging=0,helping=0;
     const loads=new Map<string,number>();
+    const production=new Map<string,{trench:TrenchState;direction:-1|1;diggers:number;helpers:SoldierState[]}>();
     for(const crew of work.crews){
       const team=crew.soldierIds.map(id=>people.find(s=>s.id===id)).filter((s):s is SoldierState=>!!s),t=jobs.find(t=>t.id===crew.trenchId);
       if(!team.length||!t?.excavation||t.status==='complete')continue;
@@ -107,32 +111,49 @@ export class EngineerSystem {
         }
       }
       const key=`${t.id}:${crew.direction}`,row=loads.get(key)??0;loads.set(key,row+1);
-      const targetAlong=Math.max(0,Math.min(polylineLength(t.points),along-crew.direction*(.65+row*1.25)));
+      const targetAlong=Math.max(span.start,Math.min(span.end,along-crew.direction*(.65+row*1.25)));
       const p=atDistance(t.points,targetAlong),a=atDistance(t.points,Math.max(0,targetAlong-.25)),b=atDistance(t.points,Math.min(polylineLength(t.points),targetAlong+.25));
       const heading=Math.atan2(b.x-a.x,b.z-a.z);
-      let present=0;
+      const workFace=production.get(key)??{trench:t,direction:crew.direction,diggers:0,helpers:[]};production.set(key,workFace);
       team.forEach((s,i)=>{
         const side=i?-.65:.65,target={x:p.x+Math.cos(heading)*side,z:p.z-Math.sin(heading)*side};
         if(s.combat?.owner&&s.combat.owner!=='order')return;
         if(s.suppression>=65){s.action='taking cover';return;}
         move(s,target,dt,'moving along work front');
-        if(distance(s,target)<.8){s.action='digging';s.heading=heading+(crew.direction<0?Math.PI:0);present++;}
+        if(distance(s,target)<.8){
+          s.heading=heading+(crew.direction<0?Math.PI:0);
+          if(hasEquipment(this.state,s,'tools')){s.action='digging';workFace.diggers++;}
+          else workFace.helpers.push(s);
+        }
       });
-      if(present){this.trenches.applyFrontWork(t,crew.direction,dt*.2*present);digging+=present;}
+    }
+    // Tool carriers cut the face; the rest of the detail clear spoil. Helpers
+    // cannot excavate an unattended face or conjure extra tools. Count only
+    // physically present, unsuppressed people, once per fixed step.
+    for(const face of production.values()){
+      for(const s of face.helpers)s.action=face.diggers?'clearing spoil':'waiting for tool crew';
+      if(!face.diggers)continue;
+      this.trenches.applyFrontWork(face.trench,face.direction,dt*.2*(face.diggers+face.helpers.length*.5));
+      digging+=face.diggers;helping+=face.helpers.length;
     }
     squad.workStarted=digging>0;squad.movementState=digging?'digging':'moving';
     const liveFronts=new Set(work.crews.filter(c=>jobs.some(t=>t.id===c.trenchId&&t.status!=='complete')).map(c=>`${c.trenchId}:${c.direction}`)).size;
-    squad.orderNote=`${digging} digging · ${liveFronts} work fronts · ${unfinished.length} trench${unfinished.length===1?'':'es'}`;
+    squad.orderNote=`${digging} digging · ${helping} clearing spoil · ${liveFronts} work fronts · ${unfinished.length} trench${unfinished.length===1?'':'es'}`;
   }
 
   private assign(crews:EngineerCrew[],people:SoldierState[],fronts:Front[]):void {
     const key=(c:{trenchId:number;direction:number})=>`${c.trenchId}:${c.direction}`;
     const valid=new Set(fronts.map(f=>`${f.trench.id}:${f.direction}`)),used=new Set<number>();
     for(const c of crews){c.soldierIds=c.soldierIds.filter(id=>people.some(s=>s.id===id)&&!used.has(id));c.soldierIds.forEach(id=>used.add(id));}
-    const waiting=people.filter(s=>!used.has(s.id));
-    for(let i=0;i<waiting.length;i+=2)crews.push({soldierIds:waiting.slice(i,i+2).map(s=>s.id),trenchId:0,direction:1,route:[],routeIndex:0,approached:false});
+    const waiting=people.filter(s=>!used.has(s.id)),tools=waiting.filter(s=>hasEquipment(this.state,s,'tools')),helpers=waiting.filter(s=>!hasEquipment(this.state,s,'tools'));
+    while(tools.length||helpers.length){
+      const first=tools.shift()??helpers.shift()!,second=helpers.shift()??tools.shift();
+      crews.push({soldierIds:[first.id,...(second?[second.id]:[])],trenchId:0,direction:1,route:[],routeIndex:0,approached:false});
+    }
     for(let i=crews.length-1;i>=0;i--)if(!crews[i].soldierIds.length)crews.splice(i,1);
     const count=(f:Front)=>crews.filter(c=>valid.has(key(c))&&c.trenchId===f.trench.id&&c.direction===f.direction).length;
+    const toolCrew=(c:EngineerCrew)=>c.soldierIds.some(id=>people.some(s=>s.id===id&&hasEquipment(this.state,s,'tools')));
+    const toolCount=(f:Front)=>crews.filter(c=>toolCrew(c)&&key(c)===`${f.trench.id}:${f.direction}`).length;
     const place=(c:EngineerCrew,f:Front):boolean=>{
       const center=mean(c.soldierIds.map(id=>people.find(s=>s.id===id)!));
       const route=distance(center,f.point)<2?[f.point]:this.navigation.plan(center,f.point);
@@ -140,13 +161,13 @@ export class EngineerSystem {
       c.trenchId=f.trench.id;c.direction=f.direction;c.route=route;c.routeIndex=0;c.approached=false;return true;
     };
     // New branches take a spare pair from a doubly staffed front, not the whole squad.
-    for(const f of fronts.filter(f=>count(f)===0)){
-      const donor=crews.filter(c=>!valid.has(key(c))||crews.filter(other=>key(other)===key(c)).length>1).sort((a,b)=>distance(mean(a.soldierIds.map(id=>people.find(s=>s.id===id)!)),f.point)-distance(mean(b.soldierIds.map(id=>people.find(s=>s.id===id)!)),f.point))[0];
+    for(const f of fronts.filter(f=>toolCount(f)===0)){
+      const donor=crews.filter(c=>toolCrew(c)&&(!valid.has(key(c))||crews.filter(other=>toolCrew(other)&&key(other)===key(c)).length>1)).sort((a,b)=>distance(mean(a.soldierIds.map(id=>people.find(s=>s.id===id)!)),f.point)-distance(mean(b.soldierIds.map(id=>people.find(s=>s.id===id)!)),f.point))[0];
       if(donor)place(donor,f);
     }
-    for(const c of crews.filter(c=>!valid.has(key(c)))){
+    for(const c of crews.filter(c=>!valid.has(key(c))||!toolCrew(c)&&!crews.some(other=>toolCrew(other)&&key(other)===key(c)))){
       const center=mean(c.soldierIds.map(id=>people.find(s=>s.id===id)!));
-      for(const f of [...fronts].sort((a,b)=>count(a)-count(b)||distance(center,a.point)-distance(center,b.point)))if(place(c,f))break;
+      for(const f of fronts.filter(f=>toolCrew(c)||toolCount(f)>0).sort((a,b)=>count(a)-count(b)||distance(center,a.point)-distance(center,b.point)))if(place(c,f))break;
     }
   }
 

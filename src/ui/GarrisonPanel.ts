@@ -1,6 +1,7 @@
 import type { BattlefieldSimulation } from '../simulation/BattlefieldSimulation';
 import type { Readiness,Facility } from '../garrison/types';
 import { garrisonSupplyReadout, withdrawalProgress } from './GarrisonReadout';
+import {trenchName} from './TrenchReadout';
 const escape=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 export class GarrisonPanel {
   readonly element=document.createElement('details');
@@ -73,7 +74,7 @@ export class GarrisonPanel {
     const g=this.current(),key=friendly.map(g=>g.id+':'+g.squadIds.join(',')).join('|')+':'+this.garrison;
     if(key!==this.listKey){
       this.listKey=key;
-      this.element.querySelector('#garrison-choice')!.innerHTML=friendly.map(g=>`<option value="${g.id}">${escape(g.name)}</option>`).join('');
+      this.element.querySelector('#garrison-choice')!.innerHTML=friendly.map(g=>`<option value="${g.id}">${trenchName(state,g.trenchId)} · ${escape(g.name)}</option>`).join('');
       (this.element.querySelector('#garrison-choice') as HTMLSelectElement).value=String(this.garrison);
       const people=g?state.soldiers.filter(s=>s.garrisonId===g.id):[];
       this.element.querySelector('#soldier-choice')!.innerHTML=people.map(s=>`<option value="${s.id}">Soldier ${s.id} · ${escape(state.squads.find(q=>q.id===s.squadId)?.name??'')}</option>`).join('');

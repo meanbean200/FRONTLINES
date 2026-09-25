@@ -20,6 +20,33 @@ function fixture(offset=20){
 function run(sim:BattlefieldSimulation,seconds:number){for(let i=0;i<seconds*20;i++)sim.step(.05);}
 
 describe('engineer work parties',()=>{
+  it('uses a whole mixed-kit detail without inventing tools or sending escorts outside',()=>{
+    const {sim,q,main}=fixture();
+    sim.state.soldiers.forEach((s,i)=>s.equipment!.tools=i===0);
+    run(sim,35);
+    expect(sim.state.soldiers.filter(s=>s.action==='digging')).toHaveLength(1);
+    expect(sim.state.soldiers.filter(s=>s.action==='clearing spoil')).toHaveLength(7);
+    expect(sim.state.soldiers.filter(s=>s.equipment!.tools)).toHaveLength(1);
+    expect(sim.state.soldiers.every(s=>sim.terrain.coverAt(s.x,s.z)==='trench')).toBe(true);
+    const before=main.progress*polylineLength(main.points);run(sim,1);
+    expect(main.progress*polylineLength(main.points)-before).toBeCloseTo(.9,2);
+    expect(q.orderNote).toContain('7 clearing spoil');
+    const loaded=new BattlefieldSimulation(new SaveSystem().parse(JSON.stringify(sim.state)));
+    run(sim,20);run(loaded,20);expect(loaded.state).toEqual(sim.state);
+  });
+  it('slows a one-tool detail when helpers are lost and stops when its tool carrier is lost',()=>{
+    const {sim,main}=fixture();sim.state.soldiers.forEach((s,i)=>s.equipment!.tools=i===0);run(sim,35);
+    for(const s of sim.state.soldiers.slice(4)){s.health=0;s.needs!.life='dead';}
+    const before=main.progress;run(sim,1);expect((main.progress-before)*160).toBeLessThanOrEqual(.500001);
+    sim.state.soldiers[0].health=0;sim.state.soldiers[0].needs!.life='dead';
+    const stopped=main.progress;run(sim,3);expect(main.progress).toBe(stopped);
+  });
+  it('shares limited tool carriers between fronts, then completes both ends',()=>{
+    const {sim,main}=fixture();sim.state.soldiers.forEach((s,i)=>s.equipment!.tools=i<2);run(sim,40);
+    expect(main.excavation!.start).toBeLessThan(80);expect(main.excavation!.end).toBeGreaterThan(80);
+    expect(sim.state.soldiers.filter(s=>s.action==='clearing spoil')).toHaveLength(6);
+    run(sim,170);expect(main.status).toBe('complete');
+  });
   it('starts a fresh isolated line at its middle and opens both real work fronts',()=>{
     const {sim,q,main}=fixture();expect(main.excavation).toEqual({start:80,end:80,origin:80});
     run(sim,40);

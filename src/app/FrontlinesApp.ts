@@ -13,6 +13,8 @@ import { CommandInput, type InteractionMode } from '../input/CommandInput';
 import { TacticalOverlay } from '../ui/TacticalOverlay';
 import { AsyncSquadPlanner } from '../navigation/AsyncSquadPlanner';
 import { GarrisonPanel } from '../ui/GarrisonPanel';
+import {TrenchPanel} from '../ui/TrenchPanel';
+import {trenchName} from '../ui/TrenchReadout';
 import { LivingRenderer } from '../render/LivingRenderer';
 import { ReplayPanel } from '../ui/ReplayPanel';
 import { OperationUI } from '../ui/OperationUI';
@@ -70,6 +72,7 @@ export class FrontlinesApp {
   private perf: PerfSnapshot = { fps: 0, frameMs: 0, simulationMs: 0, drawCalls: 0, chunks: 0 };
   private pixelRatioLimit=1.25;
   private readonly garrisonPanel:GarrisonPanel;
+  private readonly trenchPanel:TrenchPanel;
   private readonly buildPanel:BuildPanel;
   private readonly deploymentPanel:DeploymentPanel;
   private pendingDeployment:{kind:DeploymentKind;count:number}={kind:'rifle',count:1};
@@ -139,7 +142,13 @@ export class FrontlinesApp {
       this.ui.notify(assigned?`${engineer.name} assigned · unfinished earthworks are preserved`:'No reachable completed trench with room for the engineers. Finish excavation first.',assigned?'normal':'warn');
       if(assigned)this.selectSquads([engineer.id]);
     }},()=>this.selectedSquads);
-    this.tactical=new TacticalOverlay(()=>this.state,this.selectedSquads,this.camera,this.simulation.terrain,(ids,add)=>this.selectSquads(ids,add),id=>this.occupyTrench(id),point=>{this.simulation.issueMove([...this.selectedSquads],point);this.ui.notify('Map move order issued');});
+    this.trenchPanel=new TrenchPanel(this.simulation,this.camera,this.selectedSquads,{
+      defend:id=>this.occupyTrench(id,false),
+      resume:id=>{const q=chooseEngineer(this.state,this.selectedSquads);if(!q){this.ui.notify('Select a fit formation carrying tools.','warn');return;}const ok=this.simulation.resumeConstruction([q.id],id);this.ui.notify(ok?'Work detail assigned to this trench.':'Worksite already assigned or unavailable. Hold the current job first to switch.');},
+      area:id=>{const component=this.simulation.garrisons.network.component(id),g=this.state.living!.garrisons.find(g=>g.faction!=='enemy'&&component!==undefined&&this.simulation.garrisons.network.component(g.trenchId)===component);if(g?.squadIds[0])this.garrisonPanel.showForSquad(g.squadIds[0]);},
+      move:()=>this.setMode('person-move'),cancel:()=>{if(this.mode==='person-move')this.setMode('select');},notify:text=>this.ui.notify(text),
+    });
+    this.tactical=new TacticalOverlay(()=>this.state,this.selectedSquads,this.camera,this.simulation.terrain,(ids,add)=>this.selectSquads(ids,add),id=>this.trenchPanel.open(id),point=>{this.simulation.issueMove([...this.selectedSquads],point);this.ui.notify('Map move order issued');});
     this.deploymentPanel=new DeploymentPanel(()=>this.state,(kind,count)=>{this.pendingDeployment={kind,count};this.setMode('deploy');this.ui.notify(`Place ${count} ${kind==='rifle'?'rifle squad':'engineer team'}${count>1?'s':''} · click clear ground · Esc finishes`);});
     this.input=new CommandInput({
       canvas,
@@ -149,6 +158,9 @@ export class FrontlinesApp {
       setMode: (mode) => this.setMode(mode),
       selectedSquads: this.selectedSquads,
       onSelectionChanged: () => undefined,
+      onInspectPerson:id=>this.trenchPanel.inspectPerson(id),
+      onInspectTrench:point=>this.trenchPanel.inspectAt(point),
+      onPersonMove:point=>this.trenchPanel.movePerson(point),
       previewDeployment:point=>deploymentPreview(this.state,this.simulation.terrain,this.pendingDeployment.kind,this.pendingDeployment.count,point),
       onDeploy:point=>{if(this.simulation.commandsLocked||document.documentElement.dataset.replay)return;const result=deploySandbox(this.state,this.simulation.terrain,this.pendingDeployment.kind,this.pendingDeployment.count,point);if(result.ids.length)this.selectSquads(result.ids);this.ui.notify(result.reason,result.ids.length?'normal':'warn');},
       onMove: (point) => {this.simulation.issueMove([...this.selectedSquads], point);if(this.selectedSquads.size)this.ui.notify(`Move order · ${this.selectedSquads.size} squad${this.selectedSquads.size===1?'':'s'}`);},
@@ -224,6 +236,7 @@ export class FrontlinesApp {
     this.debugRenderer.update(realDt, this.flags, this.selectedSquads);
     this.tactical.update(realDt);
     this.livingRenderer.update(now,this.garrisonPanel.showRoutes);this.garrisonPanel.update(now);
+    this.trenchPanel.update();
     this.buildPanel.update();this.deploymentPanel.update();
     this.operationRenderer.update();this.operationUI.update(now);
     this.audio.update();
@@ -248,7 +261,7 @@ export class FrontlinesApp {
     const engineer=chooseEngineer(this.state,this.selectedSquads);
     if (!engineer) return undefined;
     const id = this.simulation.createTrench(points, engineer.id);
-    if (id) this.ui.notify(`${engineer.constructionQueue?.includes(id)?'Queued trench':'Trench plan'} ${id} · ${engineer.name}${this.state.simSpeed===0?' · paused: press Space for crews to work':''}`);
+    if (id) this.ui.notify(`${trenchName(this.state,id)} · ${engineer.constructionQueue?.includes(id)?'queued':'planned'} · ${engineer.name}${this.state.simSpeed===0?' · paused: press Space for crews to work':''}`);
     else this.ui.notify('Route blocked by a building or water · draw on open ground','warn');
     return id;
   }
@@ -269,10 +282,10 @@ export class FrontlinesApp {
     return {name:work.name,cost:work.cost,position,origin,materials,valid:!reason,reason:reason??(materials<work.cost?'Clear site · will wait for delivered materials.':'Clear site · click to queue construction.')};
   }
 
-  private occupyTrench(requestedId?:number): void {
+  private occupyTrench(requestedId?:number,showArea=true): void {
     if(document.documentElement.dataset.replay||this.simulation.commandsLocked)return;
     const trenchId = this.simulation.issueOccupyNearest([...this.selectedSquads],requestedId);
-    if(trenchId)this.garrisonPanel.showForSquad([...this.selectedSquads][0]);
+    if(trenchId&&showArea)this.garrisonPanel.showForSquad([...this.selectedSquads][0]);
     this.ui.notify(trenchId ? 'Defend trench: enter nearby, rotate watch and rest. Move / H leaves the routine.' : 'Select squads and a dug trench with enough room and a reachable approach.', trenchId ? 'normal' : 'warn');
   }
   private setQuality(level:string):void {

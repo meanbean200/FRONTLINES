@@ -5,6 +5,7 @@ export type Resource = typeof RESOURCES[number];
 export type Inventory = Record<Resource, number>;
 export const inventory = (values: Partial<Inventory> = {}): Inventory => ({ food: 0, water: 0, materials: 0, fuel: 0, ammo: 0,medical:0,mortarHE:0,mortarSmoke:0,smokeGrenades:0, ...values });
 export type DutyKind = 'watch' | 'patrol' | 'sleep' | 'rest' | 'meal' | 'haul' | 'construct';
+export type PersonalOrder = 'watch' | 'rest' | 'meal' | 'move' | 'auto';
 export type Readiness = 'routine' | 'alert' | 'stand-to';
 export type PolicyKind = 'rules' | 'learned' | 'hybrid';
 export interface Needs {
@@ -13,6 +14,8 @@ export interface Needs {
   watchHours: number; interruptedSleep: number; taskChanges: number;
 }
 export interface Duty {
+  /** Bounded individual order; safety and later squad orders still win. */
+  playerOrdered?:boolean;
   kind: DutyKind; destination: Vec2; route: Vec2[]; routeIndex: number; since: number;
   arrivedAt?: number; until: number; reason: string; facilityId?: number; relieving?: number;
   stage?: 'pickup' | 'deliver'; blockedFor: number;

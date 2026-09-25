@@ -277,6 +277,7 @@ function validLiving(state:BattlefieldState):boolean {
     if(s.garrisonId!==undefined&&!w.garrisons.find(g=>g.id===s.garrisonId)?.squadIds.includes(s.squadId))return false;
     const d=s.duty;if(d&&(!['watch','patrol','sleep','rest','meal','haul','construct'].includes(d.kind)||!point(d.destination)||!Array.isArray(d.route)||!d.route.every(point)||!Number.isInteger(d.routeIndex)||d.routeIndex<0||d.routeIndex>d.route.length||!nonnegative(d.since)||!nonnegative(d.until)||!nonnegative(d.blockedFor)||(d.arrivedAt!==undefined&&!nonnegative(d.arrivedAt))||(d.patientId!==undefined&&!sIds.has(d.patientId))))return false;
     if(d){
+      if(d.playerOrdered!==undefined&&(typeof d.playerOrdered!=='boolean'||d.playerOrdered&&(!['watch','sleep','rest','meal'].includes(d.kind)||state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')))return false;
       if(d.watchPost!==undefined&&!point(d.watchPost))return false;
       if(d.entryPoint!==undefined&&!point(d.entryPoint))return false;
       if(d.relocationExit!==undefined&&!point(d.relocationExit))return false;

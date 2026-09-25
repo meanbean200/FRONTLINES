@@ -4,7 +4,7 @@ import { factionOf } from '../operations/types';
 import type {trenchDraft} from '../ui/TrenchDraft';
 import {MIN_TRENCH_LENGTH,type FacilityPreview} from '../construction/ConstructionReadout';
 
-export type InteractionMode = 'select' | 'trench' | 'crater' | 'move' | 'facility'|'observe'|'suppress'|'assault'|'fall-back'|'defend'|'mortarHE'|'mortarSmoke'|'smokeGrenades'|'deploy';
+export type InteractionMode = 'select' | 'trench' | 'crater' | 'move' | 'facility'|'observe'|'suppress'|'assault'|'fall-back'|'defend'|'mortarHE'|'mortarSmoke'|'smokeGrenades'|'deploy'|'person-move';
 
 interface CommandInputOptions {
   canvas: HTMLCanvasElement;
@@ -14,6 +14,9 @@ interface CommandInputOptions {
   setMode: (mode: InteractionMode) => void;
   selectedSquads: Set<number>;
   onSelectionChanged: () => void;
+  onInspectPerson?:(id:number)=>boolean;
+  onInspectTrench?:(point:Vec2)=>boolean;
+  onPersonMove?:(point:Vec2)=>boolean;
   onMove: (point: Vec2) => void;
   onDrawPath: (points:Vec2[],append:boolean,intent?:'assault'|'fall-back')=>void;
   onTrench: (points: Vec2[]) => void;
@@ -140,7 +143,7 @@ export class CommandInput {
     if (mode === 'select') {
       this.box.hidden = true;
       const dragDistance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
-      if (dragDistance < 6) this.selectPoint(event.clientX, event.clientY, event.shiftKey);
+      if (dragDistance < 6) this.selectPoint(event.clientX, event.clientY, event.shiftKey,event.altKey);
       else this.selectBox(start, { x: event.clientX, y: event.clientY }, event.shiftKey);
     } else if (mode === 'trench'||mode==='defend') {
       this.routePreview.style.display='none';
@@ -151,6 +154,8 @@ export class CommandInput {
       if(this.trenchPoints.length>=2){if(mode==='defend')this.options.onDefend?.(this.trenchPoints);else this.options.onTrench(this.trenchPoints);}
       this.trenchPoints = [];
       this.options.setMode('select');
+    } else if(mode==='person-move') {
+      const point=this.options.camera.groundPoint(event.clientX,event.clientY);if(point&&this.options.onPersonMove?.(point))this.options.setMode('select');
     } else if(mode==='deploy') {
       const point=this.options.camera.groundPoint(event.clientX,event.clientY);if(point)this.options.onDeploy?.(point);
     } else if(mode==='facility') {
@@ -216,8 +221,12 @@ export class CommandInput {
     if(this.draft.textContent!==text)this.draft.textContent=text;
   }
 
-  private selectPoint(x: number, y: number, additive: boolean): void {
+  private selectPoint(x: number, y: number, additive: boolean, individual=false): void {
     const state = this.options.getState();
+    if(individual){
+      const people=state.soldiers.filter(s=>s.needs?.life!=='dead'&&state.squads.some(q=>q.id===s.squadId&&q.faction!=='enemy')).map(s=>({s,p:this.options.camera.project(s,1)})).filter(({p})=>p.visible&&Math.hypot(p.x-x,p.y-y)<18).sort((a,b)=>Math.hypot(a.p.x-x,a.p.y-y)-Math.hypot(b.p.x-x,b.p.y-y));
+      if(people[0]&&this.options.onInspectPerson?.(people[0].s.id))return;
+    }
     let bestId: number | undefined;
     let bestDistance = 32;
     for (const squad of state.squads) {
@@ -231,6 +240,8 @@ export class CommandInput {
       }
     }
     for(const soldier of state.soldiers){if(state.squads.some(s=>s.id===soldier.squadId&&factionOf(s)==='enemy'))continue;const p=this.options.camera.project(soldier,1);const d=Math.hypot(p.x-x,p.y-y);if(p.visible&&d<Math.min(bestDistance,18)){bestDistance=d;bestId=soldier.squadId;}}
+    const point=this.options.camera.groundPoint(x,y);
+    if(bestId===undefined&&point&&this.options.onInspectTrench?.(point))return;
     if (!additive) this.options.selectedSquads.clear();
     if (bestId !== undefined) {
       if (additive && this.options.selectedSquads.has(bestId)) this.options.selectedSquads.delete(bestId);

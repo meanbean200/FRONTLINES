@@ -11,6 +11,7 @@ import {trenchPresence} from './GarrisonReadout';
 import {fieldIcon} from './FieldSymbols';
 import {FieldMap} from './FieldMap';
 import {OrderOverlay} from './OrderOverlay';
+import {trenchName,friendlyTrenches} from './TrenchReadout';
 
 export class TacticalOverlay {
   private readonly layer=document.createElement('div');
@@ -68,19 +69,19 @@ export class TacticalOverlay {
     });
     const trenchIds=new Set(state.trenches.map(t=>t.id));
     for(const[id,m]of this.trenchMarkers)if(!trenchIds.has(id)){m.remove();this.trenchMarkers.delete(id);}
-    const represented=new Set<number>();
+    const inspectable=new Set(friendlyTrenches(state,this.network).map(t=>t.id));
     for(const trench of state.trenches){
       let m=this.trenchMarkers.get(trench.id);
       if(!m){m=document.createElement('button');m.className='trench-capacity';m.addEventListener('click',()=>this.occupy(trench.id));this.layer.append(m);this.trenchMarkers.set(trench.id,m);}
       const component=this.network.component(trench.id),members=state.living?.garrisons.filter(g=>this.network.component(g.trenchId)===component)??[];
-      if(members.some(g=>g.faction==='enemy')){m.dataset.representative='false';m.textContent='';m.disabled=true;continue;}m.disabled=false;
+      if(!inspectable.has(trench.id)){m.dataset.representative='false';m.textContent='';m.disabled=true;continue;}m.disabled=false;
       const support=state.living?.facilities.some(f=>f.connectorId===trench.id);
-      m.dataset.representative=String(component!==undefined&&!support&&!represented.has(component));
-      if(component!==undefined&&!support)represented.add(component);
+      m.dataset.representative=String(!support);
       const used=state.soldiers.filter(s=>s.needs?.life!=='dead'&&members.some(g=>s.garrisonId===g.id)).length,capacity=this.network.capacity(component??-1);
       const inside=this.presence.get(component??-1)??0;
-      m.textContent=`⌁ ${inside} inside · ${used}/${capacity} assigned${trench.status==='complete'?'':` · ${Math.floor(trench.progress*100)}%`}`;
-      m.title=`${inside} friendly personnel physically in trench cover, including engineers and incapacitated troops. ${used} assigned to live here / ${capacity} capacity; some may still be approaching or carrying supplies. Select a squad and click to defend here: nearby entry, watch shifts, rest and supplies.`;
+      m.textContent=`${trenchName(state,trench.id)}${trench.status==='complete'?'':` · ${Math.floor(trench.progress*100)}%`}`;
+      m.setAttribute('aria-label',`Inspect ${trenchName(state,trench.id)}`);
+      m.title=`Click to inspect and highlight this trench. Connected network: ${inside} inside · ${used}/${capacity} assigned. Manage personnel or assign squads in the inspector.`;
     }
     const objectiveIds=new Set(state.operation?.objectives.map(o=>o.id));
     for(const[id,marker]of this.objectiveMarkers)if(!objectiveIds.has(id)){marker.remove();this.objectiveMarkers.delete(id);}

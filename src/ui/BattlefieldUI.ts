@@ -75,6 +75,7 @@ export class BattlefieldUI {
     const label=this.root.querySelector<HTMLElement>('#mode-label')!;
     label.textContent=mode==='trench'?'DRAW TRENCH · center-out crews · branches split · Esc cancels':mode==='crater'?'TEST IMPACT · click the ground · Esc cancels':mode==='move'?'DRAW PATH · drag your exact route · Shift appends · Esc cancels':'Right-drag a path · left-drag selects · Shift adds / appends';
     label.dataset.mode=mode;
+    if(mode==='person-move')label.textContent='PERSONAL ORDER · click free floor in this trench · only the selected person moves · Esc cancels';
     if(mode==='deploy')label.textContent='ADD TROOPS · click clear ground · repeat to place more · Esc / right-click finishes';
     if(mode==='facility')label.textContent='PLACE SUPPORT WORKS · click 6–40m behind the trench · Esc / right-click cancels';
     if(mode==='defend')label.textContent='DEFEND AREA · draw frontage near completed trenches · then choose facing';

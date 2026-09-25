@@ -3,6 +3,7 @@ import type {Facility} from '../garrison/types';
 import {fitEngineers,SUPPORT_WORKS,constructionStatus,selectedConstructionNetwork} from '../construction/ConstructionReadout';
 import {localInventory} from '../garrison/Inventory';
 import {fieldIcon} from './FieldSymbols';
+import {trenchName} from './TrenchReadout';
 
 interface BuildActions {place:(id:number,kind:Facility['kind'])=>void;assign:(id?:number)=>void;focus:(point:Vec2)=>void}
 /** Contextual construction choices. Opening never changes orders or inventories. */
@@ -46,7 +47,7 @@ export class BuildPanel {
     const networks=state.living!.garrisons.filter(g=>g.faction!=='enemy'),select=this.element.querySelector<HTMLSelectElement>('#build-network')!;
     if(!networks.some(g=>g.id===this.networkId))this.networkId=networks[0]?.id??0;
     const key=networks.map(g=>g.id+g.name).join('|');
-    if(select.dataset.key!==key){select.dataset.key=key;select.replaceChildren();if(!networks.length)select.add(new Option('No defended trench yet','0'));for(const g of networks)select.add(new Option(g.name,String(g.id)));}
+    if(select.dataset.key!==key){select.dataset.key=key;select.replaceChildren();if(!networks.length)select.add(new Option('No defended trench yet','0'));for(const g of networks)select.add(new Option(`${trenchName(state,g.trenchId)} · ${g.name}`,String(g.id)));}
     select.value=String(this.networkId);select.disabled=locked||!networks.length;
     const g=networks.find(g=>g.id===this.networkId),teams=fitEngineers(state),assigned=teams.filter(q=>g?.squadIds.includes(q.id)&&q.order.type==='occupy-trench');
     const workforce=this.element.querySelector('.build-workforce')!;
@@ -62,7 +63,7 @@ export class BuildPanel {
       add(SUPPORT_WORKS[f.kind].name,!assigned.length?'Waiting for assigned builders':!f.paid?`Waiting for material carrier · ${f.materialCost} materials`:t&&t.progress<1?`Digging connector · ${Math.round(t.progress*100)}%`:`Building · ${Math.round(f.progress*100)}%`,f);
     }
     const ids=new Set(teams.map(q=>q.id));
-    for(const t of state.trenches.filter(t=>t.status!=='complete'&&ids.has(t.engineerSquadId!))){const q=teams.find(q=>q.id===t.engineerSquadId)!;add(`Trench ${t.id}`,q.order.trenchId===t.id?constructionStatus(state,q)??`${Math.round(t.progress*100)}% excavated · paused`:`${Math.round(t.progress*100)}% excavated · queued or paused`,t.points[Math.floor(t.points.length/2)]);}
+    for(const t of state.trenches.filter(t=>t.status!=='complete'&&ids.has(t.engineerSquadId!))){const q=teams.find(q=>q.id===t.engineerSquadId)!;add(trenchName(state,t.id),q.order.trenchId===t.id?constructionStatus(state,q)??`${Math.round(t.progress*100)}% excavated · paused`:`${Math.round(t.progress*100)}% excavated · queued or paused`,t.points[Math.floor(t.points.length/2)]);}
     if(!jobs.childElementCount)add('No unfinished works','Draw a trench or choose a support structure above.');
     if(state.simSpeed===0)add('SIMULATION PAUSED','Plans can be placed now. Press Space or 1× for crews to work.');
   }

@@ -14,7 +14,7 @@ export function updateNeeds(state:BattlefieldState,s:SoldierState,dt:number):voi
   const arrived=s.duty?.arrivedAt!==undefined&&s.combat?.owner!=='reaction'&&s.combat?.owner!=='casualty',kind=arrived&&s.duty?.rationUntil===undefined?s.duty!.kind:undefined;
   const asleep=kind==='sleep',resting=kind==='rest'||n.life==='incapacitated';
   const shelter=asleep&&w.facilities.some(f=>f.id===s.duty?.facilityId&&f.kind==='rest'&&f.progress===1&&Math.hypot(s.x-f.x,s.z-f.z)<4);
-  const exertion=s.action==='digging'||kind==='construct'?NEED_RULES.workLossPerHour:isWalkingAction(s.action)||kind==='haul'?NEED_RULES.travelLossPerHour:NEED_RULES.awakeLossPerHour;
+  const exertion=s.action==='digging'||s.action==='clearing spoil'||kind==='construct'?NEED_RULES.workLossPerHour:isWalkingAction(s.action)||kind==='haul'?NEED_RULES.travelLossPerHour:NEED_RULES.awakeLossPerHour;
   n.energy=clamp(n.energy+hours*(asleep?shelter?NEED_RULES.sleepRecoveryPerHour:NEED_RULES.floorSleepRecoveryPerHour:resting?NEED_RULES.restRecoveryPerHour:-exertion),0,100);
   if(asleep)n.sleepHours+=hours;if(kind==='watch')n.watchHours+=hours;
   n.hunger=clamp(n.hunger+hours*NEED_RULES.hungerPerHour,0,100);n.thirst=clamp(n.thirst+hours*NEED_RULES.thirstPerHour,0,100);

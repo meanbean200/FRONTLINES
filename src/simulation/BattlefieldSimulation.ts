@@ -297,17 +297,6 @@ export class BattlefieldSimulation {
   private updateEngineerSquad(squad: SquadState, soldiers: SoldierState[], dt: number): void {
     if(!this.state.trenches.some(t=>t.id===squad.order.trenchId)){this.issueHold([squad.id]);return;}
     this.engineers.step(squad,soldiers,dt,(s,target,seconds,action)=>this.moveSoldier(s,target,[],seconds,action));
-    // Tools belong to particular people, not the whole formation. The others
-    // accompany the shared approach and cover the work instead of staying at
-    // the deployment point (and dragging the formation centre kilometres away).
-    const escort=soldiers.filter(s=>!s.equipment?.tools),waypoint=squad.route[squad.routeIndex];
-    if(escort.length&&waypoint&&squad.order.type==='construct-trench'){
-      const center={x:escort.reduce((n,s)=>n+s.x,0)/escort.length,z:escort.reduce((n,s)=>n+s.z,0)/escort.length};
-      if(distance(center,waypoint)<8&&squad.routeIndex<squad.route.length-1)squad.routeIndex++;
-      const destination=squad.route[squad.routeIndex];
-      if(distance(center,destination)>8){const movement=squad.movementState;this.moveFormation(squad,escort,destination,dt,'escorting work party');squad.movementState=movement;}
-      else for(const s of escort)if(ownsAction(s,'order'))s.action='covering work party';
-    }
   }
 
   private moveFormation(squad: SquadState, soldiers: SoldierState[], destination: Vec2, dt: number, action: string): void {
@@ -394,12 +383,13 @@ export class BattlefieldSimulation {
       delete soldier.pathTravel;
     }
   }
-  resumeConstruction(squadIds:number[]):number {
+  resumeConstruction(squadIds:number[],requestedTrenchId?:number):number {
     if(this.commandsLocked)return 0;
     let count=0;
     for(const squad of this.state.squads.filter(s=>squadIds.includes(s.id)&&squadHasEquipment(this.state,s,'tools')&&factionOf(s)==='player')){
       if(squad.order.type==='construct-trench')continue;
       const candidates=this.state.trenches.filter(t=>t.status!=='complete'&&!this.state.squads.some(s=>s.order.type==='construct-trench'&&(s.order.trenchId===t.id||s.engineerWork?.crews.some(c=>c.trenchId===t.id)||(s.constructionQueue??[]).some(j=>typeof j==='number'?j===t.id:j.kind==='trench'&&j.id===t.id))))
+        .filter(t=>requestedTrenchId===undefined||t.id===requestedTrenchId)
         .map(t=>({trench:t,point:this.engineers.workFaces(t,squad)[0]})).filter(row=>row.point)
         .sort((a,b)=>distance(squad,a.point)-distance(squad,b.point));
       for(const {trench:target} of candidates)if(this.startConstruction(squad,target.id)){

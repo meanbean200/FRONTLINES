@@ -7,7 +7,7 @@ import { initializeLiving, LogisticsSystem } from './LogisticsSystem';
 import { CAMPAIGN_HOURS_PER_SECOND, dropCargo, freshNeeds, updateNeeds } from './NeedsSystem';
 import { consume, localInventory, total, transfer, transferBounded,carrierCapacity } from './Inventory';
 import { observation, RulePolicy } from './GarrisonPolicy';
-import { effectiveReadiness, inventory, RESOURCES, type DutyKind, type Facility, type Garrison, type Readiness, type Resource } from './types';
+import { effectiveReadiness, inventory, RESOURCES, type DutyKind, type Facility, type Garrison, type Readiness, type Resource, type PersonalOrder } from './types';
 import { GarrisonJobBoard } from './GarrisonJobBoard';
 import { firstAvailablePoint } from './DutyReservations';
 import {trenchEntrance} from '../core/TrenchGeometry';
@@ -71,6 +71,42 @@ export class GarrisonSystem {
     }
   }
   setReadiness(id:number,readiness:Readiness):void{const g=this.state.living!.garrisons.find(g=>g.id===id);if(g){g.readiness=readiness;g.nextDecision=0;}}
+  orderPerson(id:number,order:PersonalOrder,point?:Vec2):{accepted:boolean;reason:string}{
+    const reject=(reason:string)=>({accepted:false,reason});
+    const s=this.state.soldiers.find(s=>s.id===id),g=this.state.living!.garrisons.find(g=>g.id===s?.garrisonId);
+    if(!s||!g||g.faction==='enemy'||this.state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')return reject('Assign this person’s squad to a friendly trench first.');
+    if(this.state.operation&&this.state.operation.status!=='active')return reject('Operation ended.');
+    if(s.health<=0||s.needs?.life!=='active')return reject('This person is not fit for duty.');
+    if(g.cutoff==='withdraw')return reject('Area withdrawal takes priority.');
+    if(s.duty?.relocationExit||s.duty?.kind==='haul'||s.combat?.careTask||['reaction','casualty','support'].includes(s.combat?.owner??''))return reject('Finish the current delivery, rescue, reaction or support task first.');
+    if(order==='auto'){if(s.duty){delete s.duty.playerOrdered;s.duty.until=this.state.elapsed;}g.nextDecision=0;return {accepted:true,reason:'Returned to area duties; occupied watch posts await relief.'};}
+    this.network.sync(this.state.trenches);const component=this.network.component(g.trenchId);
+    if(component===undefined)return reject('No connected, excavated trench available.');
+    const people=this.people(g);let destination:Vec2|undefined,kind:DutyKind='rest',reason='',facility:Facility|undefined;
+    if(order==='watch'){
+      destination=defensivePost(this.network,this.terrain,component,g.front,s,people,g.entrance,this.state.living!.facilities.filter(f=>f.garrisonId===g.id).map(f=>f),g.threatSector,g.frontage);kind='watch';reason='Player: take watch';
+    }else if(order==='rest'){
+      facility=this.facility(g,'rest',people);destination=facility?this.facilityDestination(facility,s):this.localMealPoint(g,s);kind='sleep';reason='Player: rest and recover';
+    }else if(order==='meal'){
+      const packed=(s.carried?.food??0)>0||(s.carried?.water??0)>0,stock=localInventory(this.state,g);
+      if(!packed&&stock.food<=0&&stock.water<=0)return reject('No food or water available here.');
+      const source=this.supplySource(g,s.needs.thirst>=s.needs.hunger?'water':'food');
+      destination=packed?this.localMealPoint(g,s):this.supplyPoint(g,s,source.storeId);kind='meal';reason='Player: eat and drink';
+      if(!this.assignDuty(s,g,kind,destination,reason,15))return reject('No reachable meal position.');
+      s.duty!.stage=packed?'deliver':'pickup';s.duty!.pickupStoreId=source.storeId;s.duty!.playerOrdered=true;g.nextDecision=0;
+      return {accepted:true,reason};
+    }else if(order==='move'){
+      if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.z)||!this.network.corridorContains(point)||this.componentAt(point)!==component)return reject('Choose excavated floor in this connected trench.');
+      if(people.some(other=>other!==s&&other.needs?.life!=='dead'&&(distance(other,point)<.7||other.duty&&distance(other.duty.destination,point)<.7)))return reject('That space is occupied; choose nearby trench floor.');
+      destination=point;reason='Player: hold this trench position';
+    }else return reject('Unknown personnel order.');
+    if(!this.assignDuty(s,g,kind,destination,reason,150))return reject('No reachable, usable position for this duty.');
+    s.duty!.playerOrdered=true;if(facility)s.duty!.facilityId=facility.id;if(kind==='watch')s.duty!.watchPost={...s.duty!.destination};g.nextDecision=0;
+    return {accepted:true,reason};
+  }
+  private personalDuty(s:SoldierState):boolean {
+    return Boolean(s.duty?.playerOrdered&&this.state.elapsed<s.duty.until&&s.needs!.energy>10&&s.needs!.hunger<85&&s.needs!.thirst<85);
+  }
   setFront(id:number,front:number):void {
     const g=this.state.living!.garrisons.find(g=>g.id===id);if(!g||!Number.isFinite(front)||Math.abs(g.front-front)<.001)return;
     g.front=front;g.nextDecision=0;
@@ -161,7 +197,7 @@ export class GarrisonSystem {
     // These are temporary duties, not permanent soldier-owned trench slots.
     if(readiness!=='routine')for(const f of w.facilities.filter(f=>f.garrisonId===g.id&&f.kind==='emplacement'&&f.progress===1)){
       const team=this.state.squads.find(q=>squadHasEquipment(this.state,q,'automatic')&&g.squadIds.includes(q.id)&&active.filter(s=>s.squadId===q.id&&s.needs!.energy>45&&s.needs!.hunger<65&&s.needs!.thirst<65).length>=2);
-      if(!team)continue;const crew=active.filter(s=>s.squadId===team.id).sort((a,b)=>Number(hasEquipment(this.state,b,'automatic'))-Number(hasEquipment(this.state,a,'automatic'))||a.id-b.id).slice(0,f.capacity);
+      if(!team)continue;const crew=active.filter(s=>s.squadId===team.id&&!this.personalDuty(s)).sort((a,b)=>Number(hasEquipment(this.state,b,'automatic'))-Number(hasEquipment(this.state,a,'automatic'))||a.id-b.id).slice(0,f.capacity);
       for(const [i,s] of crew.entries()){if(s.duty?.kind==='watch'&&s.duty.facilityId===f.id)continue;if(s.duty&&!['rest','patrol'].includes(s.duty.kind))continue;const angle=f.facing??g.front,p={x:f.x+Math.cos(angle)*(i-1)*1.1,z:f.z-Math.sin(angle)*(i-1)*1.1};if(this.assignDuty(s,g,'watch',p,'Crewed defensive emplacement',150,true)){s.duty!.facilityId=f.id;s.duty!.watchPost={...p};}}
     }
     const freePoint=(s:SoldierState,front=false):Vec2=>{
@@ -187,7 +223,7 @@ export class GarrisonSystem {
     const posts=active.filter(s=>s.duty?.kind==='watch'&&s.duty.relieving===undefined);
     const excess=Math.max(0,posts.length-g.watchRequired);
     posts.sort((a,b)=>a.needs!.energy-b.needs!.energy||b.needs!.watchHours-a.needs!.watchHours||a.id-b.id);
-    for(const outgoing of posts.slice(0,excess)){
+    for(const outgoing of posts.filter(s=>!this.personalDuty(s)).slice(0,excess)){
       for(const relief of active)if(relief.duty?.relieving===outgoing.id)delete relief.duty;
       delete outgoing.duty;
     }
@@ -198,6 +234,7 @@ export class GarrisonSystem {
     const recruits=active.filter(s=>!hasEquipment(this.state,s,'medicalKit')&&!hasEquipment(this.state,s,'mortar')&&s.duty?.kind!=='watch'&&s.needs!.energy>45&&s.needs!.hunger<55&&s.needs!.thirst<55&&(!s.duty||['rest','patrol'].includes(s.duty.kind)||(readiness!=='routine'&&needed>0&&s.duty.patientId===undefined)||(needed>0||overdue.length>0)&&s.duty.kind==='sleep'&&s.needs!.energy>75&&(needed>0||s.duty.arrivedAt!==undefined&&this.state.elapsed-s.duty.arrivedAt>=75)))
       .sort((a,b)=>{const score=(s:SoldierState)=>s.needs!.energy-s.needs!.watchHours*3-(s.duty?.kind==='sleep'?80:0)-(this.isEngineer(s)?15:0);return score(b)-score(a)||a.id-b.id;});
     for(const s of recruits){
+      if(this.personalDuty(s))continue;
       const old=needed>0?undefined:overdue.shift();if(needed<=0&&!old)break;
       // Preserve routine posts elsewhere; additional guards reinforce the threatened sector.
       const sector=watch.length>=Math.ceil(active.length*.25)?g.threatSector:undefined;
@@ -212,6 +249,7 @@ export class GarrisonSystem {
     // Otherwise distant early IDs continually reserve every berth and starve
     // later IDs despite full stores. Stable ID is only the deterministic tie-break.
     for(const s of this.jobBoard.rankPeople(active)){
+      if(this.personalDuty(s))continue;
       const n=s.needs!;let d=s.duty;
       // Older saves can contain a pickup projected onto the wrong component.
       // Release only empty, failed crate trips; never discard cargo in transit.
