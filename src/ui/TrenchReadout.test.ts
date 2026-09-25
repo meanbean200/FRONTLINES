@@ -20,6 +20,7 @@ describe('trench inspection identity',()=>{
     const [digger,helper,otherFront]=state.soldiers.filter(s=>s.squadId===q.id);digger.action='digging';helper.action='clearing spoil';otherFront.action='digging';
     q.order={type:'construct-trench',trenchId:a.id,issuedAt:0};
     q.engineerWork={version:1,nextReview:0,crews:[{soldierIds:[digger.id,helper.id],trenchId:a.id,direction:1,route:[],routeIndex:0,approached:true},{soldierIds:[otherFront.id],trenchId:999,direction:1,route:[],routeIndex:0,approached:true}]};
-    expect(trenchWorkforce(state,a)).toEqual({digging:1,helpers:1});expect(trenchWorkforce(state,{...a,status:'complete',progress:1})).toEqual({digging:0,helpers:0});
+    expect(trenchWorkforce(state,a)).toEqual({digging:1,helpers:1,assigned:2,recovering:0,hauling:0,walking:0,blocked:0});
+    expect(trenchWorkforce(state,{...a,status:'complete',progress:1})).toEqual({digging:0,helpers:0,assigned:0,recovering:0,hauling:0,walking:0,blocked:0});
   });
 });

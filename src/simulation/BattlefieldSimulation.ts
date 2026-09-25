@@ -27,6 +27,7 @@ import {updateCasualtyCare} from '../combat/Casualties';
 import {stepSupport} from '../combat/SupportWeapons';
 import {stepReplacements} from '../operations/Replacements';
 import {stepBuildings} from './BuildingSystem';
+import {stepSelfPreservation} from './SelfPreservation';
 import {postureSpeed} from '../combat/Posture';
 import {initializeEquipment,squadHasEquipment} from '../combat/Equipment';
 import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
@@ -129,12 +130,15 @@ export class BattlefieldSimulation {
     if(released.length)this.state.preparedOrders=[...(this.state.preparedOrders??[]).filter(o=>!released.some(r=>r.squadId===o.squadId)),...released];
     prepareActions(this.state,this.terrain,this.navigation,dt);
     updateCasualtyCare(this.state,this.terrain,this.navigation,dt);
+    stepSelfPreservation(this.state,this.terrain,this.navigation,dt);
     stepBuildings(this.state,this.terrain,this.navigation,dt);
     for(const q of this.state.squads)if(q.orderNote==='Leaving building'&&!this.state.soldiers.some(s=>s.squadId===q.id&&s.building&&s.needs?.life==='active')){delete q.orderNote;if(q.order.type==='move'&&q.order.target){if(q.order.drawnPath)this.planDrawnApproach(q);else this.planSquadRoute(q,q.order.target);}}
     coordinateMovement(this.state);
     this.stepCosts.actions=performance.now()-phase;phase=performance.now();
     this.updateSquadCenters();
+    this.engineers.beginFrame();
     this.updateOrders(dt);
+    this.engineers.finishFrame(dt);
     this.stepCosts.movement=performance.now()-phase;phase=performance.now();
     this.trenches.update(dt);
     for(const squad of this.state.squads)if(squadHasEquipment(this.state,squad,'tools')&&squad.order.type==='hold'&&squad.constructionQueue?.length){const job=squad.constructionQueue.shift()!;if(typeof job==='number'||job.kind==='trench')this.startConstruction(squad,typeof job==='number'?job:job.id);}
@@ -279,7 +283,7 @@ export class BattlefieldSimulation {
   requestConstruction(request:ConstructionRequest):number|undefined {
     if(this.commandsLocked)return;
     if(request.kind==='trench')return this.createTrench(request.points,request.engineerSquadId);
-    return this.garrisons.requestFacility(request.garrisonId,request.facilityKind,request.position,request.origin,request.facing,request.explicit??true);
+    return this.garrisons.requestFacility(request.garrisonId,request.facilityKind,request.position,request.origin,request.facing,request.explicit??true,request.guns);
   }
 
   createCrater(point: Vec2, radius = 24, depth = 5): number {
@@ -434,7 +438,7 @@ export class BattlefieldSimulation {
     if(this.commandsLocked)return 0;
     this.lastResumeReason='Select a fit formation with tools';
     let count=0;
-    for(const squad of this.state.squads.filter(s=>squadIds.includes(s.id)&&squadHasEquipment(this.state,s,'tools')&&factionOf(s)==='player')){
+    for(const squad of this.state.squads.filter(s=>squadIds.includes(s.id)&&(squadHasEquipment(this.state,s,'tools')||requestedTrenchId!==undefined)&&factionOf(s)==='player')){
       if(squad.order.type==='construct-trench'){this.lastResumeReason='Already working · inspect Construction for its current fronts';continue;}
       const {candidates,reason}=this.previewResume(squad.id,requestedTrenchId);this.lastResumeReason=reason||'Local worksite has no safe approach';
       for(const {trench:target} of candidates)if(this.startConstruction(squad,target.id)){
@@ -446,8 +450,9 @@ export class BattlefieldSimulation {
     return count;
   }
   private pauseConstruction(squad:SquadState):void {
-    for(const job of [squad.order.type==='construct-trench'?squad.order.trenchId:undefined,...(squad.constructionQueue??[])]){const id=typeof job==='number'?job:job?.kind==='trench'?job.id:undefined;const trench=this.state.trenches.find(t=>t.id===id);if(trench&&trench.status!=='complete')trench.status='planned';}
-    for(const t of this.state.trenches)if(t.engineerSquadId===squad.id&&t.status==='building')t.status='planned';
+    const stillWorking=(id:number)=>this.state.squads.some(q=>q!==squad&&q.order.type==='construct-trench'&&(q.order.trenchId===id||q.engineerWork?.crews.some(c=>c.trenchId===id)));
+    for(const job of [squad.order.type==='construct-trench'?squad.order.trenchId:undefined,...(squad.constructionQueue??[])]){const id=typeof job==='number'?job:job?.kind==='trench'?job.id:undefined;const trench=this.state.trenches.find(t=>t.id===id);if(trench&&trench.status!=='complete'&&!stillWorking(trench.id))trench.status='planned';}
+    for(const t of this.state.trenches)if(t.engineerSquadId===squad.id&&t.status==='building'&&!stillWorking(t.id))t.status='planned';
     squad.constructionQueue=[];squad.workStarted=false;delete squad.engineerWork;squad.orderNote=undefined;
   }
   private startConstruction(squad:SquadState,trenchId:number):boolean {

@@ -13,9 +13,13 @@ export type SquadKind = 'rifle' | 'engineer'|'machinegun'|'mortar'|'medical';
 export type OrderType = 'hold' | 'move' | 'occupy-trench' | 'construct-trench';
 export type TrenchStatus = 'planned' | 'building' | 'complete';
 export type ConstructionJob = {kind:'trench'|'facility';id:number};
-export type ConstructionRequest = {kind:'trench';points:Vec2[];engineerSquadId?:number}|{kind:'facility';garrisonId:number;facilityKind:import('../garrison/types').Facility['kind'];origin:Vec2;position:Vec2;facing?:number;explicit?:boolean};
+export type ConstructionRequest = {kind:'trench';points:Vec2[];engineerSquadId?:number}|{kind:'facility';garrisonId:number;facilityKind:import('../garrison/types').Facility['kind'];origin:Vec2;position:Vec2;facing?:number;explicit?:boolean;guns?:1|4};
 
 export interface SoldierState extends Vec2 {
+  /** Temporary survival task. Standing formation/building orders remain authoritative. */
+  selfCare?:import('../simulation/SelfPreservation').SelfCare;
+  nextSelfCareReview?:number;
+  survivalReason?:string;
   posture?:'standing'|'crouched'|'prone';
   equipment?:import('../combat/Equipment').InfantryEquipment;
   building?:{id:number;floor:0|1;vertical:number;route:Vec2[];index:number;stage:'approach'|'inside'|'stairs'|'station'|'exit';target:Vec2;targetFloor:0|1;stairTime:number;stairFrom?:Vec2;exitRequested?:boolean;recovering?:boolean;routeReviewAt?:number};
@@ -73,7 +77,7 @@ export interface SquadState extends Vec2 {
   formationHeading?: number;
   constructionQueue?: (number|ConstructionJob)[];
   workStarted?: boolean;
-  engineerWork?: {version:1;nextReview:number;crews:EngineerCrew[]};
+  engineerWork?: {version:1;nextReview:number;crews:EngineerCrew[];projectId?:number;projectTrenches?:number[]};
   tactics?:{group:0|1;switchAt:number};
   orderNote?: string;
   movementState: 'idle' | 'planning' | 'moving' | 'forming' | 'digging' | 'entrenching';

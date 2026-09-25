@@ -1,6 +1,7 @@
 import type { BattlefieldState, Vec2 } from '../core/types';
 import { SETTLEMENTS } from '../terrain/WorldFeatures';
 import type { StrategyCamera } from '../render/StrategyCamera';
+import {CameraCompass} from './CameraCompass';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {pointAlongPolyline,polylineLength} from '../core/types';
@@ -9,7 +10,7 @@ import {reportAnnotations,contactDescription,type ContactGroup} from './ContactR
 import {excavatedSpan} from '../core/TrenchGeometry';
 import {trenchPresence} from './GarrisonReadout';
 import {fieldIcon} from './FieldSymbols';
-import {FieldMap} from './FieldMap';
+import {FieldMap,type PlanningActions} from './FieldMap';
 import {OrderOverlay} from './OrderOverlay';
 import {connectedName,friendlyTrenches,networkRepresentatives} from './TrenchReadout';
 import {knownTrenchNetworks,type KnownTrenchNetwork} from '../operations/TrenchIntelligence';
@@ -28,13 +29,16 @@ export class TacticalOverlay {
   private presence=new Map<number,number>();
   private readonly fieldMap:FieldMap;
   private readonly orders:OrderOverlay;
-  constructor(private readonly getState:()=>BattlefieldState,private readonly selected:Set<number>,private readonly camera:StrategyCamera,terrain:TerrainSystem,private readonly select:(ids:number[],add?:boolean)=>void,private readonly occupy:(id:number)=>void,move?:(point:Vec2)=>void){
+  private readonly compass:CameraCompass;
+  constructor(private readonly getState:()=>BattlefieldState,private readonly selected:Set<number>,private readonly camera:StrategyCamera,terrain:TerrainSystem,private readonly select:(ids:number[],add?:boolean)=>void,private readonly occupy:(id:number)=>void,move?:(point:Vec2)=>void,planning?:PlanningActions){
     this.layer.className='tactical-overlay';document.querySelector('#app')!.append(this.layer);
     for(const settlement of SETTLEMENTS){const label=document.createElement('div');label.className='place-name';label.textContent=settlement.name;this.layer.append(label);this.labels.push({element:label,point:settlement});}
-    this.fieldMap=new FieldMap(getState,terrain,camera,selected,select,move);
+    this.fieldMap=new FieldMap(getState,terrain,camera,selected,select,move,planning);
     this.orders=new OrderOverlay(getState,selected,camera);
+    this.compass=new CameraCompass(camera);
   }
   update(dt:number):void {
+    this.compass.update();
     this.fieldMap?.update(dt);
     this.orders?.update();
     if(this.layer.dataset)this.layer.dataset.scale=this.camera.zoomDistance<180?'close':this.camera.zoomDistance>1100?'operational':'tactical';

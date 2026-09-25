@@ -1,0 +1,27 @@
+{
+  "styles": {
+    "foreground": "rgb(238, 241, 233)",
+    "background": "rgba(208, 189, 137, 0.125)"
+  },
+  "bounds": {
+    "viewport": [
+      1024,
+      600
+    ],
+    "document": [
+      1024,
+      600
+    ],
+    "map": {
+      "x": 40.953125,
+      "y": 24,
+      "width": 942.078125,
+      "height": 552,
+      "top": 24,
+      "right": 983.03125,
+      "bottom": 576,
+      "left": 40.953125
+    }
+  },
+  "errors": []
+}

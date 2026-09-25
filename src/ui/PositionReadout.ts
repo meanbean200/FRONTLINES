@@ -11,6 +11,7 @@ export function workReadout(state:BattlefieldState,f:Facility){
   const carriers=state.soldiers.filter(s=>s.duty?.facilityId===f.id&&s.duty.kind==='haul'&&s.duty.stage==='deliver'&&s.needs?.life==='active');
   const demand=constructionDemand(state,f.id),inbound=demand?demand.claims.filter(c=>!['local','store'].includes(c.source)).reduce((n,c)=>n+c.amount,0):carriers.reduce((n,s)=>n+(s.carried?.materials??0),0),reserved=demand?claimed(demand)-inbound:0,delivered=f.paid?f.materialCost:f.stock.materials,local=localInventory(state,g).materials;
   const working=people.filter(s=>s.duty?.kind==='construct'&&s.duty.facilityId===f.id&&s.duty.arrivedAt!==undefined&&!['reaction','casualty','support'].includes(s.combat?.owner??'')&&['digging','clearing spoil'].includes(s.action));
+  const recovering=people.filter(s=>s.action==='sleeping'||s.action==='eating'||s.duty?.kind==='sleep').length;
   let status='PLANNED',reason='Assign workers to start.';
   if(f.workOrder?.cancelledAt!==undefined){status='CANCELLED';reason='Delivered materials remain at this site. Future claims released.';}
   else if(f.progress===1){status='COMPLETE';reason='Ready for use.';}
@@ -19,18 +20,18 @@ export function workReadout(state:BattlefieldState,f:Facility){
   else if(!people.length){status='WAITING FOR WORKERS';reason='No active workers assigned.';}
   else if(people.every(s=>['reaction','casualty','support'].includes(s.combat?.owner??''))){status='INTERRUPTED BY COMBAT';reason='Assignments retained; safety takes priority.';}
   else if(!people.some(s=>hasEquipment(state,s,'tools'))){status='BLOCKED';reason='A tool carrier is required; laborers can assist.';}
-  else if(working.length){status='BUILDING';reason=`${working.length} working at the site`;}
+  else if(working.length){status='BUILDING';reason=`${working.length} working at the site · ${recovering} recovering`;}
+  else if(recovering===people.length){status='RECOVERING';reason=`${recovering} sleeping / eating · work assignments retained`;}
   else if(people.some(s=>s.duty?.routeBlocked||s.duty?.blockedFor&&s.duty.blockedFor>20)){status='BLOCKED';reason='Worker route obstructed · inspect the approach.';}
   else {status='WORKERS APPROACHING';reason=`${people.length} assigned · nearest ${Math.round(Math.min(...people.map(s=>distance(s,f))))} m away`;}
   return {status,reason,workers:people.length,working:working.length,inbound,reserved,delivered,local,remaining:Math.max(0,f.materialCost-delivered-inbound-reserved)};
 }
-export const SUPPLY_LABELS:Record<Resource,string>={ammo:'Ammo',food:'Food',water:'Water',medical:'Medical',materials:'Materials',mortarHE:'Mortar HE',mortarSmoke:'Mortar smoke',smokeGrenades:'Smoke grenades',fuel:'Fuel'};
+export const SUPPLY_LABELS:Record<Resource,string>={ammo:'Ammo',food:'Food',water:'Water',medical:'Medical',materials:'Materials',mortarHE:'Indirect HE',mortarSmoke:'Indirect smoke',smokeGrenades:'Smoke grenades',fuel:'Fuel'};
 export function trenchWorkReadout(state:BattlefieldState,t:TrenchState){
   const q=state.squads.find(q=>q.id===t.engineerSquadId),workforce=trenchWorkforce(state,t),working=workforce.digging+workforce.helpers;
-  const assigned=q?.engineerWork?.crews.filter(c=>c.trenchId===t.id).flatMap(c=>c.soldierIds)??(q?.order.trenchId===t.id?q.soldierIds:[]);
-  const workers=state.soldiers.filter(s=>assigned.includes(s.id)&&s.needs?.life==='active').length;
-  const status=t.progress===1?'COMPLETE':working?'DIGGING':workers?'CREW APPROACHING':'WAITING FOR WORKERS';
-  const reason=q?.orderNote??(state.simSpeed===0?'Simulation paused':workers?'Crew follows the work fronts':'Assign a digging crew');
+  const workers=workforce.assigned;
+  const status=t.progress===1?'COMPLETE':working?'DIGGING':workforce.recovering?'RECOVERING':workforce.blocked?'WORK DELAYED':workers?'CREW APPROACHING':'WAITING FOR WORKERS';
+  const reason=workers?`${workforce.digging} digging · ${workforce.helpers} clearing · ${workforce.recovering} recovering · ${workforce.hauling} fetching supplies · ${workforce.walking} approaching · ${workforce.blocked} waiting`:q?.orderNote??(state.simSpeed===0?'Simulation paused':'Assign a digging crew');
   return {name:trenchName(state,t.id),location:t.points[Math.floor(t.points.length/2)],status,progress:t.progress,workers,working,materials:'No material required',reason};
 }
 export function shipmentReadout(state:BattlefieldState,t:Truck){

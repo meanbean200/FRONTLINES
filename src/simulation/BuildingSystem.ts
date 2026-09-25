@@ -41,21 +41,23 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
     const order=q.order.building,site=order?terrain.buildings[order.id]:undefined;
     const people=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life==='active');
     if(site&&order)for(const s of people){
-      if(s.building||s.combat?.owner==='reaction'||s.combat?.owner==='casualty')continue;
+      if(s.building||s.combat?.owner==='reaction'||s.combat?.owner==='casualty'||s.selfCare&&s.selfCare.stage!=='return')continue;
       const points=firingPoints(site),level=Math.min(order.floor,buildingFloors(site)-1) as 0|1;
-      const occupied=state.soldiers.filter(p=>p!==s&&p.needs?.life==='active'&&sides.get(p.squadId)===(q.faction??'player')&&p.building?.id===order.id&&p.building.targetFloor===level&&!p.building.exitRequested).map(p=>p.building!.target);
-      const target=points.find(p=>!occupied.some(o=>distance(p,o)<.8));
+      const occupied=state.soldiers.filter(p=>p!==s&&p.needs?.life==='active'&&sides.get(p.squadId)===(q.faction??'player')).flatMap(p=>p.selfCare?.home.building?.id===order.id&&p.selfCare.home.building.floor===level?[p.selfCare.home.building.target]:p.building?.id===order.id&&p.building.targetFloor===level&&!p.building.exitRequested?[p.building.target]:[]);
+      const reserved=s.selfCare?.home.building;
+      const target=reserved?.id===order.id?reserved.target:points.find(p=>!occupied.some(o=>distance(p,o)<.8));
       if(!target){const c=s.combat??={shotSequence:0};c.owner='building';c.pauseReason='Building floor full · waiting outside; choose another floor or building';s.action='waiting for building space';continue;}
       if(!beginBuildingTravel(s,order.id,level,target,terrain,nav)){(s.combat??={shotSequence:0}).pauseReason='Building entrance blocked';continue;}
     }
     for(const s of people){
       const inside=s.building;if(!inside)continue;
       const b=terrain.buildings[inside.id],c=s.combat??={shotSequence:0};if(!b){delete s.building;continue;}
+      if(c.owner==='self-care')continue;
       const exitRoute=()=>{const i=q.soldierIds.indexOf(s.id),out=doorPoint(b,8);return [{x:b.x,z:b.z-2},doorPoint(b,-1),doorPoint(b,4),{x:out.x+(i%4-1.5)*1.6,z:out.z-Math.floor(i/4)*1.6}];};
       const task=c.careTask,patient=task?state.soldiers.find(p=>p.id===task.patientId):undefined;
       if(c.owner==='support'||c.owner==='casualty'&&(!task||task.stage==='treat')||c.reaction==='pinned')continue;
       const patientInside=patient?.building&&terrain.buildingAt(patient)===patient.building.id;
-      const personalOrder=task?(task.stage==='approach'&&patientInside?{id:patient.building!.id,floor:patient.building!.floor}:undefined):order;
+      const personalOrder=task?(task.stage==='approach'&&patientInside?{id:patient.building!.id,floor:patient.building!.floor}:undefined):s.selfCare?.stage==='exit'?undefined:order;
       const leaving=!personalOrder||personalOrder.id!==inside.id||c.reaction==='broken';
       // An Occupy reservation exists during the exterior approach. Cancelling
       // it for aid/withdrawal is not an indoor exit: walking to the hall first
@@ -77,7 +79,7 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
       // A new rescue/withdrawal may arrive during a stair traversal. Finish
       // that physical traversal before selecting the correct downward route.
       if(leaving&&!inside.exitRequested&&inside.stage!=='stairs'){
-        inside.exitRequested=true;q.orderNote='Leaving building';
+        inside.exitRequested=true;if(!s.selfCare)q.orderNote='Leaving building';
         if(inside.floor===1){inside.targetFloor=0;inside.route=[{...stairPoint(b),z:b.z+2}];inside.index=0;inside.stage='inside';}
         else {inside.stage='exit';inside.route=exitRoute();inside.index=0;}
       }

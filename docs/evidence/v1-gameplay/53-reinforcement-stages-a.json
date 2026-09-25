@@ -1,0 +1,124 @@
+[
+  {
+    "time": 0.15000000000000002,
+    "stages": [
+      {
+        "id": 385,
+        "stage": "edge"
+      },
+      {
+        "id": 387,
+        "stage": "edge"
+      },
+      {
+        "id": 389,
+        "stage": "edge"
+      },
+      {
+        "id": 391,
+        "stage": "edge"
+      },
+      {
+        "id": 393,
+        "stage": "edge"
+      },
+      {
+        "id": 395,
+        "stage": "edge"
+      },
+      {
+        "id": 397,
+        "stage": "edge"
+      },
+      {
+        "id": 399,
+        "stage": "edge"
+      }
+    ],
+    "people": 96
+  },
+  {
+    "time": 1.2000000000000004,
+    "stages": [
+      {
+        "id": 385,
+        "stage": "convoy",
+        "truck": 365
+      },
+      {
+        "id": 387,
+        "stage": "convoy",
+        "truck": 365
+      },
+      {
+        "id": 389,
+        "stage": "convoy",
+        "truck": 365
+      },
+      {
+        "id": 391,
+        "stage": "convoy",
+        "truck": 365
+      },
+      {
+        "id": 393,
+        "stage": "convoy",
+        "truck": 365
+      },
+      {
+        "id": 395,
+        "stage": "convoy",
+        "truck": 365
+      },
+      {
+        "id": 397,
+        "stage": "convoy",
+        "truck": 365
+      },
+      {
+        "id": 399,
+        "stage": "convoy",
+        "truck": 365
+      }
+    ],
+    "people": 96
+  },
+  {
+    "time": 40.09999999999986,
+    "stages": [
+      {
+        "id": 385,
+        "stage": "rear"
+      },
+      {
+        "id": 387,
+        "stage": "rear"
+      },
+      {
+        "id": 389,
+        "stage": "rear"
+      },
+      {
+        "id": 391,
+        "stage": "rear"
+      },
+      {
+        "id": 393,
+        "stage": "rear"
+      },
+      {
+        "id": 395,
+        "stage": "rear"
+      },
+      {
+        "id": 397,
+        "stage": "rear"
+      },
+      {
+        "id": 399,
+        "stage": "rear"
+      }
+    ],
+    "people": 96
+  }
+]

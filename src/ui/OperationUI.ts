@@ -153,6 +153,7 @@ export class OperationUI {
       this.hud.querySelector('.intent-status')!.textContent=m.reason;
       let situation=this.hud.querySelector<HTMLElement>('.mission-situation');if(!situation){situation=document.createElement('p');situation.className='mission-situation';this.hud.querySelector('.primary-intent')!.after(situation);}
       const c=m.checks;situation.textContent=c?`${c.house?'✓':'○'} House  ·  ${plan.kind==='line-defense'?`${op.status==='victory'?'✓':'○'} Repel attack`:`${c.line?'✓':'○'} Trench`}  ·  ${c.supply?'✓':'○'} Delivery  ·  ${c.road?'✓':'○'} Road`:'Inspect the marked road house and plan your positions.';
+      if(c&&plan.version===3)situation.textContent=plan.kind==='meeting'?`${c.house?'✓':'○'} House A  ·  ${c.secondary?'✓':'○'} House B  ·  ${c.road?'✓':'○'} Road`:plan.kind==='line-defense'?`${c.defense?'✓':'○'} Defenders  ·  ${op.status==='victory'?'✓':'○'} Repel attack  ·  ${c.road?'✓':'○'} Road`:`${c.line?'✓':'○'} Trench  ·  ${c.house?'✓':'○'} Farmhouse  ·  ${c.road?'✓':'○'} Road`;
     }
   }
 }

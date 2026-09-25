@@ -9,19 +9,20 @@ import {atDepth,frontDepth} from './OperationGeometry';
 import type {OperationId,OperationRuntime} from './OperationalTypes';
 
 export const MISSION_COPY={
-  breakthrough:{title:'The Farm Approach',situation:'A defended trench screens a farm overlooking the road. Scout its approaches, take usable trench ground, then establish observers inside the farm and sustain the advance.',intent:'Take the trench · occupy the farm · bring supplies forward'},
-  'line-defense':{title:'Road to the Rear',situation:'Your road-side billet must remain a supply link. You have 90 seconds before the enemy scouts move. Dig where the terrain helps, crew support weapons and repel the finite attack without losing the billet.',intent:'Prepare the approaches · repel the attack · keep the billet supplied'},
-  meeting:{title:'A Foothold at the Crossroads',situation:'Both forces are approaching an unoccupied hamlet. Reach its buildings, choose a defensible line and bring a physical supply delivery forward before committing to the next advance.',intent:'Occupy the hamlet · establish a line · receive supplies'},
+  breakthrough:{title:'Signal at the Orchard',situation:'A trench and its overlooking farmhouse block the supply road. Reconnoitre the earthworks, stage a supporting group and several assault formations, then release a coordinated WAIT / GO attack. Secure the trench and farmhouse together.',intent:'Reconnoitre · coordinate the assault · secure the position'},
+  'line-defense':{title:'Hold the Supply Road',situation:'The enemy is assembling beyond the road house. You have three minutes to prepare before its scouts advance. Choose your fighting line, build support weapons, keep a reserve and repel the finite assault while denying the road approach.',intent:'Prepare your line · protect the road · break the assault'},
+  meeting:{title:'Race for the Hamlet',situation:'Both forces are closing on two buildings controlling the road junction. Neither side has prepared trenches. Decide whether to rush a foothold or cover the approach; hold both buildings and keep the road open. Building a trench is a tactical choice, not a victory checkbox.',intent:'Seize the two road houses · deny the junction'},
 } as const;
 export const MISSION_SUCCESS={
-  breakthrough:'Clear the marked enemy trench and hold it with three fit soldiers. Place two fit observers inside the farm, receive a truck shipment at a trench near the farm and keep its road approach open.',
-  'line-defense':'Keep two fit observers in the billet, receive a truck shipment at a nearby trench, keep the road approach open and drive the finite attacking force off.',
-  meeting:'Occupy the marked house with two fit soldiers. Dig at least 25 metres of nearby trench, hold it with three fit people, receive a truck shipment there and keep the road approach open.',
+  breakthrough:'Clear and hold the enemy trench with three fit soldiers; occupy the farmhouse with two. Keep the road approach open for a 30-second consolidation. WAIT and GO are command tools, not mandatory hidden counters.',
+  'line-defense':'Keep at least three fit defenders within 100 m of the road house, deny enemy occupation and keep the road open. Win after the actual attacking force is repelled. Trench, building and support placement are yours.',
+  meeting:'Put two fit soldiers in each marked road house and clear opposing occupants. Keep the junction approach open for 30 seconds. No compulsory construction or delivery checklist.',
 } as const;
-export const missionFailure=(kind:MissionKind)=>kind==='breakthrough'?'Defeat: fewer than five people able to return to field duty, or the enemy retakes your occupied farm for 30 seconds. Enemy occupation before you first take the farm is expected.':`Defeat: fewer than ${kind==='line-defense'?'two':'five'} people able to return to field duty, or the enemy holds the billet unopposed for 30 seconds. Temporary exhaustion does not count as a loss.`;
+const LEGACY_INTENT={breakthrough:'Take the trench · occupy the farm · bring supplies forward','line-defense':'Prepare the approaches · repel the attack · keep the billet supplied',meeting:'Occupy the hamlet · establish a line · receive supplies'} as const;
+export const missionFailure=(kind:MissionKind)=>kind==='breakthrough'?'Defeat: fewer than five people able to return to field duty, or the enemy retakes your occupied farm for 30 seconds. Enemy occupation before you first take the farm is expected.':`Defeat: fewer than ${kind==='line-defense'?'three':'four'} people able to return to field duty, or the enemy holds ${kind==='meeting'?'both road houses':'the road house'} unopposed for 30 seconds. Temporary exhaustion does not count as a loss.`;
 export type MissionKind=keyof typeof MISSION_COPY;
 export interface MissionPlan {
-  version:1|2;kind:MissionKind;place:string;houseId:number;house:Vec2;
+  version:1|2|3;kind:MissionKind;place:string;houseId:number;house:Vec2;secondHouseId?:number;secondHouse?:Vec2;
   deployment:Record<'player'|'enemy',number>;frontage:number;
   prepared:{side:'player'|'enemy';points:Vec2[]}[];
   approach:Vec2;preparationSeconds:number;
@@ -30,13 +31,13 @@ export interface MissionState {
   version:1;phase:'preparation'|'contact'|'line'|'building'|'sustain'|'secured'|'lost';
   lineTaken:boolean;houseTaken?:boolean;contactAt?:number;securedFor:number;breachedFor:number;
   reason:string;history:{phase:string;at:number;reason:string}[];
-  checks?:{house:boolean;line:boolean;supply:boolean;road:boolean};
+  checks?:{house:boolean;line:boolean;supply:boolean;road:boolean;secondary?:boolean;defense?:boolean};
 }
 export const blankMission=():MissionState=>({version:1,phase:'preparation',lineTaken:false,securedFor:0,breachedFor:0,reason:'Read the situation and inspect the marked building.',history:[{phase:'preparation',at:0,reason:'Forces staged; orders remain yours.'}]});
 
 /** A new-content constructor only. Frozen Operations V2 placements stay loadable.
  * All landmarks come from the real generated world, not renderer-only props. */
-export function placeMissionOperation(id:OperationId,seed:number,setup?:ResolvedBattleSetup,version:1|2=2):OperationRuntime {
+export function placeMissionOperation(id:OperationId,seed:number,setup?:ResolvedBattleSetup,version:1|2|3=3):OperationRuntime {
   if(id==='open-front')return placeOperation(id,seed,setup);
   const r=placeOperation(id,seed,setup),d=configuredDefinition(id,setup);
   const bare:BattlefieldState={schemaVersion:3,seed,elapsed:0,simSpeed:0,nextEntityId:1,squads:[],soldiers:[],trenches:[],craters:[]};
@@ -52,7 +53,7 @@ export function placeMissionOperation(id:OperationId,seed:number,setup?:Resolved
     const house=terrain.buildings[houseId];
     // Follow a real road for the default approach. A perpendicular nearest-road
     // projection put the player's depot beyond the enemy line in live testing.
-    if(version===2&&(setup?.advanced.direction??'auto')==='auto'){
+    if(version>=2&&(setup?.advanced.direction??'auto')==='auto'){
       const axis=ROADS[nearestRoad(house).road].axis,sign=hash2D(seed,29,177)<.5?1:-1;
       forward=axis==='x'?{x:sign,z:0}:{x:0,z:sign};
     }
@@ -62,8 +63,10 @@ export function placeMissionOperation(id:OperationId,seed:number,setup?:Resolved
   if(!selected)throw new Error('No usable mission hamlet for this approach. Choose another seed or direction.');
   const house={x:terrain.buildings[selected.houseId].x,z:terrain.buildings[selected.houseId].z};
   r.front.origin={...house};
-  if(version===2){r.front.forward={...forward};r.front.right={x:-forward.z||0,z:forward.x};}
+  if(version>=2){r.front.forward={...forward};r.front.right={x:-forward.z||0,z:forward.x};}
   const close=setup?.advanced.approach==='close',deployment=id==='breakthrough'?{player:close?-430:-520,enemy:-90}:id==='line-defense'?{player:-100,enemy:close?440:550}:{player:close?-360:-440,enemy:close?360:440};
+  if(version===3&&id==='meeting'){deployment.player=-320;deployment.enemy=320;}
+  if(version===3&&id==='breakthrough')deployment.player=close?-400:-450;
   const frontage=setup?.size==='large'?280:140,prepared:MissionPlan['prepared']=[];
   // Attack provides one real enemy line. Defense starts with a short communications
   // trench, leaving the chosen fighting line and support works to the player.
@@ -84,14 +87,20 @@ export function placeMissionOperation(id:OperationId,seed:number,setup?:Resolved
   }
   r.front.beltDepth=deployment.enemy;
   const approach=nearestRoad(atDepth(r.front,-130)).point;
-  r.missionPlan={version,kind:id,place:selected.site.name,houseId:selected.houseId,house,deployment,frontage,prepared,approach,preparationSeconds:id==='line-defense'?90:0};
+  r.missionPlan={version,kind:id,place:selected.site.name,houseId:selected.houseId,house,deployment,frontage,prepared,approach,preparationSeconds:id==='line-defense'?(version===3?180:90):0};
+  if(version===3&&id==='meeting'){
+    const second=terrain.buildings.map((b,id)=>({b,id})).filter(v=>v.id!==selected.houseId&&distance(v.b,house)>30&&distance(v.b,house)<150).sort((a,b)=>distance(a.b,house)-distance(b.b,house)||a.id-b.id)[0];
+    if(!second)throw new Error('No second road house near this junction. Choose another seed.');
+    r.missionPlan.secondHouseId=second.id;r.missionPlan.secondHouse={x:second.b.x,z:second.b.z};
+  }
   r.mission=blankMission();
   r.zones=r.zones.map(z=>({...z,center:atDepth(r.front,z.id==='player-deployment'?deployment.player:z.id==='enemy-deployment'||z.id==='enemy-belt'?deployment.enemy:0),halfWidth:frontage,halfDepth:90}));
-  if(version===2)r.zones=r.zones.filter(z=>['player-deployment','enemy-deployment','enemy-belt','contested','player-rear','enemy-rear'].includes(z.id)).map(z=>({...z,forward:{...forward}}));
+  if(version>=2)r.zones=r.zones.filter(z=>['player-deployment','enemy-deployment','enemy-belt','contested','player-rear','enemy-rear'].includes(z.id)).map(z=>({...z,forward:{...forward}}));
   r.locations=[{id:'mission-house',name:selected.site.name+' / ROAD HOUSE',kind:'village',position:house,zoneId:'contested'}];
+  if(r.missionPlan.secondHouse)r.locations.push({id:'second-house',name:selected.site.name+' / JUNCTION HOUSE',kind:'village',position:r.missionPlan.secondHouse,zoneId:'contested'});
   r.reinforcements=r.reinforcements.map(source=>{
     let rear=nearestRoad(atDepth(r.front,source.side==='player'?-320:440)).point;
-    if(version===2){
+    if(version>=2){
       const sign=source.side==='player'?-1:1,wanted=atDepth(r.front,sign*Math.max(320,Math.abs(deployment[source.side])+80));
       const choices=ROADS.flatMap(road=>Array.from({length:99},(_,i)=>pointOnRoad(road,-1960+i*40)))
         .filter(p=>frontDepth(r.front,p)*sign>=Math.max(250,Math.abs(deployment[source.side])+40)&&!terrain.obstacleAt(p.x,p.z,2)&&terrain.groundTypeAt(p.x,p.z)!=='river')
@@ -107,7 +116,7 @@ export function placeMissionOperation(id:OperationId,seed:number,setup?:Resolved
     r.locations.push({id:source.side+'-rear',name:source.side==='player'?'FRIENDLY REAR':'OPPOSING REAR',kind:'rear',position:source.rear,zoneId:source.side+'-rear'});
     const zone=r.zones.find(z=>z.id===source.side+'-rear')!;zone.center={...source.rear};zone.halfWidth=70;zone.halfDepth=70;
   }
-  r.objectives=[{id:'player-mission',side:'player',priority:'primary',title:MISSION_COPY[id].intent.toUpperCase(),effect:'Physical battlefield objectives',spec:{type:'physical-mission'}}];
+  r.objectives=[{id:'player-mission',side:'player',priority:'primary',title:(version===3?MISSION_COPY[id].intent:LEGACY_INTENT[id]).toUpperCase(),effect:'Physical battlefield objectives',spec:{type:'physical-mission'}}];
   r.progress=[{id:'player-mission',heldFor:0,pressureFor:0,satisfied:false,complete:false,failed:false,reason:MISSION_COPY[id].situation}];
   r.victory=[];
   // d is deliberately only read for force configuration; no content mutates old definitions.

@@ -24,7 +24,7 @@ export function validOperationalRuntime(state:BattlefieldState):boolean {
   if(!Array.isArray(op.objectives))return false;
   if(op.setup!==undefined&&(!validBattleSetup(op.setup,true)||op.setup.operation!==op.mode||op.setup.seed!==state.seed))return false;
   if(Boolean(r.missionPlan)!==Boolean(r.mission))return false;
-  if(r.missionPlan&&![1,2].includes(r.missionPlan.version))return false;
+  if(r.missionPlan&&![1,2,3].includes(r.missionPlan.version))return false;
   let expected;try{expected=r.missionPlan?placeMissionOperation(r.definitionId,r.seed,op.setup,r.missionPlan.version):placeOperation(r.definitionId,r.seed,op.setup);}catch{return false;}
   if(!sameDefinition(r.missionPlan,expected.missionPlan))return false;
   for(const key of ['front','zones','locations','routes','reinforcements','objectives','victory'] as const)if(!sameDefinition(r[key],expected[key]))return false;
@@ -32,7 +32,7 @@ export function validOperationalRuntime(state:BattlefieldState):boolean {
   const phases=['preparation','contact','engagement','exploitation','consolidation','withdrawal'];
   if(r.mission){const m=r.mission,stages=['preparation','contact','line','building','sustain','secured','lost'];
     if(m.houseTaken!==undefined&&typeof m.houseTaken!=='boolean')return false;
-    if(m.checks&&(!['house','line','supply','road'].every(k=>typeof m.checks![k as keyof typeof m.checks]==='boolean')||Object.keys(m.checks).length!==4))return false;
+    if(m.checks&&(!['house','line','supply','road'].every(k=>typeof m.checks![k as keyof typeof m.checks]==='boolean')||Object.entries(m.checks).some(([key,value])=>!['house','line','supply','road','secondary','defense'].includes(key)||typeof value!=='boolean')))return false;
     if(m.version!==1||!stages.includes(m.phase)||typeof m.lineTaken!=='boolean'||typeof m.reason!=='string'||![m.securedFor,m.breachedFor].every(n=>nonnegative(n)&&n<=op.elapsed+.001)||m.contactAt!==undefined&&(!nonnegative(m.contactAt)||m.contactAt>op.elapsed+.001))return false;
     if(!Array.isArray(m.history)||m.history.length<1||m.history.length>32||!m.history.every((h,i)=>h&&stages.includes(h.phase)&&nonnegative(h.at)&&h.at<=op.elapsed+.001&&typeof h.reason==='string'&&(i===0||h.at>=m.history[i-1].at)))return false;
   }

@@ -14,24 +14,26 @@ class MinHeap {
 /** One route per squad order. Local searches resolve building footprints at 8 m. */
 export class SquadNavigation {
   constructor(private readonly terrain:TerrainSystem){}
-  freeDestination(point:Vec2):Vec2 {
+  freeDestination(point:Vec2,clearance=8):Vec2 {
     const target=this.terrain.clampToWorld(point);
-    if(!this.terrain.obstacleAt(target.x,target.z,8))return target;
+    if(!this.terrain.obstacleAt(target.x,target.z,clearance))return target;
     for(let radius=8;radius<=60;radius+=4)for(let i=0;i<16;i++){
       const p={x:target.x+Math.cos(i*Math.PI/8)*radius,z:target.z+Math.sin(i*Math.PI/8)*radius};
-      if(insideWorld(p,10)&&!this.terrain.obstacleAt(p.x,p.z,8))return p;
+      if(insideWorld(p,10)&&!this.terrain.obstacleAt(p.x,p.z,clearance))return p;
     }
     return target;
   }
-  plan(start:Vec2,requestedGoal:Vec2,avoid?: (point:Vec2)=>boolean):Vec2[] {
+  plan(start:Vec2,requestedGoal:Vec2,avoid?: (point:Vec2)=>boolean,person=false):Vec2[] {
     const interior=this.terrain.buildingAt(start);
-    if(interior!==undefined){const b=this.terrain.buildings[interior],out=doorPoint(b,8),rest=this.plan(out,requestedGoal,avoid);return rest.length?[{x:b.x,z:b.z},doorPoint(b,-1),out,...rest]:[];}
-    const goal=this.freeDestination(requestedGoal),range=distance(start,goal);
+    if(interior!==undefined){const b=this.terrain.buildings[interior],out=doorPoint(b,8),rest=this.plan(out,requestedGoal,avoid,person);return rest.length?[{x:b.x,z:b.z},doorPoint(b,-1),out,...rest]:[];}
+    const goal=this.freeDestination(requestedGoal,person?.55:8),range=distance(start,goal);
     const clear=(a:Vec2,b:Vec2,margin:number)=>this.segmentClear(a,b,margin,avoid);
     // Garrison approaches already sample every metre, including trench walls.
     // A clear 200+ m approach does not need an expensive grid search per person.
-    if((avoid||range<200)&&clear(start,goal,4))return [goal];
-    const cell=avoid?8:range<700?8:60,ox=avoid?start.x:0,oz=avoid?start.z:0;
+    if((person||avoid||range<200)&&clear(start,goal,person?.55:4))return [goal];
+    // Individual errands fit through streets a formation cannot. Anchor this
+    // grid on the actual doorway so rounding cannot start inside its wall.
+    const cell=person?4:avoid?8:range<700?8:60,ox=avoid||person?start.x:0,oz=avoid||person?start.z:0;
     const sx=Math.round((start.x-ox)/cell),sz=Math.round((start.z-oz)/cell),gx=Math.round((goal.x-ox)/cell),gz=Math.round((goal.z-oz)/cell);
     const key=(x:number,z:number)=>`${x},${z}`;
     const open=new MinHeap(),best=new Map<string,number>(),costs=new Map<string,number>();
@@ -45,12 +47,12 @@ export class SquadNavigation {
       // search can finish with a fully checked visible leg. Requiring it to
       // enter the final grid cell can exhaust the budget on costly terrain
       // despite an already clear entrance. This is not a least-cost guarantee.
-      if(distance(point,goal)<180&&clear(point,goal,2)){found=current;break;}
+      if(distance(point,goal)<180&&clear(point,goal,person?.55:2)){found=current;break;}
       for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){
         if(!dx&&!dz)continue;
         const nx=current.x+dx,nz=current.z+dz,x=ox+nx*cell,z=oz+nz*cell;
-        if(Math.abs(x)>WORLD_HALF-5||Math.abs(z)>WORLD_HALF-5||this.terrain.obstacleAt(x,z,cell<10?5:8)||avoid?.({x,z}))continue;
-        if(!clear(point,{x,z},2))continue;
+        if(Math.abs(x)>WORLD_HALF-5||Math.abs(z)>WORLD_HALF-5||this.terrain.obstacleAt(x,z,person?.55:cell<10?5:8)||avoid?.({x,z}))continue;
+        if(!clear(point,{x,z},person?.55:2))continue;
         // Geometry is fixed during this synchronous search. Cache only here,
         // never across excavation changes, saves or another world's terrain.
         const nodeKey=key(nx,nz);let cost=costs.get(nodeKey);
@@ -67,13 +69,13 @@ export class SquadNavigation {
     // Drop a waypoint only if the entire replacement segment clears footprints.
     const compact:Vec2[]=[];let anchor=start;
     for(let i=0;i<route.length;i++){
-      if(i+1<route.length&&clear(anchor,route[i+1],6)&&distance(anchor,route[i+1])<180)continue;
+      if(i+1<route.length&&clear(anchor,route[i+1],person?.6:6)&&distance(anchor,route[i+1])<180)continue;
       compact.push(route[i]);anchor=route[i];
     }
     return compact;
   }
   segmentClear(a:Vec2,b:Vec2,clearance:number,avoid?: (point:Vec2)=>boolean):boolean {
-    const steps=Math.max(1,Math.ceil(distance(a,b)/(avoid?1:4)));
+    const steps=Math.max(1,Math.ceil(distance(a,b)/(avoid||clearance<1?1:4)));
     for(let i=1;i<=steps;i++){
       const t=i/steps;
       const p={x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t};

@@ -12,6 +12,13 @@ function setup(){
 afterEach(()=>vi.unstubAllGlobals());
 
 describe('strategy camera overlay projection',()=>{
+  it('cannot reverse damping or fly outside the world after a stale RAF timestamp on load',()=>{
+    const camera=setup(),before=camera.target.clone(),zoom=camera.zoomDistance;
+    camera.focus({x:600,z:500},300);
+    for(const dt of [-.5,-10,NaN,Infinity]){camera.update(dt);expect(camera.target).toEqual(before);expect(camera.zoomDistance).toBe(zoom);}
+    for(let i=0;i<60;i++)camera.update(.05);
+    expect(camera.target.x).toBeCloseTo(600);expect(camera.target.z).toBeCloseTo(500);expect(camera.zoomDistance).toBeCloseTo(300);
+  });
   it('bounds focus, held pan and both zoom extremes to the new world',()=>{
     const camera=setup(),down=vi.mocked(window.addEventListener).mock.calls.find(([name])=>name==='keydown')![1] as (event:KeyboardEvent)=>void;
     camera.focus({x:4500,z:-4500},9000);for(let i=0;i<240;i++)camera.update(1/60);

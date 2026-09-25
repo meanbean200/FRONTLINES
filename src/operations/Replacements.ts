@@ -5,6 +5,8 @@ import {freshNeeds} from '../garrison/NeedsSystem';
 import type {Faction} from './types';
 import {equipWeapon} from '../combat/Weapons';
 import {armyFor} from './BattleSetup';
+import {TrenchNetwork} from '../garrison/TrenchNetwork';
+import {networkCapacity} from '../garrison/NetworkCapacity';
 
 export interface ReplacementManifest {
   id:number;side:Faction;squadId:number;personId:number;returning:boolean;
@@ -31,9 +33,8 @@ export function requestReserveSquad(state:BattlefieldState,garrisonId:number):{a
   if(!g||g.cutoff==='withdraw'||!g.squadIds.length)return reject('Choose an occupied friendly trench as the arrival area.');
   if(r.reserve.player<8)return reject('Need 8 personnel remaining in the finite reserve pool.');
   if(w.campaignHours<reserveDispatchAt(r,'player'))return reject(`Next dispatch in ${(reserveDispatchAt(r,'player')-w.campaignHours).toFixed(1)} campaign hours.`);
-  const occupied=state.soldiers.filter(s=>s.garrisonId===g.id&&s.needs?.life!=='dead').length;
-  const incoming=r.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived'&&!m.returning&&g.squadIds.includes(m.squadId)).length;
-  if(g.capacity<occupied+incoming+8)return reject('This trench needs room for 8 more people. Expand it or choose another area.');
+  const graph=new TrenchNetwork();graph.sync(state.trenches);const capacity=networkCapacity(state,graph,g.trenchId);
+  if(capacity.free<8)return reject(`Network has ${capacity.free} free places (${capacity.assigned} assigned + ${capacity.inbound} inbound / ${capacity.capacity}). Eight required; expand it or choose another position.`);
   const id=state.nextEntityId++,name=`Reserve ${state.squads.filter(q=>q.faction!=='enemy'&&q.name.startsWith('Reserve ')).length+1}`;
   state.squads.push({id,name,kind:'rifle',faction:'player',soldierIds:[],...w.rear,order:{type:'occupy-trench',trenchId:g.trenchId,issuedAt:state.elapsed},route:[],routeIndex:0,movementState:'entrenching',orderNote:'Inbound by truck · not yet on the battlefield'});
   g.squadIds.push(id);r.establishment.push({squadId:id,strength:8});

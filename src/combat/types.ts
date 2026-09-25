@@ -22,5 +22,5 @@ export interface SoldierCombat {
   wound?:Wound;careTask?:CareTask;nextCareReview?:number;
 }
 export type Reaction = 'steady'|'under-fire'|'pinned'|'shaken'|'broken';
-export type ActionOwner = 'order'|'duty'|'reaction'|'casualty'|'building'|'support';
+export type ActionOwner = 'order'|'duty'|'reaction'|'casualty'|'building'|'support'|'self-care';
 export type TacticalIntent = 'move'|'observe'|'suppress'|'assault'|'fall-back';

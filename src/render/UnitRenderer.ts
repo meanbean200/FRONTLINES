@@ -121,7 +121,7 @@ export class UnitRenderer {
       if(lying){weaponRotation.setFromAxisAngle(axis,soldier.heading);local.set(.14,.33,.53).applyQuaternion(weaponRotation);weaponPosition.copy(position).add(local);}
       const mount=operatedPosition(this.state,soldier,'emplacement'),weapon=mount?.installation?.kind??soldier.equipment?.weapon??soldier.combat?.weapon?.id,kind=weapon==='crew-mg'||weapon==='mg42'?'machinegun':weapon==='bar'?'automatic':weapon==='smg'?'smg':'rifle';
       if(aiming||firing){
-        const muzzle=shot?.from??muzzlePoint(this.terrain,soldier),to=shot?.to??soldier.combat?.aim?.point;
+        const muzzle=shot?.from??muzzlePoint(this.terrain,soldier,this.state),to=shot?.to??soldier.combat?.aim?.point;
         const direction=to?new THREE.Vector3(to.x-muzzle.x,to.y-muzzle.y,to.z-muzzle.z).normalize():new THREE.Vector3(Math.sin(soldier.heading),0,Math.cos(soldier.heading));
         weaponRotation.setFromUnitVectors(new THREE.Vector3(0,0,1),direction);
         weaponPosition.set(muzzle.x,muzzle.y,muzzle.z).addScaledVector(direction,kind==='smg'?-.29:-.60);
@@ -142,7 +142,8 @@ export class UnitRenderer {
       for(const side of [-1,1]){
         const swing=moving?Math.sin(this.state.elapsed*8+i*.37)*side*.17:0;
         let elbow=[side*.255,1.10,swing],hand=[side*.24,.9,-swing];
-        if(aiming||firing){elbow=side>0?[.32,1.22,-.02]:[-.20,1.18,.25];const grip=new THREE.Vector3(0,-.04,side>0?-.1:.22).applyQuaternion(weaponRotation).add(weaponPosition).applyMatrix4(bodyMatrix.clone().invert());hand=[grip.x,grip.y,grip.z];}
+        if(mount&&!moving&&!lying){elbow=[side*.27,1.24,.15];hand=[side*.10,1.44,.42];}
+        else if(aiming||firing){elbow=side>0?[.32,1.22,-.02]:[-.20,1.18,.25];const grip=new THREE.Vector3(0,-.04,side>0?-.1:.22).applyQuaternion(weaponRotation).add(weaponPosition).applyMatrix4(bodyMatrix.clone().invert());hand=[grip.x,grip.y,grip.z];}
         if(lying&&!aiming&&!firing){elbow=[side*.30,1.12,.03];hand=[side*.14,1.45,.05];}
         if(digging){const reach=Math.sin(this.state.elapsed*4+i)*.17;elbow=[side*.23,1.10,.18];hand=[side*.08,1.0+reach,.46];}
         if(care||soldier.action==='eating'){elbow=[side*.22,1.02,.22];hand=[side*.12,care?.89:1.40,.37];}

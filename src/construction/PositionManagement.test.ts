@@ -18,6 +18,12 @@ function post(){const f=fixture(),id=f.sim.requestConstruction({kind:'facility',
 function fund(f:ReturnType<typeof post>){const n=f.p.materialCost;transfer(f.g.cache,f.p.stock,'materials',n);consume(f.state,f.p.stock,'materials',n);f.p.paid=true;}
 
 describe('V1 position management command boundary',()=>{
+  it('labels sleeping support workers as recovering, not approaching or stuck',()=>{
+    const f=post();fund(f);const workers=f.state.soldiers.filter(s=>s.equipment?.tools).slice(0,2);
+    f.p.workOrder!.workerIds=workers.map(s=>s.id);workers.forEach(s=>{s.action='sleeping';});
+    expect(workReadout(f.state,f.p)).toMatchObject({status:'RECOVERING',working:0});
+    expect(workReadout(f.state,f.p).reason).toContain('assignments retained');
+  });
   it.each([4.2,7.2,8])('snaps to the actual %.1f m trench width rather than a fixed lateral range',width=>{
     const {sim,state,g,t,origin}=fixture();t.width=width;sim.garrisons.network.sync(state.trenches);
     const position=inlineGeometry(t,45,0).position;

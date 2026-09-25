@@ -6,6 +6,8 @@ import type { TerrainSystem } from '../terrain/TerrainSystem';
 import { bodyFloor, eyeHeight } from '../operations/Visibility';
 import type { Point3, ShotEvent } from './types';
 import {postureOf} from './Posture';
+import {operatedPosition} from './WeaponPositions';
+import {mountedGeometry} from './MountedGeometry';
 
 // Gameplay calibration, not historical marksmanship statistics. Metres of
 // standard deviation in a plane perpendicular to the intended shot direction.
@@ -29,7 +31,9 @@ export function bodyVolume(terrain:TerrainSystem,s:SoldierState){
   const lying=postureOf(s)==='prone';
   return {x:s.x,z:s.z,y:floor+(top-floor)/2,rx:lying?.45:.23,ry:Math.max(.15,(top-floor)/2),rz:lying?.65:.23};
 }
-export function muzzlePoint(terrain:TerrainSystem,s:SoldierState):Point3 {
+export function muzzlePoint(terrain:TerrainSystem,s:SoldierState,state?:BattlefieldState):Point3 {
+  const mount=state&&operatedPosition(state,s,'emplacement');
+  if(mount)return mountedGeometry(state!,terrain,mount,s.heading).muzzle;
   // Anatomical shoulder line and metre-scale barrel, shared with rendering.
   return {x:s.x+Math.sin(s.heading)*.8+Math.cos(s.heading)*.16,y:eyeHeight(terrain,s)-.12,z:s.z+Math.cos(s.heading)*.8-Math.sin(s.heading)*.16};
 }
@@ -40,8 +44,8 @@ export function aimPoint(terrain:TerrainSystem,shooter:SoldierState,target:Soldi
 }
 /** Fire permission uses the actual muzzle and the same fine trace as a shot.
  * Observation from the eyes alone is not permission to shoot through a lip. */
-export function clearAimPoint(terrain:TerrainSystem,shooter:SoldierState,target:SoldierState):Point3|undefined {
-  const oriented={...shooter,heading:Math.atan2(target.x-shooter.x,target.z-shooter.z)},from=muzzlePoint(terrain,oriented),body=bodyVolume(terrain,target);
+export function clearAimPoint(terrain:TerrainSystem,shooter:SoldierState,target:SoldierState,state?:BattlefieldState):Point3|undefined {
+  const oriented={...shooter,heading:Math.atan2(target.x-shooter.x,target.z-shooter.z)},from=muzzlePoint(terrain,oriented,state),body=bodyVolume(terrain,target);
   if(!terrain.objects.trace(shooter,from,eyeHeight(terrain,shooter)-.12,from.y,false,true).clear)return;
   for(const point of [{x:target.x,y:body.y,z:target.z},{x:target.x,y:eyeHeight(terrain,target)-.04,z:target.z}])
     if(terrain.objects.trace(from,point,from.y,point.y,false,true).clear)return point;
@@ -76,7 +80,7 @@ export function dispersedEndpoint(from:Point3,aim:Point3,spread:number,error:[nu
 /** Damage, near-miss suppression and visuals all consume this single result. */
 export function resolveShot(state:BattlefieldState,terrain:TerrainSystem,shooter:SoldierState,aim:Point3,targets:readonly SoldierState[],spreadMultiplier=1,maximumRange=380):ShotEvent {
   const combat=shooter.combat??={shotSequence:0},sequence=combat.shotSequence++;
-  const from=muzzlePoint(terrain,shooter),range=distance(from,aim);
+  const from=muzzlePoint(terrain,shooter,state),range=distance(from,aim);
   const end=dispersedEndpoint(from,aim,rifleSpread(range)*spreadMultiplier,shotError(state.seed,shooter.id,sequence),Math.max(2,Math.min(maximumRange,range+15)));
   const ray=terrain.objects.trace(from,end,from.y,end.y,false,true);
   let first=ray.clear?1:Math.min(1,distance(from,ray.point??end)/Math.max(.001,distance(from,end)));

@@ -25,6 +25,7 @@ export function inlineGeometry(t:TrenchState,along:number,facing:number){
   return {center,tangent,normal,position:{x:center.x+normal.x*t.width*.43,z:center.z+normal.z*t.width*.43}};
 }
 export function weaponCrewPoint(state:BattlefieldState,f:Facility,index:number):Vec2{
+  if(f.artillery){const angle=f.facing??0,x=index?-1.85:1.85,z=-.8;return {x:f.x+x*Math.cos(angle)+z*Math.sin(angle),z:f.z-x*Math.sin(angle)+z*Math.cos(angle)};}
   const t=state.trenches.find(t=>t.id===(f.trenchAnchor?.trenchId??f.connectorId));
   if(t&&f.trenchAnchor){const a=inlineGeometry(t,f.trenchAnchor.along,f.facing??0);return {x:a.center.x+a.normal.x*t.width*.395+a.tangent.x*(index?1.25:0),z:a.center.z+a.normal.z*t.width*.395+a.tangent.z*(index?1.25:0)};}
   const a=t?.points.at(-2),b=t?.points.at(-1),length=a&&b?distance(a,b)||1:1,dx=a&&b?(b.x-a.x)/length:0,dz=a&&b?(b.z-a.z)/length:1;
@@ -33,5 +34,5 @@ export function weaponCrewPoint(state:BattlefieldState,f:Facility,index:number):
 export function facilityName(state:BattlefieldState,f:Facility):string{
   const names={emplacement:'MG position',mortar:'Mortar pit',aid:'Aid post',ammo:'Ammo store',store:'Supply store',rest:'Rest dugout',meal:'Meal bay'};
   const index=state.living!.facilities.filter(p=>p.kind===f.kind&&state.living!.garrisons.find(g=>g.id===p.garrisonId)?.faction!=='enemy').findIndex(p=>p.id===f.id)+1;
-  return `${names[f.kind]} ${String(index).padStart(2,'0')}`;
+  return f.artillery?f.artillery.size===4?`Battery ${f.artillery.batteryId} · Gun ${f.artillery.index+1}`:`Field gun ${String(index).padStart(2,'0')}`:`${names[f.kind]} ${String(index).padStart(2,'0')}${f.kind==='mortar'?' · legacy':''}`;
 }

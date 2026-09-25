@@ -12,6 +12,7 @@ export function drawOperationPlan(ctx:CanvasRenderingContext2D,r:OperationRuntim
     for(const work of m.prepared)line(work.points,work.side==='player'?(dark?'#a6bdc6':'#456170'):(dark?'#c38e80':'#854c41'),[4,3],2);
     for(const route of r.routes.filter(r=>r.side==='player'))line(route.points,dark?'#c0b288':'#766741',[3,7],1.4);
     ctx.setLineDash([]);ctx.strokeStyle=ink;ctx.lineWidth=1.5;ctx.strokeRect(p.x-7,p.y-7,14,14);
+    if(m.secondHouse){const second=screen(m.secondHouse);ctx.strokeRect(second.x-7,second.y-7,14,14);if(labels){ctx.fillStyle=ink;ctx.font=`${12*textScale}px Bahnschrift`;ctx.textAlign='left';label?label('B / JUNCTION HOUSE',second.x+13,second.y+4,3):ctx.fillText('B / JUNCTION HOUSE',second.x+13,second.y+4);}}
     if(labels){ctx.fillStyle=ink;ctx.font=`${12*textScale}px Bahnschrift`;ctx.textAlign='left';label?label(m.place+' / ROAD HOUSE',p.x+13,p.y+4,1):ctx.fillText(m.place+' / ROAD HOUSE',p.x+13,p.y+4);}
     ctx.restore();return;
   }

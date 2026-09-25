@@ -55,3 +55,11 @@ html[data-position-open] .trench-capacity{visibility:hidden}.inspection-label{fi
 #signal-orders{position:absolute;right:var(--edge);bottom:98px;z-index:29;padding:12px 20px;border:1px solid var(--accent);background:var(--panel);color:var(--accent);font:600 18px var(--heading);pointer-events:auto}
 .enemy-network{border-color:var(--enemy,#a16d61)!important;color:#d4aaa1!important}
 .battle-tools:has(.hud-tools[open]){z-index:46}
+/* Small physical plotting compass: camera bearing, no rotating world labels. */
+.camera-compass{position:absolute;left:50%;top:12px;transform:translateX(-50%);width:64px;height:80px;z-index:12;pointer-events:none;color:#ddd6b6;text-align:center;font:11px var(--font-mono,monospace);text-shadow:0 1px 3px #111}
+.compass-dial{position:relative;width:58px;height:58px;border:1px solid #b0b39a88;border-radius:50%;background:#15211cd9}
+.compass-dial b,.compass-dial span{position:absolute;line-height:14px;width:14px;height:14px;text-align:center}.compass-dial .north{top:1px;left:21px;color:#ece3bd}.compass-dial .south{bottom:1px;left:21px}.compass-dial .east{right:1px;top:21px}.compass-dial .west{left:1px;top:21px}.compass-dial i{position:absolute;top:18px;left:26px;width:4px;height:20px;background:linear-gradient(#d8c795 50%,#707a6a 50%);clip-path:polygon(50% 0,100% 65%,50% 100%,0 65%)}.camera-compass output{display:block;margin-top:3px;font-size:11px}
+html[data-menu] .camera-compass,html[data-field-map] .camera-compass{visibility:hidden}
+.transport-stages{display:flex;gap:3px;padding:0;list-style:none;margin:10px 0;color:var(--muted);font:11px var(--mono)}.transport-stages li{flex:1;border-top:2px solid var(--rule);padding-top:6px}.transport-stages [data-done]{border-color:#82938b;color:#adbbb6}.transport-stages [aria-current]{border-color:#d5c18d;color:#e5d7b0}.passenger-row[data-blocked=true]{border-left:3px solid #bd985f;padding-left:9px}
+.position-manpower{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--ui-border,#7b806c)}.position-manpower strong{font-size:26px}.position-manpower small,.position-manpower span{font:11px var(--font-mono,monospace);letter-spacing:.04em}
+@media(max-width:800px){.camera-compass{left:46%;top:68px;transform:scale(.82);transform-origin:top center}}

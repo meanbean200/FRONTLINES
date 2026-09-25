@@ -12,6 +12,7 @@ export function facilityPoint(frame:ReturnType<typeof facilityFrame>,x:number,z:
 export function emplacementBoxes(f:Facility):{x:number;y:number;z:number;rx:number;ry:number;rz:number;angle:number}[]{
   if(!['emplacement','mortar'].includes(f.kind)||f.progress<1)return [];
   const angle=f.facing??Math.PI,c=Math.cos(angle),s=Math.sin(angle);
+  if(f.artillery)return [-1,1].map(side=>({x:f.x+side*3.1*c,y:.21,z:f.z-side*3.1*s,rx:.24,ry:.21,rz:3.4,angle}));
   if(f.trenchAnchor)return [[-1,0,.3,.7],[1,0,.3,.7],[0,.65,.7,.25]].map(([x,z,rx,rz])=>({x:f.x+x*c+z*s,y:.38,z:f.z-x*s+z*c,rx,ry:.38,rz,angle}));
   if(f.kind==='mortar')return Array.from({length:7},(_,i)=>{const a=angle+(i-3)*Math.PI/4;return {x:f.x+Math.sin(a)*2.5,y:.4,z:f.z+Math.cos(a)*2.5,rx:1.05,ry:.4,rz:.3,angle:a};});
   return [[0,2.3,2.7,.35],[-2.3,0,.35,2.3],[2.3,0,.35,2.3]].map(([x,z,rx,rz])=>({x:f.x+x*c+z*s,y:.5,z:f.z-x*s+z*c,rx,ry:.5,rz,angle}));

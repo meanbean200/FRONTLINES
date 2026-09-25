@@ -20,16 +20,16 @@ function jobs(){
   expect(a).toBeDefined();expect(b).toBeDefined();return {sim,state,w,g,a:w.facilities.find(f=>f.id===a)!,b:w.facilities.find(f=>f.id===b)!};
 }
 describe('explicit supply demand and reservation accounting',()=>{
-  it('commits 16 plus 4 of the same 20 real materials, and demands the remaining 8',()=>{
+  it('commits 16 plus 4 of the same 20 real materials, and demands the field gun remainder',()=>{
     const {state,g,a,b}=jobs(),before=balance(state);reconcileSupplyDemands(state);
-    expect(g.cache.materials).toBe(20);expect(claimed(constructionDemand(state,a.id)!)).toBe(16);expect(claimed(constructionDemand(state,b.id)!)).toBe(4);expect(unfulfilled(constructionDemand(state,b.id)!)).toBe(8);
-    expect(workReadout(state,b)).toMatchObject({delivered:0,reserved:4,inbound:0,remaining:8});expect(balance(state)).toEqual(before);expect(validSupplyDemands(state)).toBe(true);
+    expect(g.cache.materials).toBe(20);expect(claimed(constructionDemand(state,a.id)!)).toBe(16);expect(claimed(constructionDemand(state,b.id)!)).toBe(4);expect(unfulfilled(constructionDemand(state,b.id)!)).toBe(b.materialCost-4);
+    expect(workReadout(state,b)).toMatchObject({delivered:0,reserved:4,inbound:0,remaining:b.materialCost-4});expect(balance(state)).toEqual(before);expect(validSupplyDemands(state)).toBe(true);
     const saved=new SaveSystem().parse(JSON.stringify(state));expect(saved.living!.supplyDemands).toEqual(state.living!.supplyDemands);expect(balance(saved)).toEqual(before);
   });
   it('allocates assigned truck cargo once, names its jobs, and never guesses from proximity',()=>{
     const {state,w,g,a,b}=jobs(),truck=w.trucks.find(t=>t.role==='shuttle')!;
     transfer(g.cache,w.rearStock,'materials',12);transfer(w.rearStock,truck.cargo,'materials',8);truck.state='outbound';truck.garrisonId=g.id;reconcileSupplyDemands(state);
-    expect(workReadout(state,a)).toMatchObject({reserved:8,inbound:8,remaining:0});expect(workReadout(state,b).remaining).toBe(12);
+    expect(workReadout(state,a)).toMatchObject({reserved:8,inbound:8,remaining:0});expect(workReadout(state,b).remaining).toBe(b.materialCost);
     const r=shipmentReadout(state,truck);expect(r.destination).toBe(`Network ${String(g.trenchId).padStart(3,'0')}`);expect(r.cargo).toEqual(['Materials 8']);expect(r.jobs).toEqual([{name:'MG position 01',amount:8}]);
     truck.x+=1000;expect(shipmentReadout(state,truck).destination).toBe(r.destination);
     truck.state='blocked';truck.resume='outbound';reconcileSupplyDemands(state);expect(workReadout(state,a).inbound).toBe(8);
@@ -47,7 +47,7 @@ describe('explicit supply demand and reservation accounting',()=>{
   });
   it('cancellation releases future promises but leaves delivered stock exactly at the cancelled site',()=>{
     const {sim,state,g,a,b}=jobs();transfer(g.cache,a.stock,'materials',6);reconcileSupplyDemands(state);const before=balance(state);
-    expect(sim.garrisons.cancelWork(a.id).accepted).toBe(true);expect(a.stock.materials).toBe(6);expect(g.cache.materials).toBe(14);expect(constructionDemand(state,a.id)).toBeUndefined();expect(claimed(constructionDemand(state,b.id)!)).toBe(12);expect(workReadout(state,a).status).toBe('CANCELLED');
+    expect(sim.garrisons.cancelWork(a.id).accepted).toBe(true);expect(a.stock.materials).toBe(6);expect(g.cache.materials).toBe(14);expect(constructionDemand(state,a.id)).toBeUndefined();expect(claimed(constructionDemand(state,b.id)!)).toBe(14);expect(workReadout(state,a).status).toBe('CANCELLED');
     const saved=new SaveSystem().parse(JSON.stringify(state));expect(balance(saved)).toEqual(before);expect(saved.living!.facilities.find(f=>f.id===a.id)?.stock.materials).toBe(6);
   });
   it('dedicated cargo cannot be stolen by an earlier unfulfilled job',()=>{
@@ -64,7 +64,7 @@ describe('explicit supply demand and reservation accounting',()=>{
   });
   it('loads explicit job shortages before routine reserves using finite truck capacity',()=>{
     const {sim,state,w,g,a,b}=jobs();transfer(g.cache,w.rearStock,'materials',20);const truck=w.trucks.find(t=>t.role==='shuttle')!;w.trucks=[truck];w.logistics!.shuttleCapacity=20;const before=balance(state);
-    sim.garrisons.logistics.step(.05);expect(truck.cargo.materials).toBe(20);expect(workReadout(state,a).inbound).toBe(16);expect(workReadout(state,b)).toMatchObject({inbound:4,remaining:8});expect(balance(state)).toEqual(before);
+    sim.garrisons.logistics.step(.05);expect(truck.cargo.materials).toBe(20);expect(workReadout(state,a).inbound).toBe(16);expect(workReadout(state,b)).toMatchObject({inbound:4,remaining:b.materialCost-4});expect(balance(state)).toEqual(before);
   });
   it('weapon demands subtract crew stock and assigned inbound, and protect other crews promises',()=>{
     const {state,w,g,a}=jobs();a.progress=1;a.paid=true;a.workOrder!.workerIds=[];const gun=state.soldiers[0];gun.carried!.ammo=30;a.weaponCrewIds=[gun.id];const truck=w.trucks.find(t=>t.role==='shuttle')!;truck.cargo.ammo=60;truck.garrisonId=g.id;truck.state='outbound';reconcileSupplyDemands(state);
@@ -80,7 +80,7 @@ describe('explicit supply demand and reservation accounting',()=>{
     const {sim,state,w,g,a,b}=jobs();a.progress=1;a.paid=true;a.workOrder!.workerIds=[];a.weaponCrewIds=state.soldiers.slice(0,2).map(s=>s.id);g.underFireUntil=60;
     for(const s of state.soldiers.slice(0,2))s.carried!.ammo=0;
     transfer(g.cache,w.rearStock,'materials',20);const truck=w.trucks.find(t=>t.role==='shuttle')!;w.trucks=[truck];w.logistics!.shuttleCapacity=20;
-    sim.garrisons.logistics.step(.05);expect(truck.cargo.ammo).toBe(20);expect(truck.cargo.materials).toBe(0);expect(unfulfilled(constructionDemand(state,b.id)!)).toBe(12);
+    sim.garrisons.logistics.step(.05);expect(truck.cargo.ammo).toBe(20);expect(truck.cargo.materials).toBe(0);expect(unfulfilled(constructionDemand(state,b.id)!)).toBe(b.materialCost);
   });
   it('initializes an older save ledger without adding stock or preserving promises to a lost carrier',()=>{
     const {state,w,g,a}=jobs(),person=state.soldiers[0];transfer(g.cache,person.carried!,'materials',8);person.duty={kind:'haul',stage:'deliver',facilityId:a.id,destination:a,route:[],routeIndex:0,since:0,until:100,reason:'Delivery',blockedFor:0};reconcileSupplyDemands(state);
@@ -110,7 +110,7 @@ describe('physical position command authority',()=>{
     const b=preparedPosition(state,q.id,'mortar');crew[0].equipment!.mortar=true;a.weaponCrewIds=[crew[0].id,helper.id];b.weaponCrewIds=[crew[2].id,crew[3].id];
     for(const f of [a,b])for(const [i,id] of f.weaponCrewIds!.entries()){const s=state.soldiers.find(s=>s.id===id)!;s.x=f.x+i;s.z=f.z;s.garrisonId=f.garrisonId;s.personalArea=true;s.suppression=0;s.action='watching';s.duty={kind:'watch',facilityId:f.id,destination:{x:s.x,z:s.z},route:[],routeIndex:0,since:0,arrivedAt:0,until:150,blockedFor:0,reason:'Fixture crew'};}
     expect(positionReadiness(state,a)).toBe('');expect(positionReadiness(state,b)).toBe('');const target={x:a.x+150,z:a.z+150};
-    expect(requestSupport(state,'mortarHE',q.id,target).reason).toContain('actual mortar pit');
+    expect(requestSupport(state,'mortarHE',q.id,target).reason).toContain('actual gun position');
     const orders=structuredClone(state.squads.map(q=>q.order));expect(requestPositionSupport(state,'mortarHE',b.id,target,true,sim.terrain).accepted).toBe(true);expect(requestPositionSupport(state,'mortarHE',a.id,target,true,sim.terrain).accepted).toBe(true);
     reconcileSupplyDemands(state);const saved=new SaveSystem().parse(JSON.stringify(state));expect(saved.operation!.supportMissions!.map(m=>m.positionId)).toEqual([b.id,a.id]);expect(saved.operation!.supportMissions![1].crewIds).toEqual([crew[0].id,helper.id]);
     state.elapsed=16;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions!.every(m=>m.stage==='flight')).toBe(true);expect(a.stock.mortarHE).toBe(3);expect(b.stock.mortarHE).toBe(3);expect(state.squads.map(q=>q.order)).toEqual(orders);

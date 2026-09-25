@@ -31,6 +31,7 @@ export class StrategyCamera {
   }
 
   update(dt: number): void {
+    dt=Number.isFinite(dt)?clamp(dt,0,.1):0;
     const forward = Number(this.keys.has('KeyW') || this.keys.has('ArrowUp')) - Number(this.keys.has('KeyS') || this.keys.has('ArrowDown'));
     const strafe = Number(this.keys.has('KeyD') || this.keys.has('ArrowRight')) - Number(this.keys.has('KeyA') || this.keys.has('ArrowLeft'));
     if (forward !== 0 || strafe !== 0) {

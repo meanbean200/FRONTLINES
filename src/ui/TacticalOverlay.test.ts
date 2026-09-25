@@ -7,7 +7,7 @@ function fixture(){
   const projected={x:300,y:250,visible:true};
   // Exercise the actual update/projection methods without a WebGL/DOM environment.
   const view=Object.assign(Object.create(TacticalOverlay.prototype),{
-    markerTimer:1/30,mapTimer:-1000,networkTimer:0,
+    markerTimer:1/30,mapTimer:-1000,networkTimer:0,compass:{update:vi.fn()},
     layer:{classList:{toggle:vi.fn()},inert:false},
     getState:()=>({squads:[squad],trenches:[]}),
     markers:new Map([[1,marker]]),contactMarkers:new Map(),trenchMarkers:new Map(),objectiveMarkers:new Map(),labels:[],

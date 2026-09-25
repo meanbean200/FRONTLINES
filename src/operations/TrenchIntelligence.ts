@@ -1,7 +1,7 @@
 import {distance,type BattlefieldState,type Vec2,type TrenchState} from '../core/types';
 import {atDistance} from '../core/Polyline';
 import {excavatedSpan} from '../core/TrenchGeometry';
-import {visibilitySignal} from './Visibility';
+import {seesTrenchSection} from './TerrainSight';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 
@@ -20,7 +20,10 @@ export function ownedTrenchIds(state:BattlefieldState,side:'player'|'enemy',grap
 export function observeTrenches(state:BattlefieldState,terrain:TerrainSystem,network?:TrenchNetwork):void {
   if(!state.operation)return;
   const memory=state.terrainKnowledge??={nextReview:0,sections:[]};
-  if(state.elapsed<memory.nextReview)return;memory.nextReview=(Math.floor(state.elapsed)+1);
+  if(state.elapsed+1e-8<memory.nextReview)return;
+  // Spread the same one-second scan over five fixed-clock slices. A long
+  // trench must not put every expensive terrain ray on one render frame.
+  const slice=Math.floor((state.elapsed+1e-8)*5),phase=slice%5;memory.nextReview=(slice+1)/5;
   const sides=new Map(state.squads.map(q=>[q.id,q.faction??'player']));
   const observers=state.soldiers.filter(s=>s.needs?.life==='active'&&s.action!=='sleeping');
   const existing=new Map(memory.sections.map(s=>[`${s.side}:${s.sourceId}:${s.cell}`,s]));
@@ -28,12 +31,12 @@ export function observeTrenches(state:BattlefieldState,terrain:TerrainSystem,net
   for(const t of state.trenches){
     const span=excavatedSpan(t);if(span.end-span.start<1)continue;
     for(let cell=Math.floor(span.start/4);cell<Math.ceil(span.end/4);cell++){
+      if(cell%5!==phase)continue;
       const a=atDistance(t.points,Math.max(span.start,cell*4)),b=atDistance(t.points,Math.min(span.end,(cell+1)*4));if(distance(a,b)<.3)continue;
       const mid={x:(a.x+b.x)/2,z:(a.z+b.z)/2};
       for(const side of ['player','enemy'] as const){
         if(owned[side].has(t.id))continue;
-        // This is the same environmental sight model as soldiers, not a distance reveal.
-        const seen=observers.some(s=>sides.get(s.squadId)===side&&distance(s,mid)<500&&[a,mid,b].every(p=>visibilitySignal(state,terrain,s,p)>=.24));
+        const seen=observers.some(s=>sides.get(s.squadId)===side&&distance(s,mid)<500&&seesTrenchSection(state,terrain,s,a,b,t.width));
         if(!seen)continue;
         const key=`${side}:${t.id}:${cell}`,old=existing.get(key);
         if(old){old.points=[a,b];old.at=state.elapsed;old.width=t.width;}

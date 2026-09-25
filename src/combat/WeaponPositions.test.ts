@@ -33,7 +33,7 @@ describe('physical crewed weapon positions',()=>{
     const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),q=state.squads.find(q=>q.faction===side&&q.kind==='mortar')!,operator=positionOperator(state,q.id,'mortar')!,target={x:operator.x+150,z:operator.z};
     if(side==='enemy')state.operation!.contacts={player:[],enemy:[{...target,soldierId:state.soldiers[0].id,squadId:state.squads[0].id,lastSeen:0,visible:false,active:true}]};
     const source=side==='player'?'PLAYER':'ENEMY_AI';
-    expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,source).reason).toContain('mortar pit');
+    expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,source).reason).toContain('built indirect weapon');
     const f=preparedPosition(state,q.id,'mortar');expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,source).accepted).toBe(true);
     sim.issueHold([q.id],side==='enemy');state.elapsed=1;stepSupport(state,sim.terrain);
     expect(f.weaponCrewIds).toContain(operator.id);expect(state.operation!.supportMissions![0].stage).toBe('preparing');

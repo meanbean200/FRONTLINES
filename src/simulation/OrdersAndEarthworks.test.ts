@@ -25,7 +25,9 @@ describe('complex works and drawn orders',()=>{
     expect(sim.state.trenches.map(t=>t.progress)).toEqual([1,1]);
     expect(sim.state.trenches.map(t=>t.status)).toEqual(['complete','complete']);
     expect(sim.state.squads[0].constructionQueue).toHaveLength(0);
-    expect(distance(sim.state.squads[0],sim.state.trenches[1].points.at(-1)!)).toBeLessThan(12);
+    // Multiple simultaneous work faces no longer put the entire formation at
+    // the final vertex. Every actual worker still finishes on excavated ground.
+    for(const p of sim.state.soldiers.filter(p=>p.squadId===engineer.id))expect(Math.min(...sim.state.trenches.flatMap(t=>t.points.slice(1).map((v,i)=>distanceToSegment(p,t.points[i],v).distance)))).toBeLessThan(3);
   },15000);
 
   it('pauses and resumes excavation at the working face rather than restarting',()=>{

@@ -10,12 +10,16 @@ export function validPositionState(state:BattlefieldState):boolean {
     if(f.includesWeapon!==undefined&&(typeof f.includesWeapon!=='boolean'||!['emplacement','mortar'].includes(f.kind)))return false;
     if(f.autoReplaceCrew!==undefined&&typeof f.autoReplaceCrew!=='boolean')return false;
     const installed=f.installation;
+    if(f.artillery){const b=f.artillery;
+      if(state.living!.facilities.filter(p=>p.artillery?.batteryId===b.batteryId).length!==b.size)return false;
+      if(f.kind!=='mortar'||!f.includesWeapon||![1,4].includes(b.size)||!Number.isInteger(b.index)||b.index<0||b.index>=b.size||!Number.isInteger(b.batteryId)||b.batteryId<1||!state.living!.facilities.some(p=>p.id===b.batteryId&&p.artillery?.batteryId===b.batteryId&&p.artillery.index===0)||state.living!.facilities.some(p=>p!==f&&p.artillery?.batteryId===b.batteryId&&(p.artillery.index===b.index||p.artillery.size!==b.size||p.garrisonId!==f.garrisonId)))return false;
+    }
     if(installed){
-      if(!f.paid||f.progress!==1||!['construction','legacy-kit'].includes(installed.source)||!['emplacement','mortar'].includes(f.kind)||!(f.kind==='mortar'?installed.kind==='mortar':['crew-mg','mg42'].includes(installed.kind)))return false;
+      if(!f.paid||f.progress!==1||!['construction','legacy-kit'].includes(installed.source)||!['emplacement','mortar'].includes(f.kind)||!(f.kind==='mortar'?installed.kind===(f.artillery?'field-gun':'mortar'):['crew-mg','mg42'].includes(installed.kind)))return false;
       if(installed.source==='construction'&&!f.includesWeapon||installed.source==='legacy-kit'&&!state.soldiers.some(s=>s.id===installed.personId))return false;
       if(installed.personId!==undefined&&state.living!.facilities.some(other=>other!==f&&other.installation?.personId===installed.personId&&other.kind===f.kind))return false;
       const w=installed.weapon;
-      if(w&&(installed.kind==='mortar'||w.id!==installed.kind||![w.loaded,w.reloadUntil,w.setupUntil,w.burstLeft,w.position?.x,w.position?.z].every(Number.isFinite)||w.loaded<0||w.loaded>WEAPONS[w.id].magazine||w.reloadUntil<0||w.setupUntil<0||w.burstLeft<0))return false;
+      if(w&&(installed.kind==='mortar'||installed.kind==='field-gun'||w.id!==installed.kind||![w.loaded,w.reloadUntil,w.setupUntil,w.burstLeft,w.position?.x,w.position?.z].every(Number.isFinite)||w.loaded<0||w.loaded>WEAPONS[w.id].magazine||w.reloadUntil<0||w.setupUntil<0||w.burstLeft<0))return false;
       if(w&&(w.effectiveUntil!==undefined&&(!Number.isFinite(w.effectiveUntil)||w.effectiveUntil<0)||w.effectivePoint!==undefined&&![w.effectivePoint.x,w.effectivePoint.z].every(Number.isFinite)))return false;
     }
     if(f.trenchAnchor){

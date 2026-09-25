@@ -63,7 +63,7 @@ export function observeEnemy(state:BattlefieldState):EnemyObservation {
         r.routes.filter(route=>route.side==='enemy').map(route=>({id:'player-rear',point:{...route.destination}}))};
     if(r.missionPlan){const m=r.missionPlan;
       observation.operational.deploymentDepth=m.deployment.enemy;
-      observation.operational.mission={kind:m.kind,houseId:m.houseId,house:{...m.house},preparationSeconds:m.preparationSeconds,frontage:m.frontage};
+      observation.operational.mission={kind:m.kind,houseId:m.houseId,house:{...m.house},...(m.secondHouse?{secondHouseId:m.secondHouseId,secondHouse:{...m.secondHouse}}:{}),preparationSeconds:m.preparationSeconds,frontage:m.frontage};
       observation.operational.targets=[{id:'mission-house',point:{...m.house}}];
     }
   }

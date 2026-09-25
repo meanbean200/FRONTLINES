@@ -16,7 +16,7 @@ export const SUPPORT_WORKS:Record<Facility['kind'],{name:string;cost:number;desc
   ammo:{name:'Ammunition dugout',cost:14,description:'Stores delivered ammunition'},
   aid:{name:'Aid post',cost:18,description:'Treatment and evacuation · 4 places'},
   emplacement:{name:'MG position',cost:16,description:'Installed gun included · 2 crew · ammunition delivered separately'},
-  mortar:{name:'Mortar pit',cost:12,description:'Installed mortar included · 2 crew · ammunition delivered separately'},
+  mortar:{name:'Field artillery gun',cost:32,description:'One installed field gun · 2 crew · HE and smoke delivered separately'},
 };
 export function fitEngineers(state:BattlefieldState):SquadState[]{
   return state.squads.filter(q=>q.faction!=='enemy'&&squadHasEquipment(state,q,'tools'));
@@ -32,6 +32,10 @@ export function constructionStatus(state:BattlefieldState,q:SquadState):string|u
   if(state.simSpeed===0)return `Paused · excavation ${progress} · press Space to work`;
   if(digging)return `${digging} digging · ${people.filter(s=>s.action==='clearing spoil').length} clearing spoil · ${progress} excavated${q.constructionQueue?.length?` · ${q.constructionQueue.length} queued`:''}`;
   if(people.some(s=>s.combat?.reaction==='pinned'||s.combat?.reaction==='broken'))return 'Taking cover · excavation interrupted';
+  const recovering=people.filter(s=>['sleeping','resting','eating'].includes(s.action)).length;
+  if(recovering)return `${recovering} recovering · excavation ${progress} retained`;
+  const waiting=people.find(s=>s.action.startsWith('waiting'));
+  if(waiting)return `${waiting.action.charAt(0).toUpperCase()+waiting.action.slice(1)} · ${progress} excavated`;
   if(q.movementState==='planning')return 'Planning approach to worksite';
   return `Approaching work fronts · ${progress} excavated`;
 }
@@ -55,9 +59,9 @@ export function facilitySiteReason(state:BattlefieldState,g:Garrison,from:Vec2,t
     return;
   }
   if(category==='adjacent'){
-    if(length<4||length>20)return 'Place the open mortar pit 4–20 m from excavated trench.';
-    if(state.living!.facilities.some(f=>distance(f,to)<7))return 'Another position is too close · leave 7 m clearance.';
-    if(terrain.obstacleAt(to.x,to.z,3)||terrain.groundTypeAt(to.x,to.z)==='river')return 'Mortar pit needs clear open ground.';
+    if(length<4||length>40)return 'Place the field gun 4–40 m from excavated trench.';
+    if(state.living!.facilities.some(f=>distance(f,to)<9))return 'Another position is too close · leave 9 m clearance.';
+    if(terrain.obstacleAt(to.x,to.z,4)||terrain.groundTypeAt(to.x,to.z)==='river')return 'Field gun needs clear open ground.';
     if(!navigation.segmentClear(from,to,3.6))return 'Short connecting trench crosses blocked ground.';
     return;
   }
@@ -71,4 +75,4 @@ export function facilitySiteReason(state:BattlefieldState,g:Garrison,from:Vec2,t
   if((to.x-from.x)*Math.sin(g.front)+(to.z-from.z)*Math.cos(g.front)>=0)return 'Build on the rear side of the line, opposite its facing.';
   return undefined;
 }
-export interface FacilityPreview {name:string;valid:boolean;reason:string;origin?:Vec2;position:Vec2;cost:number;materials:number;kind?:Facility['kind'];facing?:number;segment?:Vec2[]}
+export interface FacilityPreview {name:string;valid:boolean;reason:string;origin?:Vec2;position:Vec2;sites?:Vec2[];cost:number;materials:number;kind?:Facility['kind'];facing?:number;segment?:Vec2[]}

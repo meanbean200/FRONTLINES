@@ -4,6 +4,8 @@ import {fieldIcon} from './FieldSymbols';
 import {requestReserveSquad,reserveDispatchAt} from '../operations/Replacements';
 import {connectedName} from './TrenchReadout';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
+import {networkCapacity} from '../garrison/NetworkCapacity';
+import {reinforcementReadout,TRANSPORT_STAGES} from './ReinforcementReadout';
 
 /** Normal player controls, separate from the developer stress fixture. */
 export class DeploymentPanel {
@@ -48,8 +50,9 @@ export class DeploymentPanel {
     const networkKey=networks.map(g=>`${g.id}:${this.network.anchor(g.trenchId)}`).join('|');
     if(select.dataset.key!==networkKey){const chosen=select.value;select.dataset.key=networkKey;select.replaceChildren();for(const g of networks)select.add(new Option(connectedName(state,this.network,g.trenchId),String(g.id)));if(!networks.length)select.add(new Option('Assign a formation to a completed trench','0'));if([...select.options].some(o=>o.value===chosen))select.value=chosen;}
     const delay=Math.max(0,reserveDispatchAt(pool,'player')-w.campaignHours),request=section.querySelector<HTMLButtonElement>('[data-request-reserves]')!;
-    request.disabled=this.button.disabled||pool.reserve.player<8||!networks.length||delay>0;
-    section.querySelector('.dispatch-reason')!.textContent=delay?`Next dispatch in ${delay.toFixed(1)} campaign hours.`:pool.reserve.player<8?'Fewer than 8 reserve personnel remain. Remaining reserves replace losses automatically.':!networks.length?'Defend a completed trench first to establish a safe arrival area.':'Dispatch available · request uses 8 reserve personnel.';
+    const destination=networks.find(g=>g.id===Number(select.value)),space=destination&&networkCapacity(state,this.network,destination.trenchId);
+    request.disabled=this.button.disabled||pool.reserve.player<8||!networks.length||delay>0||!space||space.free<8;
+    section.querySelector('.dispatch-reason')!.textContent=delay?`Next dispatch in ${delay.toFixed(1)} campaign hours.`:pool.reserve.player<8?'Fewer than 8 reserve personnel remain. Remaining reserves replace losses automatically.':!space?'Defend a completed trench first to establish a safe arrival area.':`${space.present} here · ${space.inbound} inbound · ${space.free} free / ${space.capacity} places. `+(space.free<8?'Eight free places needed for a new squad.':'Dispatch available · request uses 8 reserve personnel.');
     const key=JSON.stringify([pool.manifests.filter(m=>m.side==='player').map(m=>[m.id,m.stage,m.truckId,m.garrisonId]),w.trucks.filter(t=>t.faction!=='enemy').map(t=>[t.id,t.state,t.reason]),Math.floor(state.elapsed/5)]);
     if(key===this.manifestKey)return;this.manifestKey=key;
     const list=section.querySelector('.passenger-manifests')!;list.replaceChildren();
@@ -61,7 +64,10 @@ export class DeploymentPanel {
       name.textContent=`${q?.name??'Formation'} · ${manifests.length} ${m.returning?'returning personnel':'personnel'}`;
       const inbound=w.trucks.find(t=>t.role==='convoy'&&t.faction!=='enemy');
       detail.textContent=m.stage==='edge'?inbound?.state==='loading'?'Boarding available convoy when simulation runs':`Awaiting returning convoy · ${inbound?.reason??'no transport'}`:m.stage==='rear'?g?'Rear depot · waiting for a shuttle truck':'Rear depot · assign this formation to a trench before delivery':m.stage==='arrived'?'Unloaded · joining the trench on foot':`Truck ${truck?.id} · ${m.stage==='convoy'?'to rear depot':'to '+(g?connectedName(state,this.network,g.trenchId):'arrival area')} · ${truck?.reason??'transport unavailable'}`;
-      locate.textContent=truck?'Locate truck':m.stage==='arrived'?'Locate arrival area':'Locate waiting point';
+      const movement=reinforcementReadout(state,m),stages=document.createElement('ol');stages.className='transport-stages';stages.setAttribute('aria-label','Transport progress');
+      for(const [i,label] of TRANSPORT_STAGES.entries()){const step=document.createElement('li');step.textContent=label;if(i===movement.stage)step.setAttribute('aria-current','step');if(i<movement.stage)step.dataset.done='true';stages.append(step);}
+      detail.textContent=`${movement.source} → ${g?connectedName(state,this.network,g.trenchId):movement.destination}. ${movement.reason}${movement.eta?' · '+movement.eta:''}`;row.dataset.blocked=String(movement.blocked);
+      row.append(stages);locate.textContent=truck?'Locate truck':m.stage==='arrived'?'Locate arrival area':'Locate waiting point';
       locate.onclick=()=>{const liveTruck=this.getState().living!.trucks.find(t=>t.id===m.truckId);this.focus(liveTruck??(m.stage==='arrived'?g?.forward: m.stage==='edge'?w.entry:w.rear)??w.rear);};row.append(name,detail,locate);list.append(row);
     }
     if(!groups.size)list.textContent='No passengers waiting. Request a squad above; casualties are also replaced automatically when the daily release is due.';

@@ -12,7 +12,7 @@ export function updateNeeds(state:BattlefieldState,s:SoldierState,dt:number):voi
   if(s.combat?.wound?.care==='evacuated'){s.action='evacuated';return;}
   const day=Math.floor(w.campaignHours/24);if(day!==n.day){n.day=day;n.sleepHours=0;}
   const arrived=s.duty?.arrivedAt!==undefined&&s.combat?.owner!=='reaction'&&s.combat?.owner!=='casualty',kind=arrived&&s.duty?.rationUntil===undefined?s.duty!.kind:undefined;
-  const asleep=kind==='sleep'||Boolean(s.building?.recovering&&s.action==='sleeping'&&s.combat?.owner==='building'),resting=kind==='rest'||n.life==='incapacitated';
+  const asleep=kind==='sleep'||Boolean((s.selfCare?.kind==='sleep'||s.selfCare?.recovering)&&s.action==='sleeping'&&s.combat?.owner==='self-care')||Boolean(s.building?.recovering&&s.action==='sleeping'&&s.combat?.owner==='building'),resting=kind==='rest'||n.life==='incapacitated';
   const shelter=asleep&&w.facilities.some(f=>f.id===s.duty?.facilityId&&f.kind==='rest'&&f.progress===1&&Math.hypot(s.x-f.x,s.z-f.z)<4);
   const exertion=s.action==='digging'||s.action==='clearing spoil'||kind==='construct'?NEED_RULES.workLossPerHour:isWalkingAction(s.action)||kind==='haul'?NEED_RULES.travelLossPerHour:NEED_RULES.awakeLossPerHour;
   n.energy=clamp(n.energy+hours*(asleep?shelter?NEED_RULES.sleepRecoveryPerHour:NEED_RULES.floorSleepRecoveryPerHour:resting?NEED_RULES.restRecoveryPerHour:-exertion),0,100);
@@ -20,7 +20,7 @@ export function updateNeeds(state:BattlefieldState,s:SoldierState,dt:number):voi
   n.hunger=clamp(n.hunger+hours*NEED_RULES.hungerPerHour,0,100);n.thirst=clamp(n.thirst+hours*NEED_RULES.thirstPerHour,0,100);
   n.hungryHours=n.hunger>=95?n.hungryHours+hours:0;n.thirstyHours=n.thirst>=95?n.thirstyHours+hours:0;
   // Personal rations are usable while stopped, but never appear from a nearby depot.
-  if(!s.duty&&(s.action==='holding'||s.building&&['watching','sleeping','waiting at doorway'].includes(s.action))&&s.carried){
+  if(!s.duty&&!s.selfCare&&(s.action==='holding'||s.building&&['watching','sleeping','waiting at doorway'].includes(s.action))&&s.carried){
     if(n.hunger>45&&s.carried.food>0)n.hunger=Math.max(0,n.hunger-40*consume(state,s.carried,'food',Math.min(1,s.carried.food)));
     if(n.thirst>40&&s.carried.water>0)n.thirst=Math.max(0,n.thirst-50*consume(state,s.carried,'water',Math.min(1,s.carried.water)));
   }

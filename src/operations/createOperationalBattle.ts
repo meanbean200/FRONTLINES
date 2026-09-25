@@ -18,7 +18,7 @@ import {equipInfantryForce} from './InfantryLoadout';
 import {placeMissionOperation} from './MissionContent';
 
 /** Shared force/deployment builder; no mission-specific soldier or combat behavior. */
-export function createOperationalBattle(id:OperationId,seed=1944,setup?:ResolvedBattleSetup,newContent=false,missionVersion:1|2=2):BattlefieldState {
+export function createOperationalBattle(id:OperationId,seed=1944,setup?:ResolvedBattleSetup,newContent=false,missionVersion:1|2|3=3):BattlefieldState {
   if(!Number.isSafeInteger(seed)||seed<1||seed>2147483647)throw new Error('Sector seed must be an integer from 1 to 2147483647');
   if(setup&&(!validBattleSetup(setup,true)||setup.seed!==seed||setup.operation!==id))throw new Error('Invalid battle setup');
   const state=createBattlefield(seed);state.soldiers=[];state.squads=[];state.trenches=[];state.craters=[];

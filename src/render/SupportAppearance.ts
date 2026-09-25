@@ -18,6 +18,12 @@ export function supportAppearance(f:Facility,connector:TrenchState|undefined,hei
   }
   // Survey pegs and available material stacks precede structural work.
   if(progress===0){for(const x of [-2.65,2.65])for(const z of [-2.65,2.65])grounded(x,z,.12,.8,.12,0xc1af78);return out;}
+  if(f.artillery){
+    // Open carriage pad. No mortar tube, enclosing tiny ring or roof.
+    for(const x of [-3.1,3.1])for(const z of [-2.5,0,2.5])grounded(x,z,.48,.42*progress,1.8,0x92886c);
+    if(progress<1)for(const x of [-.7,.7])grounded(x,0,.30,.15,4.4,darkWood);
+    return out;
+  }
   const gun=f.kind==='emplacement'||f.kind==='mortar';
   if(gun&&progress===1){
     for(const b of emplacementBoxes(f)){

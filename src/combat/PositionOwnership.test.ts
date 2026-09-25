@@ -3,10 +3,20 @@ import {createStudyScenario} from '../garrison/StudyScenario';
 import {preparedPosition} from './testing/PositionFixture';
 import {crewOperator,installPositionWeapons,positionReadiness} from './WeaponPositions';
 import {SaveSystem} from '../persistence/SaveSystem';
-import {balance} from '../garrison/Inventory';
+import {balance,transfer} from '../garrison/Inventory';
 import {equipWeapon} from './Weapons';
 
 describe('position-owned installed weapons',()=>{
+  it('ordinary Sandbox crew physically collects local ammunition and returns it to its installed MG',()=>{
+    const sim=createStudyScenario(),s=sim.state,q=s.squads[0],first=s.soldiers.find(p=>p.squadId===q.id)!;
+    first.equipment!.weapon='crew-mg';const f=preparedPosition(s,q.id,'emplacement'),g=s.living!.garrisons.find(g=>g.id===f.garrisonId)!;
+    first.equipment!.weapon='m1';for(const id of f.weaponCrewIds!){const p=s.soldiers.find(p=>p.id===id)!;transfer(p.carried!,g.cache,'ammo',p.carried!.ammo);p.ammunition=0;}
+    transfer(f.stock,g.cache,'ammo',f.stock.ammo);g.cache.ammo+=120;s.living!.ledger.initial.ammo+=120;expect(f.stock.ammo).toBe(0);
+    const equipment=f.weaponCrewIds!.map(id=>structuredClone(s.soldiers.find(p=>p.id===id)!.equipment));
+    for(let i=0;i<4000&&f.stock.ammo===0;i++)sim.step(.05);
+    expect(f.stock.ammo).toBeGreaterThan(0);expect(f.weaponCrewIds!.map(id=>s.soldiers.find(p=>p.id===id)!.equipment)).toEqual(equipment);
+    expect(new SaveSystem().parse(JSON.stringify(s))).toEqual(s);
+  });
   it.each(['emplacement','mortar'] as const)('%s survives an empty post, replacement gunner, rest and save',kind=>{
     const sim=createStudyScenario(),state=sim.state,q=state.squads[0],first=state.soldiers.find(s=>s.squadId===q.id)!;
     if(kind==='mortar')first.equipment!.mortar=true;else first.equipment!.weapon='crew-mg';

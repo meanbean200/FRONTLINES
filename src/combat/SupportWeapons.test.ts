@@ -11,10 +11,10 @@ describe('physical support missions',()=>{
   it('explains a resting or suppressed mortar gunner without implying missing equipment',()=>{
     const {state,q,crew}=setup();crew[0].action='sleeping';
     const before=JSON.stringify(state);
-    expect(supportReadiness(state,'mortarHE',q.id).reason).toBe('Mortar gunner resting · recovering energy; equipment remains assigned');
+    expect(supportReadiness(state,'mortarHE',q.id).reason).toBe('Gunner resting · recovering energy; equipment remains assigned');
     expect(JSON.stringify(state)).toBe(before);
     crew[0].action='holding';crew[0].suppression=80;
-    expect(supportReadiness(state,'mortarHE',q.id).reason).toBe('Mortar gunner under heavy suppression · waiting for recovery');
+    expect(supportReadiness(state,'mortarHE',q.id).reason).toBe('Gunner under heavy suppression · waiting for recovery');
     crew[0].suppression=0;
     expect(supportReadiness(state,'mortarHE',q.id).reason).toBe('');
   });

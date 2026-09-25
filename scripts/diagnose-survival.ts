@@ -1,0 +1,10 @@
+import {readFileSync} from 'node:fs';
+import {BattlefieldSimulation} from '../src/simulation/BattlefieldSimulation';
+import {doorPoint} from '../src/terrain/BuildingGeometry';
+import {stepSelfPreservation} from '../src/simulation/SelfPreservation';
+const sim=new BattlefieldSimulation(JSON.parse(readFileSync(process.argv[2],'utf8'))),s=sim.state,p=s.soldiers.find(p=>p.id===2)!;
+const b=sim.terrain.buildings[p.building!.id],from=doorPoint(b,8);
+console.log(JSON.stringify({from,b,obstacle:sim.terrain.obstacleAt(from.x,from.z,.4),sources:s.living!.garrisons.flatMap(g=>[g.entrance,g.forward]).map(to=>{const path=sim.navigation.plan(from,to,undefined,true);return {to,path,clear:path.length&&sim.navigation.segmentClear(path.at(-1)!,to,.4)};})},null,2));
+p.nextSelfCareReview=0;
+stepSelfPreservation(s,sim.terrain,sim.navigation,.05);
+console.log(JSON.stringify({task:p.selfCare,reason:p.survivalReason}));

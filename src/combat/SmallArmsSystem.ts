@@ -23,7 +23,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
   for(const shooter of active){
     if(shooter.needs?.life!=='active')continue;
     if(shooter.building?.recovering&&shooter.action==='sleeping')continue;
-    if(['pinned','broken'].includes(shooter.combat?.reaction??'')||['casualty','support'].includes(shooter.combat?.owner??''))continue;
+    if(['pinned','broken'].includes(shooter.combat?.reaction??'')||['casualty','support','self-care'].includes(shooter.combat?.owner??''))continue;
     if((weaponStock(state,shooter)?.ammo??0)<1||shooter.suppression>=90)continue;
     if(shooter.duty&&(shooter.duty.kind!=='watch'||shooter.duty.arrivedAt===undefined||shooter.duty.rationUntil!==undefined))continue;
     const weapon=equipWeapon(state,shooter),definition=WEAPONS[weapon.id];
@@ -43,11 +43,11 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     const observed=candidates.filter(s=>known.has(s.id)&&canSpot(state,terrain,shooter,s));
     let target:SoldierState|undefined,solution:ReturnType<typeof clearAimPoint>;
     for(const candidate of observed)if(inSector(candidate)){
-      solution=clearAimPoint(terrain,shooter,candidate);if(solution){target=candidate;break;}
+      solution=clearAimPoint(terrain,shooter,candidate,state);if(solution){target=candidate;break;}
     }
     if(!target&&!area){combat.pauseReason=observed.some(inSector)?'Firing edge obstructed · cannot clear cover':observed.length?'Outside mounted gun firing sector':'No observed target in weapon range';delete shooter.aimTargetId;delete shooter.aimReadyAt;delete combat.aim;continue;}
     const point=area?{...area,y:terrain.heightAt(area.x,area.z)+.8}:solution!;
-    const muzzle=muzzlePoint(terrain,{...shooter,heading:Math.atan2(point.x-shooter.x,point.z-shooter.z)});
+    const muzzle=muzzlePoint(terrain,{...shooter,heading:Math.atan2(point.x-shooter.x,point.z-shooter.z)},state);
     if(area){
       // Suppression may deliberately strike the enemy's protection. Reject an
       // obstructed local firing edge, not every distant parapet on the ray.
@@ -60,7 +60,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     if(range>definition.range)continue;
     // A conservative envelope for fire discipline, bounded by the same physical
     // cone as the shot. Raw stress multipliers must not withhold point-blank fire.
-    const envelope=Math.min(rifleSpread(range)*spread,maximumShotOffset(Math.hypot(range,point.y-muzzlePoint(terrain,shooter).y)));
+    const envelope=Math.min(rifleSpread(range)*spread,maximumShotOffset(Math.hypot(range,point.y-muzzlePoint(terrain,shooter,state).y)));
     if(!area&&definition.burst===1&&.8/(2*Math.PI*envelope**2)<.003&&!squad.order.pushThrough){combat.pauseReason='Holding ammunition · aimed hit implausible';continue;}
     const aimId=area?undefined:target?.id;
     if(shooter.aimTargetId!==aimId||!combat.aim||area&&distance(combat.aim.point,point)>2){

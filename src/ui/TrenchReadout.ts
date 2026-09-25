@@ -33,10 +33,14 @@ export function trenchPeople(state:BattlefieldState,network:TrenchNetwork,t:Tren
 
 /** Count this worksite, not everyone digging somewhere in its connected area. */
 export function trenchWorkforce(state:BattlefieldState,t?:TrenchState){
-  if(!t||t.status==='complete')return {digging:0,helpers:0};
+  if(!t||t.status==='complete')return {digging:0,helpers:0,assigned:0,recovering:0,hauling:0,walking:0,blocked:0};
   const crew=new Set(state.squads.filter(q=>q.faction!=='enemy'&&q.order.type==='construct-trench').flatMap(q=>q.engineerWork?
     q.engineerWork.crews.filter(c=>c.trenchId===t.id).flatMap(c=>c.soldierIds):q.order.trenchId===t.id?q.soldierIds:[]));
   const facilities=new Set(state.living?.facilities.filter(f=>f.connectorId===t.id).map(f=>f.id));
   const people=state.soldiers.filter(s=>s.health>0&&s.needs?.life!=='dead'&&(crew.has(s.id)||s.duty?.kind==='construct'&&facilities.has(s.duty.facilityId!)));
-  return {digging:people.filter(s=>s.action==='digging').length,helpers:people.filter(s=>s.action==='clearing spoil').length};
+  return {assigned:people.length,digging:people.filter(s=>s.action==='digging').length,helpers:people.filter(s=>s.action==='clearing spoil').length,
+    recovering:people.filter(s=>['sleeping','resting','eating'].includes(s.action)).length,
+    hauling:people.filter(s=>s.selfCare?.kind==='resupply'||s.duty?.kind==='haul').length,
+    walking:people.filter(s=>s.action==='moving to work front'||s.action==='moving along work front').length,
+    blocked:people.filter(s=>s.action.startsWith('waiting')||s.combat?.owner==='reaction').length};
 }

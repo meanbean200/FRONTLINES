@@ -97,8 +97,10 @@ describe('combat and living-garrison transitions',()=>{
   it('does not snap an aiming guard back to the selected front between combat ticks',()=>{
     const {sim,g,people,enemy}=sleepingGarrison(),guard=people[0];
     guard.duty!.kind='watch';guard.action='watching';guard.aimTargetId=enemy.id;guard.heading=0;g.front=Math.PI;
+    (guard.combat??={shotSequence:0}).aim={targetId:enemy.id,since:sim.state.elapsed,lastSeen:sim.state.elapsed,point:{x:enemy.x,y:0,z:enemy.z},lastHeading:0,lastPosition:{x:guard.x,z:guard.z},settlingUntil:0};
     sim.garrisons.step(.05);expect(guard.heading).toBe(0);
-    delete guard.aimTargetId;sim.garrisons.step(.05);expect(guard.heading).toBe(Math.PI);
+    // A depleted/reloading weapon cannot pin a guard to an ancient target forever.
+    sim.state.elapsed+=2.1;sim.garrisons.step(.05);expect(guard.aimTargetId).toBeUndefined();expect(guard.heading).toBe(Math.PI);
   });
   it('alarms sleepers when nearby unassigned troops exchange fire',()=>{
     const {state,sim,g,people,enemy}=sleepingGarrison();

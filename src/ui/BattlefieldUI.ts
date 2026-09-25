@@ -88,7 +88,7 @@ export class BattlefieldUI {
     if(mode==='facility')label.textContent='PLACE WORK ORDER · follow the placement preview · Esc / right-click cancels';
     if(mode==='defend')label.textContent='DEFEND AREA · draw frontage near completed trenches · then choose facing';
     if(['observe','suppress','assault','fall-back'].includes(mode))label.textContent=`${mode.toUpperCase()} · ${mode==='assault'||mode==='fall-back'?'draw your route or click a position':'click a world position'} · Esc cancels`;
-    if(['mortarHE','mortarSmoke','smokeGrenades'].includes(mode))label.textContent=`${SUPPORT_NAMES[mode as SupportKind]} · ${mode==='smokeGrenades'?'within 30 m':'50–900 m'} · click target · ${mode==='mortarHE'?'40 m friendly danger area':'smoke blocks sight, not bullets'} · Esc cancels`;
+    if(['mortarHE','mortarSmoke','smokeGrenades'].includes(mode))label.textContent=`${SUPPORT_NAMES[mode as SupportKind]} · ${mode==='smokeGrenades'?'within 30 m':'Field guns 100–1600 m / legacy mortars 50–900 m'} · click target · ${mode==='mortarHE'?'explosive danger area requires confirmation':'smoke blocks sight, not bullets'} · Esc cancels`;
     if(reviewing)label.textContent='REPLAY REVIEW · recorded snapshots · campaign paused';
     else if(ended)label.textContent='OPERATION COMPLETE · inspect the sector or choose a new operation in MENU';
     this.renderRoster();this.renderSelection();

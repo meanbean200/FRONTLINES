@@ -20,13 +20,13 @@ export async function plot(page,points){
 }
 export async function profile(page,seconds=8){
   return page.evaluate(seconds=>new Promise(resolve=>{
-    const api=window.__FRONTLINES__,start=performance.now(),simStart=api.getState().elapsed,intervals=[],costs=[],speed=api.getState().simSpeed;
+    const api=window.__FRONTLINES__,start=performance.now(),simStart=api.getState().elapsed,intervals=[],costs=[],steps=[],speed=api.getState().simSpeed;
     let last=start,mutations=0;const observer=new MutationObserver(rows=>mutations+=rows.length);observer.observe(document.querySelector('#trench-panel'),{subtree:true,childList:true});
-    const sample=now=>{intervals.push(now-last);last=now;costs.push(api.getFrameCosts?.()??{});
+    const sample=now=>{intervals.push(now-last);last=now;costs.push(api.getFrameCosts?.()??{});steps.push(api.getSimulationCosts?.()??{});
       if(now-start<seconds*1000){requestAnimationFrame(sample);return;}
       observer.disconnect();const sorted=intervals.slice(1).sort((a,b)=>a-b),summary={};
       for(const key of Object.keys(costs[0])){const row=costs.map(c=>c[key]).sort((a,b)=>a-b);summary[key]={mean:row.reduce((a,b)=>a+b,0)/row.length,p95:row[Math.floor(row.length*.95)],max:row.at(-1)};}
-      resolve({wallSeconds:(now-start)/1000,simulationSeconds:api.getState().elapsed-simStart,speed,frames:sorted.length,p50:sorted[Math.floor(sorted.length*.5)],p95:sorted[Math.floor(sorted.length*.95)],max:sorted.at(-1),costs:summary,inspectorMutations:mutations,perf:api.getPerf(),view:api.getVisualStats(),trenches:api.getState().trenches.length,complete:api.getState().trenches.filter(t=>t.status==='complete').length});
+      resolve({wallSeconds:(now-start)/1000,simulationSeconds:api.getState().elapsed-simStart,speed,frames:sorted.length,mean:sorted.reduce((a,b)=>a+b,0)/sorted.length,p50:sorted[Math.floor(sorted.length*.5)],p95:sorted[Math.floor(sorted.length*.95)],max:sorted.at(-1),hitches:intervals.flatMap((ms,i)=>ms>40?[{frame:i,ms,costs:costs[i],lastFixedTick:steps[i]}]:[]),costs:summary,inspectorMutations:mutations,perf:api.getPerf(),view:api.getVisualStats(),trenches:api.getState().trenches.length,complete:api.getState().trenches.filter(t=>t.status==='complete').length});
     };requestAnimationFrame(sample);
   }),seconds);
 }

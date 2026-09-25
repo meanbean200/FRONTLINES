@@ -7,7 +7,7 @@ import {connectedName,networkRepresentatives} from './TrenchReadout';
 import {friendlyTrenches} from './TrenchReadout';
 import type {TrenchNetwork} from '../garrison/TrenchNetwork';
 
-interface BuildActions {manage:(id?:number)=>void;place:(id:number,kind:Facility['kind'])=>void;assign:(id?:number)=>void;focus:(point:Vec2)=>void}
+interface BuildActions {manage:(id?:number)=>void;place:(id:number,kind:Facility['kind'],guns?:1|4)=>void;assign:(id?:number)=>void;focus:(point:Vec2)=>void}
 /** Contextual construction choices. Opening never changes orders or inventories. */
 export class BuildPanel {
   readonly element=document.createElement('section');
@@ -24,13 +24,14 @@ export class BuildPanel {
     this.button.onclick=()=>this.element.hidden?this.open():this.close();
     this.element.querySelector('[data-build-close]')!.addEventListener('click',()=>this.close());
     this.element.querySelector('#trench-command')!.addEventListener('click',()=>this.close());
-    const weapons=document.createElement('button');weapons.dataset.buildCategory='weapons';weapons.innerHTML=fieldIcon('defend')+'<span><strong>Weapon position</strong><small>Trench-edge MG or open mortar pit</small></span>';this.element.querySelector('.build-trench')!.after(weapons);
+    const weapons=document.createElement('button');weapons.dataset.buildCategory='weapons';weapons.innerHTML=fieldIcon('defend')+'<span><strong>Weapon position</strong><small>Mounted MG, field gun or four-gun battery</small></span>';this.element.querySelector('.build-trench')!.after(weapons);
+    const battery=document.createElement('button');battery.dataset.buildKind='mortar';battery.dataset.guns='4';battery.innerHTML='<strong>Four-gun artillery battery</strong><small>128 materials · 4 separate guns · 8 crew · 12 m spacing</small>';this.element.querySelector('.build-catalog')!.append(battery);
     const page=(value?:string)=>{this.element.querySelector<HTMLElement>('.build-categories')!.hidden=Boolean(value);for(const el of this.element.querySelectorAll<HTMLElement>('[data-build-page]'))el.hidden=el.dataset.buildPage!==(value==='weapons'?'support':value);this.element.querySelector('[data-build-page="support"] h3')!.textContent=value==='weapons'?'Weapon position':'Support structures';for(const b of this.element.querySelectorAll<HTMLElement>('[data-build-kind]'))b.hidden=value==='weapons'?!['emplacement','mortar'].includes(b.dataset.buildKind!):value==='support'?['emplacement','mortar'].includes(b.dataset.buildKind!):false;};
     this.element.querySelectorAll<HTMLButtonElement>('[data-build-category]').forEach(b=>b.onclick=()=>{if(b.dataset.buildCategory==='jobs'){const g=this.getState().living!.garrisons.find(g=>g.id===this.networkId);this.close();this.actions.manage(g?.trenchId??(this.networkId<0?-this.networkId:undefined));}else page(b.dataset.buildCategory);});
     this.element.querySelectorAll<HTMLButtonElement>('[data-build-back]').forEach(b=>b.onclick=()=>page());
     this.element.querySelector('#build-network')!.addEventListener('change',e=>{this.networkId=Number((e.target as HTMLSelectElement).value);this.update(true);});
     this.element.querySelector('#assign-builders')!.addEventListener('click',()=>{this.actions.assign(this.networkId||undefined);this.update(true);});
-    this.element.querySelectorAll<HTMLButtonElement>('[data-build-kind]').forEach(b=>b.onclick=()=>{this.actions.place(this.networkId,b.dataset.buildKind as Facility['kind']);this.close();});
+    this.element.querySelectorAll<HTMLButtonElement>('[data-build-kind]').forEach(b=>b.onclick=()=>{this.actions.place(this.networkId,b.dataset.buildKind as Facility['kind'],b.dataset.guns==='4'?4:1);this.close();});
     window.addEventListener('frontlines-menu',()=>this.close());
     root.querySelectorAll('[data-hud-panel]').forEach(b=>b.addEventListener('click',()=>this.close()));
     window.addEventListener('keydown',e=>{if(!this.element.hidden&&e.code==='Escape'){e.preventDefault();e.stopImmediatePropagation();this.close();}},true);

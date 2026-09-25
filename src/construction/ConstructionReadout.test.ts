@@ -12,6 +12,8 @@ describe('construction controls match actual work rules',()=>{
     const sim=createStudyScenario(),q=fitEngineers(sim.state)[0];q.order={type:'construct-trench',trenchId:sim.state.trenches[0].id,issuedAt:0};q.movementState='moving';
     const people=sim.state.soldiers.filter(s=>s.squadId===q.id);people.forEach(s=>s.action='walking');
     expect(constructionStatus(sim.state,q)).toContain('Approaching');people[0].action='digging';expect(constructionStatus(sim.state,q)).toContain('1 digging');
+    people.forEach(s=>s.action='sleeping');expect(constructionStatus(sim.state,q)).toContain('8 recovering');
+    people.forEach(s=>s.action='waiting for tool crew');expect(constructionStatus(sim.state,q)).toContain('Waiting for tool crew');
     sim.state.simSpeed=0;expect(constructionStatus(sim.state,q)).toContain('Paused');
   });
   it('opens the selected formation network, not an unrelated first network',()=>{

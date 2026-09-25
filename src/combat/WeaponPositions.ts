@@ -19,7 +19,7 @@ export const currentWeapon=(state:BattlefieldState,s:SoldierState)=>operatedPosi
 export function installPositionWeapons(state:BattlefieldState,deliver=false):void {
   for(const f of state.living?.facilities??[]){
     if(!['emplacement','mortar'].includes(f.kind)||!f.paid||f.progress<1)continue;
-    if(!f.installation&&f.includesWeapon)f.installation={kind:f.kind==='mortar'?'mortar':'crew-mg',source:'construction'};
+    if(!f.installation&&f.includesWeapon)f.installation={kind:f.artillery?'field-gun':f.kind==='mortar'?'mortar':'crew-mg',source:'construction'};
     let migrated=false;
     if(!f.installation){
       const carrier=crewAt(state,f).find(s=>carriesPositionWeapon(state,s,f.kind as WeaponPositionKind)&&distance(s,f)<4);
@@ -60,7 +60,7 @@ export function positionReadiness(state:BattlefieldState,f:Facility):string {
   return '';
 }
 export function weaponPositionReadiness(state:BattlefieldState,squadId:number,kind:WeaponPositionKind):string {
-  const f=assignedWeaponPosition(state,squadId,kind);return f?positionReadiness(state,f):`Assign a built ${kind==='mortar'?'mortar pit':'MG position'} and its individual crew`;
+  const f=assignedWeaponPosition(state,squadId,kind);return f?positionReadiness(state,f):`Assign a built ${kind==='mortar'?'artillery position':'MG position'} and its individual crew`;
 }
 /** Only historical squad assignments are translated; no people, stock or coordinates change. */
 export function migrateWeaponCrews(state:BattlefieldState):void {

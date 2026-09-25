@@ -23,6 +23,7 @@ export class TerrainSystem {
   readonly objects=new WorldOcclusion(this);
   private segments: ExcavationSegment[] = [];
   private buckets = new Map<string, ExcavationSegment[]>();
+  private craterBuckets=new Map<string,BattlefieldState['craters']>();
   private bounds: ModificationBounds[] = [];
   private signature = '';
   private readonly routeIds=new WeakMap<Vec2[],number>();
@@ -96,6 +97,8 @@ export class TerrainSystem {
     this.revision++;
     this.segments = [];
     this.buckets.clear();
+    this.craterBuckets.clear();
+    for(const c of this.state.craters)for(let x=Math.floor((c.x-c.radius*1.3)/32);x<=Math.floor((c.x+c.radius*1.3)/32);x++)for(let z=Math.floor((c.z-c.radius*1.3)/32);z<=Math.floor((c.z+c.radius*1.3)/32);z++){const key=x+','+z,list=this.craterBuckets.get(key)??[];list.push(c);this.craterBuckets.set(key,list);}
     this.bounds = this.state.craters.map(c => ({ minX: c.x - c.radius * 1.3, maxX: c.x + c.radius * 1.3, minZ: c.z - c.radius * 1.3, maxZ: c.z + c.radius * 1.3 }));
     for (const trench of this.state.trenches) {
       const built=excavatedPoints(trench,.5),fullLength=routeMetrics(trench.points).length,origin=trench.excavation?.origin??0;
@@ -166,7 +169,7 @@ export class TerrainSystem {
         spoil = Math.max(spoil, 0.5 * Math.sin((hit.distance - half) / 3 * Math.PI));
       }
     }
-    for (const crater of this.state.craters) {
+    for (const crater of this.craterBuckets.get(`${Math.floor(x/32)},${Math.floor(z/32)}`)??[]) {
       const t = Math.hypot(x - crater.x, z - crater.z) / crater.radius;
       if (t < 1) excavation = Math.min(excavation, -crater.depth * Math.pow(1 - t * t, 1.6));
       if (t > 0.82 && t < 1.3) spoil = Math.max(spoil, crater.depth * 0.18 * Math.sin((t - 0.82) / 0.48 * Math.PI));

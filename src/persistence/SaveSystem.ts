@@ -165,7 +165,8 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
     if(squad.engineerWork!==undefined){
       const work=squad.engineerWork,members=new Set<number>();
       if(!work||order.type!=='construct-trench'||work.version!==1||!finite(work.nextReview)||work.nextReview<0||!Array.isArray(work.crews)||work.crews.length>squad.soldierIds.length)return false;
-      const jobs=new Set([order.trenchId,...(squad.constructionQueue??[]).map(j=>typeof j==='number'?j:j.kind==='trench'?j.id:undefined)]);
+      if(work.projectId!==undefined&&!trenchIds.has(work.projectId)||work.projectTrenches!==undefined&&(!Array.isArray(work.projectTrenches)||work.projectTrenches.some(id=>!trenchIds.has(id))||new Set(work.projectTrenches).size!==work.projectTrenches.length))return false;
+      const jobs=new Set([order.trenchId,...(work.projectTrenches??[]),...(squad.constructionQueue??[]).map(j=>typeof j==='number'?j:j.kind==='trench'?j.id:undefined)]);
       for(const crew of work.crews){
         if(!crew||!Array.isArray(crew.soldierIds)||crew.soldierIds.length<1||crew.soldierIds.length>2||![-1,1].includes(crew.direction)||!Array.isArray(crew.route)||!crew.route.every(point)||!Number.isInteger(crew.routeIndex)||crew.routeIndex<0||crew.routeIndex>crew.route.length||typeof crew.approached!=='boolean')return false;
         if(crew.trenchId!==0&&(!trenchIds.has(crew.trenchId)||!jobs.has(crew.trenchId)&&state.trenches.find(t=>t.id===crew.trenchId)?.status!=='complete'))return false;
@@ -182,7 +183,7 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
       if(!Number.isSafeInteger(combat.shotSequence)||combat.shotSequence<0)return false;
       const aim=combat.aim;
       if(aim&&(![aim.since,aim.lastSeen,aim.lastHeading,aim.settlingUntil].every(finite)||!point(aim.point)||!finite(aim.point.y)||!point(aim.lastPosition)||aim.targetId!==undefined&&!soldierMap.has(aim.targetId)))return false;
-      if(combat.reaction!==undefined&&!['steady','under-fire','pinned','shaken','broken'].includes(combat.reaction)||combat.owner!==undefined&&!['order','duty','reaction','casualty','building','support'].includes(combat.owner))return false;
+      if(combat.reaction!==undefined&&!['steady','under-fire','pinned','shaken','broken'].includes(combat.reaction)||combat.owner!==undefined&&!['order','duty','reaction','casualty','building','support','self-care'].includes(combat.owner))return false;
       if(combat.weapon?.effectivePoint&&!point(combat.weapon.effectivePoint))return false;
       for(const v of [combat.reactionUntil,combat.reactionSince,combat.lastIncoming,combat.threatDirection,combat.coverReview,combat.coverTests])if(v!==undefined&&!finite(v))return false;
       if(combat.coverAnchor!==undefined&&!point(combat.coverAnchor))return false;
@@ -294,6 +295,15 @@ function validLiving(state:BattlefieldState):boolean {
   for(const c of w.crates)if(!point(c)||!stock(c.stock)||c.droppedBy!==undefined&&!sIds.has(c.droppedBy))return false;
   for(const s of state.soldiers){
     const n=s.needs;if(!n||!['active','incapacitated','dead'].includes(n.life)||!['energy','hunger','thirst','hungryHours','thirstyHours','sleepHours','day','watchHours','interruptedSleep','taskChanges'].every(k=>nonnegative(n[k as keyof typeof n]))||n.energy>100||n.hunger>100||n.thirst>100||!stock(s.carried))return false;
+    const care=s.selfCare;
+    if(s.nextSelfCareReview!==undefined&&!nonnegative(s.nextSelfCareReview)||s.survivalReason!==undefined&&(typeof s.survivalReason!=='string'||s.survivalReason.length>500))return false;
+    if(care){
+      if(care.retryAt!==undefined&&!nonnegative(care.retryAt))return false;
+      if(care.recovering!==undefined&&typeof care.recovering!=='boolean')return false;
+      if(!['sleep','meal','resupply'].includes(care.kind)||!['exit','outbound','use','return'].includes(care.stage)||![care.orderAt,care.since,care.until,care.blockedFor].every(nonnegative)||!point(care.home)||!Array.isArray(care.route)||care.route.length>4096||!care.route.every(point)||!Number.isInteger(care.index)||care.index<0||care.index>care.route.length)return false;
+      if(care.home.building&&(!Number.isSafeInteger(care.home.building.id)||care.home.building.id<0||![0,1].includes(care.home.building.floor)||!point(care.home.building.target)))return false;
+      if(care.source&&(!['cache','forward','facility','rear'].includes(care.source.kind)||!Number.isSafeInteger(care.source.id)||care.source.id<0))return false;
+    }
     if(s.personalArea!==undefined&&typeof s.personalArea!=='boolean')return false;
     if(s.garrisonId!==undefined){const g=w.garrisons.find(g=>g.id===s.garrisonId),q=state.squads.find(q=>q.id===s.squadId);if(!g||!q||(g.faction??'player')!==(q.faction??'player')||!s.personalArea&&!g.squadIds.includes(s.squadId))return false;}
     const d=s.duty;if(d&&(!['watch','patrol','sleep','rest','meal','haul','construct'].includes(d.kind)||!point(d.destination)||!Array.isArray(d.route)||!d.route.every(point)||!Number.isInteger(d.routeIndex)||d.routeIndex<0||d.routeIndex>d.route.length||!nonnegative(d.since)||!nonnegative(d.until)||!nonnegative(d.blockedFor)||(d.arrivedAt!==undefined&&!nonnegative(d.arrivedAt))||(d.patientId!==undefined&&!sIds.has(d.patientId))))return false;

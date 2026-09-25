@@ -38,7 +38,10 @@ export interface Duty {
 export interface Facility extends Vec2 {
   id: number; garrisonId: number; kind: 'rest' | 'meal' | 'store' | 'ammo'|'aid'|'emplacement'|'mortar';
   /** Installed equipment and ready stock belong to the position, not its crew. */
-  installation?: {kind:'crew-mg'|'mg42'|'mortar'; source:'construction'|'legacy-kit'; personId?:number; weapon?:import('../combat/Weapons').WeaponState};
+  installation?: {kind:'crew-mg'|'mg42'|'mortar'|'field-gun'; source:'construction'|'legacy-kit'; personId?:number; weapon?:import('../combat/Weapons').WeaponState};
+  /** Explicit new field-gun identity. Older indirect posts remain legacy mortars.
+   * The internal mortar category/resource keys are retained for save compatibility. */
+  artillery?:{batteryId:number;index:number;size:1|4};
   /** New work orders include the installation in their delivered material budget. */
   includesWeapon?:boolean;
   autoReplaceCrew?:boolean;

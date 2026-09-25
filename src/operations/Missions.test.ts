@@ -1,6 +1,9 @@
 import {describe,it,expect} from 'vitest';
-import {createOperationalBattle} from './createOperationalBattle';
-import {placeMissionOperation,type MissionKind} from './MissionContent';
+import {createOperationalBattle as createBattle} from './createOperationalBattle';
+import {placeMissionOperation as placeMission,type MissionKind} from './MissionContent';
+// Freeze these legacy fixtures. Version-three mission rules have their own tests.
+const createOperationalBattle=(...args:Parameters<typeof createBattle>)=>createBattle(args[0],args[1],args[2],args[3],args[4]??2);
+const placeMissionOperation=(...args:Parameters<typeof placeMission>)=>placeMission(args[0],args[1],args[2],args[3]??2);
 import {defaultBattleSetup,resolveBattleSetup} from './BattleSetup';
 import {SaveSystem} from '../persistence/SaveSystem';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';

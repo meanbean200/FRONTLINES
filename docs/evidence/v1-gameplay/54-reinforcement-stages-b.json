@@ -1,0 +1,86 @@
+[
+  {
+    "time": 180.45000000000678,
+    "stages": [
+      {
+        "id": 385,
+        "stage": "rear"
+      },
+      {
+        "id": 387,
+        "stage": "rear"
+      },
+      {
+        "id": 389,
+        "stage": "rear"
+      },
+      {
+        "id": 391,
+        "stage": "rear"
+      },
+      {
+        "id": 393,
+        "stage": "rear"
+      },
+      {
+        "id": 395,
+        "stage": "rear"
+      },
+      {
+        "id": 397,
+        "stage": "rear"
+      },
+      {
+        "id": 399,
+        "stage": "rear"
+      }
+    ],
+    "people": 96
+  },
+  {
+    "time": 201.80000000001164,
+    "stages": [
+      {
+        "id": 385,
+        "stage": "shuttle",
+        "truck": 367
+      },
+      {
+        "id": 387,
+        "stage": "shuttle",
+        "truck": 367
+      },
+      {
+        "id": 389,
+        "stage": "shuttle",
+        "truck": 367
+      },
+      {
+        "id": 391,
+        "stage": "shuttle",
+        "truck": 367
+      },
+      {
+        "id": 393,
+        "stage": "shuttle",
+        "truck": 367
+      },
+      {
+        "id": 395,
+        "stage": "shuttle",
+        "truck": 367
+      },
+      {
+        "id": 397,
+        "stage": "shuttle",
+        "truck": 367
+      },
+      {
+        "id": 399,
+        "stage": "shuttle",
+        "truck": 367
+      }
+    ],
+    "people": 96
+  }
+]

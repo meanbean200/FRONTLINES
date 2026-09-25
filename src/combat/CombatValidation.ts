@@ -37,6 +37,7 @@ export function validCombatSystems(state:BattlefieldState):boolean {
     if(!Array.isArray(op.supportMissions)||op.supportMissions.length>64)return false;
     for(const m of op.supportMissions){
       if(!m||!Number.isInteger(m.id)||m.id<1||m.id>=state.nextEntityId||!state.squads.some(q=>q.id===m.squadId))return false;
+      if(m.weapon!==undefined&&(m.weapon!=='field-gun'||m.kind==='smokeGrenades'||!state.living?.facilities.some(f=>f.id===m.positionId&&f.artillery)))return false;
       if(!['mortarHE','mortarSmoke','smokeGrenades'].includes(m.kind)||!['preparing','flight','complete','cancelled'].includes(m.stage))return false;
       if(m.source!==undefined&&!['PLAYER','ENEMY_AI','CAMPAIGN_AI','SCRIPTED_SCENARIO','LEGACY_UNKNOWN'].includes(m.source)||m.side!==undefined&&!['player','enemy'].includes(m.side)||m.ammoConsumed!==undefined&&![0,1].includes(m.ammoConsumed))return false;
       const side=state.squads.find(q=>q.id===m.squadId)!.faction??'player';

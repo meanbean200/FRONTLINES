@@ -42,8 +42,9 @@ export class TrenchSystem {
       const hit=this.state.trenches.map(t=>({t,a:trenchAnchorAt(t,request.origin)})).filter(v=>v.a&&v.a.distance<.3).sort((a,b)=>a.a!.distance-b.a!.distance)[0];
       if(!hit?.a)return;
       connector=hit.t;anchor={trenchId:hit.t.id,along:hit.a.along};position=inlineGeometry(hit.t,anchor.along,facing).position;
-    }else{connector=this.create([request.origin,request.position]);connector.width=7.2;connector.progress=.001;connector.status='building';}
+    }else{connector=this.create([request.origin,request.position]);connector.width=7.2;connector.progress=.001;connector.status='building';if(kind==='mortar')connector.depth=.45;}
     w.facilities.push({id,...position,garrisonId:g.id,kind,facing,connectorId:connector.id,trenchAnchor:anchor,includesWeapon:['emplacement','mortar'].includes(kind)?true:undefined,weaponCrewIds:['emplacement','mortar'].includes(kind)?[]:undefined,workOrder:{explicit:request.explicit??false,workerIds:[],createdAt:this.state.elapsed},progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'||kind==='mortar'?WEAPON_POSITIONS[kind].crew:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
+    if(kind==='mortar')w.facilities.at(-1)!.artillery={batteryId:id,index:0,size:1};
     // Explicit works have one authority: their person-level work order. The
     // squad queue belongs to trench excavation / legacy automatic support.
     if(!request.explicit)for(const q of engineers)(q.constructionQueue??=[]).push({kind:'facility',id});
