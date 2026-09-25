@@ -5,9 +5,15 @@ import {MATERIALS} from './BuildingGeometry';
 
 export interface SightRay {clear:boolean;transmission:number;blockedBy?:'terrain'|'building'|'trunk';point?:Vec2;energy?:number}
 /** Segment/box slab intersection; finite 3D volumes, not infinitely tall obstacles. */
-export function boxIntersection(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number},box:{x:number;y:number;z:number;rx:number;ry:number;rz:number}):[number,number]|undefined {
+export function boxIntersection(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number},box:{x:number;y:number;z:number;rx:number;ry:number;rz:number;angle?:number;pitch?:number}):[number,number]|undefined {
+  if(box.angle||box.pitch){
+    const c=Math.cos(box.angle??0),s=Math.sin(box.angle??0),cp=Math.cos(box.pitch??0),sp=Math.sin(box.pitch??0);
+    const local=(p:typeof a)=>{const x=p.x-box.x,y=p.y-box.y,z=p.z-box.z,rz=x*s+z*c;return {x:x*c-z*s,y:y*cp+rz*sp,z:rz*cp-y*sp};};
+    return boxIntersection(local(a),local(b),{x:0,y:0,z:0,rx:box.rx,ry:box.ry,rz:box.rz});
+  }
   let enter=0,leave=1;
-  for(const [start,delta,center,r] of [[a.x,b.x-a.x,box.x,box.rx],[a.y,b.y-a.y,box.y,box.ry],[a.z,b.z-a.z,box.z,box.rz]]){
+  for(let axis=0;axis<3;axis++){
+    const start=axis===0?a.x:axis===1?a.y:a.z,end=axis===0?b.x:axis===1?b.y:b.z,delta=end-start,center=axis===0?box.x:axis===1?box.y:box.z,r=axis===0?box.rx:axis===1?box.ry:box.rz;
     if(Math.abs(delta)<1e-9){if(Math.abs(start-center)>r)return;continue;}
     const t1=(center-r-start)/delta,t2=(center+r-start)/delta;
     enter=Math.max(enter,Math.min(t1,t2));leave=Math.min(leave,Math.max(t1,t2));if(enter>leave)return;
@@ -49,13 +55,20 @@ export class WorldOcclusion {
   }
   private traceUncached(from:Vec2,to:Vec2,fromY:number,toY:number,foliage:boolean,precise:boolean):SightRay {
     const a={x:from.x,z:from.z,y:fromY},b={x:to.x,z:to.z,y:toY},length=distance(from,to);
+    const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y),minZ=Math.min(a.z,b.z),maxZ=Math.max(a.z,b.z);
     let nearest=Infinity,blockedBy:SightRay['blockedBy'];
     const penetrations:{enter:number;leave:number;resistance:number}[]=[];
     for(const box of this.terrain.supportProtection()){const hit=boxIntersection(a,b,box);if(hit&&hit[0]<nearest){nearest=hit[0];blockedBy='terrain';}}
     for(const [id,building] of this.terrain.buildings.entries()){
-      if(building.x+building.width/2<Math.min(a.x,b.x)||building.x-building.width/2>Math.max(a.x,b.x)||building.z+building.depth/2<Math.min(a.z,b.z)||building.z-building.depth/2>Math.max(a.z,b.z))continue;
+      if(building.x+building.width/2+.6<Math.min(a.x,b.x)||building.x-building.width/2-.6>Math.max(a.x,b.x)||building.z+building.depth/2+.6<Math.min(a.z,b.z)||building.z-building.depth/2-.6>Math.max(a.z,b.z))continue;
       const base=this.terrain.baseHeightAt(building.x,building.z);
       for(const box of this.terrain.structure(id)){
+        // Reject whole roof/foundation/detail pieces before allocating a world box
+        // or doing slab intersections. Pitch contributes to the true vertical bounds.
+        const ry=box.pitch?Math.abs(Math.cos(box.pitch))*box.ry+Math.abs(Math.sin(box.pitch))*box.rz:box.ry;
+        if(box.y+base+ry<minY||box.y+base-ry>maxY||box.x+box.rx<minX||box.x-box.rx>maxX)continue;
+        const rz=box.pitch?Math.abs(Math.cos(box.pitch))*box.rz+Math.abs(Math.sin(box.pitch))*box.ry:box.rz;
+        if(box.z+rz<minZ||box.z-rz>maxZ)continue;
         const hit=boxIntersection(a,b,{...box,y:box.y+base});
         if(hit){const material=MATERIALS[box.material];if(!foliage&&!material.stopsSmallArms)penetrations.push({enter:hit[0],leave:hit[1],resistance:material.resistance});else if(hit[0]<nearest){nearest=hit[0];blockedBy='building';}}
       }

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TerrainSystem } from '../terrain/TerrainSystem';
 import {buildingMaterial} from './BuildingMaterials';
+import {buildingStyle} from '../terrain/BuildingGeometry';
 import {WORLD_SIZE,WORLD_HALF,CHUNK_SIZE,clamp} from '../core/types';
 import {ROADS,pointOnRoad} from '../terrain/WorldLayout';
 
@@ -76,16 +77,17 @@ export function refreshRoadCuts(group:THREE.Group,terrain:TerrainSystem,x:number
 
 function createBuildingMeshes(terrain:TerrainSystem):THREE.Group {
   const group=new THREE.Group();group.name='buildings';group.userData.key=JSON.stringify(terrain.snapshot.buildingChanges);
-  const plaster=[0xbab4a0,0xa8a79a,0xc5b896,0x9d9e96].map(color=>buildingMaterial(color,'plaster'));
-  const wood=buildingMaterial(0x7b674e,'wood'),roofs=[0x615b55,0x786c5b,0x665f53,0x706c61].map(color=>buildingMaterial(color,'roof'));
+  const plaster=[buildingMaterial(0xbab4a0,'plaster'),buildingMaterial(0xc6bd9f,'plaster'),buildingMaterial(0x90725d,'brick'),buildingMaterial(0xa7a393,'stone')];
+  const wood=buildingMaterial(0x7b674e,'wood'),roofs=[0x535d61,0x856851,0x72685b,0x59615c].map(color=>buildingMaterial(color,'roof'));
+  const shutters=[0x5a6357,0x536265,0x685b47,0x635f4d].map(color=>buildingMaterial(color,'wood'));
   terrain.buildings.forEach((b,id)=>{
-    const root=new THREE.Group();root.userData.buildingId=id;const floor=terrain.baseHeightAt(b.x,b.z);
+    const root=new THREE.Group();root.userData.buildingId=id;const floor=terrain.baseHeightAt(b.x,b.z),style=buildingStyle(b);
     const parts=new Map<string,{material:THREE.Material;layer:number;geometries:THREE.BufferGeometry[]}>();
     for(const box of terrain.structure(id)){
-      const material=box.role==='roof'?roofs[id%4]:box.material==='timber'?wood:plaster[id%4];
-      const key=box.layer+':'+box.material+':'+(box.role==='roof'?'roof':'body');
+      const material=box.role==='roof'?roofs[style.variant]:box.material==='timber'?(box.role==='trim'?shutters[style.variant]:wood):plaster[style.variant];
+      const key=box.layer+':'+material.uuid;
       const row=parts.get(key)??{material,layer:box.layer,geometries:[]};
-      const geometry=new THREE.BoxGeometry(box.rx*2,box.ry*2,box.rz*2);geometry.translate(box.x,floor+box.y,box.z);row.geometries.push(geometry);parts.set(key,row);
+      const geometry=new THREE.BoxGeometry(box.rx*2,box.ry*2,box.rz*2);if(box.pitch)geometry.rotateX(box.pitch);geometry.translate(box.x,floor+box.y,box.z);row.geometries.push(geometry);parts.set(key,row);
     }
     for(const row of parts.values()){const geometry=mergeGeometries(row.geometries);row.geometries.forEach(g=>g.dispose());const mesh=new THREE.Mesh(geometry,row.material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.layer=row.layer;root.add(mesh);}
     group.add(root);

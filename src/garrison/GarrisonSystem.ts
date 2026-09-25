@@ -15,6 +15,7 @@ import {bankPoint,defensivePost} from './DefensivePositions';
 import {ownsAction} from '../combat/Reactions';
 import {facilitySiteReason,SUPPORT_WORKS} from '../construction/ConstructionReadout';
 import {positionOperator,type WeaponPositionKind} from '../combat/WeaponPositions';
+import {facilityFrame,facilityPoint} from '../terrain/SupportGeometry';
 import {equipmentOf,hasEquipment,squadHasEquipment} from '../combat/Equipment';
 import {postureSpeed} from '../combat/Posture';
 
@@ -746,9 +747,10 @@ export class GarrisonSystem {
     return candidates.find(p=>!this.state.soldiers.some(o=>o!==s&&o.needs?.life!=='dead'&&(distance(o,p)<.8||o.duty&&distance(o.duty.destination,p)<1)))??{x:s.x,z:s.z};
   }
   private facilityDestination(f:Facility,s:SoldierState):Vec2|undefined {
+    const frame=facilityFrame(f,this.state.trenches.find(t=>t.id===f.connectorId));
     for(let i=0;i<9;i++){
       if(f.kind==='rest'&&i===4)continue;
-      const spacing=f.kind==='rest'?1.8:1.4,p={x:f.x+(i%3-1)*spacing,z:f.z+(Math.floor(i/3)-1)*spacing};
+      const spacing=f.kind==='rest'?1.8:1.4,p=facilityPoint(frame,(i%3-1)*spacing,(Math.floor(i/3)-1)*spacing);
       if(!this.state.soldiers.some(o=>o!==s&&o.needs?.life!=='dead'&&(distance(o,p)<.8||o.duty&&distance(o.duty.destination,p)<1)))return p;
     }return undefined;
   }

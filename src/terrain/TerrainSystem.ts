@@ -40,7 +40,20 @@ export class TerrainSystem {
   private protection:ReturnType<typeof emplacementBoxes>=[];
   supportProtection(){if(this.protectionRevision!==this.revision){this.protectionRevision=this.revision;this.protection=this.state.living?.facilities.flatMap(f=>emplacementBoxes(f).map(b=>({...b,y:b.y+this.heightAt(f.x,f.z)})))??[];}return this.protection;}
   buildingCondition(id:number):BuildingCondition{return this.state.buildingChanges?.find(b=>b.id===id)?.condition??'intact';}
-  structure(id:number):StructureBox[]{const condition=this.buildingCondition(id),site=this.buildings[id],old=this.structureCache.get(id);if(old?.condition===condition&&old.site===site)return old.boxes;const boxes=structureBoxes(site,condition);this.structureCache.set(id,{condition,site,boxes});return boxes;}
+  structure(id:number):StructureBox[]{
+    const condition=this.buildingCondition(id),site=this.buildings[id],old=this.structureCache.get(id);if(old?.condition===condition&&old.site===site)return old.boxes;
+    const boxes=structureBoxes(site,condition),base=this.baseHeightAt(site.x,site.z);
+    // A level interior needs real masonry down to the hillside, not floating walls.
+    for(const side of [-1,1])for(let i=0;i<8;i++){
+      const x=site.x+(i+.5)/8*site.width-site.width/2,z=site.z+side*site.depth/2;
+      const depth=Math.max(.25,base-Math.min(this.baseHeightAt(x-site.width/16,z),this.baseHeightAt(x+site.width/16,z))+.25);
+      boxes.push({x,y:-depth/2,z,rx:site.width/16,ry:depth/2,rz:.21,layer:0,role:'foundation',material:'masonry'});
+      const sx=site.x+side*site.width/2,sz=site.z+(i+.5)/8*site.depth-site.depth/2;
+      const sd=Math.max(.25,base-Math.min(this.baseHeightAt(sx,sz-site.depth/16),this.baseHeightAt(sx,sz+site.depth/16))+.25);
+      boxes.push({x:sx,y:-sd/2,z:sz,rx:.21,ry:sd/2,rz:site.depth/16,layer:0,role:'foundation',material:'masonry'});
+    }
+    this.structureCache.set(id,{condition,site,boxes});return boxes;
+  }
   buildingAt(p:Vec2):number|undefined{
     if(this.buildingIndex!==this.buildings){this.buildingIndex=this.buildings;this.buildingBuckets.clear();this.buildings.forEach((b,id)=>{for(let x=Math.floor((b.x-b.width/2)/32);x<=Math.floor((b.x+b.width/2)/32);x++)for(let z=Math.floor((b.z-b.depth/2)/32);z<=Math.floor((b.z+b.depth/2)/32);z++){const key=x+','+z,row=this.buildingBuckets.get(key)??[];row.push(id);this.buildingBuckets.set(key,row);}});}
     return this.buildingBuckets.get(Math.floor(p.x/32)+','+Math.floor(p.z/32))?.find(i=>buildingContains(this.buildings[i],p));

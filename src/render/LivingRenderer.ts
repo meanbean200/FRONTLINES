@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type {BattlefieldState,Vec2} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {bodyFloor,playerVisibleEnemies,playerCanSeePoint} from '../operations/Visibility';
-import {emplacementBoxes} from '../terrain/SupportGeometry';
+import {supportAppearance} from './SupportAppearance';
 import {truckGeometry,truckWheelGeometry} from './VehicleVisual';
 import {positionOperator,weaponPositionReadiness} from '../combat/WeaponPositions';
 export class LivingRenderer {
@@ -15,7 +15,7 @@ export class LivingRenderer {
   private readonly lastTrucks=new Map<number,{x:number;z:number;angle:number;roll:number}>();
   private identity?:object;
   constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem){this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes,this.vehicles,this.wheels);for(const mesh of [this.vehicles,this.wheels]){mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;mesh.count=0;}}
-  update(now:number,showRoutes:boolean):void {
+  update(now:number,showRoutes:boolean,view?:Vec2&{zoom:number}):void {
     this.routes.visible=showRoutes;if(now-this.last<80)return;this.last=now;
     const state=this.getState(),w=state.living;if(!w){this.boxes.count=this.vehicles.count=this.wheels.count=0;return;}
     if(this.identity!==w){this.identity=w;this.lastTrucks.clear();}
@@ -42,9 +42,9 @@ export class LivingRenderer {
     for(const f of w.facilities){
       if(w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!seen(f))continue;
       const h=this.terrain.heightAt(f.x,f.z);
-      if(f.progress<=0){for(const x of [-2.7,2.7])for(const z of [-2.7,2.7])box(f.x+x,h+.5,f.z+z,.15,1,.15,0xd9b56b);continue;}
+      const detail=!view||Math.hypot(f.x-view.x,f.z-view.z,view.zoom*.6)<230;
+      for(const p of supportAppearance(f,state.trenches.find(t=>t.id===f.connectorId),(x,z)=>this.terrain.heightAt(x,z),detail))box(p.x,p.y,p.z,p.sx,p.sy,p.sz,p.color,p.angle,p.pitch??0);
       if((f.kind==='emplacement'||f.kind==='mortar')&&f.progress===1){
-        for(const b of emplacementBoxes(f))box(b.x,h+b.y,b.z,b.rx*2,b.ry*2,b.rz*2,0x958965);
         if(f.weaponSquadId!==undefined&&!weaponPositionReadiness(state,f.weaponSquadId,f.kind)){
           const operator=positionOperator(state,f.weaponSquadId,f.kind)!,angle=operator.heading;
           const x=operator.x+Math.sin(angle)*.55,z=operator.z+Math.cos(angle)*.55;
@@ -59,15 +59,6 @@ export class LivingRenderer {
         }
         continue;
       }
-      box(f.x,h+.08,f.z,5.5,.14,5.5,0x827357);
-      for(const side of [-1,1])box(f.x+side*2.7,h+.7*f.progress,f.z,.18,1.4*f.progress,5.5,0x695540);
-      box(f.x,h+.7*f.progress,f.z+2.7,5.5,1.4*f.progress,.18,0x695540);
-      if(f.progress<1)continue;
-      if(f.kind==='rest'){for(let i=0;i<9;i++)if(i!==4)box(f.x+(i%3-1)*1.8,h+.22,f.z+(Math.floor(i/3)-1)*1.8,.75,.25,1.3,0x6f785b);}
-      else if(f.kind==='meal'){box(f.x,h+.65,f.z,3.5,.15,1.1,0x958060);for(const side of [-1,1])box(f.x,h+.3,f.z+side*1.3,3.5,.22,.4,0x81714d);}
-      else if(f.kind==='aid'){for(const side of [-1,1])box(f.x+side*1.3,h+.45,f.z,1,.2,2.2,0xb8b99c);box(f.x,h+1.5,f.z+2.75,1.3,1.3,.1,0xeee9d8);box(f.x,h+1.5,f.z+2.82,.25,1,.08,0x9f493c);box(f.x,h+1.5,f.z+2.84,1,.25,.08,0x9f493c);}
-      else if(f.kind==='emplacement'){for(let i=-2;i<=2;i++)box(f.x+i,h+.5,f.z-2.3,.9,1,.65,0x958965);box(f.x,h+.65,f.z,.25,1.3,.25,0x45473b);box(f.x,h+1.35,f.z-.7,.25,.2,1.6,0x37382e);}
-      else for(let i=0;i<Math.min(12,Math.ceil(Object.values(f.stock).reduce((a,b)=>a+b,0)/20));i++)box(f.x+(i%3-1)*1.35,h+.45,f.z+(Math.floor(i/3)-1)*1.1,1,.9,.9,0x77794e);
     }
     for(const s of state.soldiers){if(hidden(s)||s.needs?.life!=='active'||s.duty?.kind!=='haul')continue;const n=Object.values(s.carried??{}).reduce((a,b)=>a+b,0);if(n>0)box(s.x+Math.sin(s.heading)*.45,this.terrain.heightAt(s.x,s.z)+1,s.z+Math.cos(s.heading)*.45,.5,.42,.42,0xa18b5b,s.heading);}
     for(const c of w.crates)if(Object.values(c.stock).some(n=>n>0)){

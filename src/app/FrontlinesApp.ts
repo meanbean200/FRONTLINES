@@ -238,7 +238,7 @@ export class FrontlinesApp {
     this.trenchRenderer.update(this.camera.zoomDistance);
     this.debugRenderer.update(realDt, this.flags, this.selectedSquads);
     this.tactical.update(realDt);
-    this.livingRenderer.update(now,this.garrisonPanel.showRoutes||this.deploymentPanel.showRoutes);this.garrisonPanel.update(now);
+    this.livingRenderer.update(now,this.garrisonPanel.showRoutes||this.deploymentPanel.showRoutes,{...this.camera.target,zoom:this.camera.zoomDistance});this.garrisonPanel.update(now);
     this.trenchPanel.update();
     this.buildPanel.update();this.deploymentPanel.update();
     this.operationRenderer.update();this.operationUI.update(now);
