@@ -21,9 +21,10 @@ export function validCombatSystems(state:BattlefieldState):boolean {
     const c=s.combat;if(!c)continue;
     if(c.nextCareReview!==undefined&&!nonnegative(c.nextCareReview))return false;
     const w=c.wound;
-    if(w&&(!['legacy','minor','disabling','critical','fatal'].includes(w.severity)||!nonnegative(w.at)||w.at>state.elapsed+.001||typeof w.stabilized!=='boolean'||!['untreated','stabilized','aid-post','transport','evacuated'].includes(w.care)||w.bleedUntil!==undefined&&(!nonnegative(w.bleedUntil)||w.severity!=='critical'||w.stabilized)||w.returnAt!==undefined&&!nonnegative(w.returnAt)))return false;
+    if(w&&(!['legacy','minor','disabling','critical','fatal'].includes(w.severity)||!nonnegative(w.at)||w.at>state.elapsed+.001||typeof w.stabilized!=='boolean'||!['untreated','stabilized','aid-post','awaiting-transport','transport','evacuated'].includes(w.care)||w.bleedUntil!==undefined&&(!nonnegative(w.bleedUntil)||w.severity!=='critical'||w.stabilized)||w.returnAt!==undefined&&!nonnegative(w.returnAt)||w.care==='awaiting-transport'&&!w.stabilized))return false;
     const t=c.careTask;
     if(t?.buildingExit!==undefined&&typeof t.buildingExit!=='boolean')return false;
+    if(t&&(t.reviewAt!==undefined&&!nonnegative(t.reviewAt)||t.legStartedAt!==undefined&&(!nonnegative(t.legStartedAt)||t.legStartedAt>state.elapsed+.001)))return false;
     if(t){if(!ids.has(t.patientId)||t.patientId===s.id||patients.has(t.patientId)||!['approach','treat','carry','evacuate'].includes(t.stage)||!Array.isArray(t.route)||!t.route.every(point)||!Number.isInteger(t.index)||t.index<0||t.index>t.route.length||!point(t.destination)||![t.progress,t.blockedFor].every(nonnegative)||t.facilityId!==undefined&&!state.living?.facilities.some(f=>f.id===t.facilityId&&f.kind==='aid'))return false;patients.add(t.patientId);}
   }
   const passengers=new Set<number>();
