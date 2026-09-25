@@ -48,6 +48,7 @@ export class OperationRenderer {
     const friendlies=state.soldiers.filter(s=>!enemySquads.has(s.squadId)&&s.needs?.life==='active');
     if (op) for (const shot of op.shotEvents??[]) {
       if (state.elapsed-shot.at>.09 || count >= 600) continue;
+      if(![shot.from,shot.to].every(p=>[p.x,p.y,p.z].every(Number.isFinite)&&Math.abs(p.x)<=2500&&Math.abs(p.z)<=2500&&Math.abs(p.y)<=2500)||Math.hypot(shot.to.x-shot.from.x,shot.to.y-shot.from.y,shot.to.z-shot.from.z)>1200)continue;
       if(enemySquads.has(shot.squadId)&&!seen.has(shot.shooterId)&&!friendlies.some(s=>Math.hypot(s.x-shot.to.x,s.z-shot.to.z)<50))continue;
       const k = count++ * 6;
       // Incoming fire may be noticed without revealing an unseen shooter's exact position.

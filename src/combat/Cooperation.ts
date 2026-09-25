@@ -1,5 +1,6 @@
 import {distance,type BattlefieldState} from '../core/types';
 import {squadContacts} from '../operations/Visibility';
+import {currentWeapon,weaponStock} from './WeaponPositions';
 
 /** Stable alternating groups. Covering fire is evidenced by actual useful
  * rounds, not simply by labeling another squad 'support'. */
@@ -13,8 +14,8 @@ export function coordinateMovement(state:BattlefieldState):void {
     const t=q.tactics??={group:0,switchAt:state.elapsed+10};
     if(state.elapsed>=t.switchAt){t.group=t.group===0?1:0;t.switchAt=state.elapsed+10;}
     const support=people.filter(s=>q.soldierIds.indexOf(s.id)%2!==t.group),moving=people.filter(s=>!support.includes(s));
-    const useful=(s:typeof people[number])=>(s.combat?.weapon?.effectiveUntil??0)>state.elapsed&&Boolean(s.combat?.weapon?.effectivePoint&&threats.some(c=>distance(c,s.combat!.weapon!.effectivePoint!)<45));
-    const effective=support.some(s=>useful(s)&&(s.carried?.ammo??0)>0&&s.suppression<70);
+    const useful=(s:typeof people[number])=>{const w=currentWeapon(state,s);return (w?.effectiveUntil??0)>state.elapsed&&Boolean(w?.effectivePoint&&threats.some(c=>distance(c,w.effectivePoint!)<45));};
+    const effective=support.some(s=>useful(s)&&(weaponStock(state,s)?.ammo??0)>0&&s.suppression<70);
     const otherSupport=state.soldiers.some(s=>s.squadId!==q.id&&state.squads.some(other=>other.id===s.squadId&&(other.faction??'player')===side)&&distance(s,q)<150&&useful(s)&&s.needs?.life==='active');
     for(const s of support)if(s.combat?.owner==='order'){s.combat.owner='reaction';s.combat.pauseReason='Covering moving group';s.action='covering fire';}
     // A short wait permits the supporting group to settle. Without effective

@@ -28,5 +28,5 @@ it('builds, walks a mixed crew, observes and fires the mounted gun; wrong facing
   const shoot=(seconds:number)=>{for(let i=0;i<seconds*20;i++){s.elapsed+=.05;s.operation!.elapsed+=.05;updateContacts(s,t);fireSmallArms(s,t,[gun,helper,target],sides,(p)=>{if(p.id===gun.id)fired++;});}};
   shoot(12);expect(fired).toBeGreaterThan(1);expect(gun.carried!.ammo).toBeLessThan(60);
   f.facing=Math.PI;const count=fired;shoot(6);expect(fired).toBe(count);expect(gun.combat?.pauseReason).toContain('firing sector');
-  gun.carried!.ammo=helper.carried!.ammo=0;expect(positionReadiness(s,f)).toContain('AMMO');
+  f.stock.ammo=gun.carried!.ammo=helper.carried!.ammo=0;expect(positionReadiness(s,f)).toContain('AMMO');
 },20000);

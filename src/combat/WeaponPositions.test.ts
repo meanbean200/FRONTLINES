@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {createOperation} from '../operations/createOperation';
 import {preparedPosition} from './testing/PositionFixture';
-import {isMountedGun,positionOperator,weaponPositionReadiness} from './WeaponPositions';
+import {isMountedGun,positionOperator,weaponPositionReadiness,crewOperator} from './WeaponPositions';
 import {equipWeapon,weaponReady} from './Weapons';
 import {requestSupport,stepSupport} from './SupportWeapons';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
@@ -27,7 +27,7 @@ describe('physical crewed weapon positions',()=>{
     expect(weaponReady(state,gun,state.soldiers)).toBe(true);
     f.progress=.99;expect(weaponReady(state,gun,state.soldiers)).toBe(false);f.progress=1;
     gun.x+=20;expect(weaponReady(state,gun,state.soldiers)).toBe(false);
-    equipWeapon(state,gun,'bar');state.elapsed=30;expect(weaponReady(state,gun,state.soldiers)).toBe(true);
+    f.weaponCrewIds=[];gun.carried!.ammo=20;equipWeapon(state,gun,'bar');state.elapsed=30;expect(weaponReady(state,gun,state.soldiers)).toBe(true);
   });
   it.each(['player','enemy'] as const)('%s mortar needs a built, assigned pit and cancels when its crew leaves',side=>{
     const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),q=state.squads.find(q=>q.faction===side&&q.kind==='mortar')!,operator=positionOperator(state,q.id,'mortar')!,target={x:operator.x+150,z:operator.z};
@@ -69,7 +69,7 @@ describe('physical crewed weapon positions',()=>{
   });
   it('a direct crew order releases the operator from routine digging without deleting the work queue',()=>{
     const sim=createStudyScenario(),state=sim.state,q=state.squads[0];state.soldiers.find(s=>s.squadId===q.id)!.equipment!.mortar=true;
-    const f=preparedPosition(state,q.id,'mortar'),s=positionOperator(state,q.id,'mortar')!;sim.garrisons.network.sync(state.trenches);
+    const f=preparedPosition(state,q.id,'mortar'),s=crewOperator(state,f)!;sim.garrisons.network.sync(state.trenches);
     s.duty!.kind='construct';q.constructionQueue=[{kind:'facility',id:f.id}];f.weaponCrewIds=[];
     expect(sim.garrisons.assignWeapon(q.id,f.id).accepted).toBe(true);expect(s.duty?.kind).toBe('watch');expect(q.constructionQueue).toEqual([{kind:'facility',id:f.id}]);
   });

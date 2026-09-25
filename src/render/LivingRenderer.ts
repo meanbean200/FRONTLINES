@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import type {BattlefieldState,Vec2} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
-import {bodyFloor,playerVisibleEnemies,playerCanSeePoint} from '../operations/Visibility';
+import {playerVisibleEnemies,playerCanSeePoint} from '../operations/Visibility';
 import {supportAppearance} from './SupportAppearance';
 import {truckGeometry,truckWheelGeometry} from './VehicleVisual';
 import {crewOperator} from '../combat/WeaponPositions';
 import {mortarGeometry} from './WeaponPositionVisual';
+import {weaponCrewPoint} from '../construction/PositionDefinitions';
+import {muzzlePoint} from '../combat/Ballistics';
 export class LivingRenderer {
   readonly group=new THREE.Group();
   private readonly boxes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({roughness:1}),8192);
@@ -50,17 +52,19 @@ export class LivingRenderer {
       if((f.kind==='emplacement'||f.kind==='mortar')&&f.progress===1){
         const operator=crewOperator(state,f);
         // Empty ammunition or a reload must not make the physical weapon vanish.
-        if(operator&&Math.hypot(operator.x-f.x,operator.z-f.z)<4&&operator.duty?.facilityId===f.id&&operator.duty.arrivedAt!==undefined){
-          const angle=operator.heading;
-          const x=operator.x+Math.sin(angle)*.55,z=operator.z+Math.cos(angle)*.55;
+        if(f.installation){
+          const present=operator&&Math.hypot(operator.x-f.x,operator.z-f.z)<4&&operator.duty?.facilityId===f.id&&operator.duty.arrivedAt!==undefined;
+          const angle=present?operator.heading:f.facing??0,at=present?operator:weaponCrewPoint(state,f,0);
+          const x=at.x+Math.sin(angle)*.55,z=at.z+Math.cos(angle)*.55;
           if(f.kind==='mortar'){
             if(mortarCount<128){q.setFromAxisAngle(axis,angle);matrix.compose(position.set(x,this.terrain.heightAt(x,z)+.02,z),q,scale.setScalar(1));this.mortars.setMatrixAt(mortarCount++,matrix);}
-            const shells=operator.carried?.mortarHE??0;
+            const shells=f.stock.mortarHE;
             if(shells>0)box(f.x+1.15,h+.17,f.z-.5,.7,.3,1,0x817758,angle);
           }else{
-            // The gun remains the operator's actual equipment model; render its mount, not a free second gun.
-            const top=bodyFloor(this.terrain,operator)+1.1,height=Math.max(.3,top-h);
-            box(x,h+height/2,z,.13,height,.13,0x414739,angle);box(x,h+.12,z,.8,.13,.65,0x454b3c,angle);
+            const muzzle=present?muzzlePoint(this.terrain,operator):{x:at.x+Math.sin(angle)*.8+Math.cos(angle)*.16,z:at.z+Math.cos(angle)*.8-Math.sin(angle)*.16,y:this.terrain.heightAt(at.x,at.z)+1.38};
+            const bx=muzzle.x-Math.sin(angle)*.78,bz=muzzle.z-Math.cos(angle)*.78,base=this.terrain.heightAt(bx,bz),height=Math.max(.3,muzzle.y-base);
+            box(bx,base+height/2,bz,.13,height,.13,0x414739,angle);box(bx,base+.12,bz,.8,.13,.65,0x454b3c,angle);
+            box(bx,muzzle.y-.035,bz,.19,.18,.66,0x343a35,angle);box(muzzle.x-Math.sin(angle)*.32,muzzle.y,muzzle.z-Math.cos(angle)*.32,.065,.065,.64,0x292e2b,angle);
           }
         }
         continue;

@@ -12,7 +12,7 @@ describe('terrain-aware support presentation',()=>{
     const crew=state.soldiers.filter(s=>s.squadId===q.id),ids=new Set([q.id]);
     q.order={type:'hold',issuedAt:state.elapsed};
     crew.forEach((s,i)=>Object.assign(s,{x:building.x+i*.2,z:building.z,action:'holding',suppression:0}));
-    preparedPosition(state,q.id,'mortar');
+    const position=preparedPosition(state,q.id,'mortar');
     for(const kind of ['mortarHE','mortarSmoke'] as const){
       const ready=supportReadiness(state,kind,q.id,terrain);
       expect(ready.ammo).toBeGreaterThan(0);expect(ready.crew).toBeGreaterThanOrEqual(2);
@@ -21,8 +21,10 @@ describe('terrain-aware support presentation',()=>{
     const before=JSON.stringify(state),underRoof=selectionReadout(state,ids,terrain)!.support!;
     expect(underRoof.he.reason).toContain('roofs');expect(underRoof.smoke.reason).toContain('roofs');
     expect(JSON.stringify(state)).toBe(before);
-    crew.forEach(s=>s.z=building.z+building.depth/2+6);
-    preparedPosition(state,q.id,'mortar');
+    // Relocate this isolated fixture, retaining the same installed mortar and ammunition.
+    const dz=building.depth/2+10;
+    crew.forEach(s=>{s.z+=dz;if(s.duty)s.duty.destination.z+=dz;});
+    position.z+=dz;state.trenches.find(t=>t.id===position.connectorId)!.points.forEach(p=>p.z+=dz);
     expect(crew.every(s=>terrain.buildingAt(s)===undefined)).toBe(true);
     const outside=selectionReadout(state,ids,terrain)!.support!;
     expect(outside.he.reason).toBe('');expect(outside.smoke.reason).toBe('');

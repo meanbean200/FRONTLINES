@@ -19,11 +19,11 @@ describe('physical support missions',()=>{
     expect(supportReadiness(state,'mortarHE',q.id).reason).toBe('');
   });
   it('rejects an already moving mortar before creating a mission or spending inventory',()=>{
-    const {state,q,crew}=setup();q.order={type:'move',issuedAt:0,target:{x:20,z:0}};
+    const {state,q}=setup();q.order={type:'move',issuedAt:0,target:{x:20,z:0}};
     const before=JSON.stringify(state);expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0}).reason).toContain('Hold [H]');
     expect(state.operation!.supportRequests!.at(-1)).toMatchObject({accepted:false,source:'PLAYER'});
     const withoutAudit=structuredClone(state);delete withoutAudit.operation!.supportRequests;
-    expect(JSON.stringify(withoutAudit)).toBe(before);expect(crew[0].carried!.mortarHE).toBe(4);
+    expect(JSON.stringify(withoutAudit)).toBe(before);expect(state.living!.facilities.find(f=>f.kind==='mortar')!.stock.mortarHE).toBe(4);
   });
   it('reports separated or pinned crews before acceptance and leaves standing orders intact',()=>{
     const {state,q,crew}=setup();crew.forEach((p,i)=>{if(i)p.x=100;});
@@ -47,9 +47,9 @@ describe('physical support missions',()=>{
     expect(supportMissionText(m,3)).toBe('Preparing · 12 s to fire');m.stage='flight';expect(supportMissionText(m,16)).toBe('Round in flight · 3 s to impact');
   });
   it('does not launch mortar shells through an intact roof or consume their ammunition',()=>{
-    const {state,sim,q,crew}=setup();vi.spyOn(sim.terrain,'buildingAt').mockReturnValue(0);
+    const {state,sim,q}=setup();vi.spyOn(sim.terrain,'buildingAt').mockReturnValue(0);
     expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0}).accepted).toBe(true);state.elapsed=15;stepSupport(state,sim.terrain);
-    expect(state.operation!.supportMissions![0].stage).toBe('cancelled');expect(state.operation!.supportMissions![0].reason).toContain('roofs');expect(crew[0].carried!.mortarHE).toBe(4);
+    expect(state.operation!.supportMissions![0].stage).toBe('cancelled');expect(state.operation!.supportMissions![0].reason).toContain('roofs');expect(state.living!.facilities.find(f=>f.kind==='mortar')!.stock.mortarHE).toBe(4);
   });
   it('rechecks a moving grenade thrower and preserves their ammunition',()=>{
     const {state,sim,q,crew}=setup();expect(requestSupport(state,'smokeGrenades',q.id,{x:20,z:0}).accepted).toBe(true);const before=crew.reduce((n,s)=>n+s.carried!.smokeGrenades,0);for(const s of crew)s.x=-40;state.elapsed=2;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions![0].stage).toBe('cancelled');expect(crew.reduce((n,s)=>n+s.carried!.smokeGrenades,0)).toBe(before);
@@ -58,12 +58,12 @@ describe('physical support missions',()=>{
     const {state,sim,q}=setup();requestSupport(state,'mortarHE',q.id,{x:100,z:0},true);const m=state.operation!.supportMissions![0];sim.terrain.buildings=[{...sim.terrain.buildings[0],...m.impact}];state.buildingChanges=[{id:0,condition:'damaged',damage:100}];const patient=state.soldiers.find(s=>s.squadId!==q.id)!;Object.assign(patient,m.impact);vi.mocked(sim.terrain.objects.trace).mockImplementation(()=>({clear:state.buildingChanges![0].condition==='ruined',transmission:0}));state.elapsed=30;stepSupport(state,sim.terrain);expect(patient.combat?.wound).toBeUndefined();expect(state.buildingChanges[0].condition).toBe('ruined');
   });
   it('consumes only on launch; preparation and shell flight save exactly',()=>{
-    const {state,sim,q,crew}=setup();expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0}).accepted).toBe(true);expect(crew[0].carried!.mortarHE).toBe(4);state.elapsed=15;stepSupport(state,sim.terrain);expect(crew[0].carried!.mortarHE).toBe(3);expect(state.operation!.supportMissions![0].stage).toBe('flight');reconcileSupplyDemands(state);expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);state.elapsed=30;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions![0].stage).toBe('complete');for(const n of Object.values(balance(state)))expect(Math.abs(n)).toBeLessThan(1e-8);
+    const {state,sim,q}=setup();expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0}).accepted).toBe(true);expect(state.living!.facilities.find(f=>f.kind==='mortar')!.stock.mortarHE).toBe(4);state.elapsed=15;stepSupport(state,sim.terrain);expect(state.living!.facilities.find(f=>f.kind==='mortar')!.stock.mortarHE).toBe(3);expect(state.operation!.supportMissions![0].stage).toBe('flight');reconcileSupplyDemands(state);expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);state.elapsed=30;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions![0].stage).toBe('complete');for(const n of Object.values(balance(state)))expect(Math.abs(n)).toBeLessThan(1e-8);
   });
   it('warns of friendly danger and cancellation does not consume a shell',()=>{
-    const {state,sim,q,crew}=setup();const friendly=state.soldiers.find(s=>s.squadId===state.squads[1].id)!;friendly.x=100;friendly.z=0;
+    const {state,sim,q}=setup();const friendly=state.soldiers.find(s=>s.squadId===state.squads[1].id)!;friendly.x=100;friendly.z=0;
     expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0}).warning).toBe(true);expect(state.operation!.supportMissions).toBeUndefined();
-    expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0},true).accepted).toBe(true);q.order.type='move';stepSupport(state,sim.terrain);expect(state.operation!.supportMissions![0].stage).toBe('cancelled');expect(crew[0].carried!.mortarHE).toBe(4);
+    expect(requestSupport(state,'mortarHE',q.id,{x:100,z:0},true).accepted).toBe(true);q.order.type='move';stepSupport(state,sim.terrain);expect(state.operation!.supportMissions![0].stage).toBe('cancelled');expect(state.living!.facilities.find(f=>f.kind==='mortar')!.stock.mortarHE).toBe(4);
   });
   it('explosions can injure allies; intervening protection prevents wounds',()=>{
     const {state,sim,q}=setup();const target=state.soldiers.find(s=>s.squadId===state.squads[1].id)!;

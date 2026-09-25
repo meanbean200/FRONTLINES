@@ -103,6 +103,8 @@ export interface CraterState extends Vec2 {
 }
 
 export interface BattlefieldState {
+  terrainKnowledge?:import('../operations/TrenchIntelligence').TerrainKnowledge;
+  preparedOrders?:import('../operations/PreparedOrders').PreparedOrder[];
   /** Generated terrain identity, separate from serialized simulation schema. */
   worldVersion?: number;
   worldSize?: number;

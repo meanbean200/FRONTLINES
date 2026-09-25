@@ -51,14 +51,14 @@ describe('human sight and remembered contacts',()=>{
   it('does not render hidden enemy bodies or legs',()=>{
     const {state,sim,target}=fixture(),render=new UnitRenderer(state,sim.terrain),selection=new Set<number>();
     render.update(selection);const hidden=render.group.children.map(o=>(o as unknown as {count:number}).count);
-    expect(hidden[2]).toBe(0);expect(hidden[3]).toBe(48*2);expect(hidden[5]).toBe(48);expect(hidden[6]).toBe(0);
+    expect(hidden[2]).toBe(0);expect(hidden[3]).toBe(48*2);expect(hidden[5]+hidden[9]+hidden[10]+hidden[11]).toBe(48);expect(hidden[6]).toBe(0);
     updateContacts(state,sim.terrain);render.update(selection);
     expect((render.group.children[2] as unknown as {count:number}).count).toBe(1);
     // A flash in an open field may remain tracked briefly; use actual loss of
     // sight (beyond the search bound) to verify hidden geometry is not drawn.
     target.x=900;target.lastShotAt=.9;state.elapsed=1;updateContacts(state,sim.terrain);render.update(selection);
     expect((render.group.children[2] as unknown as {count:number}).count).toBe(0);
-    expect((render.group.children[5] as unknown as {count:number}).count).toBe(48);
+    expect([5,10,11,12].reduce((n,i)=>n+(render.group.children[i] as unknown as {count:number}).count,0)).toBe(48);
     expect((render.group.children[6] as unknown as {count:number}).count).toBe(0);
   });
   it('persists observations and aim timing, validates them, and accepts older saves',()=>{

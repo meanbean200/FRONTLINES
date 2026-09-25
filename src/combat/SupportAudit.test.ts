@@ -24,6 +24,7 @@ describe('truthful support audit ownership',()=>{
   it('keeps a real no-ammunition rejection, with its identity, faction and reason',()=>{
     const {state,terrain,q,target}=fixture();
     for(const s of state.soldiers.filter(s=>s.squadId===q.id)){state.living!.ledger.initial.mortarHE-=s.carried!.mortarHE;s.carried!.mortarHE=0;}
+    for(const f of state.living!.facilities){state.living!.ledger.initial.mortarHE-=f.stock.mortarHE;f.stock.mortarHE=0;}
     const result=requestSupport(state,'mortarHE',q.id,target,false,terrain);
     expect(result.accepted).toBe(false);expect(result.reason).toContain('ammunition');
     expect(state.operation!.supportRequests!.at(-1)).toMatchObject({squadId:q.id,side:'player',source:'PLAYER',accepted:false,reason:result.reason});

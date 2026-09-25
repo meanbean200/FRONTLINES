@@ -28,7 +28,7 @@ export function reconcileSupplyDemands(state:BattlefieldState):SupplyDemand[]{
       if(f.progress===1&&['emplacement','mortar'].includes(f.kind)){
         const crew=active.filter(s=>f.weaponCrewIds?.includes(s.id));
         for(const resource of (f.kind==='mortar'?['mortarHE','mortarSmoke']:['ammo']) as Resource[]){
-          const usable=crew.reduce((n,s)=>n+(s.carried?.[resource]??0),0),urgent=crew.length>=2&&(g.underFireUntil??0)>state.elapsed&&usable<(resource==='ammo'?12:1);
+          const usable=f.stock[resource]+crew.reduce((n,s)=>n+(s.carried?.[resource]??0),0),urgent=crew.length>=2&&(g.underFireUntil??0)>state.elapsed&&f.stock[resource]<(resource==='ammo'?12:1);
           add(g.id,'weapon',f.id,resource,resource==='ammo'?120:resource==='mortarHE'?8:4,usable,urgent?0:2);
         }
       }

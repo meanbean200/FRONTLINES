@@ -40,7 +40,8 @@ describe('engineer interruptions and partial networks',()=>{
     const {state,q,sim}=fixture();
     const t:TrenchState={id:state.nextEntityId++,points:[{x:-1840,z:-1700},{x:-1640,z:-1700}],progress:.75,status:'planned',width:4.2,depth:1.75,excavation:{start:0,end:150,origin:100}};
     state.trenches.push(t);expect(sim.engineers.workFaces(t,q)).toEqual([{x:-1690,z:-1700}]);
-    expect(sim.resumeConstruction([q.id])).toBe(1);expect(q.route.at(-1)).toEqual({x:-1690,z:-1700});
+    expect(sim.resumeConstruction([q.id])).toBe(0);expect(sim.lastResumeReason).toContain('local');
+    expect(sim.resumeConstruction([q.id],t.id)).toBe(1);expect(q.route.at(-1)).toEqual({x:-1690,z:-1700});
   });
   it('assigns a middle-dug network without moving the entrance into unfinished ground',()=>{
     const {state,q,sim}=fixture();

@@ -1,6 +1,6 @@
 import type {BattlefieldState} from '../../core/types';
 import {inventory,type Facility} from '../../garrison/types';
-import {positionOperator,type WeaponPositionKind} from '../WeaponPositions';
+import {positionOperator,installPositionWeapons,type WeaponPositionKind} from '../WeaponPositions';
 import {SUPPORT_WORKS} from '../../construction/ConstructionReadout';
 
 /** Prepared scenario fixture for isolated combat tests. Production must build and walk here. */
@@ -14,5 +14,5 @@ export function preparedPosition(state:BattlefieldState,squadId:number,kind:Weap
   w.ledger.initial.materials+=cost;w.ledger.consumed.materials+=cost;
   const people=state.soldiers.filter(s=>s.squadId===q.id).sort((a,b)=>Number(b===operator)-Number(a===operator));
   people.forEach((s,i)=>{s.x=x+(i%2)*1.2;s.z=z-Math.floor(i/2)*1.1;s.garrisonId=g.id;s.action='watching';s.duty={kind:'watch',destination:{x:s.x,z:s.z},route:[],routeIndex:0,since:state.elapsed,arrivedAt:state.elapsed,until:state.elapsed+150,blockedFor:0,reason:'Prepared test crew',facilityId:f.id};});
-  return f;
+  installPositionWeapons(state,true);return f;
 }

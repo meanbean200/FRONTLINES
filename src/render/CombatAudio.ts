@@ -1,4 +1,5 @@
 import type {BattlefieldState} from '../core/types';
+import {currentWeapon} from '../combat/WeaponPositions';
 /** Procedural placeholder sounds, driven by the same recorded shot/impact events.
  * Unseen shots are non-positional: hearing a gun does not locate its shooter. */
 export class CombatAudio {
@@ -11,7 +12,7 @@ export class CombatAudio {
     const enemy=new Set(state.squads.filter(q=>q.faction==='enemy').map(q=>q.id)),listeners=state.soldiers.filter(s=>!enemy.has(s.squadId)&&s.needs?.life==='active');
     for(const shot of op.shotEvents??[]){const key='s'+shot.id;if(this.heard.has(key)||state.elapsed-shot.at>.2)continue;this.heard.add(key);
       const distance=Math.min(Infinity,...listeners.map(s=>Math.hypot(s.x-shot.from.x,s.z-shot.from.z)));if(distance>300)continue;
-      const weapon=state.soldiers.find(s=>s.id===shot.shooterId)?.combat?.weapon?.id,heavy=weapon==='mg42'||weapon==='crew-mg',automatic=heavy||weapon==='bar'||weapon==='smg';
+      const shooter=state.soldiers.find(s=>s.id===shot.shooterId),weapon=shooter?currentWeapon(state,shooter)?.id:undefined,heavy=weapon==='mg42'||weapon==='crew-mg',automatic=heavy||weapon==='bar'||weapon==='smg';
       this.sound(heavy?600:automatic?1000:1700,automatic?.075:.14,.025/(1+distance/90));
       if(shot.obstruction&&listeners.some(s=>Math.hypot(s.x-shot.to.x,s.z-shot.to.z)<20))this.sound(2500,.07,.012,.04);
     }

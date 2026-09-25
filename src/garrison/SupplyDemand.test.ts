@@ -30,7 +30,7 @@ describe('explicit supply demand and reservation accounting',()=>{
     const {state,w,g,a,b}=jobs(),truck=w.trucks.find(t=>t.role==='shuttle')!;
     transfer(g.cache,w.rearStock,'materials',12);transfer(w.rearStock,truck.cargo,'materials',8);truck.state='outbound';truck.garrisonId=g.id;reconcileSupplyDemands(state);
     expect(workReadout(state,a)).toMatchObject({reserved:8,inbound:8,remaining:0});expect(workReadout(state,b).remaining).toBe(12);
-    const r=shipmentReadout(state,truck);expect(r.destination).toContain('Trench 01');expect(r.cargo).toEqual(['Materials 8']);expect(r.jobs).toEqual([{name:'MG position 01',amount:8}]);
+    const r=shipmentReadout(state,truck);expect(r.destination).toBe(`Network ${String(g.trenchId).padStart(3,'0')}`);expect(r.cargo).toEqual(['Materials 8']);expect(r.jobs).toEqual([{name:'MG position 01',amount:8}]);
     truck.x+=1000;expect(shipmentReadout(state,truck).destination).toBe(r.destination);
     truck.state='blocked';truck.resume='outbound';reconcileSupplyDemands(state);expect(workReadout(state,a).inbound).toBe(8);
     truck.resume='returning';reconcileSupplyDemands(state);expect(workReadout(state,a).inbound).toBe(0);
@@ -113,6 +113,6 @@ describe('physical position command authority',()=>{
     expect(requestSupport(state,'mortarHE',q.id,target).reason).toContain('actual mortar pit');
     const orders=structuredClone(state.squads.map(q=>q.order));expect(requestPositionSupport(state,'mortarHE',b.id,target,true,sim.terrain).accepted).toBe(true);expect(requestPositionSupport(state,'mortarHE',a.id,target,true,sim.terrain).accepted).toBe(true);
     reconcileSupplyDemands(state);const saved=new SaveSystem().parse(JSON.stringify(state));expect(saved.operation!.supportMissions!.map(m=>m.positionId)).toEqual([b.id,a.id]);expect(saved.operation!.supportMissions![1].crewIds).toEqual([crew[0].id,helper.id]);
-    state.elapsed=16;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions!.every(m=>m.stage==='flight')).toBe(true);expect(crew[0].carried!.mortarHE).toBe(3);expect(crew[2].carried!.mortarHE).toBe(3);expect(state.squads.map(q=>q.order)).toEqual(orders);
+    state.elapsed=16;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions!.every(m=>m.stage==='flight')).toBe(true);expect(a.stock.mortarHE).toBe(3);expect(b.stock.mortarHE).toBe(3);expect(state.squads.map(q=>q.order)).toEqual(orders);
   });
 });

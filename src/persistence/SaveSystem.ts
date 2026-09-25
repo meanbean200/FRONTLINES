@@ -17,10 +17,12 @@ import {validBuildings} from '../terrain/BuildingValidation';
 import {validOperationalRuntime} from '../operations/OperationalValidation';
 import {isOperationId} from '../operations/OperationDefinitions';
 import {initializeEquipment} from '../combat/Equipment';
-import {migrateWeaponCrews} from '../combat/WeaponPositions';
+import {migrateWeaponCrews,installPositionWeapons} from '../combat/WeaponPositions';
 import {validPositionState} from '../construction/PositionValidation';
 import {reconcileSupplyDemands,validSupplyDemands} from '../garrison/SupplyDemand';
 import {migrateSupportPositions} from '../combat/SupportWeapons';
+import {validTerrainKnowledge} from '../operations/TrenchIntelligence';
+import {validPreparedOrders} from '../operations/PreparedOrders';
 
 export const SAVE_KEY = 'frontlines-battlefield-v3-world2-4km';
 const V3_KEY = 'frontlines-battlefield-v3';
@@ -59,7 +61,7 @@ export class SaveSystem {
       const w=legacy.living,stocks=[w.rearStock,w.enemySupply?.stock,w.ledger?.initial,w.ledger?.imported,w.ledger?.consumed,w.ledger?.lost,w.logistics?.manifest,...(w.garrisons??[]).flatMap(g=>[g.cache,g.forwardStock]),...(w.facilities??[]).map(f=>f.stock),...(w.trucks??[]).map(t=>t.cargo),...(w.crates??[]).map(c=>c.stock),...(legacy.soldiers??[]).map(s=>s.carried)];
       for(const stock of stocks)if(stock)for(const key of ['medical','mortarHE','mortarSmoke','smokeGrenades'] as const)stock[key]??=0;
     }
-    if (!isBattlefieldState(value)) throw new Error('Save data is not a supported FRONTLINES battlefield.');
+    if (!isBattlefieldState(value)||!validTerrainKnowledge(value)||!validPreparedOrders(value)) throw new Error('Save data is not a supported FRONTLINES battlefield.');
     const state=structuredClone(value);
     const policySchema=(value as BattlefieldState&{policySchema?:{observationVersion?:unknown;rulesVersion?:unknown}}).policySchema;
     if(policySchema&&(policySchema.observationVersion!==OBSERVATION_VERSION||policySchema.rulesVersion!==RULES_VERSION)){
@@ -95,6 +97,7 @@ export class SaveSystem {
       }
     }
     migrateWeaponCrews(state);
+    installPositionWeapons(state);
     migrateExplicitWorkQueues(state);
     migrateSupportPositions(state);
     if(!state.living!.supplyDemands)reconcileSupplyDemands(state);
@@ -124,6 +127,7 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
   );
   if(!shape)return false;
   const state=candidate as BattlefieldState;
+  if(!validTerrainKnowledge(state)||!validPreparedOrders(state))return false;
   if(!validBuildings(state))return false;
   if(!validCombatSystems(state))return false;
   if(!validWorldPositions(state))return false;

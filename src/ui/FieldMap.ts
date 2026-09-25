@@ -12,6 +12,7 @@ import {drawOperationPlan} from './OperationalMap';
 import {OPERATION_DEFINITIONS} from '../operations/OperationDefinitions';
 import {MISSION_COPY} from '../operations/MissionContent';
 import {placeMapLabels,type MapLabel} from './MapLabels';
+import {knownTrenchNetworks,ownedTrenchIds} from '../operations/TrenchIntelligence';
 
 /** Both map scales use the same delivered knowledge as battlefield markers. */
 export function mapUnits(state:BattlefieldState){
@@ -92,7 +93,9 @@ export class FieldMap {
     ctx.strokeStyle='#c0c6b51b';ctx.lineWidth=1;ctx.font=`${12*textScale}px Bahnschrift`;ctx.fillStyle='#b5bfab';
     for(let i=0;i<8;i++){const x=i*w/8;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();ctx.fillText(String.fromCharCode(65+i),x+8,16);}
     for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(0,i*h/5);ctx.lineTo(w,i*h/5);ctx.stroke();ctx.fillText(String(i),8,i*h/5+16);}
-    for(const t of state.trenches){line(t.points,'#8b7655',2,[4,4]);line(excavatedPoints(t),'#d1b18d',3);}
+    const own=ownedTrenchIds(state,'player');
+    for(const t of state.trenches)if(own.has(t.id)){line(t.points,'#8b7655',2,[4,4]);line(excavatedPoints(t),'#d1b18d',3);}
+    for(const n of knownTrenchNetworks(state))for(const s of n.sections)line(s.points,'#b98878',3);
     const logistics=state.living;
     if(logistics){
       const supplyMark=(point:Vec2,text:string,warning=false)=>{const p=screen(point);ctx.fillStyle='#172322';ctx.strokeStyle=warning?'#d8ad77':'#bcc8c4';ctx.lineWidth=1.5;ctx.fillRect(p.x-5,p.y-5,10,10);ctx.strokeRect(p.x-5,p.y-5,10,10);ctx.fillStyle=ctx.strokeStyle;ctx.font=`${13*textScale}px Bahnschrift`;ctx.textAlign='left';label(text,p.x+9,p.y-12*textScale,warning?4:0);};

@@ -8,6 +8,7 @@ import {muzzlePoint} from '../combat/Ballistics';
 import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
 import {armyFor} from '../operations/BattleSetup';
 import {postureOf} from '../combat/Posture';
+import {operatedPosition} from '../combat/WeaponPositions';
 
 export class UnitRenderer {
   readonly group=new THREE.Group();
@@ -118,7 +119,7 @@ export class UnitRenderer {
       local.set(.16,(aiming||firing?1.24:1.05)-(seated?.43:0),.24).applyQuaternion(rotation);
       weaponPosition.copy(position).add(local);
       if(lying){weaponRotation.setFromAxisAngle(axis,soldier.heading);local.set(.14,.33,.53).applyQuaternion(weaponRotation);weaponPosition.copy(position).add(local);}
-      const weapon=soldier.combat?.weapon?.id,kind=weapon==='crew-mg'||weapon==='mg42'?'machinegun':weapon==='bar'?'automatic':weapon==='smg'?'smg':'rifle';
+      const mount=operatedPosition(this.state,soldier,'emplacement'),weapon=mount?.installation?.kind??soldier.equipment?.weapon??soldier.combat?.weapon?.id,kind=weapon==='crew-mg'||weapon==='mg42'?'machinegun':weapon==='bar'?'automatic':weapon==='smg'?'smg':'rifle';
       if(aiming||firing){
         const muzzle=shot?.from??muzzlePoint(this.terrain,soldier),to=shot?.to??soldier.combat?.aim?.point;
         const direction=to?new THREE.Vector3(to.x-muzzle.x,to.y-muzzle.y,to.z-muzzle.z).normalize():new THREE.Vector3(Math.sin(soldier.heading),0,Math.cos(soldier.heading));
@@ -127,7 +128,7 @@ export class UnitRenderer {
       }
       scale.setScalar(1);matrix.compose(weaponPosition,weaponRotation,scale);
       const digging=soldier.action==='digging'||soldier.action==='clearing spoil',care=soldier.action.startsWith('treating')||soldier.action==='carrying casualty';
-      if(!care&&!digging&&soldier.action!=='being carried'){if(kind==='rifle')this.weapons!.setMatrixAt(weapons++,matrix);else this.variants.get(kind)!.setMatrixAt(variantCounts[kind]++,matrix);}
+      if(!mount&&weapon!=='unarmed'&&!care&&!digging&&soldier.action!=='being carried'){if(kind==='rifle')this.weapons!.setMatrixAt(weapons++,matrix);else this.variants.get(kind)!.setMatrixAt(variantCounts[kind]++,matrix);}
       if(shot){p.set(shot.from.x,shot.from.y,shot.from.z);matrix.compose(p,weaponRotation,scale);this.flashes!.setMatrixAt(flashes++,matrix);}
       for(let leg=0;leg<2;leg++) {
         const phase=moving?Math.sin(this.state.elapsed*8+i*.37+leg*Math.PI)*.2:0;

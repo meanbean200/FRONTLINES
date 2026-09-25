@@ -106,7 +106,7 @@ describe('V1 position management command boundary',()=>{
     const f=post();fund(f);f.p.progress=1;f.p.workOrder!.workerIds=[];const gun=f.state.soldiers[0],helper=f.state.soldiers.find(s=>s.squadId===f.state.squads[1].id)!;gun.equipment!.weapon='crew-mg';gun.carried!.ammo=60;f.state.living!.ledger.initial.ammo+=60;
     for(const q of f.state.squads.slice(0,2)){f.sim.garrisons.release(q.id);q.order={type:'hold',issuedAt:0};}
     const others=structuredClone(f.state.soldiers.filter(s=>s!==gun&&s!==helper)),orders=structuredClone(f.state.squads.map(q=>q.order));
-    expect(f.sim.garrisons.assignCrew(helper.id,f.p.id).reason).toContain('MG REQUIRED');expect(f.sim.garrisons.assignCrew(gun.id,f.p.id).accepted).toBe(true);expect(f.sim.garrisons.assignCrew(helper.id,f.p.id).accepted).toBe(true);expect(f.p.weaponCrewIds).toEqual([gun.id,helper.id]);expect(f.state.soldiers.filter(s=>s!==gun&&s!==helper)).toEqual(others);expect(f.state.squads.map(q=>q.order)).toEqual(orders);
+    expect(f.sim.garrisons.assignCrew(helper.id,f.p.id).accepted).toBe(true);f.sim.garrisons.removeCrew(f.p.id,helper.id);expect(f.sim.garrisons.assignCrew(gun.id,f.p.id).accepted).toBe(true);expect(f.sim.garrisons.assignCrew(helper.id,f.p.id).accepted).toBe(true);expect(f.p.weaponCrewIds).toEqual([gun.id,helper.id]);expect(f.state.soldiers.filter(s=>s!==gun&&s!==helper)).toEqual(others);expect(f.state.squads.map(q=>q.order)).toEqual(orders);
     expect(f.sim.garrisons.assignCrew(f.state.soldiers[3].id,f.p.id).reason).toContain('CREW FULL');run(f.sim,100);expect(positionReadiness(f.state,f.p)).toBe('');
     const saved=new SaveSystem().parse(JSON.stringify(f.state));expect(saved.living!.facilities.find(p=>p.id===f.p.id)!.weaponCrewIds).toEqual([gun.id,helper.id]);expect(positionReadiness(saved,saved.living!.facilities.find(p=>p.id===f.p.id)!)).toBe('');expect(saved.squads.map(q=>q.order)).toEqual(orders);
     const gunBefore=structuredClone(gun);f.sim.garrisons.removeCrew(f.p.id,helper.id);expect(gun).toEqual(gunBefore);expect(positionReadiness(f.state,f.p)).toBe('NO ASSISTANT');expect(new SaveSystem().parse(JSON.stringify(f.state))).toEqual(f.state);
@@ -128,13 +128,13 @@ describe('V1 position management command boundary',()=>{
     const bad=structuredClone(state);bad.living!.facilities.push({...structuredClone(f),id:bad.nextEntityId++});expect(()=>new SaveSystem().parse(JSON.stringify(bad))).toThrow();
   });
   it('leaves an impossible legacy crew uncrewed with a migration notice',()=>{
-    const state=createOperation('campaign'),q=state.squads.find(q=>q.kind==='mortar'&&q.faction==='player')!,f=preparedPosition(state,q.id,'mortar');delete f.weaponCrewIds;f.weaponSquadId=q.id;for(const s of state.soldiers.filter(s=>s.squadId===q.id))s.equipment!.mortar=false;
+    const state=createOperation('campaign'),q=state.squads.find(q=>q.kind==='mortar'&&q.faction==='player')!,f=preparedPosition(state,q.id,'mortar');delete f.weaponCrewIds;delete f.installation;f.weaponSquadId=q.id;for(const s of state.soldiers.filter(s=>s.squadId===q.id))s.equipment!.mortar=false;
     migrateWeaponCrews(state);expect(f.weaponCrewIds).toEqual([]);expect(state.living!.migrationNote).toContain('1 left uncrewed');
   });
   it('fires mortar with an individually selected assistant from another formation and consumes real ammunition',()=>{
     const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),q=state.squads.find(q=>q.kind==='mortar'&&q.faction==='player')!,f=preparedPosition(state,q.id,'mortar'),gun=state.soldiers.find(s=>s.id===f.weaponCrewIds![0])!,old=state.soldiers.find(s=>s.id===f.weaponCrewIds![1])!,helper=state.soldiers.find(s=>s.squadId===state.squads[0].id)!;
-    Object.assign(helper,{x:old.x,z:old.z,garrisonId:f.garrisonId,personalArea:true,duty:structuredClone(old.duty)});f.weaponCrewIds=[gun.id,helper.id];const ammo=gun.carried!.mortarHE,target={x:gun.x+160,z:gun.z};
-    expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain).accepted).toBe(true);state.elapsed=16;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions![0].stage).toBe('flight');expect(gun.carried!.mortarHE).toBe(ammo-1);
+    Object.assign(helper,{x:old.x,z:old.z,garrisonId:f.garrisonId,personalArea:true,duty:structuredClone(old.duty)});f.weaponCrewIds=[gun.id,helper.id];const ammo=f.stock.mortarHE,target={x:gun.x+160,z:gun.z};
+    expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain).accepted).toBe(true);state.elapsed=16;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions![0].stage).toBe('flight');expect(f.stock.mortarHE).toBe(ammo-1);
   });
   it('separates store stock, inbound cargo, construction allocations and personal ammunition without inventing GOOD',()=>{
     const f=post(),truck=f.state.living!.trucks.find(t=>t.role==='shuttle')!;truck.garrisonId=f.g.id;truck.state='blocked';transfer(f.state.living!.rearStock,truck.cargo,'materials',12);f.g.cache.ammo=0;

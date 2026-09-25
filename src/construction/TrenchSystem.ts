@@ -15,6 +15,7 @@ import {SUPPORT_WORKS} from './ConstructionReadout';
 import {squadHasEquipment,hasEquipment} from '../combat/Equipment';
 import {trenchAnchorAt,inlineGeometry,WEAPON_POSITIONS} from './PositionDefinitions';
 import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
+import {installPositionWeapons} from '../combat/WeaponPositions';
 
 export const METRES_PER_PERSON=2.5;
 export const ENTRANCE_LENGTH=5;
@@ -42,7 +43,7 @@ export class TrenchSystem {
       if(!hit?.a)return;
       connector=hit.t;anchor={trenchId:hit.t.id,along:hit.a.along};position=inlineGeometry(hit.t,anchor.along,facing).position;
     }else{connector=this.create([request.origin,request.position]);connector.width=7.2;connector.progress=.001;connector.status='building';}
-    w.facilities.push({id,...position,garrisonId:g.id,kind,facing,connectorId:connector.id,trenchAnchor:anchor,weaponCrewIds:['emplacement','mortar'].includes(kind)?[]:undefined,workOrder:{explicit:request.explicit??false,workerIds:[],createdAt:this.state.elapsed},progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'||kind==='mortar'?WEAPON_POSITIONS[kind].crew:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
+    w.facilities.push({id,...position,garrisonId:g.id,kind,facing,connectorId:connector.id,trenchAnchor:anchor,includesWeapon:['emplacement','mortar'].includes(kind)?true:undefined,weaponCrewIds:['emplacement','mortar'].includes(kind)?[]:undefined,workOrder:{explicit:request.explicit??false,workerIds:[],createdAt:this.state.elapsed},progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'||kind==='mortar'?WEAPON_POSITIONS[kind].crew:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
     // Explicit works have one authority: their person-level work order. The
     // squad queue belongs to trench excavation / legacy automatic support.
     if(!request.explicit)for(const q of engineers)(q.constructionQueue??=[]).push({kind:'facility',id});
@@ -63,6 +64,7 @@ export class TrenchSystem {
       else f.progress=Math.min(1,f.progress+seconds*rate/90);
       if(f.progress===1)for(const q of this.state.squads)q.constructionQueue=q.constructionQueue?.filter(j=>typeof j==='number'||j.kind!=='facility'||j.id!==f.id);
       if(f.progress===1&&f.workOrder)f.workOrder.workerIds=[];
+      if(f.progress===1)installPositionWeapons(this.state);
     }
   }
 

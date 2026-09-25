@@ -19,6 +19,8 @@ export class TrenchNetwork {
   changedTrenches=new Set<number>();
   private trenchSignatures=new Map<number,string>();
   private capacities=new Map<number,number>();
+  private components=new Map<number,number>();
+  private anchors=new Map<number,number>();
   private corridorBuckets=new Map<string,number[]>();
   sync(trenches: TrenchState[]): boolean {
     const signature = trenches.map(t => `${t.id}:${t.width}:${excavationKey(t,1)}:${t.points.map(p => `${p.x},${p.z}`).join(';')}`).join('|');
@@ -89,12 +91,16 @@ export class TrenchNetwork {
     this.nodeLookup=points;
     this.edges.forEach((e,i)=>{this.nodes[e.a].edges.push(i);this.nodes[e.b].edges.push(i);});
     for(const n of this.nodes){if(n.component>=0)continue;const queue=[n.id];n.component=n.id;while(queue.length){const id=queue.pop()!;for(const ei of this.nodes[id].edges){const e=this.edges[ei],other=e.a===id?e.b:e.a;if(this.nodes[other].component<0){this.nodes[other].component=n.id;queue.push(other);}}}}
+    this.components.clear();this.anchors.clear();
+    for(const e of this.edges)for(const id of e.trenches){const component=this.nodes[e.a].component;this.components.set(id,component);this.anchors.set(component,Math.min(this.anchors.get(component)??Infinity,id));}
     const affected=new Set(this.edges.filter(e=>e.trenches.some(id=>this.changedTrenches.has(id))).map(e=>this.nodes[e.a].component));
     for(const [key,path] of this.cache)if(path.some(p=>{const id=this.nodeLookup.get(p);return id===undefined||affected.has(this.nodes[id].component);}))this.cache.delete(key);
     this.measureCapacity();
     return true;
   }
-  component(trenchId:number):number|undefined {const e=this.edges.find(e=>e.trenches.includes(trenchId));return e?this.nodes[e.a].component:undefined;}
+  component(trenchId:number):number|undefined {return this.components.get(trenchId);}
+  /** Oldest persistent segment ID is the identity; graph node indices are not saved IDs. */
+  anchor(trenchId:number):number {return this.anchors.get(this.component(trenchId)??-1)??trenchId;}
   capacity(component:number):number {return this.capacities.get(component)??0;}
   private measureCapacity():void {
     // Half-metre scanline union of usable corridor rectangles. A shared cell is counted once,

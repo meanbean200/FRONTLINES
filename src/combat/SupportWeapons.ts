@@ -6,7 +6,7 @@ import {bodyVolume} from './Ballistics';
 import {combatWound} from './Casualties';
 import {registerIncoming} from './Reactions';
 import {signalEngagement} from './Engagement';
-import {equipmentOf,squadHasEquipment} from './Equipment';
+import {squadHasEquipment} from './Equipment';
 import {assignedWeaponPosition,crewAt,crewOperator,positionReadiness} from './WeaponPositions';
 export type SupportKind='mortarHE'|'mortarSmoke'|'smokeGrenades';
 export type SupportSource='PLAYER'|'ENEMY_AI'|'CAMPAIGN_AI'|'SCRIPTED_SCENARIO'|'LEGACY_UNKNOWN';
@@ -22,13 +22,13 @@ export function supportReadiness(state:BattlefieldState,kind:SupportKind,squadId
   const position=!grenade?(positionId===undefined?assignedWeaponPosition(state,squadId,'mortar'):state.living?.facilities.find(f=>f.id===positionId&&f.kind==='mortar')):undefined;
   const people=(position?crewAt(state,position):state.soldiers.filter(s=>s.squadId===squadId)).filter(s=>s.needs?.life==='active');
   const available=people.filter(s=>s.suppression<70&&s.action!=='sleeping'&&!s.combat?.careTask);
-  const operator=grenade?available.find(s=>(s.carried?.[kind]??0)>=1):available.find(s=>equipmentOf(state,s).mortar);
+  const operator=grenade?available.find(s=>(s.carried?.[kind]??0)>=1):available.find(s=>s.id===position?.weaponCrewIds?.find(id=>state.soldiers.find(p=>p.id===id)?.needs?.life==='active'));
   const assignedOperator=position?crewOperator(state,position):undefined;
-  const crew=available.filter(s=>operator&&distance(s,operator)<12),ammo=crew.reduce((n,s)=>n+(s.carried?.[kind]??0),0);
-  const pack=crew.find(s=>(s.carried?.[kind]??0)>=1);
+  const crew=available.filter(s=>operator&&distance(s,operator)<12),ammo=grenade?crew.reduce((n,s)=>n+(s.carried?.[kind]??0),0):(position?.stock[kind]??0);
+  const pack=grenade?crew.find(s=>(s.carried?.[kind]??0)>=1):operator;
   let reason='';
   if(!state.operation?.supportRules||state.operation.status!=='active'||!q)reason='Support unavailable in this scenario';
-  else if(!grenade&&!position)reason='Choose a built mortar pit and assign a crew with mortar equipment';
+  else if(!grenade&&!position)reason='Choose a built mortar pit and assign two people';
   else if(!grenade&&crewOperator(state,position!)?.squadId!==squadId)reason='This pit has a different operator';
   else if(!grenade&&!operator)reason=assignedOperator?.action==='sleeping'?'Mortar gunner resting · recovering energy; equipment remains assigned':assignedOperator?.combat?.careTask?'Mortar gunner assisting a casualty · finish or reassign the crew':(assignedOperator?.suppression??0)>=70?'Mortar gunner under heavy suppression · waiting for recovery':'No ready mortar equipment carrier';
   else if(checkBusy&&state.operation.supportMissions?.some(m=>(grenade?m.squadId===q.id:m.positionId===position?.id)&&['preparing','flight'].includes(m.stage)))reason='Support mission already in progress';
@@ -42,7 +42,7 @@ export function supportReadiness(state:BattlefieldState,kind:SupportKind,squadId
   return {ammo:Math.floor(ammo),crew:crew.length,reason,operatorId:operator?.id,crewIds,positionId:position?.id};
 }
 export function selectedSupportTeam(state:BattlefieldState,ids:ReadonlySet<number>,kind:SupportKind,terrain?:TerrainSystem):number|undefined{
-  const teams=state.squads.filter(q=>ids.has(q.id)&&q.faction!=='enemy'&&(kind==='smokeGrenades'||squadHasEquipment(state,q,'mortar')));
+  const teams=state.squads.filter(q=>ids.has(q.id)&&q.faction!=='enemy'&&(kind==='smokeGrenades'||assignedWeaponPosition(state,q.id,'mortar')||squadHasEquipment(state,q,'mortar')));
   return (teams.find(q=>!supportReadiness(state,kind,q.id,terrain).reason)??teams[0])?.id;
 }
 export function supportMissionText(m:SupportMission,now:number):string{
@@ -100,10 +100,10 @@ export function stepSupport(state:BattlefieldState,terrain:TerrainSystem):void {
   for(const mission of op.supportMissions??[]){
     if(mission.stage==='preparing'){
       const squad=state.squads.find(q=>q.id===mission.squadId)!,people=state.soldiers.filter(s=>(mission.crewIds?.includes(s.id)??s.squadId===squad.id)&&s.needs?.life==='active'&&s.suppression<70&&s.action!=='sleeping'&&!s.combat?.careTask),grenade=mission.kind==='smokeGrenades';
-      const operator=people.find(s=>grenade?(mission.crewIds??[]).includes(s.id):equipmentOf(state,s).mortar);
-      const pack=people.find(s=>(s.carried?.[mission.kind]??0)>=1&&(!operator||distance(s,operator)<12));
-      const ready=supportReadiness(state,mission.kind,mission.squadId,terrain,false,mission.positionId);
       const position=state.living?.facilities.find(f=>f.id===mission.positionId);
+      const operator=grenade?people[0]:position&&crewOperator(state,position);
+      const pack=grenade?people.find(s=>(s.carried?.[mission.kind]??0)>=1&&(!operator||distance(s,operator)<12)):operator;
+      const ready=supportReadiness(state,mission.kind,mission.squadId,terrain,false,mission.positionId);
       if(!grenade&&(!position||mission.crewIds?.some(id=>!position.weaponCrewIds?.includes(id)))){mission.stage='cancelled';mission.reason='Cancelled: assigned pit or crew changed';continue;}
       if(ready.reason||!pack){mission.stage='cancelled';mission.reason='Cancelled: '+(ready.reason||'Ammunition carrier unavailable');continue;}
       if(mission.crewIds?.some(id=>!people.some(s=>s.id===id&&operator&&distance(s,operator)<12))){mission.stage='cancelled';mission.reason='Cancelled: assigned support crew interrupted';continue;}
@@ -111,7 +111,7 @@ export function stepSupport(state:BattlefieldState,terrain:TerrainSystem):void {
       if(grenade&&distance(pack,mission.target)>30){mission.stage='cancelled';mission.reason='Thrower moved beyond grenade range';continue;}
       const side=squad.faction??'player',danger=mission.kind==='mortarHE'&&state.soldiers.some(s=>s.needs?.life!=='dead'&&state.squads.some(q=>q.id===s.squadId&&(q.faction??'player')===side)&&distance(s,mission.target)<mission.dangerRadius);
       if(danger&&!mission.confirmedRisk){mission.stage='cancelled';mission.reason='Friendly troops entered danger area before launch';continue;}
-      consume(state,pack.carried!,mission.kind,1);mission.ammoConsumed=(mission.ammoConsumed??0)+1;mission.stage='flight';mission.reason='Round in flight';
+      consume(state,grenade?pack.carried!:position!.stock,mission.kind,1);mission.ammoConsumed=(mission.ammoConsumed??0)+1;mission.stage='flight';mission.reason='Round in flight';
     }
     if(mission.stage==='flight'&&state.elapsed>=mission.impactAt){
       mission.stage='complete';mission.reason='Mission complete';

@@ -3,7 +3,7 @@ import {excavatedPoints} from '../core/TrenchGeometry';
 import type {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import type {StrategyCamera} from '../render/StrategyCamera';
 import type {PersonalOrder,Facility,Readiness} from '../garrison/types';
-import {friendlyTrenches,trenchName,networkName,trenchPeople,distanceToPolyline} from './TrenchReadout';
+import {friendlyTrenches,connectedName,networkRepresentatives,trenchPeople,distanceToPolyline} from './TrenchReadout';
 import {fieldIcon} from './FieldSymbols';
 import {facilityName,WEAPON_POSITIONS} from '../construction/PositionDefinitions';
 import {positionReadiness,crewAt,crewOperator,carriesPositionWeapon,type WeaponPositionKind} from '../combat/WeaponPositions';
@@ -14,6 +14,9 @@ import {claimed,unfulfilled} from '../garrison/SupplyDemand';
 import {supportReadiness} from '../combat/SupportWeapons';
 import {placeMapLabels} from './MapLabels';
 import {buildingReadout} from './BuildingReadout';
+import {knownTrenchNetworks,type KnownTrenchNetwork} from '../operations/TrenchIntelligence';
+import {preparedStatus} from '../operations/PreparedOrders';
+import {clippedPaths} from './ProjectedPaths';
 
 interface Actions {defend:(id:number)=>void;resume:(id:number)=>void;area:(id:number)=>void;move:(watch?:boolean)=>void;cancel:()=>void;notify:(text:string)=>void;place:(id:number,kind:Facility['kind'])=>void;fire:(id:number,kind:'mortarHE'|'mortarSmoke')=>void;person:()=>void}
 type Page='overview'|'personnel'|'weapons'|'construction'|'supplies';
@@ -28,6 +31,8 @@ export class TrenchPanel {
   private buildingId=-1;private buildingSquad=0;private buildingFloor:0|1=0;
   private cachedTrenches:TrenchState[]=[];private cachedFacilities:Facility[]=[];private hovered=0;private pointer?:{x:number;y:number};private watchMove=false;
   private readonly hint=document.createElement('div');
+  private readonly signal=document.createElement('button');
+  private enemy?:KnownTrenchNetwork;
   private projectedPerson?:SoldierState;
   private hoverFacility?:Facility;
   private lines:TrenchState[]=[];
@@ -37,13 +42,22 @@ export class TrenchPanel {
   get inspectedFloor(){return this.buildingFloor;}
   constructor(private sim:BattlefieldSimulation,private camera:StrategyCamera,private selected:ReadonlySet<number>,private actions:Actions){
     const root=document.querySelector<HTMLElement>('#ui-root')!;
+    this.signal.id='signal-orders';this.signal.hidden=true;this.signal.onclick=()=>{const n=this.sim.signalPrepared();this.actions.notify(`GO · ${n} formations receive the signal on the next simulation tick`);};root.append(this.signal);
     this.button.id='trenches-command';this.button.innerHTML=fieldIcon('defend')+'Positions';this.button.setAttribute('aria-expanded','false');root.querySelector('.hud-tools summary')!.after(this.button);
     this.element.id='trench-panel';this.element.className='trench-panel position-inspector';this.element.hidden=true;this.element.setAttribute('aria-label','Position management');
     this.element.innerHTML='<header><div><small>POSITION / TRENCH NETWORK</small><h2>Position</h2></div><button data-close aria-label="Close position management">×</button></header><label class="position-picker">Trench<select id="trench-choice" aria-label="Trench"></select></label><nav class="position-tabs" aria-label="Position pages">'+(['overview','personnel','weapons','construction','supplies'] as Page[]).map(p=>'<button data-page="'+p+'">'+({overview:'Overview',personnel:'People',weapons:'Weapons',construction:'Build',supplies:'Supplies'}[p])+'</button>').join('')+'</nav><div class="position-content"></div>';
     root.append(this.element);this.overlay.classList.add('trench-inspection-overlay');this.overlay.setAttribute('aria-hidden','true');this.labels.className='position-labels';this.hint.className='position-hover';this.hint.hidden=true;root.append(this.labels,this.hint);document.querySelector('#app')!.append(this.overlay);
     this.button.onclick=()=>this.element.hidden?this.open():this.close();this.element.addEventListener('click',e=>this.click(e));
     this.element.querySelector('#trench-choice')!.addEventListener('change',e=>{this.trenchId=Number((e.target as HTMLSelectElement).value);this.facilityId=this.personId=this.truckId=0;delete document.documentElement.dataset.personSelected;this.assign=undefined;this.update(true);this.focus();});
-    this.element.addEventListener('change',e=>{const select=e.target as HTMLSelectElement;if(this.locked())return;const id=Number(select.dataset.network);if(select.id==='garrison-readiness')this.sim.garrisons.setReadiness(id,select.value as Readiness);if(select.id==='garrison-front')this.sim.garrisons.setFront(id,Number(select.value));if(select.id==='lethal-deprivation')this.sim.state.living!.lethalNeeds=(select as unknown as HTMLInputElement).checked;});
+    this.element.addEventListener('change',e=>{
+      const select=e.target as HTMLSelectElement;if(this.locked())return;
+      const id=Number(select.dataset.network),network=this.sim.garrisons.network,root=this.sim.state.living!.garrisons.find(g=>g.id===id),component=root&&network.component(root.trenchId);
+      for(const g of this.sim.state.living!.garrisons.filter(g=>g.faction!=='enemy'&&component!==undefined&&network.component(g.trenchId)===component)){
+        if(select.id==='garrison-readiness')this.sim.garrisons.setReadiness(g.id,select.value as Readiness);
+        if(select.id==='garrison-front')this.sim.garrisons.setFront(g.id,Number(select.value));
+      }
+      if(select.id==='lethal-deprivation')this.sim.state.living!.lethalNeeds=(select as unknown as HTMLInputElement).checked;
+    });
     this.labels.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('button');if(b?.dataset.trench)this.open(Number(b.dataset.trench));if(b?.dataset.facility)this.chooseFacility(Number(b.dataset.facility));});
     window.addEventListener('pointermove',e=>{this.pointer=e.target instanceof HTMLCanvasElement?{x:e.clientX,y:e.clientY}:undefined;});
     window.addEventListener('frontlines-menu',()=>this.close());
@@ -51,7 +65,7 @@ export class TrenchPanel {
     window.addEventListener('keydown',e=>{if(e.code==='Escape'&&!this.element.hidden){this.close();e.preventDefault();e.stopImmediatePropagation();}},true);
   }
   private locked(){return this.sim.commandsLocked||Boolean(document.documentElement.dataset.menu||document.documentElement.dataset.help||document.documentElement.dataset.replay);}
-  open(id?:number):void {window.dispatchEvent(new Event('frontlines-menu'));this.buildingId=-1;this.trenchId=id??this.trenchId;this.facilityId=this.personId=this.truckId=0;this.assign=undefined;this.page='overview';this.element.hidden=false;document.documentElement.dataset.positionOpen='true';this.button.setAttribute('aria-expanded','true');this.update(true);this.element.scrollTop=0;}
+  open(id?:number):void {window.dispatchEvent(new Event('frontlines-menu'));this.enemy=knownTrenchNetworks(this.sim.state).find(n=>n.id===id&&!friendlyTrenches(this.sim.state,this.sim.garrisons.network).some(t=>t.id===id));this.buildingId=-1;this.trenchId=id??this.trenchId;this.facilityId=this.personId=this.truckId=0;this.assign=undefined;this.page='overview';this.element.hidden=false;document.documentElement.dataset.positionOpen='true';this.button.setAttribute('aria-expanded','true');this.update(true);this.element.scrollTop=0;}
   openConstruction(id?:number):void{this.open(id);this.page='construction';this.update(true);}
   close():void{this.element.hidden=true;this.personId=0;this.projectedPerson=undefined;this.overlay.replaceChildren();this.labels.replaceChildren();delete this.labels.dataset.key;this.button.setAttribute('aria-expanded','false');delete document.documentElement.dataset.personSelected;delete document.documentElement.dataset.positionOpen;this.actions.cancel();}
   clearPerson():void{this.personId=0;delete document.documentElement.dataset.personSelected;this.update(true);}
@@ -66,7 +80,8 @@ export class TrenchPanel {
     const building=this.sim.terrain.buildingAt(point);if(building!==undefined){this.open();this.buildingId=building;this.buildingSquad=0;this.buildingFloor=0;this.update(true);return true;}
     const f=this.cachedFacilities.find(f=>distance(f,point)<(f.trenchAnchor?2.2:4));if(f)return this.chooseFacility(f.id);
     const truck=this.sim.state.living!.trucks.find(t=>t.faction!=='enemy'&&distance(t,point)<4);if(truck){const g=this.sim.state.living!.garrisons.find(g=>g.id===truck.garrisonId);this.open(g?.trenchId);this.truckId=truck.id;this.page='supplies';this.update(true);return true;}
-    const t=this.cachedTrenches.find(t=>distanceToPolyline(point,t.points).distance<Math.max(3,t.width/2));if(!t)return false;this.open(t.id);return true;
+    const t=this.cachedTrenches.find(t=>distanceToPolyline(point,t.points).distance<Math.max(3,t.width/2));if(t){this.open(t.id);return true;}
+    const known=knownTrenchNetworks(this.sim.state).find(n=>n.sections.some(s=>distanceToPolyline(point,s.points).distance<s.width/2+1));if(!known)return false;this.open(known.id);return true;
   }
   private chooseFacility(id:number):boolean{
     const f=this.cachedFacilities.find(f=>f.id===id);
@@ -84,6 +99,20 @@ export class TrenchPanel {
     if(b.hasAttribute('data-focus')){this.focus();return;}
     if(b.dataset.trenchJob){this.open(Number(b.dataset.trenchJob));this.page='construction';this.update(true);this.focus();return;}
     if(this.locked())return;
+    if(this.enemy){
+      const target=this.enemy.point,ids=[...this.selected];
+      if(b.hasAttribute('data-enemy-locate'))this.camera.focus(target,140);
+      if(b.hasAttribute('data-signal'))this.actions.notify(`GO · ${this.sim.signalPrepared()} formations`);
+      if(b.hasAttribute('data-cancel-prepared'))this.sim.cancelPrepared();
+      if(b.hasAttribute('data-secure-network')){const taken=this.sim.assignGarrison(ids,this.enemy.id);this.actions.notify(taken?'Position secured · installed equipment and stores retained':'Move at least two selected troops onto the trench and clear nearby defenders before securing it.');if(taken)this.enemy=undefined;this.update(true);return;}
+      const action=b.dataset.enemyAction;
+      if(action){const intent=(action==='approach'?'move':action==='stage'?'assault':action==='stage-support'?'suppress':action) as 'move'|'observe'|'suppress'|'assault';
+        if(!ids.length)this.actions.notify('Select the formations first · Shift-click adds squads');
+        else if(action.startsWith('stage')){this.sim.prepareOrder(ids,intent,target,this.enemy.id);this.actions.notify('Prepared · holding for your GO signal');}
+        else this.sim.issueTactical(ids,intent,target);
+      }
+      this.update(true);return;
+    }
     if(this.buildingId>=0){
       const picker=this.element.querySelector<HTMLSelectElement>('[data-building-squad]');this.buildingSquad=Number(picker?.value??0);
       const ids=this.buildingSquad?[this.buildingSquad]:[...this.selected];
@@ -99,8 +128,9 @@ export class TrenchPanel {
     if(b.hasAttribute('data-defend'))this.actions.defend(this.trenchId);
     if(b.hasAttribute('data-resume'))this.actions.resume(this.trenchId);
     if(b.dataset.assign){this.assign=b.dataset.assign as 'crew'|'worker';}
-    if(b.dataset.choose&&f){this.actions.notify((this.assign==='crew'?this.sim.garrisons.assignCrew(Number(b.dataset.choose),f.id):this.sim.garrisons.assignWorker(f.id,Number(b.dataset.choose))).reason);}
+    if(b.dataset.choose&&f){this.actions.notify((this.assign==='crew'?this.sim.garrisons.assignCrew(Number(b.dataset.choose),f.id):this.sim.garrisons.assignWorker(f.id,Number(b.dataset.choose))).reason);if(this.assign==='crew'&&f.weaponCrewIds?.length===2)this.assign=undefined;}
     if(b.hasAttribute('data-auto-crew')&&f)this.actions.notify(this.sim.garrisons.autoCrew(f.id).reason);
+    if(b.hasAttribute('data-replace-crew')&&f){f.autoReplaceCrew=!f.autoReplaceCrew;this.actions.notify(f.autoReplaceCrew?'Local crew replacement enabled · unavailable people are not recruited':'Crew replacement is manual');}
     if(b.hasAttribute('data-auto-workers')&&f)this.actions.notify(this.sim.garrisons.autoWorkers(f.id).reason);
     if(b.hasAttribute('data-cancel-work')&&f)this.actions.notify(this.sim.garrisons.cancelWork(f.id).reason);
     if(b.dataset.reviewSupply)this.sim.garrisons.reopenEmergency(Number(b.dataset.reviewSupply));
@@ -112,6 +142,7 @@ export class TrenchPanel {
   }
   update(force=false):void{
     const state=this.sim.state,network=this.sim.garrisons.network;this.button.disabled=this.locked();
+    const prepared=state.preparedOrders?.filter(o=>o.releasedAt===undefined)??[];this.signal.hidden=!prepared.length||this.locked();this.signal.textContent=`GO · ${prepared.length} prepared`;this.signal.disabled=prepared.every(o=>o.signalAt!==undefined);
     // The existing emergency decision owns the right drawer until it is answered.
     if(!this.element.hidden&&state.living!.garrisons.some(g=>g.faction!=='enemy'&&g.cutoff==='decision'))this.close();
     if(force||performance.now()-this.last>250){
@@ -125,12 +156,19 @@ export class TrenchPanel {
       if(!this.element.hidden)this.renderContent();
       const component=network.component(this.hovered||this.trenchId);
       this.lines=this.cachedTrenches.filter(t=>t.id===(this.hovered||this.trenchId)||component!==undefined&&network.component(t.id)===component).slice(0,60);
-      this.entries=[...this.cachedTrenches.slice(0,60).map(t=>({id:t.id,type:'trench',point:pointAlongPolyline(t.points,.5),name:trenchName(state,t.id).replace('Trench ','T')})),...this.cachedFacilities.slice(0,60).map(f=>({id:f.id,type:'facility',point:f,name:facilityName(state,f)}))];
+      this.entries=[...networkRepresentatives(this.cachedTrenches,network).slice(0,60).map(t=>({id:t.id,type:'trench',point:pointAlongPolyline(t.points,.5),name:connectedName(state,network,t.id)})),...this.cachedFacilities.filter(f=>this.lines.some(t=>t.id===f.connectorId)||f.id===this.facilityId).slice(0,60).map(f=>({id:f.id,type:'facility',point:f,name:facilityName(state,f)}))];
     }
     this.project();
   }
   private renderContent():void{
     const state=this.sim.state,network=this.sim.garrisons.network;
+    if(this.enemy){const current=knownTrenchNetworks(state).find(n=>n.id===this.enemy!.id);if(current)this.enemy=current;else if(friendlyTrenches(state,network).some(t=>t.id===this.enemy!.id))this.enemy=undefined;}
+    if(this.enemy){
+      this.element.querySelector('header small')!.textContent='OBSERVED TERRAIN / NOT LIVE INTELLIGENCE';this.element.querySelector('h2')!.textContent=this.enemy.name;
+      for(const e of this.element.querySelectorAll<HTMLElement>('.position-picker,.position-tabs'))e.hidden=true;
+      const orders=(state.preparedOrders??[]).filter(o=>o.networkId===this.enemy!.id),html='<p>'+Math.round(this.enemy.length)+' m known · occupants unknown</p><p>Orders target remembered ground. Unseen extensions and current strength are not reported.</p><div class="position-actions">'+[['observe','Observe'],['suppress','Suppress'],['approach','Approach'],['assault','Assault'],['stage','Prepare assault'],['stage-support','Prepare support']].map(([id,label])=>'<button data-enemy-action="'+id+'" '+(!this.selected.size?'disabled':'')+'>'+label+'</button>').join('')+'<button data-enemy-locate>Locate</button><button data-secure-network '+(!this.selected.size?'disabled':'')+'>Secure & defend</button></div>'+orders.map(o=>'<p>'+esc(state.squads.find(q=>q.id===o.squadId)?.name)+' · '+esc(o.intent)+'<small>'+preparedStatus(state,o)+'</small></p>').join('')+(orders.length?'<div class="position-actions"><button data-signal>GO · signal all</button><button data-cancel-prepared>Cancel prepared orders</button></div>':'');
+      if(this.key!==html){this.key=html;this.element.querySelector('.position-content')!.innerHTML=html;}return;
+    }
     const house=this.buildingId>=0?buildingReadout(state,this.sim.terrain,this.buildingId):undefined;
     this.element.querySelector('header small')!.textContent=house?'BUILDING / OCCUPATION':'POSITION / TRENCH NETWORK';
     for(const e of this.element.querySelectorAll<HTMLElement>('.position-picker,.position-tabs'))e.hidden=Boolean(house);
@@ -144,20 +182,24 @@ export class TrenchPanel {
       return;
     }
     if(!this.cachedTrenches.some(t=>t.id===this.trenchId))this.trenchId=this.cachedTrenches[0]?.id??0;
-    const choice=this.element.querySelector<HTMLSelectElement>('#trench-choice')!,options=this.cachedTrenches.map(t=>'<option value="'+t.id+'">'+trenchName(state,t.id)+'</option>').join('');if(choice.dataset.key!==options){choice.innerHTML=options;choice.dataset.key=options;}choice.value=String(this.trenchId);
+    const representatives=networkRepresentatives(this.cachedTrenches,network),representative=representatives.find(t=>network.anchor(t.id)===network.anchor(this.trenchId));
+    const choice=this.element.querySelector<HTMLSelectElement>('#trench-choice')!,options=representatives.map(t=>'<option value="'+t.id+'">'+connectedName(state,network,t.id)+'</option>').join('');if(choice.dataset.key!==options){choice.innerHTML=options;choice.dataset.key=options;}choice.value=String(representative?.id??this.trenchId);
     const t=this.cachedTrenches.find(t=>t.id===this.trenchId),component=t?network.component(t.id):undefined,groups=component===undefined?[]:state.living!.garrisons.filter(g=>g.faction!=='enemy'&&network.component(g.trenchId)===component),groupIds=new Set(groups.map(g=>g.id));
     const connected=this.cachedTrenches.filter(o=>component!==undefined&&network.component(o.id)===component),facilities=this.cachedFacilities.filter(f=>groupIds.has(f.garrisonId)),supply=networkSupply(state,groups),people=t?trenchPeople(state,network,t):[];
     const f=facilities.find(f=>f.id===this.facilityId),person=state.soldiers.find(s=>s.id===this.personId),personName=(id:number)=>{const s=state.soldiers.find(s=>s.id===id),q=state.squads.find(q=>q.id===s?.squadId);return q?q.name+' '+String(q.soldierIds.indexOf(id)+1).padStart(2,'0'):'Person '+id;};
-    this.element.querySelector('h2')!.textContent=f?facilityName(state,f):t?trenchName(state,t.id):'Positions';
+    this.element.querySelector('h2')!.textContent=f?facilityName(state,f):t?connectedName(state,network,t.id):'Positions';
     for(const b of this.element.querySelectorAll<HTMLButtonElement>('[data-page]'))b.setAttribute('aria-pressed',String(b.dataset.page===this.page));
     let html='';
     const btn=(attrs:string,label:string)=>'<button '+attrs+'>'+label+'</button>';
     const line=(name:string,value:string|number)=>'<dt>'+name+'</dt><dd>'+value+'</dd>';
     const job=(p:Facility)=>{const r=workReadout(state,p);return '<article class="position-job">'+btn('data-position="'+p.id+'"',facilityName(state,p))+'<strong>'+r.status+'</strong><p>'+esc(r.reason)+'</p><dl>'+line('Location',Math.round(p.x)+', '+Math.round(p.z))+line('Materials delivered',Math.floor(r.delivered)+' / '+p.materialCost)+line('Reserved in stores',Math.floor(r.reserved))+line('Inbound',Math.floor(r.inbound))+line('Still needed',Math.ceil(r.remaining))+line('Workers',r.workers)+line('Structure',Math.floor(p.progress*100)+'%')+'</dl></article>';};
-    if(this.page==='overview')html='<strong class="network-name">'+(groups.map(g=>esc(networkName(state,g.id))).join(' / ')||'Unassigned network')+'</strong><dl>'+line('Excavated',t?Math.round(polylineLength(t.points)*t.progress)+' / '+Math.round(polylineLength(t.points))+' m':'—')+line('Capacity',network.capacity(component??-1))+line('Personnel here',people.length)+line('Structures',facilities.length)+line('Combat',groups.some(g=>(g.underFireUntil??0)>state.elapsed)?'UNDER FIRE':'Quiet')+'</dl><p>Connected: '+(connected.filter(o=>o!==t).map(o=>trenchName(state,o.id)).join(', ')||'No other trenches')+'</p><div class="position-actions">'+btn('data-focus','Locate')+btn('data-defend '+(!this.selected.size?'disabled':''),'Assign selected squads')+(t&&t.progress<1?btn('data-resume','Assign digging crew'):'')+'</div><h3>Build here</h3><div class="position-actions">'+btn('data-place="emplacement"','MG position')+btn('data-place="mortar"','Mortar pit')+'</div>';
+    if(this.page==='overview')html='<dl>'+line('Excavated',Math.round(network.edges.filter(e=>network.nodes[e.a].component===component&&!e.portal).reduce((n,e)=>n+e.length,0))+' m')+line('Capacity',network.capacity(component??-1))+line('Assigned',state.soldiers.filter(s=>groupIds.has(s.garrisonId!)&&s.needs?.life!=='dead').length)+line('Personnel here',people.filter(s=>network.corridorContains(s)&&(network.nearest(s,component)?.distance??Infinity)<3).length)+line('Connected sections',connected.length)+line('Weapons',facilities.filter(f=>f.installation).length)+line('Work orders',facilities.filter(f=>f.progress<1).length)+line('Combat',groups.some(g=>(g.underFireUntil??0)>state.elapsed)?'UNDER FIRE':'Quiet')+'</dl><div class="position-actions">'+btn('data-focus','Locate')+btn('data-defend '+(!this.selected.size?'disabled':''),'Assign selected squads')+(t&&t.progress<1?btn('data-resume','Assign digging crew'):'')+'</div><h3>Build here</h3><div class="position-actions">'+btn('data-place="emplacement"','MG position')+btn('data-place="mortar"','Mortar pit')+'</div>';
     if(this.page==='overview'){
       const g=groups[0];
-      if(g)html+='<h3>Defense orders</h3><p>'+g.watchPresent+' / '+g.watchRequired+' watching · '+people.filter(s=>s.action==='sleeping').length+' resting</p><label>Readiness<select id="garrison-readiness" data-network="'+g.id+'">'+(['routine','alert','stand-to'] as const).map(v=>'<option '+(g.readiness===v?'selected':'')+' value="'+v+'">'+({routine:'Routine · 25% watch',alert:'Alert · 50% watch','stand-to':'Stand-to · 90% watch'}[v])+'</option>').join('')+'</select></label><label>Front<select id="garrison-front" data-network="'+g.id+'">'+[[0,'South'],[Math.PI/2,'East'],[Math.PI,'North'],[-Math.PI/2,'West']].map(([v,n])=>'<option '+(g.front===v?'selected':'')+' value="'+v+'">'+n+'</option>').join('')+'</select></label><p>Squads rotate watch, rest and supplies. Move or Withdraw leaves this network.</p>'+(['hold','recover'].includes(g.cutoff)?'<p>'+ (g.cutoff==='hold'?'Holding and rationing.':'Recovery parties authorized.')+'</p>'+btn('data-review-supply="'+g.id+'"','Review supply response'):'');
+      if(g){
+        const mixedReadiness=groups.some(area=>area.readiness!==g.readiness),mixedFront=groups.some(area=>area.front!==g.front);
+        html+='<h3>Defense orders</h3><p>'+groups.reduce((n,g)=>n+g.watchPresent,0)+' / '+groups.reduce((n,g)=>n+g.watchRequired,0)+' watching · '+people.filter(s=>s.action==='sleeping').length+' resting</p><label>Readiness<select id="garrison-readiness" data-network="'+g.id+'">'+(mixedReadiness?'<option disabled selected>Mixed · choose network readiness</option>':'')+(['routine','alert','stand-to'] as const).map(v=>'<option '+(!mixedReadiness&&g.readiness===v?'selected':'')+' value="'+v+'">'+({routine:'Routine · 25% watch',alert:'Alert · 50% watch','stand-to':'Stand-to · 90% watch'}[v])+'</option>').join('')+'</select></label><label>Front<select id="garrison-front" data-network="'+g.id+'">'+(mixedFront?'<option disabled selected>Mixed · choose network facing</option>':'')+[[0,'South'],[Math.PI/2,'East'],[Math.PI,'North'],[-Math.PI/2,'West']].map(([v,n])=>'<option '+(!mixedFront&&g.front===v?'selected':'')+' value="'+v+'">'+n+'</option>').join('')+'</select></label><p>Squads rotate watch, rest and supplies. Move or Withdraw leaves this network.</p>'+(['hold','recover'].includes(g.cutoff)?'<p>'+ (g.cutoff==='hold'?'Holding and rationing.':'Recovery parties authorized.')+'</p>'+btn('data-review-supply="'+g.id+'"','Review supply response'):'');
+      }
       html+='<details><summary>Campaign rules</summary><label><input type="checkbox" id="lethal-deprivation" '+(state.living!.lethalNeeds?'checked':'')+'> Allow deprivation deaths</label><p>Opt-in: prolonged hunger and thirst can kill. Existing supplies are unchanged.</p></details>';
     }
     if(this.page==='personnel'){
@@ -166,10 +208,10 @@ export class TrenchPanel {
     }
     if(this.page==='weapons'){
       if(f&&['emplacement','mortar'].includes(f.kind)){
-        const crew=crewAt(state,f),kind=f.kind as WeaponPositionKind,operator=crewOperator(state,f),ammo=crew.reduce((n,s)=>n+(s.carried?.ammo??0),0),he=crew.reduce((n,s)=>n+(s.carried?.mortarHE??0),0),smoke=crew.reduce((n,s)=>n+(s.carried?.mortarSmoke??0),0);
+        const crew=crewAt(state,f),kind=f.kind as WeaponPositionKind,operator=crewOperator(state,f),ammo=f.stock.ammo,he=f.stock.mortarHE,smoke=f.stock.mortarSmoke;
         html='<strong class="position-status">'+esc(positionReadiness(state,f)||'READY')+'</strong><p>Crew '+crew.length+' / '+WEAPON_POSITIONS[kind].crew+' · Facing '+Math.round((f.facing??0)*180/Math.PI)+'°</p><div class="crew-slots">'+Array.from({length:WEAPON_POSITIONS[kind].crew},(_,i)=>crew[i]?'<div>'+esc(personName(crew[i].id))+' · '+(crew[i]===operator?'Gunner':'Assistant')+btn('data-remove="'+crew[i].id+'" aria-label="Return '+esc(personName(crew[i].id))+' to area duties"','Remove')+'</div>':'<div>Empty crew slot</div>').join('')+'</div><div class="position-actions">'+btn('data-assign="crew"','Assign person')+btn('data-auto-crew','Auto assign crew')+btn('data-remove-all','Remove crew')+btn('data-focus','Locate')+'</div>';
-        html+='<dl>'+(kind==='mortar'?line('Crew ammunition',he+' HE / '+smoke+' smoke')+line('Local stores',Math.floor(supply.local.mortarHE)+' HE / '+Math.floor(supply.local.mortarSmoke)+' smoke'):line('Crew ammunition',ammo+' rounds')+line('Local stores',Math.floor(supply.local.ammo)+' rounds'))+'</dl>';
-        html+='<dl>'+line('Construction',f.progress===1?'COMPLETE':Math.floor(f.progress*100)+'%')+line('Activity',esc(operator?.action??'Awaiting crew'))+line('Target',operator?.aimTargetId!==undefined?'Tracking observed enemy':'No current target')+'</dl>';
+        html+='<dl>'+line('Weapon',f.installation?'Installed · stays when crew leave':'Awaiting existing mobile weapon')+(kind==='mortar'?line('Ready at position',he+' HE / '+smoke+' smoke')+line('Local stores',Math.floor(supply.local.mortarHE)+' HE / '+Math.floor(supply.local.mortarSmoke)+' smoke'):line('Ready at position',ammo+' rounds')+line('Local stores',Math.floor(supply.local.ammo)+' rounds'))+'</dl>';
+        html+='<dl>'+line('Construction',f.progress===1?'COMPLETE':Math.floor(f.progress*100)+'%')+line('Activity',esc(operator?.action??'Awaiting crew'))+line('Target',operator?.duty?.kind==='watch'&&operator.action!=='sleeping'&&operator.aimTargetId!==undefined?'Tracking observed enemy':'No current target')+'</dl>'+btn('data-replace-crew aria-pressed="'+Boolean(f.autoReplaceCrew)+'"','Local crew replacement: '+(f.autoReplaceCrew?'automatic':'manual'));
         for(const demand of state.living!.supplyDemands?.filter(d=>d.consumer==='weapon'&&d.consumerId===f.id)??[])html+='<p>'+SUPPLY_LABELS[demand.resource]+' refill target '+demand.target+' · '+Math.floor(claimed(demand))+' reserved / inbound · '+Math.ceil(unfulfilled(demand))+' still needed</p>';
         if(kind==='mortar'){
           const mission=state.operation?.supportMissions?.filter(m=>m.positionId===f.id).at(-1);
@@ -183,7 +225,7 @@ export class TrenchPanel {
     if(this.page==='construction'){
       if(f&&f.progress<1){html=job(f)+'<div class="position-actions">'+(f.workOrder?.cancelledAt===undefined?btn('data-auto-workers','Auto workers')+btn('data-assign="worker"','Choose worker')+btn('data-cancel-work','Cancel work order'):'')+btn('data-focus','Locate worksite')+'</div>'+(f.workOrder?.workerIds??[]).map(id=>'<p>'+esc(personName(id))+btn('data-remove-worker="'+id+'"','Return to duties')+'</p>').join('');}
       else html=facilities.filter(p=>p.progress<1).map(job).join('');
-      const trenches=this.cachedTrenches.filter(t=>t.progress<1&&!this.cachedFacilities.some(f=>!f.trenchAnchor&&f.connectorId===t.id));
+      const trenches=this.cachedTrenches.filter(t=>t.progress<1&&(t.id===this.trenchId||component!==undefined&&network.component(t.id)===component)&&!this.cachedFacilities.some(f=>!f.trenchAnchor&&f.connectorId===t.id));
       html+='<h3>Excavation work orders</h3>'+trenches.map(t=>{const r=trenchWorkReadout(state,t);return '<article class="position-job">'+btn('data-trench-job="'+t.id+'"',r.name)+'<strong>'+r.status+'</strong><p>'+esc(r.reason)+'</p><dl>'+line('Location',Math.round(r.location.x)+', '+Math.round(r.location.z))+line('Progress',Math.floor(r.progress*100)+'%')+line('Workers',r.workers+' assigned / '+r.working+' working')+line('Materials',r.materials)+'</dl>'+(t.id===this.trenchId?btn('data-resume','Assign digging crew'):'')+'</article>';}).join('');
       if(!trenches.length&&!facilities.some(p=>p.progress<1))html+='<p>No unfinished work orders.</p>';
       html+='<h3>New work order</h3><div class="position-actions">'+[['emplacement','MG position'],['mortar','Mortar pit'],['aid','Aid post'],['ammo','Ammo store'],['store','Supply store'],['rest','Rest dugout'],['meal','Meal bay']].map(([id,label])=>btn('data-place="'+id+'"',label)).join('')+'</div>';
@@ -203,13 +245,15 @@ export class TrenchPanel {
     const hidden=this.locked()||Boolean(document.documentElement.dataset.fieldMap);
     if(this.pointer&&!this.hint.hidden){this.hint.style.left=Math.min(this.pointer.x+16,window.innerWidth-240)+'px';this.hint.style.top=Math.min(this.pointer.y+16,window.innerHeight-100)+'px';}
     const house=this.inspectedBuilding===undefined?undefined:this.sim.terrain.buildings[this.inspectedBuilding];
-    this.overlay.style.display=hidden?'none':'';this.labels.style.display=hidden||this.element.hidden||house?'none':'';if(hidden)return;
+    this.overlay.style.display=hidden?'none':'';this.labels.style.display=hidden||this.element.hidden||house||this.enemy?'none':'';if(hidden)return;
     const paths:Vec2[][]=this.element.hidden?[]:house?[[[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]].map(([x,z])=>({x:house.x+x*(house.width/2+.5),z:house.z+z*(house.depth/2+.5)}))]:this.lines.map(t=>excavatedPoints(t));
     const f=this.hoverFacility??(!this.element.hidden?this.cachedFacilities.find(f=>f.id===this.facilityId):undefined);
     if(f){const r=f.trenchAnchor?1.7:3.2;paths.push(Array.from({length:17},(_,i)=>({x:f.x+Math.sin(i*Math.PI/8)*r,z:f.z+Math.cos(i*Math.PI/8)*r})));}
     if(!this.element.hidden&&this.projectedPerson){const s=this.projectedPerson;paths.push(Array.from({length:17},(_,i)=>({x:s.x+Math.sin(i*Math.PI/8)*.9,z:s.z+Math.cos(i*Math.PI/8)*.9})));}
-    const screens=paths.map(path=>path.map(p=>this.camera.project(p,.3)));
-    if(!this.element.hidden){
+    if(this.enemy&&!this.element.hidden){paths.length=0;paths.push(...this.enemy.sections.map(s=>s.points));}
+    const screens=paths.flatMap(path=>clippedPaths(path.map(p=>this.camera.project(p,.3)),window.innerWidth,window.innerHeight));
+    const pathCount=screens.length;
+    if(!this.element.hidden&&!this.enemy){
       const entries=this.entries,projected=entries.map(e=>({...e,screen:this.camera.project(e.point,1)}));
       // Bounded label set only; no army queries or DOM measurements in the frame loop.
       const arranged=placeMapLabels(projected.filter(e=>e.screen.visible).map(e=>({text:e.name,x:e.screen.x,y:e.screen.y,width:e.name.length*7.3+14,height:25,priority:e.type==='facility'?(e.id===this.facilityId?5:3):e.id===this.trenchId?4:1,font:'',color:''})),window.innerWidth,window.innerHeight);
@@ -221,6 +265,6 @@ export class TrenchPanel {
       });
     }
     while(this.overlay.children.length<screens.length){const line=document.createElementNS(this.overlay.namespaceURI,'polyline');this.overlay.append(line);}
-    for(const [i,child] of [...this.overlay.children].entries()){child.setAttribute('class',i<paths.length?'inspection-built':'inspection-label');child.setAttribute('points',screens[i]?.map(p=>p.x+','+p.y).join(' ')??'');}
+    for(const [i,child] of [...this.overlay.children].entries()){child.setAttribute('class',i<pathCount?'inspection-built':'inspection-label');child.setAttribute('points',screens[i]?.map(p=>p.x+','+p.y).join(' ')??'');}
   }
 }

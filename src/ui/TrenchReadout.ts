@@ -1,16 +1,25 @@
 import {distanceToSegment,type Vec2,type BattlefieldState,type TrenchState} from '../core/types';
 import {excavatedPoints} from '../core/TrenchGeometry';
-import type {TrenchNetwork} from '../garrison/TrenchNetwork';
+import {TrenchNetwork} from '../garrison/TrenchNetwork';
 
 /** A saved trench's array order is stable; use the same short name on every surface. */
 export const trenchName=(state:BattlefieldState,id:number)=>`Trench ${String(state.trenches.findIndex(t=>t.id===id)+1).padStart(2,'0')}`;
-export const networkName=(state:BattlefieldState,id:number)=>`Trench network ${String((state.living?.garrisons.filter(g=>g.faction!=='enemy').findIndex(g=>g.id===id)??-1)+1).padStart(2,'0')}`;
+const readoutGraphs=new WeakMap<BattlefieldState,TrenchNetwork>();
+export const networkName=(state:BattlefieldState,id:number)=>{
+  const g=state.living?.garrisons.find(g=>g.id===id);if(!g)return 'Unassigned network';
+  let graph=readoutGraphs.get(state);if(!graph){graph=new TrenchNetwork();readoutGraphs.set(state,graph);}graph.sync(state.trenches);return connectedName(state,graph,g.trenchId);
+};
+export const connectedName=(state:BattlefieldState,network:TrenchNetwork,id:number)=>`${state.trenches.some(t=>network.anchor(t.id)===network.anchor(id)&&state.squads.some(q=>q.id===t.engineerSquadId&&q.faction==='enemy'))?'Captured network':'Network'} ${String(network.anchor(id)).padStart(3,'0')}${state.trenches.find(t=>t.id===id)?.status==='planned'?' · planned':''}`;
+export function networkRepresentatives(trenches:TrenchState[],network:TrenchNetwork):TrenchState[]{
+  const groups=new Map<number,TrenchState>();for(const t of trenches){const id=network.anchor(t.id),prior=groups.get(id);if(!prior||t.id<prior.id)groups.set(id,t);}return [...groups.values()];
+}
 export const distanceToPolyline=(point:Vec2,points:Vec2[])=>({distance:points.slice(1).reduce((best,p,i)=>Math.min(best,distanceToSegment(point,points[i],p).distance),Infinity)});
 export function friendlyTrenches(state:BattlefieldState,network:TrenchNetwork):TrenchState[]{
   return state.trenches.filter(t=>{
+    const component=network.component(t.id),owners=state.living?.garrisons.filter(g=>component!==undefined&&network.component(g.trenchId)===component)??[];
+    if(owners.some(g=>g.faction!=='enemy'&&g.squadIds.length))return true;
     if(state.squads.some(q=>q.id===t.engineerSquadId&&q.faction==='enemy'))return false;
     if(state.living?.facilities.some(f=>f.connectorId===t.id&&state.living?.garrisons.some(g=>g.id===f.garrisonId&&g.faction==='enemy')))return false;
-    const component=network.component(t.id);
     return component===undefined||!state.living?.garrisons.some(g=>g.faction==='enemy'&&network.component(g.trenchId)===component);
   });
 }

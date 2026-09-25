@@ -11,13 +11,15 @@ import {trenchPresence} from './GarrisonReadout';
 import {fieldIcon} from './FieldSymbols';
 import {FieldMap} from './FieldMap';
 import {OrderOverlay} from './OrderOverlay';
-import {trenchName,friendlyTrenches} from './TrenchReadout';
+import {connectedName,friendlyTrenches,networkRepresentatives} from './TrenchReadout';
+import {knownTrenchNetworks,type KnownTrenchNetwork} from '../operations/TrenchIntelligence';
 
 export class TacticalOverlay {
   private readonly layer=document.createElement('div');
   private markers=new Map<number,HTMLButtonElement>();
   private contactMarkers=new Map<number,{element:HTMLDivElement;contact:ContactGroup}>();
   private trenchMarkers=new Map<number,HTMLButtonElement>();
+  private knownMarkers=new Map<number,{element:HTMLButtonElement;row:KnownTrenchNetwork}>();
   private objectiveMarkers=new Map<string,HTMLDivElement>();
   private markerTimer=1/30;
   private labels: {element:HTMLElement;point:Vec2}[]=[];
@@ -78,20 +80,23 @@ export class TacticalOverlay {
       const description=(contact.heard?'Heard gunfire · approximate area\nNot a visual sighting':contactDescription(contact.visible))+'\nReported '+Math.floor(state.elapsed-contact.lastSeen)+' seconds ago';marker.element.setAttribute('aria-label',description.replace('\n',' · '));
       marker.element.querySelector('.marker-tip')!.textContent=description;
     }
-    const trenchIds=new Set(state.trenches.map(t=>t.id));
+    const representatives=networkRepresentatives(friendlyTrenches(state,this.network),this.network);
+    const known=knownTrenchNetworks(state).filter(n=>!representatives.some(t=>this.network.anchor(t.id)===n.id));
+    for(const[id,m]of this.knownMarkers)if(!known.some(n=>n.id===id)){m.element.remove();this.knownMarkers.delete(id);}
+    for(const row of known){let m=this.knownMarkers.get(row.id);if(!m){const element=document.createElement('button');element.className='trench-capacity enemy-network';element.onclick=()=>this.occupy(row.id);this.layer.append(element);m={element,row};this.knownMarkers.set(row.id,m);}m.row=row;m.element.textContent=row.name;m.element.title='Observed ground · occupants unknown · click for orders';}
+    const trenchIds=new Set(representatives.map(t=>t.id));
     for(const[id,m]of this.trenchMarkers)if(!trenchIds.has(id)){m.remove();this.trenchMarkers.delete(id);}
-    const inspectable=new Set(friendlyTrenches(state,this.network).map(t=>t.id));
-    for(const trench of state.trenches){
+    for(const trench of representatives){
       let m=this.trenchMarkers.get(trench.id);
       if(!m){m=document.createElement('button');m.className='trench-capacity';m.addEventListener('click',()=>this.occupy(trench.id));this.layer.append(m);this.trenchMarkers.set(trench.id,m);}
       const component=this.network.component(trench.id),members=state.living?.garrisons.filter(g=>this.network.component(g.trenchId)===component)??[];
-      if(!inspectable.has(trench.id)){m.dataset.representative='false';m.textContent='';m.disabled=true;continue;}m.disabled=false;
+      m.disabled=false;
       const support=state.living?.facilities.some(f=>f.connectorId===trench.id);
       m.dataset.representative=String(!support);
       const used=state.soldiers.filter(s=>s.needs?.life!=='dead'&&members.some(g=>s.garrisonId===g.id)).length,capacity=this.network.capacity(component??-1);
       const inside=this.presence.get(component??-1)??0;
-      m.textContent=`${trenchName(state,trench.id)}${trench.status==='complete'?'':` · ${Math.floor(trench.progress*100)}%`}`;
-      m.setAttribute('aria-label',`Inspect ${trenchName(state,trench.id)}`);
+      m.textContent=connectedName(state,this.network,trench.id);
+      m.setAttribute('aria-label',`Inspect ${m.textContent}`);
       m.title=`Click to inspect and highlight this trench. Connected network: ${inside} inside · ${used}/${capacity} assigned. Manage personnel or assign squads in the inspector.`;
     }
     const objectiveIds=new Set(state.operation?.objectives.map(o=>o.id));
@@ -103,6 +108,7 @@ export class TacticalOverlay {
   }
   private positionMarkers():void {
     const state=this.getState();
+    for(const m of this.knownMarkers?.values()??[]){const p=this.camera.project(m.row.point,1);m.element.style.display=p.visible?'':'none';m.element.style.transform=`translate(${p.x}px,${p.y+20}px) translate(-50%,0)`;}
     for(const squad of state.squads){
       const marker=this.markers.get(squad.id);if(!marker)continue;
       if(!squad.soldierIds.length){marker.style.display='none';continue;}

@@ -37,7 +37,12 @@ export interface Duty {
 }
 export interface Facility extends Vec2 {
   id: number; garrisonId: number; kind: 'rest' | 'meal' | 'store' | 'ammo'|'aid'|'emplacement'|'mortar';
-  /** Explicit crew reservation; equipment remains owned and carried by people. */
+  /** Installed equipment and ready stock belong to the position, not its crew. */
+  installation?: {kind:'crew-mg'|'mg42'|'mortar'; source:'construction'|'legacy-kit'; personId?:number; weapon?:import('../combat/Weapons').WeaponState};
+  /** New work orders include the installation in their delivered material budget. */
+  includesWeapon?:boolean;
+  autoReplaceCrew?:boolean;
+  /** Migration-only squad reservation. */
   weaponSquadId?:number;
   /** Authoritative personnel reservations. The legacy squad field is migration-only. */
   weaponCrewIds?:number[];

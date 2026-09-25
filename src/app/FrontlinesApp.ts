@@ -74,6 +74,7 @@ export class FrontlinesApp {
   private readonly intervalSamples: number[] = [];
   private readonly simSamples: number[] = [];
   private perf: PerfSnapshot = { fps: 0, frameMs: 0, simulationMs: 0, drawCalls: 0, chunks: 0 };
+  private frameCosts={simulation:0,terrain:0,units:0,tactical:0,positions:0,webgl:0,hud:0,total:0};
   private pixelRatioLimit=1.25;
   private readonly viewport:HostViewport;
   private readonly garrisonPanel:GarrisonPanel;
@@ -129,7 +130,8 @@ export class FrontlinesApp {
       manageNetwork:id=>this.trenchPanel.open(id),
       buildingFloor:floor=>{if(document.documentElement.dataset.replay||document.documentElement.dataset.help||this.simulation.commandsLocked)return;for(const q of this.state.squads.filter(q=>this.selectedSquads.has(q.id)&&q.order.building)){const b=this.simulation.terrain.buildings[q.order.building!.id];if(floor&&b.height<=6){this.ui.notify('This building has one usable floor','warn');continue;}q.order.building!.floor=floor;}},
       mute:muted=>{this.audio.muted=muted;},
-      resume:()=>{const count=this.simulation.resumeConstruction([...this.selectedSquads]);this.ui.notify(count?`${count} engineer team(s) resuming unfinished works`:'Select a formation with tools near unfinished works',count?'normal':'warn');},
+      resume:()=>{const count=this.simulation.resumeConstruction([...this.selectedSquads]);this.ui.notify(this.simulation.lastResumeReason,count?'normal':'warn');},
+      resumePreview:()=>{const rows=[...this.selectedSquads].map(id=>this.simulation.previewResume(id)),job=rows.flatMap(r=>r.candidates)[0];return job?`Resume local trench ${job.trench.id} [R] · ${Math.round(job.point.x)}, ${Math.round(job.point.z)}`:rows[0]?.reason??'Select a formation with tools';},
       quality:level=>this.setQuality(level),
       craterMode: () => this.setMode('crater'),
       save: () => this.save(),
@@ -242,24 +244,27 @@ export class FrontlinesApp {
     }
     this.camera.update(realDt);
     this.input.updatePreview();
+    let phaseStart=performance.now();
     this.terrainRenderer.update(this.camera.target.x, this.camera.target.z,this.camera.zoomDistance);
+    this.frameCosts.terrain=performance.now()-phaseStart;
     const interiors=new Map<number,number>();for(const s of this.state.soldiers)if(this.selectedSquads.has(s.squadId)&&s.building&&this.state.squads.find(q=>q.id===s.squadId)?.faction!=='enemy')interiors.set(s.building.id,Math.min(interiors.get(s.building.id)??1,s.building.floor));
     const inspected=this.trenchPanel.inspectedBuilding;if(inspected!==undefined&&this.state.soldiers.some(s=>s.building?.id===inspected&&this.state.squads.some(q=>q.id===s.squadId&&q.faction!=='enemy')))interiors.set(inspected,this.trenchPanel.inspectedFloor);
     this.terrainRenderer.showInteriors(interiors);
-    this.unitRenderer.update(this.selectedSquads,realDt,this.camera.zoomDistance);
+    phaseStart=performance.now();this.unitRenderer.update(this.selectedSquads,realDt,this.camera.zoomDistance);this.frameCosts.units=performance.now()-phaseStart;
     this.trenchRenderer.update(this.camera.zoomDistance);
     this.debugRenderer.update(realDt, this.flags, this.selectedSquads);
-    this.tactical.update(realDt);
+    phaseStart=performance.now();this.tactical.update(realDt);this.frameCosts.tactical=performance.now()-phaseStart;
     this.livingRenderer.update(now,this.garrisonPanel.showRoutes||this.deploymentPanel.showRoutes||this.trenchPanel.showRoutes,{...this.camera.target,zoom:this.camera.zoomDistance});this.garrisonPanel.update(now);
-    this.trenchPanel.update();
+    phaseStart=performance.now();this.trenchPanel.update();this.frameCosts.positions=performance.now()-phaseStart;
     this.buildPanel.update();this.deploymentPanel.update();
     this.operationRenderer.update();this.operationUI.update(now);
     this.audio.update();
     this.lighting.update(this.state.living?.campaignHours??12,this.camera.target,this.camera.zoomDistance,now);
-    this.renderer.render(this.scene, this.camera.camera);
+    phaseStart=performance.now();this.renderer.render(this.scene, this.camera.camera);this.frameCosts.webgl=performance.now()-phaseStart;
+    phaseStart=performance.now();this.ui.render(now, this.perf, this.mode);this.frameCosts.hud=performance.now()-phaseStart;
     const frameDuration = performance.now() - frameStart;
+    this.frameCosts.total=frameDuration;this.frameCosts.simulation=simulationDuration;
     this.recordPerf(frameDuration, simulationDuration, interval);
-    this.ui.render(now, this.perf, this.mode);
     requestAnimationFrame(this.frame);
   };
 
@@ -448,6 +453,8 @@ export class FrontlinesApp {
       spawnStressTest: (count = 300) => this.stress(count),
       focus: (x, z, distance = 450) => this.camera.focus({ x, z }, distance),
       getPerf: () => ({ ...this.perf }),
+      getFrameCosts:()=>({...this.frameCosts}),
+      getSimulationCosts:()=>({...this.simulation.stepCosts}),
       getVisualStats:()=>({triangles:this.renderer.info.render.triangles,drawCalls:this.renderer.info.render.calls,particles:this.operationRenderer.particleCount,submittedSoldiers:this.unitRenderer.visibleCount,residentTrees:this.terrainRenderer.residentTreeCount,visibleTrees:this.terrainRenderer.visibleTrees(this.camera.camera),cameraTarget:{x:this.camera.target.x,z:this.camera.target.z},zoomDistance:this.camera.zoomDistance,...this.terrainRenderer.stats(this.camera.camera)}),
       getState: () => structuredClone(this.state),
       getCombatDiagnostics:()=>combatDiagnostics(this.state,this.simulation.terrain),

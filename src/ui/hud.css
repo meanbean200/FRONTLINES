@@ -52,3 +52,6 @@
 html[data-position-open] .trench-capacity{visibility:hidden}.inspection-label{fill:none;stroke:#bbb89b;stroke-width:1;opacity:.7;vector-effect:non-scaling-stroke}
 .trench-panel.position-inspector{top:70px;width:min(370px,calc(100% - 28px));max-height:calc(100dvh - 142px);padding:14px}.trench-panel.position-inspector header{top:-14px}.trench-panel.position-inspector h2{font-size:25px;margin-bottom:10px}
 @media(max-height:560px){.trench-panel.position-inspector{top:58px;max-height:calc(100dvh - 124px);padding:10px;width:330px}.trench-panel.position-inspector header{top:-10px}.trench-panel.position-inspector h2{font-size:22px}.position-tabs{top:40px}}
+#signal-orders{position:absolute;right:var(--edge);bottom:98px;z-index:29;padding:12px 20px;border:1px solid var(--accent);background:var(--panel);color:var(--accent);font:600 18px var(--heading);pointer-events:auto}
+.enemy-network{border-color:var(--enemy,#a16d61)!important;color:#d4aaa1!important}
+.battle-tools:has(.hud-tools[open]){z-index:46}

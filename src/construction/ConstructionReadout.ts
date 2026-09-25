@@ -15,8 +15,8 @@ export const SUPPORT_WORKS:Record<Facility['kind'],{name:string;cost:number;desc
   store:{name:'Supply store',cost:10,description:'Stores delivered supplies'},
   ammo:{name:'Ammunition dugout',cost:14,description:'Stores delivered ammunition'},
   aid:{name:'Aid post',cost:18,description:'Treatment and evacuation · 4 places'},
-  emplacement:{name:'MG position',cost:16,description:'Snap to trench edge · choose facing · 2 crew'},
-  mortar:{name:'Mortar pit',cost:12,description:'Open firing pit · short trench connection · 2 crew'},
+  emplacement:{name:'MG position',cost:16,description:'Installed gun included · 2 crew · ammunition delivered separately'},
+  mortar:{name:'Mortar pit',cost:12,description:'Installed mortar included · 2 crew · ammunition delivered separately'},
 };
 export function fitEngineers(state:BattlefieldState):SquadState[]{
   return state.squads.filter(q=>q.faction!=='enemy'&&squadHasEquipment(state,q,'tools'));

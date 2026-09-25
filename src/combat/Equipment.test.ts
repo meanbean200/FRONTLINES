@@ -51,11 +51,11 @@ describe('equipment, not classes',()=>{
     const people=state.soldiers.filter(s=>s.squadId===q.id),carrier=people.find(s=>s.equipment!.mortar)!;
     vi.spyOn(sim.terrain,'buildingAt').mockReturnValue(undefined);vi.spyOn(sim.terrain.objects,'trace').mockReturnValue({clear:true,transmission:1});
     people.forEach((s,i)=>{s.x=q.x+i;s.z=q.z;});const target={x:q.x+150,z:q.z};
-    preparedPosition(state,q.id,'mortar');
+    const position=preparedPosition(state,q.id,'mortar');
     expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,'ENEMY_AI').accepted).toBe(false);
     expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,'CAMPAIGN_AI').accepted).toBe(false);
-    const before=carrier.carried!.mortarHE;expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,'PLAYER').accepted).toBe(true);
-    state.elapsed=16;stepSupport(state,sim.terrain);expect(carrier.carried!.mortarHE).toBe(before-1);
+    const before=position.stock.mortarHE;expect(requestSupport(state,'mortarHE',q.id,target,false,sim.terrain,'PLAYER').accepted).toBe(true);
+    state.elapsed=16;stepSupport(state,sim.terrain);expect(position.stock.mortarHE).toBe(before-1);
     expect(state.operation!.supportMissions![0]).toMatchObject({source:'PLAYER',side:'player',ammoConsumed:1});
     expect(new SaveSystem().parse(JSON.stringify(state)).operation!.supportMissions).toEqual(state.operation!.supportMissions);
     const enemy=state.squads.find(q=>q.faction==='enemy'&&squadHasEquipment(state,q,'mortar'))!,ep=state.soldiers.filter(s=>s.squadId===enemy.id);ep.forEach((s,i)=>{s.x=enemy.x+i;s.z=enemy.z;});
@@ -66,7 +66,7 @@ describe('equipment, not classes',()=>{
     expect(observeEnemy(state).squads.find(q=>q.id===enemy.id)?.mortar).toBe(true);
     expect(requestSupport(state,'mortarHE',enemy.id,report,false,sim.terrain,'ENEMY_AI').accepted).toBe(true);
     state.elapsed=32;stepSupport(state,sim.terrain);expect(state.operation!.supportMissions!.at(-1)).toMatchObject({source:'ENEMY_AI',side:'enemy',ammoConsumed:1});
-    carrier.equipment!.mortar=false;expect(supportReadiness(state,'mortarHE',q.id).reason).toContain('equipment');
+    carrier.equipment!.mortar=false;expect(position.installation?.kind).toBe('mortar');expect(supportReadiness(state,'mortarHE',q.id).reason).toBe('');
     expect(Object.values(balance(state)).every(n=>Math.abs(n)<1e-8)).toBe(true);
   });
 });

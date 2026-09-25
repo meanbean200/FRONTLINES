@@ -10,7 +10,7 @@ import type {ShotEvent} from './types';
 import {registerIncoming} from './Reactions';
 import {equipWeapon,weaponReady,WEAPONS} from './Weapons';
 import {combatWound} from './Casualties';
-import {isMountedGun} from './WeaponPositions';
+import {operatedPosition,weaponStock} from './WeaponPositions';
 
 export const RIFLE_RULES=Object.freeze({range:360,shotInterval:3.8,damage:60});
 
@@ -24,7 +24,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     if(shooter.needs?.life!=='active')continue;
     if(shooter.building?.recovering&&shooter.action==='sleeping')continue;
     if(['pinned','broken'].includes(shooter.combat?.reaction??'')||['casualty','support'].includes(shooter.combat?.owner??''))continue;
-    if((shooter.carried?.ammo??0)<1||shooter.suppression>=90)continue;
+    if((weaponStock(state,shooter)?.ammo??0)<1||shooter.suppression>=90)continue;
     if(shooter.duty&&(shooter.duty.kind!=='watch'||shooter.duty.arrivedAt===undefined||shooter.duty.rationUntil!==undefined))continue;
     const weapon=equipWeapon(state,shooter),definition=WEAPONS[weapon.id];
     // Handling starts when the crew stops or empties the weapon, not only
@@ -38,7 +38,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     for(let x=cx-1;x<=cx+1;x++)for(let z=cz-1;z<=cz+1;z++)for(const s of buckets.get(`${x},${z}`)??[])
       if(factions.get(s.squadId)!==faction&&distance(shooter,s)<definition.range)candidates.push(s);
     candidates.sort((a,b)=>distance(shooter,a)-distance(shooter,b)||a.id-b.id);
-    const mount=isMountedGun(state,shooter)?state.living?.facilities.find(f=>f.kind==='emplacement'&&f.weaponCrewIds?.includes(shooter.id)):undefined;
+    const mount=operatedPosition(state,shooter,'emplacement');
     const inSector=(p:{x:number;z:number})=>!mount||mount.facing===undefined||Math.cos(Math.atan2(p.x-shooter.x,p.z-shooter.z)-mount.facing)>=.34;
     const observed=candidates.filter(s=>known.has(s.id)&&canSpot(state,terrain,shooter,s));
     let target:SoldierState|undefined,solution:ReturnType<typeof clearAimPoint>;
@@ -77,7 +77,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     if(weapon.burstLeft<=0)weapon.burstLeft=definition.burst;
     weapon.burstLeft--;weapon.loaded--;
     shooter.nextShotAt=op.elapsed+(weapon.burstLeft>0?definition.interval:definition.burstGap+shooter.id%5*.25+shooter.suppression*.025+Math.max(0,range-150)*.045);
-    consume(state,shooter.carried!,'ammo',1);shooter.ammunition=shooter.carried!.ammo;
+    consume(state,weaponStock(state,shooter)!,'ammo',1);shooter.ammunition=shooter.carried!.ammo;
     shooter.lastShotAt=state.elapsed;shooter.heading=heading;op.shots++;
     const event=resolveShot(state,terrain,shooter,point,candidates,spread,definition.range+20);alarm(shooter,event);
     op.shotEvents.push(event);if(op.shotEvents.length>256)op.shotEvents.shift();

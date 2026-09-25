@@ -74,10 +74,11 @@ export class StrategyCamera {
   }
 
   get zoomDistance():number {return this.distance;}
-  project(point:Vec2,offset=0):{x:number;y:number;visible:boolean} {
+  project(point:Vec2,offset=0):{x:number;y:number;visible:boolean;inFront:boolean} {
     const rect=this.viewport;
-    const v=new THREE.Vector3(point.x,this.terrain.heightAt(point.x,point.z)+offset,point.z).project(this.camera);
-    return {x:rect.left+(v.x+1)*.5*rect.width,y:rect.top+(1-v.y)*.5*rect.height,visible:v.z>0&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};
+    const world=new THREE.Vector3(point.x,this.terrain.heightAt(point.x,point.z)+offset,point.z),inFront=world.clone().applyMatrix4(this.camera.matrixWorldInverse).z< -this.camera.near;
+    const v=world.project(this.camera);
+    return {x:rect.left+(v.x+1)*.5*rect.width,y:rect.top+(1-v.y)*.5*rect.height,inFront,visible:inFront&&v.z>0&&v.z<1&&Math.abs(v.x)<1&&Math.abs(v.y)<1};
   }
 
   groundPoint(clientX: number, clientY: number): Vec2 | undefined {

@@ -2,7 +2,8 @@ import type {BattlefieldState,Vec2} from '../core/types';
 import {SANDBOX_PERSONNEL_LIMIT,type DeploymentKind} from '../simulation/SandboxDeployment';
 import {fieldIcon} from './FieldSymbols';
 import {requestReserveSquad,reserveDispatchAt} from '../operations/Replacements';
-import {trenchName,networkName} from './TrenchReadout';
+import {connectedName} from './TrenchReadout';
+import {TrenchNetwork} from '../garrison/TrenchNetwork';
 
 /** Normal player controls, separate from the developer stress fixture. */
 export class DeploymentPanel {
@@ -10,6 +11,7 @@ export class DeploymentPanel {
   private readonly button=document.createElement('button');
   private last='';
   private manifestKey='';
+  private readonly network=new TrenchNetwork();
   get showRoutes(){return !this.element.hidden;}
   constructor(private getState:()=>BattlefieldState,private place:(kind:DeploymentKind,count:number)=>void,private focus:(point:Vec2)=>void=()=>{},private notify:(text:string)=>void=()=>{}){
     const root=document.querySelector<HTMLElement>('#ui-root')!;
@@ -39,9 +41,12 @@ export class DeploymentPanel {
     if(text!==this.last){this.last=text;this.element.querySelector('.deployment-status')!.textContent=text;}
     this.element.querySelector<HTMLElement>('.deployment-choices')!.hidden=Boolean(op);
     const section=this.element.querySelector<HTMLElement>('.reinforcement-orders')!;section.hidden=!pool;if(!pool)return;
-    const w=state.living!,select=section.querySelector<HTMLSelectElement>('select')!,networks=w.garrisons.filter(g=>g.faction!=='enemy'&&g.cutoff!=='withdraw'&&g.squadIds.length);
-    const networkKey=networks.map(g=>g.id+g.name).join('|');
-    if(select.dataset.key!==networkKey){const chosen=select.value;select.dataset.key=networkKey;select.replaceChildren();for(const g of networks)select.add(new Option(`${trenchName(state,g.trenchId)} · ${networkName(state,g.id)}`,String(g.id)));if(!networks.length)select.add(new Option('Assign a formation to a completed trench','0'));if([...select.options].some(o=>o.value===chosen))select.value=chosen;}
+    this.network.sync(state.trenches);
+    const w=state.living!,select=section.querySelector<HTMLSelectElement>('select')!,seen=new Set<number>(),networks=w.garrisons.filter(g=>{
+      const anchor=this.network.anchor(g.trenchId);if(g.faction==='enemy'||g.cutoff==='withdraw'||!g.squadIds.length||seen.has(anchor))return false;seen.add(anchor);return true;
+    });
+    const networkKey=networks.map(g=>`${g.id}:${this.network.anchor(g.trenchId)}`).join('|');
+    if(select.dataset.key!==networkKey){const chosen=select.value;select.dataset.key=networkKey;select.replaceChildren();for(const g of networks)select.add(new Option(connectedName(state,this.network,g.trenchId),String(g.id)));if(!networks.length)select.add(new Option('Assign a formation to a completed trench','0'));if([...select.options].some(o=>o.value===chosen))select.value=chosen;}
     const delay=Math.max(0,reserveDispatchAt(pool,'player')-w.campaignHours),request=section.querySelector<HTMLButtonElement>('[data-request-reserves]')!;
     request.disabled=this.button.disabled||pool.reserve.player<8||!networks.length||delay>0;
     section.querySelector('.dispatch-reason')!.textContent=delay?`Next dispatch in ${delay.toFixed(1)} campaign hours.`:pool.reserve.player<8?'Fewer than 8 reserve personnel remain. Remaining reserves replace losses automatically.':!networks.length?'Defend a completed trench first to establish a safe arrival area.':'Dispatch available · request uses 8 reserve personnel.';
@@ -55,7 +60,7 @@ export class DeploymentPanel {
       const row=document.createElement('div'),name=document.createElement('strong'),detail=document.createElement('p'),locate=document.createElement('button');row.className='passenger-row';
       name.textContent=`${q?.name??'Formation'} · ${manifests.length} ${m.returning?'returning personnel':'personnel'}`;
       const inbound=w.trucks.find(t=>t.role==='convoy'&&t.faction!=='enemy');
-      detail.textContent=m.stage==='edge'?inbound?.state==='loading'?'Boarding available convoy when simulation runs':`Awaiting returning convoy · ${inbound?.reason??'no transport'}`:m.stage==='rear'?g?'Rear depot · waiting for a shuttle truck':'Rear depot · assign this formation to a trench before delivery':m.stage==='arrived'?'Unloaded · joining the trench on foot':`Truck ${truck?.id} · ${m.stage==='convoy'?'to rear depot':'to '+(g?trenchName(state,g.trenchId):'arrival area')} · ${truck?.reason??'transport unavailable'}`;
+      detail.textContent=m.stage==='edge'?inbound?.state==='loading'?'Boarding available convoy when simulation runs':`Awaiting returning convoy · ${inbound?.reason??'no transport'}`:m.stage==='rear'?g?'Rear depot · waiting for a shuttle truck':'Rear depot · assign this formation to a trench before delivery':m.stage==='arrived'?'Unloaded · joining the trench on foot':`Truck ${truck?.id} · ${m.stage==='convoy'?'to rear depot':'to '+(g?connectedName(state,this.network,g.trenchId):'arrival area')} · ${truck?.reason??'transport unavailable'}`;
       locate.textContent=truck?'Locate truck':m.stage==='arrived'?'Locate arrival area':'Locate waiting point';
       locate.onclick=()=>{const liveTruck=this.getState().living!.trucks.find(t=>t.id===m.truckId);this.focus(liveTruck??(m.stage==='arrived'?g?.forward: m.stage==='edge'?w.entry:w.rear)??w.rear);};row.append(name,detail,locate);list.append(row);
     }

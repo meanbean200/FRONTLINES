@@ -16,7 +16,7 @@ describe('honest crew weapon feedback',()=>{
     expect(crewWeaponReadout(state,q)).toContain('Set · watching sector');
     for(const s of crew.slice(1))s.x=100;
     expect(crewWeaponReadout(state,q)).toContain('MOVING TO POSITION');crew[1].x=1;w.reloadUntil=9;
-    expect(crewWeaponReadout(state,q)).toContain('Reloading · 3 s');crew[0].needs!.life='incapacitated';expect(crewWeaponReadout(state,q)).toBe('Gunner out of action');
+    expect(crewWeaponReadout(state,q)).toContain('Reloading · 3 s');crew[0].needs!.life='incapacitated';expect(crewWeaponReadout(state,q)).toBe('NO ASSISTANT');
     const before=JSON.stringify(state);crewWeaponReadout(state,q);expect(JSON.stringify(state)).toBe(before);
   });
   it('keeps routine weapon activity out of critical battlefield alerts',()=>{

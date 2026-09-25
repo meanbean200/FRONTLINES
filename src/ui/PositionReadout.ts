@@ -4,7 +4,7 @@ import {localInventory} from '../garrison/Inventory';
 import {hasEquipment} from '../combat/Equipment';
 import {constructionDemand,claimed,unfulfilled} from '../garrison/SupplyDemand';
 import {facilityName} from '../construction/PositionDefinitions';
-import {trenchName,trenchWorkforce} from './TrenchReadout';
+import {trenchName,trenchWorkforce,networkName} from './TrenchReadout';
 import type {TrenchState} from '../core/types';
 export function workReadout(state:BattlefieldState,f:Facility){
   const g=state.living!.garrisons.find(g=>g.id===f.garrisonId)!,people=state.soldiers.filter(s=>f.workOrder?.workerIds.includes(s.id)&&s.needs?.life==='active');
@@ -35,7 +35,7 @@ export function trenchWorkReadout(state:BattlefieldState,t:TrenchState){
 }
 export function shipmentReadout(state:BattlefieldState,t:Truck){
   const g=state.living!.garrisons.find(g=>g.id===t.garrisonId),returning=t.state==='returning'||t.state==='blocked'&&t.resume==='returning';
-  const destination=t.role==='convoy'?(returning?'Map-edge supply point':'Rear depot'):returning?'Rear depot':g?`Trench network · ${trenchName(state,g.trenchId)}`:'Awaiting network assignment';
+  const destination=t.role==='convoy'?(returning?'Map-edge supply point':'Rear depot'):returning?'Rear depot':g?networkName(state,g.id):'Awaiting network assignment';
   const demands=(state.living!.supplyDemands??[]).filter(d=>d.claims.some(c=>c.source==='truck'&&c.id===t.id));
   const jobs=demands.filter(d=>d.consumer==='construction').map(d=>({name:facilityName(state,state.living!.facilities.find(f=>f.id===d.consumerId)!),amount:d.claims.filter(c=>c.source==='truck'&&c.id===t.id).reduce((n,c)=>n+c.amount,0)}));
   const note=['En route','Delivering physical cargo','Returning to depot','At depot','Awaiting assignment'].includes(t.reason)?'':t.reason;

@@ -14,13 +14,13 @@ function fixture(){
 }
 describe('weapon handling is independent of firing cooldown',()=>{
   it('starts setup immediately, tracks travel and settles during the firing cooldown',()=>{
-    const {state,crew,tick}=fixture(),gunner=crew[0];tick(1);expect(gunner.combat!.weapon!.setupUntil).toBe(6);
-    gunner.x=2;tick(2);expect(gunner.combat!.weapon!.setupUntil).toBe(7);
-    tick(7);expect(gunner.combat!.weapon!.setupUntil).toBe(7);expect(state.operation!.shots).toBe(0);expect(gunner.nextShotAt).toBe(100);
+    const {state,crew,tick}=fixture(),gunner=crew[0];tick(1);expect(equipWeapon(state,gunner).setupUntil).toBe(6);
+    gunner.x=2;tick(2);expect(equipWeapon(state,gunner).setupUntil).toBe(7);
+    tick(7);expect(equipWeapon(state,gunner).setupUntil).toBe(7);expect(state.operation!.shots).toBe(0);expect(gunner.nextShotAt).toBe(100);
   });
   it('starts a physical reload before the next burst window without consuming or firing rounds',()=>{
     const {state,crew,tick}=fixture(),gunner=crew[0],weapon=equipWeapon(state,gunner);weapon.loaded=0;weapon.setupUntil=0;
-    const ammo=gunner.carried!.ammo;tick(10);expect(weapon.reloadUntil).toBe(17);tick(17);
-    expect(weapon.loaded).toBe(Math.min(100,ammo));expect(gunner.carried!.ammo).toBe(ammo);expect(state.operation!.shots).toBe(0);expect(gunner.nextShotAt).toBe(100);
+    const ammo=state.living!.facilities.at(-1)!.stock.ammo;tick(10);expect(weapon.reloadUntil).toBe(17);tick(17);
+    expect(weapon.loaded).toBe(Math.min(100,ammo));expect(state.living!.facilities.at(-1)!.stock.ammo).toBe(ammo);expect(state.operation!.shots).toBe(0);expect(gunner.nextShotAt).toBe(100);
   });
 });

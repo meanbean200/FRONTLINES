@@ -1,5 +1,5 @@
 import type {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
-import {trenchName} from './TrenchReadout';
+import {connectedName} from './TrenchReadout';
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 /** Emergency decisions only. All ordinary management redirects to Position. */
 export class GarrisonPanel {
@@ -24,7 +24,7 @@ export class GarrisonPanel {
     const state=this.simulation.state,pending=state.living!.garrisons.find(g=>g.faction!=='enemy'&&g.cutoff==='decision');
     this.element.hidden=!pending;if(!pending){this.element.open=false;return;}
     this.element.open=true;
-    const reviewing=Boolean(document.documentElement.dataset.replay),name=trenchName(state,pending.trenchId),key=pending.id+':'+reviewing+':'+this.locked();
+    const reviewing=Boolean(document.documentElement.dataset.replay),name=connectedName(state,this.simulation.garrisons.network,pending.trenchId),key=name+':'+pending.id+':'+reviewing+':'+this.locked();
     this.element.querySelector('#garrison-summary')!.textContent=name+' · paused for your decision';
     const content=this.element.querySelector<HTMLElement>('.garrison-emergency')!;content.hidden=false;
     if(content.dataset.state===key)return;content.dataset.state=key;

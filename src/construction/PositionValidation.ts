@@ -1,11 +1,23 @@
 import {distance,type BattlefieldState} from '../core/types';
 import {inlineGeometry,WEAPON_POSITIONS} from './PositionDefinitions';
 import {excavatedSpan} from '../core/TrenchGeometry';
+import {WEAPONS} from '../combat/Weapons';
 export function validPositionState(state:BattlefieldState):boolean {
   const crew=new Set<number>(),workers=new Set<number>();
   for(const f of state.living?.facilities??[]){
     const g=state.living!.garrisons.find(g=>g.id===f.garrisonId)!;
     if(f.facing!==undefined&&!Number.isFinite(f.facing))return false;
+    if(f.includesWeapon!==undefined&&(typeof f.includesWeapon!=='boolean'||!['emplacement','mortar'].includes(f.kind)))return false;
+    if(f.autoReplaceCrew!==undefined&&typeof f.autoReplaceCrew!=='boolean')return false;
+    const installed=f.installation;
+    if(installed){
+      if(!f.paid||f.progress!==1||!['construction','legacy-kit'].includes(installed.source)||!['emplacement','mortar'].includes(f.kind)||!(f.kind==='mortar'?installed.kind==='mortar':['crew-mg','mg42'].includes(installed.kind)))return false;
+      if(installed.source==='construction'&&!f.includesWeapon||installed.source==='legacy-kit'&&!state.soldiers.some(s=>s.id===installed.personId))return false;
+      if(installed.personId!==undefined&&state.living!.facilities.some(other=>other!==f&&other.installation?.personId===installed.personId&&other.kind===f.kind))return false;
+      const w=installed.weapon;
+      if(w&&(installed.kind==='mortar'||w.id!==installed.kind||![w.loaded,w.reloadUntil,w.setupUntil,w.burstLeft,w.position?.x,w.position?.z].every(Number.isFinite)||w.loaded<0||w.loaded>WEAPONS[w.id].magazine||w.reloadUntil<0||w.setupUntil<0||w.burstLeft<0))return false;
+      if(w&&(w.effectiveUntil!==undefined&&(!Number.isFinite(w.effectiveUntil)||w.effectiveUntil<0)||w.effectivePoint!==undefined&&![w.effectivePoint.x,w.effectivePoint.z].every(Number.isFinite)))return false;
+    }
     if(f.trenchAnchor){
       const a=f.trenchAnchor,t=state.trenches.find(t=>t.id===a.trenchId);if(f.kind!=='emplacement'||!t||f.connectorId!==t.id||!Number.isFinite(a.along)||f.facing===undefined)return false;
       const span=excavatedSpan(t);if(a.along<span.start||a.along>span.end||distance(inlineGeometry(t,a.along,f.facing).position,f)>.01)return false;

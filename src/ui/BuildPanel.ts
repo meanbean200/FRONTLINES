@@ -3,7 +3,7 @@ import type {Facility} from '../garrison/types';
 import {SUPPORT_WORKS,selectedConstructionNetwork} from '../construction/ConstructionReadout';
 import {localInventory} from '../garrison/Inventory';
 import {fieldIcon} from './FieldSymbols';
-import {trenchName,networkName} from './TrenchReadout';
+import {connectedName,networkRepresentatives} from './TrenchReadout';
 import {friendlyTrenches} from './TrenchReadout';
 import type {TrenchNetwork} from '../garrison/TrenchNetwork';
 
@@ -52,10 +52,10 @@ export class BuildPanel {
     const state=this.getState(),locked=Boolean(document.documentElement.dataset.replay||document.documentElement.dataset.menu||document.documentElement.dataset.help||state.operation&&state.operation.status!=='active');
     this.button.disabled=locked;
     if(this.element.hidden||!force&&performance.now()-this.last<250)return;this.last=performance.now();
-    const networks=this.trenchNetwork?friendlyTrenches(state,this.trenchNetwork).filter(t=>this.trenchNetwork!.component(t.id)!==undefined&&!state.living!.facilities.some(f=>!f.trenchAnchor&&f.connectorId===t.id)).map(t=>{const g=state.living!.garrisons.find(g=>this.trenchNetwork!.component(g.trenchId)===this.trenchNetwork!.component(t.id));return {id:g?.id??-t.id,trenchId:t.id,name:g?networkName(state,g.id):'Unassigned network'};}):state.living!.garrisons.filter(g=>g.faction!=='enemy'),select=this.element.querySelector<HTMLSelectElement>('#build-network')!;
+    const networks=this.trenchNetwork?networkRepresentatives(friendlyTrenches(state,this.trenchNetwork).filter(t=>this.trenchNetwork!.component(t.id)!==undefined),this.trenchNetwork).map(t=>{const g=state.living!.garrisons.find(g=>this.trenchNetwork!.component(g.trenchId)===this.trenchNetwork!.component(t.id));return {id:g?.id??-t.id,trenchId:t.id,name:connectedName(state,this.trenchNetwork!,t.id)};}):state.living!.garrisons.filter(g=>g.faction!=='enemy'),select=this.element.querySelector<HTMLSelectElement>('#build-network')!;
     if(!networks.some(g=>g.id===this.networkId))this.networkId=networks[0]?.id??0;
     const key=networks.map(g=>g.id+g.name).join('|');
-    if(select.dataset.key!==key){select.dataset.key=key;select.replaceChildren();if(!networks.length)select.add(new Option('No excavated friendly trench yet','0'));for(const g of networks)select.add(new Option(`${trenchName(state,g.trenchId)} · ${g.name}`,String(g.id)));}
+    if(select.dataset.key!==key){select.dataset.key=key;select.replaceChildren();if(!networks.length)select.add(new Option('No excavated friendly trench yet','0'));for(const g of networks)select.add(new Option(g.name,String(g.id)));}
     select.value=String(this.networkId);select.disabled=locked||!networks.length;
     const network=networks.find(g=>g.id===this.networkId),g=state.living!.garrisons.find(g=>g.id===network?.id);
     const workforce=this.element.querySelector('.build-workforce')!;
