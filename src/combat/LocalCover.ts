@@ -1,6 +1,7 @@
 import {distance,distanceToSegment,type BattlefieldState,type SoldierState,type SquadState,type Vec2} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {SquadNavigation} from '../navigation/SquadNavigation';
+import {insideWorld} from '../terrain/WorldLayout';
 
 export const COVER_BUDGET=49;
 /** Once per tick, allied occupancy/reservations only. Hidden enemy positions do
@@ -41,7 +42,7 @@ export function chooseLocalCover(s:SoldierState,q:SquadState,terrain:TerrainSyst
   let best:Vec2|undefined,bestScore=baseline+(pinned?7:3),tested=0;
   for(const p of candidates.slice(0,COVER_BUDGET-1)){
     tested++;
-    if(distance(s,p)>radius||distance(s,p)<.4||!withinRoute(p)||space.occupied(s,q,p)||terrain.obstacleAt(p.x,p.z,.5)||!nav.segmentClear(s,p,.5))continue;
+    if(!insideWorld(p)||distance(s,p)>radius||distance(s,p)<.4||!withinRoute(p)||space.occupied(s,q,p)||terrain.obstacleAt(p.x,p.z,.5)||!nav.segmentClear(s,p,.5))continue;
     const score=quality(p)-distance(s,p)*(pinned?1:.45);
     if(score>bestScore){best=p;bestScore=score;}
   }

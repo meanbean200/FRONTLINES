@@ -6,6 +6,8 @@ import {COVER_BUDGET,chooseLocalCover,CoverSpace} from './LocalCover';
 import {bodyVolume} from './Ballistics';
 import {coordinateMovement} from './Cooperation';
 import {SaveSystem} from '../persistence/SaveSystem';
+import {insideWorld} from '../terrain/WorldLayout';
+import {WORLD_HALF} from '../core/types';
 function fixture(){
   const state=createOperation('advance'),sim=new BattlefieldSimulation(state),s=state.soldiers[0],q=state.squads[0];
   Object.assign(s,{x:0,z:0});Object.assign(q,{x:0,z:0});state.operation!.nextOrders=1e9;
@@ -39,6 +41,25 @@ describe('autonomous protective behavior',()=>{
     for(const enemy of state.soldiers.filter(p=>state.squads.find(q=>q.id===p.squadId)?.faction==='enemy'))Object.assign(enemy,first.point);
     expect(chooseLocalCover(s,q,sim.terrain,sim.navigation,new CoverSpace(state))).toEqual(first);
     registerIncoming(s,0,-Math.PI/2);expect(chooseLocalCover(s,q,sim.terrain,sim.navigation,new CoverSpace(state)).point!.x).toBeGreaterThan(0);
+  });
+  it('never reserves off-map cover, even when the terrain query makes it attractive',()=>{
+    const {state,sim,s,q}=fixture();registerIncoming(s,0,0);s.posture='prone';
+    vi.mocked(sim.terrain.objects.trace).mockImplementation((_a,b)=>({clear:insideWorld(b),transmission:1}));
+    for(const edge of [{x:WORLD_HALF,z:0},{x:-WORLD_HALF,z:0},{x:0,z:WORLD_HALF},{x:0,z:-WORLD_HALF}]){
+      Object.assign(s,edge);const outside={x:edge.x*1.002,z:edge.z*1.002};
+      vi.mocked(sim.terrain.localCoverAnchors).mockReturnValue([outside]);
+      expect(chooseLocalCover(s,q,sim.terrain,sim.navigation,new CoverSpace(state),true).point).toBeUndefined();
+    }
+  });
+  it('rejects an old off-map reaction route without moving the soldier or losing the player order',()=>{
+    const {state,sim,s,q}=fixture();s.suppression=85;const order=structuredClone(q.order);
+    for(const edge of [{x:WORLD_HALF,z:0},{x:-WORLD_HALF,z:0},{x:0,z:WORLD_HALF},{x:0,z:-WORLD_HALF}]){
+      Object.assign(s,edge);s.combat={shotSequence:0,reaction:'pinned',reactionUntil:6,coverReview:10,reactionIndex:0,reactionRoute:[{x:edge.x*1.002,z:edge.z*1.002}]};
+      prepareActions(state,sim.terrain,sim.navigation,.05);
+      expect({x:s.x,z:s.z}).toEqual(edge);expect(s.combat.reactionRoute).toBeUndefined();
+      expect(s.combat.pauseReason).toContain('map boundary');expect(q.order).toEqual(order);
+      expect(()=>new SaveSystem().parse(JSON.stringify(state))).not.toThrow();
+    }
   });
   it('broken morale overrides protective crawling and preserves the destination',()=>{
     const {state,sim,s,q}=fixture();s.morale=5;s.suppression=85;q.order={type:'move',target:{x:30,z:0},issuedAt:0};vi.spyOn(sim.navigation,'plan').mockReturnValue([{x:-5,z:0}]);

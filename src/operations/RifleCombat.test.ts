@@ -3,6 +3,7 @@ import {createOperation} from './createOperation';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {balance} from '../garrison/Inventory';
 import {distance} from '../core/types';
+import {fireSmallArms} from '../combat/SmallArmsSystem';
 
 function fixture(seed=1944){
   const state=createOperation('advance',seed),sim=new BattlefieldSimulation(state),shooter=state.soldiers[0],target=state.soldiers.find(s=>state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')!;
@@ -51,5 +52,16 @@ describe('rifle lethality, reaction and suppression',()=>{
     state.operation!.contacts={player:[{soldierId:target.id,squadId:target.squadId,x:target.x,z:target.z,lastSeen:0,visible:true,active:true}],enemy:[]};
     sim.terrain.buildings=[{x:15,z:0,width:10,depth:20,height:8,angle:0}];
     for(let i=0;i<12;i++)tick();expect(state.operation!.shots).toBe(0);expect(shooter.carried!.ammo).toBe(60);
+  });
+  it('does not use an unbounded spread estimate to withhold a viable point-blank shot',()=>{
+    const {state,sim,shooter,target}=fixture();target.x=3;
+    shooter.action='advancing';target.action='advancing';shooter.suppression=85;shooter.needs!.energy=15;shooter.morale=25;
+    state.living!.campaignHours=23;state.elapsed=state.operation!.elapsed=10;
+    shooter.aimTargetId=target.id;shooter.aimReadyAt=0;
+    shooter.combat={shotSequence:0,aim:{targetId:target.id,since:0,lastSeen:10,point:{x:3,y:.86,z:0},lastHeading:Math.PI/2,lastPosition:{x:0,z:0},settlingUntil:20}};
+    state.operation!.contacts={player:[{soldierId:target.id,squadId:target.squadId,x:3,z:0,lastSeen:10,visible:true,active:true}],enemy:[]};
+    const ammo=shooter.carried!.ammo;
+    fireSmallArms(state,sim.terrain,[shooter,target],new Map([[shooter.squadId,'player'],[target.squadId,'enemy']]),()=>{});
+    expect(state.operation!.shots).toBe(1);expect(shooter.carried!.ammo).toBe(ammo-1);expect(shooter.combat.pauseReason).not.toBe('Holding ammunition · aimed hit implausible');
   });
 });

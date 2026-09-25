@@ -9,7 +9,14 @@ import {postureOf} from './Posture';
 
 // Gameplay calibration, not historical marksmanship statistics. Metres of
 // standard deviation in a plane perpendicular to the intended shot direction.
-export const RIFLE_DISPERSION = [[0,.22],[50,.57],[100,.95],[200,2.2],[300,4.8],[350,6.4],[360,6.8]] as const;
+// Do not extrapolate a fixed 22 cm error all the way to the muzzle: multiplied
+// movement/stress penalties turned a five-foot shot into a nearly vertical ray.
+// The existing 50–360 m calibration is unchanged.
+export const RIFLE_DISPERSION = [[0,0],[2,.045],[5,.10],[10,.18],[25,.37],[50,.57],[100,.95],[200,2.2],[300,4.8],[350,6.4],[360,6.8]] as const;
+// Gameplay limit relative to the intended aim ray, not the world horizon.
+// Applies to the physical shot, never just its tracer. Elevated targets remain valid.
+export const MAX_SHOT_DEVIATION=Math.PI/15; // 12-degree half-angle.
+export const maximumShotOffset=(range:number):number=>range*Math.tan(MAX_SHOT_DEVIATION);
 export function rifleSpread(range:number):number {
   for(let i=1;i<RIFLE_DISPERSION.length;i++){
     const a=RIFLE_DISPERSION[i-1],b=RIFLE_DISPERSION[i];
@@ -45,9 +52,15 @@ export function shotError(seed:number,shooterId:number,sequence:number):[number,
   return [r*Math.cos(v*Math.PI*2),r*Math.sin(v*Math.PI*2)];
 }
 export function dispersedEndpoint(from:Point3,aim:Point3,spread:number,error:[number,number],reach:number):Point3 {
-  const dx=aim.x-from.x,dy=aim.y-from.y,dz=aim.z-from.z,h=Math.hypot(dx,dz)||1,d=Math.hypot(h,dy);
-  const x=dx+dz/h*error[0]*spread-dx/h*dy/d*error[1]*spread;
-  const y=dy+h/d*error[1]*spread,z=dz-dx/h*error[0]*spread-dz/h*dy/d*error[1]*spread;
+  const dx=aim.x-from.x,dy=aim.y-from.y,dz=aim.z-from.z,h=Math.hypot(dx,dz),d=Math.hypot(h,dy);
+  if(d<1e-9)return {...from};
+  const limit=maximumShotOffset(d),offset=Math.hypot(...error)*spread;
+  const bounded=offset>limit?spread*limit/offset:spread;
+  const lateral=error[0]*bounded,vertical=error[1]*bounded;
+  // Orthonormal basis, including directly up/down stairs or an upper floor.
+  const rightX=h>1e-9?dz/h:1,rightZ=h>1e-9?-dx/h:0;
+  const x=dx+rightX*lateral+dy/d*rightZ*vertical;
+  const y=dy+(dz*rightX-dx*rightZ)/d*vertical,z=dz+rightZ*lateral-dy/d*rightX*vertical;
   const length=Math.hypot(x,y,z)||1;
   return {x:from.x+x/length*reach,y:from.y+y/length*reach,z:from.z+z/length*reach};
 }

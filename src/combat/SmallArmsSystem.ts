@@ -5,7 +5,7 @@ import {dropCargo} from '../garrison/NeedsSystem';
 import {canSpot,lineOfFire,squadContacts} from '../operations/Visibility';
 import type {Faction} from '../operations/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
-import {aimPoint,bodyVolume,dispersionMultiplier,resolveShot,segmentDistance,rifleSpread} from './Ballistics';
+import {aimPoint,bodyVolume,dispersionMultiplier,resolveShot,segmentDistance,rifleSpread,maximumShotOffset,muzzlePoint} from './Ballistics';
 import type {ShotEvent} from './types';
 import {registerIncoming} from './Reactions';
 import {equipWeapon,weaponReady,WEAPONS} from './Weapons';
@@ -41,7 +41,10 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     const point=area?{...area,y:terrain.heightAt(area.x,area.z)+.8}:aimPoint(terrain,shooter,target!);
     const heading=Math.atan2(point.x-shooter.x,point.z-shooter.z),range=distance(shooter,point),spread=dispersionMultiplier(state,shooter,area?undefined:target)*definition.spread;
     if(range>definition.range)continue;
-    if(!area&&definition.burst===1&&.8/(2*Math.PI*(rifleSpread(range)*spread)**2)<.003&&!squad.order.pushThrough){combat.pauseReason='Holding ammunition · aimed hit implausible';continue;}
+    // A conservative envelope for fire discipline, bounded by the same physical
+    // cone as the shot. Raw stress multipliers must not withhold point-blank fire.
+    const envelope=Math.min(rifleSpread(range)*spread,maximumShotOffset(Math.hypot(range,point.y-muzzlePoint(terrain,shooter).y)));
+    if(!area&&definition.burst===1&&.8/(2*Math.PI*envelope**2)<.003&&!squad.order.pushThrough){combat.pauseReason='Holding ammunition · aimed hit implausible';continue;}
     const aimId=area?undefined:target?.id;
     if(shooter.aimTargetId!==aimId||!combat.aim||area&&distance(combat.aim.point,point)>2){
       shooter.heading=heading;shooter.aimTargetId=aimId;

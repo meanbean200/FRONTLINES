@@ -3,6 +3,7 @@ import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {SquadNavigation} from '../navigation/SquadNavigation';
 import type {Reaction} from './types';
 import {chooseLocalCover,CoverSpace} from './LocalCover';
+import {insideWorld} from '../terrain/WorldLayout';
 
 const severity:Record<Reaction,number>={steady:0,'under-fire':1,shaken:2,pinned:3,broken:4};
 const duration:Record<Reaction,number>={steady:0,'under-fire':4,shaken:8,pinned:6,broken:20};
@@ -69,6 +70,9 @@ export function prepareActions(state:BattlefieldState,terrain:TerrainSystem,navi
 function followReaction(s:SoldierState,terrain:TerrainSystem,dt:number,action:string,space?:CoverSpace,q?:import('../core/types').SquadState):void {
   const c=s.combat!,route=c.reactionRoute??[],i=c.reactionIndex??0,target=route[i];
   if(!target){s.action=c.reaction==='broken'?'rallying':'crouching';return;}
+  // Old saves can contain a cover waypoint outside the sector. Reject it before
+  // taking even one step; clamping the actor would teleport edge occupants.
+  if(!insideWorld(target)){s.action='sheltering';c.pauseReason='Cover route blocked · map boundary';delete c.reactionRoute;c.reactionIndex=0;c.coverReview=0;return;}
   const d=distance(s,target);if(d<.25){c.reactionIndex=i+1;s.action='crouching';return;}
   const amount=Math.min(d,dt*(c.reaction==='broken'?2:c.reaction==='pinned'?.45:1.2)),x=s.x+(target.x-s.x)/d*amount,z=s.z+(target.z-s.z)/d*amount;
   if(terrain.obstacleAt(x,z,.5)||space&&q&&space.occupied(s,q,{x,z})){s.action='sheltering';c.pauseReason='Cover route blocked';c.reactionRoute=[];return;}
