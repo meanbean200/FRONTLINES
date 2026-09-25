@@ -5,6 +5,7 @@ import type { PerfSnapshot } from './ui/BattlefieldUI';
 
 declare global {
   interface Window {
+    __FRONTLINES_VIEWPORT__?:()=>ReturnType<typeof import('./diagnostics/ViewportDiagnostic').readViewportDiagnostic>;
     __FRONTLINES__: {
       ready: boolean;
       getSummary: () => {

@@ -38,6 +38,8 @@ import {EnvironmentLighting} from '../render/EnvironmentLighting';
 import {VISUAL_QUALITY,type VisualQuality} from '../render/VisualQuality';
 import {DeploymentPanel} from '../ui/DeploymentPanel';
 import {deploySandbox,deploymentPreview,type DeploymentKind} from '../simulation/SandboxDeployment';
+import {HostViewport} from '../render/HostViewport';
+import {installViewportDiagnostic} from '../diagnostics/ViewportDiagnostic';
 
 export class FrontlinesApp {
   readonly selectedSquads = new Set<number>();
@@ -73,6 +75,7 @@ export class FrontlinesApp {
   private readonly simSamples: number[] = [];
   private perf: PerfSnapshot = { fps: 0, frameMs: 0, simulationMs: 0, drawCalls: 0, chunks: 0 };
   private pixelRatioLimit=1.25;
+  private readonly viewport:HostViewport;
   private readonly garrisonPanel:GarrisonPanel;
   private readonly trenchPanel:TrenchPanel;
   private readonly buildPanel:BuildPanel;
@@ -192,10 +195,12 @@ export class FrontlinesApp {
         this.ui.notify('Impact crater created');
       },
     });
-    window.addEventListener('resize', this.resize);
-    window.visualViewport?.addEventListener('resize',this.resize);
-    new ResizeObserver(this.resize).observe(canvas);
-    this.resize();
+    const host=canvas.closest<HTMLElement>('#app');if(!host)throw new Error('Game host is missing.');
+    this.viewport=new HostViewport(host,()=>this.pixelRatioLimit,({width,height,ratio})=>{
+      if(this.renderer.getPixelRatio()!==ratio)this.renderer.setPixelRatio(ratio);
+      this.renderer.setSize(width,height,false);this.camera.resize(width,height);
+    });
+    installViewportDiagnostic(host,canvas,this.renderer,this.camera.camera);
     new ReplayPanel(()=>this.state,state=>window.__FRONTLINES__.restoreState(state),(x,z)=>this.camera.focus({x,z},180));
     this.operationUI=new OperationUI(()=>this.state,{start:setup=>this.beginPreview(setup),preview:setup=>this.previewBattle(setup),cancelPreview:()=>this.cancelBattlePreview(),legacyStart:(mode,seed)=>this.startGame(mode,seed),load:()=>this.load(),save:()=>Boolean(this.save()),hasSave:()=>this.saveSystem.hasSave(),loadError:()=>this.saveSystem.lastError,saveNotice:()=>this.saveSystem.legacyNotice(),focus:p=>this.camera.focus(p,520),quality:level=>this.setQuality(level),mute:muted=>{this.audio.muted=muted;}});
     new HudLayout(document.querySelector<HTMLElement>('#ui-root')!);
@@ -213,6 +218,7 @@ export class FrontlinesApp {
   }
 
   private readonly frame = (now: number): void => {
+    this.viewport.checkPixelRatio();
     if(this.graphicsLost){
       // Never let an invisible battlefield advance during a driver/context interruption.
       this.lastTime=now;this.accumulator=0;requestAnimationFrame(this.frame);return;
@@ -408,13 +414,7 @@ export class FrontlinesApp {
   }
 
   private readonly resize = (): void => {
-    const rect=this.canvas.getBoundingClientRect();
-    const width = Math.max(1,Math.round(rect.width));
-    const height = Math.max(1,Math.round(rect.height));
-    const ratio=Math.min(window.devicePixelRatio,this.pixelRatioLimit);
-    if(this.renderer.getPixelRatio()!==ratio)this.renderer.setPixelRatio(ratio);
-    this.renderer.setSize(width, height, false);
-    this.camera.resize(width, height);
+    this.viewport.sync();
   };
 
   private installDeveloperAPI(): void {

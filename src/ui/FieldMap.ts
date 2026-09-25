@@ -45,7 +45,7 @@ export class FieldMap {
     this.dialog.className='field-map';this.dialog.setAttribute('aria-label','Operational map');
     this.dialog.innerHTML=`<header><div><small>OPERATIONAL MAP / NORTH ↑</small><h2>SAINT-MARTIN SECTOR</h2></div><nav><button data-scale="sector">Local</button><button data-scale="theater">Full sector</button><button data-close>Return <kbd>Esc</kbd></button></nav></header><div class="map-stage"></div><footer><span class="map-friendly">⊠ Friendly</span><span class="map-enemy">◇ Confirmed / dashed last report</span><span>━ Excavated / ┄ Planned</span><span>□ Supply · amber route blocked</span></footer><p class="map-help">Select a friendly marker. Right-click to move selected squads. Click terrain to focus. M to return · play paused.</p>`;
     this.canvas.width=960;this.canvas.height=600;this.canvas.setAttribute('aria-label','Terrain, roads, settlements, trenches and known formations');
-    this.dialog.querySelector('.map-stage')!.append(this.canvas);document.body.append(this.dialog);
+    this.dialog.querySelector('.map-stage')!.append(this.canvas);document.querySelector('#app')!.append(this.dialog);
     this.dialog.querySelector('[data-close]')!.addEventListener('click',()=>this.close());
     this.dialog.addEventListener('cancel',e=>{e.preventDefault();this.close();});
     for(const b of this.dialog.querySelectorAll<HTMLButtonElement>('[data-scale]'))b.addEventListener('click',()=>{this.span=b.dataset.scale==='theater'?WORLD_SIZE:2400;this.center=mapCenter(this.camera.target,this.span,this.verticalScale);this.seed=-1;this.update(1);});

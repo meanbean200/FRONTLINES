@@ -38,7 +38,7 @@ export class OperationUI {
     this.dialog.className='operation-menu';this.dialog.setAttribute('aria-label','FRONTLINES menu');
     this.hud.className='operation-hud';this.hud.setAttribute('aria-label','Operation objectives');
     this.menuButton.className='operation-menu-button';this.menuButton.textContent='Menu';this.menuButton.title='Pause and menu [Esc]';
-    document.body.append(this.dialog);document.querySelector('#ui-root')!.append(this.hud,this.menuButton);
+    document.querySelector('#app')!.append(this.dialog);document.querySelector('#ui-root')!.append(this.hud,this.menuButton);
     this.menuButton.onclick=()=>this.open(this.started?'pause':'main');
     this.dialog.addEventListener('cancel',e=>{e.preventDefault();this.back();});
     window.addEventListener('keydown',e=>{

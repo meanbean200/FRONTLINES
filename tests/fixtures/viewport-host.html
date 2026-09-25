@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><title>FRONTLINES isolated embedding fixture</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:16px;background:#596573;color:#fff;font:14px sans-serif}header{display:flex;gap:12px;align-items:center;margin-bottom:12px}input{width:80px}button,input{padding:6px}#game-host{width:907px;height:510px;outline:2px solid #d4c093;background:#b23737}iframe{display:block;width:100%;height:100%;border:0}#game-host:fullscreen{width:100%;height:100%;outline:0}p{margin:0 0 12px}
+</style></head><body>
+<header><strong>Embedding test — area outside the gold frame belongs to the host site</strong>
+<label>Width <input id="host-width" type="number" value="907"></label><label>Height <input id="host-height" type="number" value="510"></label>
+<button id="apply-size">Resize container</button><button id="fullscreen">Fullscreen game</button><button id="toggle-host">Hide / reveal</button></header>
+<p id="dimensions">907 × 510 game container</p><div id="game-host"><iframe id="game" title="FRONTLINES" allow="fullscreen" allowfullscreen></iframe></div>
+<script>
+const host=document.getElementById('game-host'),frame=document.getElementById('game');
+frame.src=new URLSearchParams(location.search).get('game')||'http://127.0.0.1:4175/?viewportDebug=1';
+document.getElementById('apply-size').onclick=()=>{host.style.width=document.getElementById('host-width').value+'px';host.style.height=document.getElementById('host-height').value+'px';document.getElementById('dimensions').textContent=host.style.width+' × '+host.style.height+' game container';};
+document.getElementById('fullscreen').onclick=()=>host.requestFullscreen();
+document.getElementById('toggle-host').onclick=()=>host.hidden=!host.hidden;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.fullscreenElement)document.exitFullscreen();});
+</script></body></html>

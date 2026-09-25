@@ -1,0 +1,255 @@
+{
+  "folder": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\output\\playwright\\viewport-before-1790351671843",
+  "samples": [
+    {
+      "stage": "pinned",
+      "inner": [
+        960,
+        600
+      ],
+      "outer": [
+        1700,
+        1000
+      ],
+      "visual": [
+        960,
+        600
+      ],
+      "dpr": 1,
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "backing": [
+        960,
+        600
+      ]
+    },
+    {
+      "stage": "after-native-resize",
+      "inner": [
+        1666,
+        898
+      ],
+      "outer": [
+        1690,
+        990
+      ],
+      "visual": [
+        1666,
+        898
+      ],
+      "dpr": 1,
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1666,
+        "height": 898
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1666,
+        "height": 898
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1666,
+        "height": 898
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1666,
+        "height": 898
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1666,
+        "height": 898
+      },
+      "backing": [
+        1666,
+        898
+      ]
+    },
+    {
+      "stage": "after-refresh",
+      "inner": [
+        960,
+        600
+      ],
+      "outer": [
+        1690,
+        990
+      ],
+      "visual": [
+        960,
+        600
+      ],
+      "dpr": 1,
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "backing": [
+        960,
+        600
+      ]
+    },
+    {
+      "stage": "after-cdp-clear",
+      "inner": [
+        960,
+        600
+      ],
+      "outer": [
+        1690,
+        990
+      ],
+      "visual": [
+        960,
+        600
+      ],
+      "dpr": 1,
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "backing": [
+        960,
+        600
+      ]
+    },
+    {
+      "stage": "refresh-after-cdp-clear",
+      "inner": [
+        960,
+        600
+      ],
+      "outer": [
+        1690,
+        990
+      ],
+      "visual": [
+        960,
+        600
+      ],
+      "dpr": 1,
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 600
+      },
+      "backing": [
+        960,
+        600
+      ]
+    }
+  ]
+}

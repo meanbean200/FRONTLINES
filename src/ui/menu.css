@@ -1,5 +1,5 @@
 /* A battlefield-backed screen, not a document or a card dashboard. */
-.operation-menu{position:fixed;inset:0;margin:0;width:100vw;height:100dvh;max-width:none;max-height:none;padding:0;border:0;overflow:auto;background:transparent;color:var(--text)}
+.operation-menu{position:fixed;inset:var(--game-top,0) auto auto var(--game-left,0);margin:0;width:var(--game-width,100%);height:var(--game-height,100%);max-width:none;max-height:none;padding:0;border:0;overflow:auto;background:transparent;color:var(--text)}
 .operation-menu::backdrop{background:linear-gradient(90deg,rgba(8,16,14,.96) 0%,rgba(8,16,14,.83) 35%,rgba(8,16,14,.25) 100%);backdrop-filter:saturate(.65)}
 .menu-shell{min-height:100%;padding:90px clamp(40px,8vw,200px);display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
 .menu-content{width:min(690px,100%);animation:menu-arrive 160ms ease-out}

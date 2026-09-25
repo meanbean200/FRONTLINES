@@ -61,7 +61,7 @@ export class CommandInput {
     this.box = document.createElement('div');
     this.box.className = 'selection-box';
     this.box.hidden = true;
-    document.body.append(this.box);
+    options.canvas.parentElement!.append(this.box);
     this.routePreview = document.createElementNS('http://www.w3.org/2000/svg','svg');
     this.routePreview.classList.add('route-preview');
     this.routePreview.style.display='none';
@@ -69,8 +69,8 @@ export class CommandInput {
     this.routeLine.setAttribute('fill','none');this.routeLine.setAttribute('stroke','#f2ce86');this.routeLine.setAttribute('stroke-width','3');
     this.routePreview.innerHTML='<defs><marker id="plot-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 9 5 1 9" fill="none" stroke="#dbca96" stroke-width="1.4"/></marker></defs>';
     this.routePreview.append(this.routeLine,this.plotted);
-    document.body.append(this.routePreview);
-    this.draft.className='draft-readout';this.draft.hidden=true;document.body.append(this.draft);
+    options.canvas.parentElement!.append(this.routePreview);
+    this.draft.className='draft-readout';this.draft.hidden=true;options.canvas.parentElement!.append(this.draft);
     options.canvas.addEventListener('pointerdown', this.onPointerDown);
     options.canvas.addEventListener('pointermove', this.onPointerMove);
     options.canvas.addEventListener('pointerup', this.onPointerUp);

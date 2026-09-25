@@ -54,15 +54,13 @@ release. Do not hand-edit the generated HTML. `npm run test:launch` verifies a
 real file launch in a separate, offline Edge context, preserving player profiles.
 See [direct-file launch verification](docs/offline-launch.md) for checks and save boundaries.
 
-For the separate player-facing Edge preview, `scripts/edge-player.config.json` uses `viewport: null` **at browser creation**, so the game follows the real window, including after refresh. With the production preview running at port 4175:
+For normal play, open the production URL in an ordinary Edge tab, or double-click `FRONTLINES.html`. **Do not hand off an automation-controlled window as the player window.** The previous CLI profile command is retired: a retained test viewport can return after refresh even after a CDP clear. Existing ignored `output/playwright/edge-player*` profiles and their saves must be preserved, never erased or overwritten to repair sizing. A new normal browser profile does not inherit their saved campaigns automatically.
 
-```powershell
-npx --yes --package @playwright/cli playwright-cli -s=frontlines-player-native open http://127.0.0.1:4175/ --browser=msedge --headed --config=scripts/edge-player.config.json --profile=output/playwright/edge-player-native-profile
-```
+Viewport QA now owns disposable Edge processes, closes them in `finally`, and never connects to player profiles. Run `node scripts/qa-viewport.mjs` for production/offline/iframe/DPR checks and `node scripts/qa-viewport-native.mjs` for real native-window refresh, zoom and fullscreen. The latter loads a test-only extension into a fresh temporary profile to set actual tab zoom, then restores zoom and closes the profile. Run `node scripts/qa-viewport-reproduce.mjs` only to reproduce the old tooling failure in isolation.
 
-The persistent player profile is ignored by Git. The older `output/playwright/edge-player-profile` is preserved separately; never erase or overwrite a profile to repair sizing. Do not run fixed-viewport probes in any `frontlines-player*` session. Use a disposable QA session with a positive emulated viewport instead.
+Legacy callbacks can use `node scripts/run-browser-probe.mjs LABEL scripts/PROBE.cjs output/playwright/UNUSED.json [URL]`. **LABEL is no longer a browser session:** the runner always creates a new disposable browser. These callbacks are historical and some target obsolete controls. Do not run their code directly in a player tab. Zero viewport dimensions and clearing CDP metrics are not supported ways to convert a reusable emulated context back to native sizing.
 
-Responsive CLI probes run through `scripts/run-browser-probe.mjs`, which restores their original positive viewport in `finally`, including failed probes. It refuses emulation on native-sized pages and in named player sessions. **Zero width/height is not a native-viewport reset:** it can appear fixed after resizing, then shrink again on refresh. `scripts/qa-native-window.cjs` checks actual window resizing; `scripts/qa-native-refresh.cjs` checks repeated normal/cache-disabled reloads in disposable native contexts without reloading the player's unsaved world. A handoff must pass both; fixed-size screenshots alone are insufficient.
+Rendering observes `#app`, whose dimensions follow its containing document (including an iframe). The read-only `window.__FRONTLINES_VIEWPORT__()` diagnostic is available in development, or with explicit `?viewportDebug=1` in a built/offline QA page; it never appears in normal gameplay. See [viewport blocker investigation](docs/v1-viewport-blocker.md) for reproduction, evidence and limits.
 
 ## Current interface
 

@@ -1,0 +1,3063 @@
+{
+  "folder": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\output\\playwright\\viewport-native-1790352862395",
+  "samples": [
+    {
+      "label": "production-native-1400",
+      "inner": {
+        "width": 1376,
+        "height": 808
+      },
+      "outer": {
+        "width": 1400,
+        "height": 900
+      },
+      "visual": {
+        "width": 1376,
+        "height": 808,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "backing": {
+        "width": 1376,
+        "height": 808
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.702970297029703,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-refresh-1400-0",
+      "inner": {
+        "width": 1376,
+        "height": 808
+      },
+      "outer": {
+        "width": 1400,
+        "height": 900
+      },
+      "visual": {
+        "width": 1376,
+        "height": 808,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "backing": {
+        "width": 1376,
+        "height": 808
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.702970297029703,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-refresh-1400-1",
+      "inner": {
+        "width": 1376,
+        "height": 808
+      },
+      "outer": {
+        "width": 1400,
+        "height": 900
+      },
+      "visual": {
+        "width": 1376,
+        "height": 808,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "backing": {
+        "width": 1376,
+        "height": 808
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.702970297029703,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-refresh-1400-2",
+      "inner": {
+        "width": 1376,
+        "height": 808
+      },
+      "outer": {
+        "width": 1400,
+        "height": 900
+      },
+      "visual": {
+        "width": 1376,
+        "height": 808,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "backing": {
+        "width": 1376,
+        "height": 808
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.702970297029703,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-native-1700",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-refresh-1700-0",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-refresh-1700-1",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-refresh-1700-2",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-zoom-100",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-zoom-80",
+      "inner": {
+        "width": 2095,
+        "height": 1110
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 2095,
+        "height": 1110,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 0.800000011920929,
+      "rendererPixelRatio": 0.800000011920929,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-zoom-80-refresh",
+      "inner": {
+        "width": 2095,
+        "height": 1110
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 2095,
+        "height": 1110,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 0.800000011920929,
+      "rendererPixelRatio": 0.800000011920929,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-zoom-125",
+      "inner": {
+        "width": 1341,
+        "height": 710
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1340.800048828125,
+        "height": 710.4000244140625,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1.25,
+      "rendererPixelRatio": 1.25,
+      "cameraAspect": 1.8873873912575045,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-zoom-125-refresh",
+      "inner": {
+        "width": 1341,
+        "height": 710
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1340.800048828125,
+        "height": 710.4000244140625,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1.25,
+      "rendererPixelRatio": 1.25,
+      "cameraAspect": 1.8873873912575045,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-zoom-150",
+      "inner": {
+        "width": 1117,
+        "height": 592
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1117.3333740234375,
+        "height": 592,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "backing": {
+        "width": 1396,
+        "height": 740
+      },
+      "devicePixelRatio": 1.5,
+      "rendererPixelRatio": 1.25,
+      "cameraAspect": 1.8873874561206714,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-zoom-150-refresh",
+      "inner": {
+        "width": 1117,
+        "height": 592
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1117.3333740234375,
+        "height": 592,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "backing": {
+        "width": 1396,
+        "height": 740
+      },
+      "devicePixelRatio": 1.5,
+      "rendererPixelRatio": 1.25,
+      "cameraAspect": 1.8873874561206714,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-before-fullscreen",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-browser-fullscreen",
+      "inner": {
+        "width": 1920,
+        "height": 1080
+      },
+      "outer": {
+        "width": 1920,
+        "height": 1080
+      },
+      "visual": {
+        "width": 1920,
+        "height": 1080,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "backing": {
+        "width": 1920,
+        "height": 1080
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.7777777777777777,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-browser-fullscreen-exit",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-host-fullscreen",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": true,
+        "element": "app"
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-host-fullscreen-exit",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "production-native-gameplay",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": null,
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-native-1400",
+      "inner": {
+        "width": 1376,
+        "height": 808
+      },
+      "outer": {
+        "width": 1400,
+        "height": 900
+      },
+      "visual": {
+        "width": 1376,
+        "height": 808,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "backing": {
+        "width": 1376,
+        "height": 808
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.702970297029703,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-refresh-1400-0",
+      "inner": {
+        "width": 1376,
+        "height": 808
+      },
+      "outer": {
+        "width": 1400,
+        "height": 900
+      },
+      "visual": {
+        "width": 1376,
+        "height": 808,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "backing": {
+        "width": 1376,
+        "height": 808
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.702970297029703,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-refresh-1400-1",
+      "inner": {
+        "width": 1376,
+        "height": 808
+      },
+      "outer": {
+        "width": 1400,
+        "height": 900
+      },
+      "visual": {
+        "width": 1376,
+        "height": 808,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "backing": {
+        "width": 1376,
+        "height": 808
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.702970297029703,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-refresh-1400-2",
+      "inner": {
+        "width": 1376,
+        "height": 808
+      },
+      "outer": {
+        "width": 1400,
+        "height": 900
+      },
+      "visual": {
+        "width": 1376,
+        "height": 808,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1376,
+        "height": 808
+      },
+      "backing": {
+        "width": 1376,
+        "height": 808
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.702970297029703,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-native-1700",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-refresh-1700-0",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-refresh-1700-1",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-refresh-1700-2",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-zoom-100",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-zoom-80",
+      "inner": {
+        "width": 2095,
+        "height": 1110
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 2095,
+        "height": 1110,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 0.800000011920929,
+      "rendererPixelRatio": 0.800000011920929,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-zoom-80-refresh",
+      "inner": {
+        "width": 2095,
+        "height": 1110
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 2095,
+        "height": 1110,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 2095,
+        "height": 1110
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 0.800000011920929,
+      "rendererPixelRatio": 0.800000011920929,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-zoom-125",
+      "inner": {
+        "width": 1341,
+        "height": 710
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1340.800048828125,
+        "height": 710.4000244140625,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1.25,
+      "rendererPixelRatio": 1.25,
+      "cameraAspect": 1.8873873912575045,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-zoom-125-refresh",
+      "inner": {
+        "width": 1341,
+        "height": 710
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1340.800048828125,
+        "height": 710.4000244140625,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1340.800048828125,
+        "height": 710.4000244140625
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1.25,
+      "rendererPixelRatio": 1.25,
+      "cameraAspect": 1.8873873912575045,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-zoom-150",
+      "inner": {
+        "width": 1117,
+        "height": 592
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1117.3333740234375,
+        "height": 592,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "backing": {
+        "width": 1396,
+        "height": 740
+      },
+      "devicePixelRatio": 1.5,
+      "rendererPixelRatio": 1.25,
+      "cameraAspect": 1.8873874561206714,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-zoom-150-refresh",
+      "inner": {
+        "width": 1117,
+        "height": 592
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1117.3333740234375,
+        "height": 592,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1117.3333740234375,
+        "height": 592
+      },
+      "backing": {
+        "width": 1396,
+        "height": 740
+      },
+      "devicePixelRatio": 1.5,
+      "rendererPixelRatio": 1.25,
+      "cameraAspect": 1.8873874561206714,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-before-fullscreen",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-browser-fullscreen",
+      "inner": {
+        "width": 1920,
+        "height": 1080
+      },
+      "outer": {
+        "width": 1920,
+        "height": 1080
+      },
+      "visual": {
+        "width": 1920,
+        "height": 1080,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "backing": {
+        "width": 1920,
+        "height": 1080
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.7777777777777777,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-browser-fullscreen-exit",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-host-fullscreen",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": true,
+        "element": "app"
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-host-fullscreen-exit",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    },
+    {
+      "label": "standalone-native-gameplay",
+      "inner": {
+        "width": 1676,
+        "height": 888
+      },
+      "outer": {
+        "width": 1700,
+        "height": 980
+      },
+      "visual": {
+        "width": 1676,
+        "height": 888,
+        "scale": 1,
+        "offsetLeft": 0,
+        "offsetTop": 0
+      },
+      "document": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "app": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "ui": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "menu": null,
+      "overlay": {
+        "x": 0,
+        "y": 0,
+        "width": 1676,
+        "height": 888
+      },
+      "backing": {
+        "width": 1676,
+        "height": 888
+      },
+      "devicePixelRatio": 1,
+      "rendererPixelRatio": 1,
+      "cameraAspect": 1.8873873873873874,
+      "fullscreen": {
+        "active": false,
+        "element": null
+      },
+      "iframe": false,
+      "overflow": false
+    }
+  ],
+  "errors": [],
+  "passed": true
+}
