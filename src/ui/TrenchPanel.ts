@@ -22,6 +22,7 @@ import {updateLiveContent} from './LiveContent';
 import {raidEligibility} from '../operations/RaidEligibility';
 import {deathDescription} from '../simulation/DeathRecord';
 import {manpowerPools} from '../garrison/Manpower';
+import {readyDefender} from '../garrison/PersonnelRoles';
 import {activeSupportMission,supportPositionStatus} from './WeaponReadout';
 
 interface Actions {defend:(id:number)=>void;resume:(id:number)=>void;area:(id:number)=>void;move:(watch?:boolean)=>void;cancel:()=>void;notify:(text:string)=>void;place:(id:number,kind:Facility['kind'])=>void;fire:(id:number,kind:'mortarHE'|'mortarSmoke',battery?:boolean)=>void;person:()=>void}
@@ -40,6 +41,8 @@ export class TrenchPanel {
   private readonly signal=document.createElement('button');
   private enemy?:KnownTrenchNetwork;
   private includeWeaponCrews=false;
+  private workParty?:{ids:number[];name:string};
+  private partyTarget=false;
   private projectedPerson?:SoldierState;
   private hoverFacility?:Facility;
   private lines:TrenchState[]=[];
@@ -55,7 +58,7 @@ export class TrenchPanel {
     this.element.innerHTML='<header><div><small>POSITION / TRENCH NETWORK</small><h2>Position</h2></div><button data-close aria-label="Close position management">×</button></header><label class="position-picker">Trench<select id="trench-choice" aria-label="Trench"></select></label><nav class="position-tabs" aria-label="Position pages">'+(['overview','personnel','weapons','construction','supplies'] as Page[]).map(p=>'<button data-page="'+p+'">'+({overview:'Overview',personnel:'People',weapons:'Weapons',construction:'Build',supplies:'Supplies'}[p])+'</button>').join('')+'</nav><div class="position-content"></div>';
     root.append(this.element);this.overlay.classList.add('trench-inspection-overlay');this.overlay.setAttribute('aria-hidden','true');this.labels.className='position-labels';this.hint.className='position-hover';this.hint.hidden=true;root.append(this.labels,this.hint);document.querySelector('#app')!.append(this.overlay);
     this.button.onclick=()=>this.element.hidden?this.open():this.close();this.element.addEventListener('click',e=>this.click(e));
-    this.element.querySelector('#trench-choice')!.addEventListener('change',e=>{this.trenchId=Number((e.target as HTMLSelectElement).value);this.facilityId=this.personId=this.truckId=0;delete document.documentElement.dataset.personSelected;this.assign=undefined;this.update(true);this.focus();});
+    this.element.querySelector('#trench-choice')!.addEventListener('change',e=>{this.trenchId=Number((e.target as HTMLSelectElement).value);this.facilityId=this.personId=this.truckId=0;this.clearPerson();this.assign=undefined;this.update(true);this.focus();});
     this.element.addEventListener('change',e=>{
       const select=e.target as HTMLSelectElement;if(this.locked())return;
       if(select.hasAttribute('data-raid-release-crews')){this.includeWeaponCrews=(select as unknown as HTMLInputElement).checked;this.update(true);return;}
@@ -76,8 +79,8 @@ export class TrenchPanel {
   private locked(){return this.sim.commandsLocked||Boolean(document.documentElement.dataset.menu||document.documentElement.dataset.help||document.documentElement.dataset.replay);}
   open(id?:number):void {window.dispatchEvent(new Event('frontlines-menu'));this.enemy=knownTrenchNetworks(this.sim.state).find(n=>n.id===id&&!friendlyTrenches(this.sim.state,this.sim.garrisons.network).some(t=>t.id===id));this.buildingId=-1;this.trenchId=id??this.trenchId;this.facilityId=this.personId=this.truckId=0;this.assign=undefined;this.page='overview';this.element.hidden=false;document.documentElement.dataset.positionOpen='true';this.button.setAttribute('aria-expanded','true');this.update(true);this.element.scrollTop=0;}
   openConstruction(id?:number):void{this.open(id);this.page='construction';this.update(true);}
-  close():void{this.element.hidden=true;this.personId=0;this.projectedPerson=undefined;this.overlay.replaceChildren();this.labels.replaceChildren();delete this.labels.dataset.key;this.button.setAttribute('aria-expanded','false');delete document.documentElement.dataset.personSelected;delete document.documentElement.dataset.positionOpen;this.actions.cancel();}
-  clearPerson():void{this.personId=0;delete document.documentElement.dataset.personSelected;this.update(true);}
+  close():void{this.element.hidden=true;this.personId=0;this.workParty=undefined;this.partyTarget=false;this.projectedPerson=undefined;this.overlay.replaceChildren();this.labels.replaceChildren();delete this.labels.dataset.key;this.button.setAttribute('aria-expanded','false');delete document.documentElement.dataset.personSelected;delete document.documentElement.dataset.positionOpen;this.actions.cancel();}
+  clearPerson():void{this.personId=0;this.workParty=undefined;this.partyTarget=false;delete document.documentElement.dataset.personSelected;this.actions.cancel();this.update(true);}
   private focus():void{const f=this.sim.state.living!.facilities.find(f=>f.id===this.facilityId),t=this.sim.state.trenches.find(t=>t.id===this.trenchId);if(f)this.camera.focus(f,55);else if(t)this.camera.focus(pointAlongPolyline(t.points,.5),Math.max(80,Math.min(600,polylineLength(t.points)*1.5)));}
   inspectFacility(id:number):boolean{const f=this.sim.state.living!.facilities.find(f=>f.id===id),g=this.sim.state.living!.garrisons.find(g=>g.id===f?.garrisonId);if(!f||!g||g.faction==='enemy')return false;this.open(f.trenchAnchor?.trenchId??g.trenchId);this.facilityId=id;this.page=f.progress<1?'construction':['emplacement','mortar'].includes(f.kind)?'weapons':'overview';this.update(true);return true;}
   inspectPerson(id:number):boolean{
@@ -99,7 +102,17 @@ export class TrenchPanel {
       this.actions.notify(this.sim.garrisons.assignCrew(this.personId,f.id).reason);this.update(true);return true;
     }return this.inspectFacility(id);
   }
-  movePerson(point:Vec2):boolean{if(this.locked()||this.element.hidden)return false;const result=this.sim.garrisons.orderPerson(this.personId,this.watchMove?'watch':'move',point);this.actions.notify(result.reason);this.update(true);return result.accepted;}
+  movePerson(point:Vec2):boolean{
+    if(this.locked()||this.element.hidden)return false;
+    if(this.workParty&&this.partyTarget){
+      const personIds=this.workParty.ids.slice(),ids=[...new Set(this.sim.state.soldiers.filter(s=>personIds.includes(s.id)).map(s=>s.squadId))];
+      const known=knownTrenchNetworks(this.sim.state).find(n=>n.sections.some(s=>distanceToPolyline(point,s.points).distance<s.width/2+1));
+      const n=this.sim.prepareOrder(ids,'assault',point,known?.id,false,undefined,{includeWorkers:true,personIds});
+      this.actions.notify(n?'Work party preview · review actual people before GO':'Selected people are unavailable or already committed');
+      if(n)this.close();return n>0;
+    }
+    const result=this.sim.garrisons.orderPerson(this.personId,this.watchMove?'watch':'move',point);this.actions.notify(result.reason);this.update(true);return result.accepted;
+  }
   private click(e:Event):void{
     const b=(e.target as Element).closest<HTMLButtonElement>('button');if(!b)return;
     if(b.hasAttribute('data-close')){this.close();return;}if(b.dataset.page){this.page=b.dataset.page as Page;this.assign=undefined;this.update(true);return;}
@@ -108,6 +121,14 @@ export class TrenchPanel {
     if(b.hasAttribute('data-focus')){this.focus();return;}
     if(b.dataset.trenchJob){this.open(Number(b.dataset.trenchJob));this.page='construction';this.update(true);this.focus();return;}
     if(this.locked())return;
+    if(b.dataset.selectPool){
+      const t=this.sim.state.trenches.find(t=>t.id===this.trenchId);if(!t)return;
+      const pools=manpowerPools(this.sim.state,trenchPeople(this.sim.state,this.sim.garrisons.network,t)),pool=b.dataset.selectPool==='workers'?'workers':'available';
+      this.workParty={ids:pools[pool].slice(),name:pool==='workers'?'Work party':'Available personnel'};this.personId=0;this.partyTarget=false;this.page='personnel';
+      document.documentElement.dataset.personSelected='true';this.actions.person();this.actions.cancel();this.update(true);return;
+    }
+    if(b.hasAttribute('data-party-clear')){this.clearPerson();return;}
+    if(b.hasAttribute('data-party-assault')&&this.workParty){this.partyTarget=true;this.actions.move();this.actions.notify('Click the assault destination · only this selected group will be reviewed. No orders change before GO.');return;}
     if(this.enemy){
       const target=this.enemy.point,ids=[...this.selected];
       if(b.hasAttribute('data-enemy-locate'))this.camera.focus(target,140);
@@ -212,6 +233,7 @@ export class TrenchPanel {
       const g=groups[0];
       const pools=manpowerPools(state,people);
       html+='<h3>Manpower</h3><dl>'+([['stationCrew','STATION CREW'],['workers','WORKERS'],['available','AVAILABLE'],['recovering','RESTING / RECOVERING'],['assault','ASSAULT']] as const).map(([key,label])=>line(label,pools[key].length)).join('')+'</dl><p>Each person counted once. A resting gunner keeps their station assignment but is not ready.</p>';
+      html+='<dl>'+line('Assigned here',people.filter(s=>groupIds.has(s.garrisonId!)).length)+line('Combat-ready here',people.filter(s=>groupIds.has(s.garrisonId!)&&readyDefender(state,s)).length)+line('Operational weapons',facilities.filter(f=>['mortar','emplacement'].includes(f.kind)&&!positionReadiness(state,f)).length)+'</dl><div class="position-actions">'+btn('data-select-pool="workers" '+(!pools.workers.length?'disabled':''),'Select workers · '+pools.workers.length)+btn('data-select-pool="available" '+(!pools.available.length?'disabled':''),'Select available · '+pools.available.length)+'</div>';
       if(g){
         const mixedReadiness=groups.some(area=>area.readiness!==g.readiness),mixedFront=groups.some(area=>area.front!==g.front);
         html+='<h3>Defense orders</h3><p>'+groups.reduce((n,g)=>n+g.watchPresent,0)+' / '+groups.reduce((n,g)=>n+g.watchRequired,0)+' watching · '+people.filter(s=>s.action==='sleeping').length+' resting</p><label>Readiness<select id="garrison-readiness" data-network="'+g.id+'">'+(mixedReadiness?'<option disabled selected>Mixed · choose network readiness</option>':'')+(['routine','alert','stand-to'] as const).map(v=>'<option '+(!mixedReadiness&&g.readiness===v?'selected':'')+' value="'+v+'">'+({routine:'Routine · 25% watch',alert:'Alert · 50% watch','stand-to':'Stand-to · 90% watch'}[v])+'</option>').join('')+'</select></label><label>Front<select id="garrison-front" data-network="'+g.id+'">'+(mixedFront?'<option disabled selected>Mixed · choose network facing</option>':'')+[[0,'South'],[Math.PI/2,'East'],[Math.PI,'North'],[-Math.PI/2,'West']].map(([v,n])=>'<option '+(!mixedFront&&g.front===v?'selected':'')+' value="'+v+'">'+n+'</option>').join('')+'</select></label><p>Squads rotate watch, rest and supplies. Move or Withdraw leaves this network.</p>'+(['hold','recover'].includes(g.cutoff)?'<p>'+ (g.cutoff==='hold'?'Holding and rationing.':'Recovery parties authorized.')+'</p>'+btn('data-review-supply="'+g.id+'"','Review supply response'):'');
@@ -219,8 +241,14 @@ export class TrenchPanel {
       html+='<details><summary>Campaign rules</summary><label><input type="checkbox" id="lethal-deprivation" '+(state.living!.lethalNeeds?'checked':'')+'> Allow deprivation deaths</label><p>Opt-in: prolonged hunger and thirst can kill. Existing supplies are unchanged.</p></details>';
     }
     if(this.page==='personnel'){
+      const pools=manpowerPools(state,people);
+      html='<div class="position-actions"><button data-select-pool="workers" '+(!pools.workers.length?'disabled':'')+'>Select workers · '+pools.workers.length+'</button><button data-select-pool="available" '+(!pools.available.length?'disabled':'')+'>Select available · '+pools.available.length+'</button></div>';
+      if(this.workParty){
+        const ids=this.workParty.ids,chosen=state.soldiers.filter(s=>ids.includes(s.id)),formations=[...new Set(chosen.map(s=>state.squads.find(q=>q.id===s.squadId)?.name??'Unknown'))];
+        html+='<section class="work-party-selection" aria-label="Selected work party"><small>PERSONNEL GROUP</small><h3>'+esc(this.workParty.name)+' · '+chosen.length+'</h3><p>'+formations.map(esc).join(' / ')+'<br>Selected people only. Original squad membership is unchanged.</p><div class="position-actions">'+btn('data-party-assault '+(!chosen.length?'disabled':''),'Prepare assault')+btn('data-party-clear','Clear group')+'</div><details><summary>Selected people</summary>'+chosen.map(s=>'<p>'+esc(personName(s.id))+' · '+esc(s.survivalReason??s.duty?.reason??s.action)+'</p>').join('')+'</details></section>';
+      }
       if(person){const equipment=equipmentOf(state,person);html='<section class="trench-person-detail"><small>PERSON SELECTED</small><h3>'+esc(personName(person.id))+'</h3><p>'+esc(person.action)+' · '+esc(person.needs?.life??'active')+' · '+esc(equipment.weapon)+'</p><p>'+esc(deathDescription(person)||person.survivalReason||person.combat?.pauseReason||person.duty?.reason||'Formation order')+'</p><p>Energy '+Math.round(person.needs?.energy??0)+' · hunger '+Math.round(person.needs?.hunger??0)+' · thirst '+Math.round(person.needs?.thirst??0)+'</p><div class="person-orders">'+[['move','Move here'],['watch','Watch here'],['rest','Rest'],['meal','Eat / drink'],['auto','Automatic duties']].map(([id,label])=>btn('data-order="'+id+'" '+(person.needs?.life!=='active'?'disabled':''),label)).join('')+'</div><p>Click a completed weapon position to man it.</p></section>';}
-      html+='<h3>Local personnel · '+people.length+'</h3><div class="trench-person-list">'+people.map(s=>btn('data-person="'+s.id+'" aria-pressed="'+(s.id===this.personId)+'"','<strong>'+esc(personName(s.id))+'</strong><span>'+esc(equipmentOf(state,s).tools?'TOOLS':equipmentOf(state,s).mortar?'MORTAR':equipmentOf(state,s).weapon)+' · '+esc(s.needs?.life==='active'?s.action:s.needs?.life)+'</span>')).join('')+'</div>';
+      html+='<h3>Local personnel · '+people.length+'</h3><div class="trench-person-list">'+people.map(s=>btn('data-person="'+s.id+'" aria-pressed="'+(s.id===this.personId||Boolean(this.workParty?.ids.includes(s.id)))+'"','<strong>'+esc(personName(s.id))+'</strong><span>'+esc(equipmentOf(state,s).tools?'TOOLS':equipmentOf(state,s).mortar?'MORTAR':equipmentOf(state,s).weapon)+' · '+esc(s.needs?.life==='active'?s.action:s.needs?.life)+'</span>')).join('')+'</div>';
       const fallen=state.soldiers.filter(s=>s.needs?.life==='dead'&&state.squads.some(q=>q.id===s.squadId&&q.faction!=='enemy')&&(groupIds.has(s.garrisonId!)||connected.some(t=>distanceToPolyline(s,t.points).distance<t.width/2+3)));
       if(fallen.length)html+='<details><summary>Fallen here · '+fallen.length+'</summary><div class="trench-person-list">'+fallen.map(s=>btn('data-person="'+s.id+'"','<strong>'+esc(personName(s.id))+'</strong><span>'+esc(deathDescription(s))+'</span>')).join('')+'</div></details>';
     }

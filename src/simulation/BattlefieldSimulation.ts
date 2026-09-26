@@ -33,26 +33,27 @@ import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
 import {resumeWorkChoices} from '../construction/ResumeWork';
 import {observeTrenches,knownTrenchNetworks} from '../operations/TrenchIntelligence';
 import {prepareRaid,TrenchRaidSystem} from '../operations/TrenchRaid';
-import {previewAssault,sameAssaultPreview,commitAssault,assaultSquad,detachedFromFormation} from '../operations/AssaultPlan';
+import {previewAssault,sameAssaultPreview,commitAssault,assaultSquad,detachedFromFormation,type AssaultOptions} from '../operations/AssaultPlan';
 
 export class BattlefieldSimulation {
   readonly stepCosts={actions:0,movement:0,earthworks:0,garrison:0,combat:0,terrainIntel:0,support:0,total:0};
-  prepareOrder(ids:number[],intent:TacticalIntent,target:Vec2,networkId?:number,includeWeaponCrews=false,sourcePositionIds?:number[]):number {
+  prepareOrder(ids:number[],intent:TacticalIntent,target:Vec2,networkId?:number,includeWeaponCrews=false,sourcePositionIds?:number[],options?:AssaultOptions):number {
     if(this.commandsLocked||![target.x,target.z].every(Number.isFinite))return 0;
     const staffing=includeWeaponCrews?'all-in':'normal';
-    const chosen=this.state.squads.filter(q=>ids.includes(q.id)&&q.faction!=='enemy'&&this.state.soldiers.some(s=>s.squadId===q.id&&s.health>0&&s.needs?.life!=='dead'));
+    const chosen=this.state.squads.filter(q=>ids.includes(q.id)&&q.faction!=='enemy'&&this.state.soldiers.some(s=>s.squadId===q.id&&s.health>0&&s.needs?.life!=='dead'&&(!options?.personIds||options.personIds.includes(s.id))));
     const orders=this.state.preparedOrders??=[];
     const known=intent==='assault'?knownTrenchNetworks(this.state).find(n=>n.id===networkId):undefined;
     const reserved=orders.filter(o=>o.networkId===networkId&&o.releasedAt===undefined&&o.raid).map(o=>o.raid!.entry);
     let prepared=0;
     for(const [i,q] of chosen.entries()){
       const old=orders.findIndex(o=>o.squadId===q.id);if(old>=0){if(orders[old].releasedAt!==undefined)continue;orders.splice(old,1);}
-      const preview=intent==='assault'?previewAssault(this.state,[q.id],staffing,sourcePositionIds):undefined;
+      const scopedOptions=options?{includeWorkers:options.includeWorkers,...(options.personIds?{personIds:this.state.soldiers.filter(s=>s.squadId===q.id&&options.personIds!.includes(s.id)).map(s=>s.id)}:{})}:undefined;
+      const preview=intent==='assault'?previewAssault(this.state,[q.id],staffing,sourcePositionIds,scopedOptions):undefined;
       const participants=preview?this.state.soldiers.filter(s=>preview.participantIds.includes(s.id)):[];
       const origin=participants.length?{...q,x:participants.reduce((n,s)=>n+s.x,0)/participants.length,z:participants.reduce((n,s)=>n+s.z,0)/participants.length}:q;
       const raid=known&&participants.length?prepareRaid(this.state,origin,known,i,chosen.length,reserved):undefined;
       if(raid){reserved.push(raid.entry);raid.startingAble=preview?.participantIds.length??raid.startingAble;}
-      orders.push({squadId:q.id,intent,target:{...this.terrain.clampToWorld(target)},networkId,preparedAt:this.state.elapsed,...(raid?{raid}:{}),...(preview?{assault:{staffing,sourcePositionIds,preview,participantIds:preview.participantIds.slice(),phase:'preview' as const}}:{})});prepared++;
+      orders.push({squadId:q.id,intent,target:{...this.terrain.clampToWorld(target)},networkId,preparedAt:this.state.elapsed,...(raid?{raid}:{}),...(preview?{assault:{staffing,sourcePositionIds:sourcePositionIds?.slice(),options:scopedOptions,preview,participantIds:preview.participantIds.slice(),phase:'preview' as const}}:{})});prepared++;
     }
     return prepared;
   }
@@ -60,7 +61,7 @@ export class BattlefieldSimulation {
   signalPrepared():number {
     if(this.commandsLocked)return 0;
     const orders=(this.state.preparedOrders??[]).filter(o=>o.releasedAt===undefined);let changed=false;
-    for(const o of orders)if(o.assault){const preview=previewAssault(this.state,[o.squadId],o.assault.staffing,o.assault.sourcePositionIds);if(!sameAssaultPreview(preview,o.assault.preview)){o.assault.preview=preview;o.assault.participantIds=preview.participantIds.slice();o.assault.reviewRequired=true;delete o.signalAt;changed=true;}}
+    for(const o of orders)if(o.assault){const preview=previewAssault(this.state,[o.squadId],o.assault.staffing,o.assault.sourcePositionIds,o.assault.options);if(!sameAssaultPreview(preview,o.assault.preview)){o.assault.preview=preview;o.assault.participantIds=preview.participantIds.slice();o.assault.reviewRequired=true;delete o.signalAt;changed=true;}}
     if(changed){this.lastSignalReason='Personnel or consequences changed · review the preview, then confirm GO again';return 0;}
     const eligible=orders.filter(o=>!o.assault||o.assault.participantIds.length);
     for(const o of eligible){o.signalAt=this.state.elapsed;if(o.assault)delete o.assault.reviewRequired;}
@@ -162,7 +163,7 @@ export class BattlefieldSimulation {
     const released=(this.state.preparedOrders??[]).filter(o=>o.signalAt!==undefined&&o.releasedAt===undefined);
     // Validate the entire signal against one pre-release world. Releasing the
     // first squad must not make a second squad's own confirmed staffing stale.
-    const checks=released.filter(o=>o.assault).map(o=>({o,preview:previewAssault(this.state,[o.squadId],o.assault!.staffing,o.assault!.sourcePositionIds)}));
+    const checks=released.filter(o=>o.assault).map(o=>({o,preview:previewAssault(this.state,[o.squadId],o.assault!.staffing,o.assault!.sourcePositionIds,o.assault!.options)}));
     const changed=checks.some(({o,preview})=>!sameAssaultPreview(preview,o.assault!.preview)||!preview.participantIds.length);
     if(changed){
       for(const o of released)delete o.signalAt;

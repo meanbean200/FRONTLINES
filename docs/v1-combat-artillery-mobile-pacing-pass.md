@@ -385,3 +385,75 @@ calendar or population defaults.
 - This delivers crew control (A) and the occupied-traffic/rest-allocation portion
   of B. **B's true over-capacity external staging and C–G are still pending.**
   No claim of developer-tool, living-menu, 512-person, mobile or release completion.
+
+## Integrated continuation — A extension, 2026-09-26
+
+Verified starting local/remote revision: `39557da`, not `699e5da`. Overall status
+remains **PARTIAL**. No calendar, force-size, survival, weapon-rate or inventory
+default is changed in this milestone. Original long-journey deaths remain
+**USER-REPORTED / NOT CAUSALLY REPRODUCED**.
+
+### Issue status
+
+- **REPRODUCED / ROOT CAUSE:** manpower presentation called a fit waiting reserve
+  AVAILABLE, while NORMAL assault interpreted every `rest` duty as recovery and
+  excluded it. Shared pure personnel-role queries now distinguish waiting from
+  sleeping, meals, active self-care, serious wounds and physical pinning.
+- **IMPLEMENTED:** NORMAL's **Include workers** option is off by default. It
+  considers AVAILABLE people first, then eligible workers; essential crews and
+  genuine recovery remain protected. Cancelled work and personally reassigned
+  members are not falsely presented as active excavation workers.
+- **IMPLEMENTED:** local **Select workers / Select available** creates an explicit
+  person-ID selection, not a new squad. Prepare assault uses those exact IDs.
+  Options and membership survive v4 save/load, staffing-mode switches and GO
+  revalidation. Material changes still require confirmation. Caller-owned arrays
+  cannot mutate persisted scopes; invalid scope references are rejected on load.
+- **IMPLEMENTED:** previews list facility and excavation work affected, and
+  separate assigned strength from physically present, fit, armed ready defenders
+  and operational weapons. The exclusive pool precedence remains recovery,
+  assault, station crew, workers, available; relationships remain on the people.
+- **BROWSER VERIFIED:** a dugout created through actual Edge controls supplied
+  a four-person mixed-formation work party. Toggle, ALL IN, Save/refresh/Continue,
+  GO and cancel were exercised without runtime state injection. GO released only
+  the four IDs, paused their unfinished job, and kept original squad identities.
+  Cancelling the saved preview left workers and inventory unchanged.
+- **REPRODUCED / IMPLEMENTED / BROWSER VERIFIED:** in portrait, the compass's
+  separate stacking context covered the assault heading. It now belongs to the
+  HUD context so panels occlude it. World markers still align continuously.
+
+### Verification and remaining scope
+
+Evidence and exact player-control sequence:
+`docs/evidence/v1-worker-control/README.md`. Pre-fix failures, the concurrent
+timeout run and initial portrait overlap are preserved alongside successful
+checks. Final frozen verification is appended below after completion.
+
+**REMAINING:** B's protected external staging/95% settling and return behavior;
+C's distinct 45-second field-rest and full cross-role independent-calendar
+verification; urgent artillery/construction/UI repairs; D's 3-km/512-person
+scenarios and connected town/hub/interdiction logistics; E's developer authoring,
+F's genuinely authored isolated menu; and the remaining G soak, presentation,
+performance and physical-phone gates. No DEV/menu interfaces or 512-person
+performance are claimed as delivered by this worker-control milestone.
+
+### A extension delivery checks
+
+- Frozen-source full regression **818/818, 118 files, 114.78 seconds**. The
+  existing combat speed/save and supplied loop-soak tests pass at unchanged
+  timeout limits. This is not the new 72-hour combat/supply-cutoff release gate.
+  Ten new worker/eligibility tests supplement the preserved baseline.
+- Production and portable build pass; standalone HTML is 1350 KiB with both
+  embedded workers. Existing large-chunk warning remains, without disabling it.
+- Packaging **5/5**. Network-disabled Edge launch of one copied standalone file
+  passes physical movement, exact paused Save/Continue state hashes, worker
+  responses, full 1280x720/1920x1080 refresh sizing and no external requests or
+  browser errors (`offline-final.json`).
+- Frozen-source maintained Edge suite **27/27**, 77.03 seconds, no skipped,
+  flaky or unexpected results (`edge-frozen.json`). Actual manually authored
+  worker controls and screenshots are documented separately from those fixtures.
+- Final portable SHA-256:
+  `239373c79cf0620590f0e04a8a3eaf7cc9f59e24b4b9f6d1fd648454aa678218`.
+- Failed evidence remains intact; source freeze and isolated execution were
+  necessary after a concurrent workload timeout and an in-flight test run that
+  mixed older cached implementation with newly added edge-case assertions.
+  The final report tests the complete unchanged implementation together.

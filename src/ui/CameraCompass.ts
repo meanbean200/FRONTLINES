@@ -8,7 +8,8 @@ export class CameraCompass {
     this.element.className='camera-compass';this.element.setAttribute('aria-label','Camera compass');
     this.element.innerHTML='<div class="compass-dial"><b class="north">N</b><span class="east">E</span><span class="south">S</span><span class="west">W</span><i></i></div><output></output>';
     this.dial=this.element.querySelector('.compass-dial')!;this.readout=this.element.querySelector('output')!;
-    document.querySelector('#app')!.append(this.element);
+    // Share the HUD stacking context so management/review sheets occlude it.
+    document.querySelector('#ui-root')!.append(this.element);
   }
   update():void{
     const camera=this.camera.camera.position,target=this.camera.target;
