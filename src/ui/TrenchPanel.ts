@@ -20,6 +20,8 @@ import {clippedPaths} from './ProjectedPaths';
 import {networkCapacity} from '../garrison/NetworkCapacity';
 import {updateLiveContent} from './LiveContent';
 import {raidEligibility} from '../operations/RaidEligibility';
+import {deathDescription} from '../simulation/DeathRecord';
+import {manpowerPools} from '../garrison/Manpower';
 import {activeSupportMission,supportPositionStatus} from './WeaponReadout';
 
 interface Actions {defend:(id:number)=>void;resume:(id:number)=>void;area:(id:number)=>void;move:(watch?:boolean)=>void;cancel:()=>void;notify:(text:string)=>void;place:(id:number,kind:Facility['kind'])=>void;fire:(id:number,kind:'mortarHE'|'mortarSmoke',battery?:boolean)=>void;person:()=>void}
@@ -208,6 +210,8 @@ export class TrenchPanel {
     }
     if(this.page==='overview'){
       const g=groups[0];
+      const pools=manpowerPools(state,people);
+      html+='<h3>Manpower</h3><dl>'+([['stationCrew','STATION CREW'],['workers','WORKERS'],['available','AVAILABLE'],['recovering','RESTING / RECOVERING'],['assault','ASSAULT']] as const).map(([key,label])=>line(label,pools[key].length)).join('')+'</dl><p>Each person counted once. A resting gunner keeps their station assignment but is not ready.</p>';
       if(g){
         const mixedReadiness=groups.some(area=>area.readiness!==g.readiness),mixedFront=groups.some(area=>area.front!==g.front);
         html+='<h3>Defense orders</h3><p>'+groups.reduce((n,g)=>n+g.watchPresent,0)+' / '+groups.reduce((n,g)=>n+g.watchRequired,0)+' watching · '+people.filter(s=>s.action==='sleeping').length+' resting</p><label>Readiness<select id="garrison-readiness" data-network="'+g.id+'">'+(mixedReadiness?'<option disabled selected>Mixed · choose network readiness</option>':'')+(['routine','alert','stand-to'] as const).map(v=>'<option '+(!mixedReadiness&&g.readiness===v?'selected':'')+' value="'+v+'">'+({routine:'Routine · 25% watch',alert:'Alert · 50% watch','stand-to':'Stand-to · 90% watch'}[v])+'</option>').join('')+'</select></label><label>Front<select id="garrison-front" data-network="'+g.id+'">'+(mixedFront?'<option disabled selected>Mixed · choose network facing</option>':'')+[[0,'South'],[Math.PI/2,'East'],[Math.PI,'North'],[-Math.PI/2,'West']].map(([v,n])=>'<option '+(!mixedFront&&g.front===v?'selected':'')+' value="'+v+'">'+n+'</option>').join('')+'</select></label><p>Squads rotate watch, rest and supplies. Move or Withdraw leaves this network.</p>'+(['hold','recover'].includes(g.cutoff)?'<p>'+ (g.cutoff==='hold'?'Holding and rationing.':'Recovery parties authorized.')+'</p>'+btn('data-review-supply="'+g.id+'"','Review supply response'):'');
@@ -215,8 +219,10 @@ export class TrenchPanel {
       html+='<details><summary>Campaign rules</summary><label><input type="checkbox" id="lethal-deprivation" '+(state.living!.lethalNeeds?'checked':'')+'> Allow deprivation deaths</label><p>Opt-in: prolonged hunger and thirst can kill. Existing supplies are unchanged.</p></details>';
     }
     if(this.page==='personnel'){
-      if(person){const equipment=equipmentOf(state,person);html='<section class="trench-person-detail"><small>PERSON SELECTED</small><h3>'+esc(personName(person.id))+'</h3><p>'+esc(person.action)+' · '+esc(person.needs?.life??'active')+' · '+esc(equipment.weapon)+'</p><p>'+esc(person.survivalReason??person.combat?.pauseReason??person.duty?.reason??'Formation order')+'</p><div class="person-orders">'+[['move','Move here'],['watch','Watch here'],['rest','Rest'],['meal','Eat / drink'],['auto','Automatic duties']].map(([id,label])=>btn('data-order="'+id+'"',label)).join('')+'</div><p>Click a completed weapon position to man it.</p></section>';}
+      if(person){const equipment=equipmentOf(state,person);html='<section class="trench-person-detail"><small>PERSON SELECTED</small><h3>'+esc(personName(person.id))+'</h3><p>'+esc(person.action)+' · '+esc(person.needs?.life??'active')+' · '+esc(equipment.weapon)+'</p><p>'+esc(deathDescription(person)||person.survivalReason||person.combat?.pauseReason||person.duty?.reason||'Formation order')+'</p><p>Energy '+Math.round(person.needs?.energy??0)+' · hunger '+Math.round(person.needs?.hunger??0)+' · thirst '+Math.round(person.needs?.thirst??0)+'</p><div class="person-orders">'+[['move','Move here'],['watch','Watch here'],['rest','Rest'],['meal','Eat / drink'],['auto','Automatic duties']].map(([id,label])=>btn('data-order="'+id+'" '+(person.needs?.life!=='active'?'disabled':''),label)).join('')+'</div><p>Click a completed weapon position to man it.</p></section>';}
       html+='<h3>Local personnel · '+people.length+'</h3><div class="trench-person-list">'+people.map(s=>btn('data-person="'+s.id+'" aria-pressed="'+(s.id===this.personId)+'"','<strong>'+esc(personName(s.id))+'</strong><span>'+esc(equipmentOf(state,s).tools?'TOOLS':equipmentOf(state,s).mortar?'MORTAR':equipmentOf(state,s).weapon)+' · '+esc(s.needs?.life==='active'?s.action:s.needs?.life)+'</span>')).join('')+'</div>';
+      const fallen=state.soldiers.filter(s=>s.needs?.life==='dead'&&state.squads.some(q=>q.id===s.squadId&&q.faction!=='enemy')&&(groupIds.has(s.garrisonId!)||connected.some(t=>distanceToPolyline(s,t.points).distance<t.width/2+3)));
+      if(fallen.length)html+='<details><summary>Fallen here · '+fallen.length+'</summary><div class="trench-person-list">'+fallen.map(s=>btn('data-person="'+s.id+'"','<strong>'+esc(personName(s.id))+'</strong><span>'+esc(deathDescription(s))+'</span>')).join('')+'</div></details>';
     }
     if(this.page==='weapons'){
       if(f&&['emplacement','mortar'].includes(f.kind)){

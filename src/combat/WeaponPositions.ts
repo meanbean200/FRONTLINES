@@ -50,7 +50,8 @@ export function positionReadiness(state:BattlefieldState,f:Facility):string {
   if(!operator)return 'NO GUNNER · assign nearby personnel';
   if(people.filter(s=>s.needs?.life==='active').length<WEAPON_POSITIONS[kind].crew)return 'NO ASSISTANT';
   if(people.some(s=>s.suppression>=70||['pinned','broken'].includes(s.combat?.reaction??'')))return 'PINNED';
-  if(people.some(s=>s.duty?.kind==='sleep'||s.action==='sleeping'||(s.needs?.energy??100)<15))return 'RESTING';
+  if(people.some(s=>s.selfCare||s.duty?.kind==='sleep'||s.action==='sleeping'||(s.needs?.energy??100)<25))return 'RESTING / RECOVERING';
+  if(people.some(s=>s.duty?.rationUntil!==undefined||s.action==='eating'))return 'EATING / DRINKING';
   if(people.some(s=>s.duty?.kind==='meal'&&s.duty.reason==='Reload weapon ammunition from local stores'))return 'RESUPPLYING · waiting for physical ammunition delivery';
   const points=excavatedPoints(t);
   const present=(s:SoldierState)=>s.needs?.life==='active'&&!s.combat?.careTask&&s.duty?.kind==='watch'&&s.duty.facilityId===f.id&&s.duty.arrivedAt!==undefined&&distance(s,f)<4&&points.some((p,i)=>i>0&&distanceToSegment(s,points[i-1],p).distance<t.width/2);

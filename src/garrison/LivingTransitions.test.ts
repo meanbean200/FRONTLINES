@@ -24,7 +24,7 @@ describe('living-trench transition contracts',()=>{
     s.needs!.hunger=80;s.needs!.thirst=80;
     s.duty={kind:'haul',stage:'deliver',destination:{x:s.x+20,z:s.z},route:[{x:s.x+20,z:s.z}],routeIndex:0,since:0,until:300,reason:'Test shipment',blockedFor:0};
     const initial={x:s.x,z:s.z,food:s.carried!.food,water:s.carried!.water};advance(sim,3);
-    expect(s.x).toBe(initial.x);expect(s.z).toBe(initial.z);expect(s.carried!.food).toBe(initial.food);expect(s.duty!.rationUntil).toBeDefined();
+    expect(s.x).toBe(initial.x);expect(s.z).toBe(initial.z);expect(s.carried!.food).toBe(initial.food);expect(s.selfCare?.kind).toBe('meal');expect(s.action).toBe('eating');
     const other=new BattlefieldSimulation(new SaveSystem().parse(JSON.stringify(sim.state)));
     advance(sim,3.2);advance(other,3.2);
     expect(s.carried!.food).toBe(initial.food-1);expect(s.carried!.water).toBe(initial.water-1);expect(s.duty?.kind).toBe('haul');expect(s.duty?.stage).toBe('deliver');
@@ -47,7 +47,8 @@ describe('living-trench transition contracts',()=>{
     const sim=createStudyScenario(),g=sim.state.living!.garrisons[0],s=sim.state.soldiers[0];
     s.x=g.forward.x+8;s.z=g.forward.z+8;s.needs!.energy=7;
     s.duty={kind:'haul',stage:'pickup',destination:{...g.forward},route:[{...g.forward}],routeIndex:0,since:0,until:300,reason:'Exhausted carrier',blockedFor:0};
-    sim.step(.05);expect(s.duty?.kind).toBe('sleep');expect(Math.hypot(s.x-s.duty!.destination.x,s.z-s.duty!.destination.z)).toBeLessThan(1);
+    const stopped={x:s.x,z:s.z},duty=structuredClone(s.duty);
+    sim.step(.05);expect(s.selfCare?.kind).toBe('sleep');expect(s.duty).toEqual(duty);expect({x:s.x,z:s.z}).toEqual(stopped);
   });
   it('keeps temporary watch posts anchored across repeated physical reliefs',()=>{
     const sim=createStudyScenario(9919,1),g=sim.state.living!.garrisons[0];advance(sim,90);
@@ -85,7 +86,7 @@ describe('living-trench transition contracts',()=>{
     helper.x=g.entrance.x+15;helper.z=g.entrance.z+1;helper.needs!.energy=7;helper.needs!.thirst=90;
     helper.duty={kind:'sleep',destination:{x:helper.x,z:helper.z},route:[],routeIndex:0,since:0,arrivedAt:0,until:150,reason:'Recovery',blockedFor:0};
     patient.needs!.life='incapacitated';patient.health=14;patient.needs!.hunger=80;patient.needs!.thirst=80;
-    sim.step(.05);expect(helper.duty?.patientId).toBeUndefined();expect(helper.duty?.kind).toBe('meal');
+    sim.step(.05);expect(helper.duty?.patientId).toBeUndefined();expect(helper.action).toBe('eating');expect(helper.selfCare?.kind).toBe('sleep');
   });
   it('keeps readiness targets explicit even when too few soldiers are fit',()=>{
     const sim=createStudyScenario(),g=sim.state.living!.garrisons[0];
@@ -139,7 +140,7 @@ describe('living-trench transition contracts',()=>{
     s.needs!.hunger=10;s.needs!.thirst=10;s.needs!.thirstyHours=0;s.needs!.energy=10;
     for(let i=0;i<4;i++)updateNeeds(sim.state,s,75);
     expect(s.needs!.life).toBe('active');expect(s.health).toBeGreaterThanOrEqual(25);
-    s.needs!.thirst=100;s.needs!.thirstyHours=7;s.health=5;updateNeeds(sim.state,s,75);
+    s.needs!.thirst=100;s.needs!.thirstyHours=7;s.needs!.thirstySeconds=525;s.health=5;updateNeeds(sim.state,s,75);
     expect(s.needs!.life).toBe('dead');expect(w.metrics.deaths).toBe(1);
   });
 
@@ -177,7 +178,7 @@ describe('living-trench transition contracts',()=>{
     // physical construction/72-hour conservation gate without auto-building.
     for(const kind of ['rest','meal','store'] as const){expect(sim.garrisons.requestFacility(g.id,kind,undefined,undefined,undefined,true)).toBeDefined();advance(sim,300);}
     advance(sim,72*75-900);
-    expect(sim.state.living!.campaignHours).toBeCloseTo(80,5);
+    expect(sim.state.living!.campaignHours,JSON.stringify({areas:sim.state.living!.garrisons,critical:sim.state.soldiers.filter(s=>s.needs!.thirst>85||s.needs!.hunger>85).map(s=>({id:s.id,duty:s.duty,care:s.selfCare,stock:s.carried,needs:s.needs,x:s.x,z:s.z}))})).toBeCloseTo(80,5);
     expect(sim.state.living!.metrics.deaths).toBe(0);
     expect(sim.state.living!.facilities.filter(f=>f.progress===1)).toHaveLength(3);
     expect(sim.state.soldiers.some(s=>s.action==='sleeping')).toBe(true);

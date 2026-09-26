@@ -16,6 +16,7 @@ export type ConstructionJob = {kind:'trench'|'facility';id:number};
 export type ConstructionRequest = {kind:'trench';points:Vec2[];engineerSquadId?:number}|{kind:'facility';garrisonId:number;facilityKind:import('../garrison/types').Facility['kind'];origin:Vec2;position:Vec2;facing?:number;explicit?:boolean;guns?:1|4};
 
 export interface SoldierState extends Vec2 {
+  death?:import('../simulation/DeathRecord').DeathRecord;
   formationTravel?:import('../navigation/FormationWalker').FormationTravel;
   /** Temporary survival task. Standing formation/building orders remain authoritative. */
   selfCare?:import('../simulation/SelfPreservation').SelfCare;
@@ -114,7 +115,7 @@ export interface BattlefieldState {
   worldVersion?: number;
   worldSize?: number;
   buildingChanges?:import('../terrain/BuildingGeometry').BuildingChange[];
-  schemaVersion: 1 | 2 | 3;
+  schemaVersion: 1 | 2 | 3 | 4;
   combatRules?: string;
   living?: LivingWorld;
   operation?: OperationState;

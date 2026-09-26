@@ -3,6 +3,7 @@ import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {SquadNavigation} from '../navigation/SquadNavigation';
 import {buildingContains,buildingFloors,doorPoint,firingPoints,floorHeight,stairPoint} from '../terrain/BuildingGeometry';
 import {postureSpeed} from '../combat/Posture';
+import {bodyBlocks,sameSide} from '../navigation/FriendlyTraffic';
 
 /** Formation navigation uses a coarse grid. Its rounded first cell is not a
  * safe individual leg past a house corner. Validate every exterior leg and
@@ -105,7 +106,7 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
       // away from the doorway. Finish passages already inside, then use stable
       // identity among waiting arrivals; moving a step never forfeits priority.
       traffic.sort((a,b)=>Number(b.building!.stage==='exit')-Number(a.building!.stage==='exit')||Number(b.building!.stage==='inside')-Number(a.building!.stage==='inside')||a.id-b.id);
-      const waiting=inside.stage==='approach'&&distance(s,door)<16&&traffic[0]?.id!==s.id;
+      const waiting=inside.stage==='approach'&&distance(s,door)<16&&traffic[0]?.id!==s.id&&!!traffic[0]&&!sameSide(state,s,traffic[0]);
       if(waiting){const queue=traffic.filter(p=>p.building!.stage==='approach').sort((a,b)=>a.id-b.id),rank=Math.max(0,queue.indexOf(s));target={x:door.x+(rank%2?1:-1)*3.2,z:door.z-10-Math.floor(rank/2)*1.4};if(terrain.obstacleAt(target.x,target.z,.5)){s.action='waiting at doorway';c.pauseReason='Doorway queue · approach obstructed';continue;}}
       const d=distance(s,target);if(d<(waiting?.15:inside.stage==='exit'&&inside.index===inside.route.length-1?.25:inside.index<inside.route.length-1||inside.floor!==inside.targetFloor?.65:.03)){if(!waiting)inside.index++;else{s.action='waiting at doorway';c.pauseReason='Doorway queue · yielding to passage';}continue;}
       const step=Math.min(d,dt*1.35*postureSpeed(s)),p={x:s.x+(target.x-s.x)/d*step,z:s.z+(target.z-s.z)/d*step};
@@ -113,7 +114,7 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
       const blocked=(p:{x:number;z:number})=>terrain.structure(inside.id).some(box=>box.role==='wall'&&Math.abs(p.x-box.x)<box.rx+.22&&Math.abs(p.z-box.z)<box.rz+.22&&Math.abs(floorY-(terrain.baseHeightAt(b.x,b.z)+box.y))<box.ry+.6);
       // If stair handover or a loaded formation already overlaps, permit
       // continuous movement apart instead of trapping both people forever.
-      const crowded=(p:{x:number;z:number})=>state.soldiers.some(o=>o!==s&&o.needs?.life==='active'&&Math.abs((o.building?.vertical??0)-inside.vertical)<1&&distance(o,p)<.58&&distance(o,p)<=distance(o,s)+.000001);
+      const crowded=(p:{x:number;z:number})=>state.soldiers.some(o=>Math.abs((o.building?.vertical??0)-inside.vertical)<1&&bodyBlocks(state,s,o,p,.58));
       if(crowded(p)&&!blocked(p)){
         const heading=Math.atan2(target.x-s.x,target.z-s.z);
         for(const angle of [.65,-.65,1.2,-1.2,Math.PI/2,-Math.PI/2,Math.PI]){const candidate={x:s.x+Math.sin(heading+angle)*step,z:s.z+Math.cos(heading+angle)*step};if(!crowded(candidate)&&!blocked(candidate)){p.x=candidate.x;p.z=candidate.z;break;}}

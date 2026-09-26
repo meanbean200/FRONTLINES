@@ -4,6 +4,7 @@ import type {Wound,CareTask} from './Casualties';
 
 export interface Point3 extends Vec2 { y:number }
 export interface ShotEvent {
+  cause?:'combat-fire'|'artillery';
   id:number; at:number; shooterId:number; squadId:number;
   from:Point3; to:Point3; hitId?:number;
   obstruction?:'terrain'|'building'|'trunk'; energy:number;

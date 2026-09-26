@@ -5,6 +5,8 @@ import {ownsAction} from '../combat/Reactions';
 import {postureSpeed} from '../combat/Posture';
 import type {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {insideWorld} from '../terrain/WorldLayout';
+import {bodyBlocks,sameSide} from './FriendlyTraffic';
+import {routeJoin} from './RouteJoin';
 
 /** Serialized progress belongs to each walker, not the formation's average position. */
 export interface FormationTravel {
@@ -14,8 +16,10 @@ export interface FormationTravel {
 export class FormationWalker {
   private cells=new Map<string,SoldierState[]>();
   private replans=0;
+  private state?:BattlefieldState;
   constructor(private terrain:TerrainSystem,private navigation:SquadNavigation){}
   begin(state:BattlefieldState):void{
+    this.state=state;
     this.cells.clear();this.replans=0;
     for(const s of state.soldiers)if(s.needs?.life==='active'&&!s.building){const key=this.key(s),row=this.cells.get(key)??[];row.push(s);this.cells.set(key,row);}
   }
@@ -36,7 +40,11 @@ export class FormationWalker {
     let complete=true;
     for(const [i,s] of people.entries()){
       let t=s.formationTravel;
-      if(!t||t.orderAt!==q.order.issuedAt)t=s.formationTravel={orderAt:q.order.issuedAt,index:0,goal:this.destination(q,i,people.length),local:[],localIndex:0,retryAt:state.elapsed,checkpoint:{x:s.x,z:s.z},progressAt:state.elapsed,arrived:false};
+      if(!t||t.orderAt!==q.order.issuedAt){
+        const goal=this.destination(q,i,people.length),join=routeJoin(q.route,s,(a,b)=>this.navigation.segmentClear(a,b,.65));
+        const near=distance(s,q.route.at(-1)!)<8&&this.navigation.segmentClear(s,goal,.65);
+        t=s.formationTravel={orderAt:q.order.issuedAt,index:near?q.route.length-1:join?.index??0,goal,local:!near&&join&&distance(s,join.point)>.55?[join.point]:[],localIndex:0,retryAt:state.elapsed,checkpoint:{x:s.x,z:s.z},progressAt:state.elapsed,arrived:false};
+      }
       if(!ownsAction(s,'order')){complete=false;t.progressAt=state.elapsed;continue;}
       if(t.arrived&&distance(s,t.goal)<1.4)continue;
       const final=t.index>=q.route.length-1;
@@ -57,7 +65,7 @@ export class FormationWalker {
       if((obstructed||state.elapsed-t.progressAt>3)&&review&&this.replans<2){
         this.replans++;t.retryAt=state.elapsed+6+(s.id%5)*.2;
         const near=distance(s,target)<65;
-        const blockers=this.neighbors(s).filter(p=>p!==s&&(!p.formationTravel||p.formationTravel.arrived));
+        const blockers=this.neighbors(s).filter(p=>p!==s&&!sameSide(state,s,p)&&(!p.formationTravel||p.formationTravel.arrived));
         const avoid=(p:Vec2)=>near&&this.terrain.objects.trunkAt(p.x,p.z,.65)!==undefined||blockers.some(other=>distance(p,other)<1.15&&distance(p,other)<distance(s,other)-.01);
         t.local=this.navigation.plan(s,target,avoid,true,2000);t.localIndex=0;t.progressAt=state.elapsed;
       }
@@ -73,8 +81,8 @@ export class FormationWalker {
     const heading=Math.atan2(target.x-s.x,target.z-s.z),local=this.neighbors(s).filter(p=>p!==s);
     const speed=3.4*postureSpeed(s)/(1+this.terrain.slopeAt(s.x,s.z)*3)*(1-clamp(s.fatigue/180,0,.35))*Math.max(.12,1-s.suppression/110),amount=Math.min(d,speed*dt);
     // Right-hand passing is relative to travel direction, so opposing walkers
-    // choose opposite physical sides. Body separation is a constraint, not a
-    // repulsion force that can cancel the destination indefinitely.
+    // choose opposite physical sides. Friendly separation is only a soft
+    // preference; hostile bodies and physical geometry still constrain travel.
     let best:Vec2|undefined,bestScore=-Infinity;
     for(const turn of [0,.45,-.45,.9,-.9,1.3,-1.3,1.65,-1.65]){
       const a=heading+turn,p={x:s.x+Math.sin(a)*amount,z:s.z+Math.cos(a)*amount};
@@ -86,14 +94,15 @@ export class FormationWalker {
       if(tree&&distance(p,tree)<=distance(s,tree)+1e-6)continue;
       if(turn===0&&!local.some(other=>distance(s,other)<2.1)){best=p;bestScore=1;break;}
       let separation=0,blocked=false;
-      for(const other of local){const before=distance(s,other),after=distance(p,other);if(after<.85&&after<before-1e-5){blocked=true;break;}separation+=Math.max(0,1.7-after)**2;}
+      for(const other of local){const after=distance(p,other);if(this.state&&bodyBlocks(this.state,s,other,p,.85)){blocked=true;break;}separation+=Math.max(0,1.7-after)**2;}
       if(blocked)continue;
-      const score=(d-distance(p,target))/Math.max(.01,amount)-separation*.5+(turn>0?.035:0);
+      // Congestion may soften spacing, never reverse or veto onward progress.
+      const score=(d-distance(p,target))/Math.max(.01,amount)-Math.min(.2,separation*.08)+(turn>0?.015:0);
       if(score>bestScore){best=p;bestScore=score;}
     }
     if(!best){s.action='yielding · route retained';return;}
     const old=this.key(s);s.heading=Math.atan2(best.x-s.x,best.z-s.z);s.x=best.x;s.z=best.z;
-    const key=this.key(s);if(old!==key){const row=this.cells.get(old);if(row)row.splice(row.indexOf(s),1);const next=this.cells.get(key)??[];next.push(s);this.cells.set(key,next);}
+    const key=this.key(s);if(old!==key){const row=this.cells.get(old),index=row?.indexOf(s)??-1;if(index>=0)row!.splice(index,1);const next=this.cells.get(key)??[];next.push(s);this.cells.set(key,next);}
     s.action=bestScore<.15?'yielding · route retained':'advancing';s.cover=this.terrain.coverAt(s.x,s.z);
   }
 }

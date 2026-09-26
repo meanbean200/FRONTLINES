@@ -3,7 +3,7 @@ import { effectiveReadiness, type Garrison } from './types';
 import { localInventory } from './Inventory';
 
 export const OBSERVATION_VERSION=2;
-export const RULES_VERSION='combat-41-autonomous-care-support-world2';
+export const RULES_VERSION='combat-42-march-care-traffic-provenance-world2';
 export const DUTY_PRIORITIES=['watch','patrol','recovery','meals','hauling','construction'] as const;
 export const OBSERVATION_SIZE=32;
 export interface GarrisonPolicy { decide(observation:readonly number[]):number[] }

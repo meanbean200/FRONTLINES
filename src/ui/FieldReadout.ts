@@ -28,7 +28,10 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>,
   const activities=new Map<string,number>();for(const s of able)activities.set(s.action,(activities.get(s.action)??0)+1);
   const activity=[...activities].sort((a,b)=>b[1]-a[1])[0]?.[0]??'Out of action';
   const warning=able.length&&able.filter(s=>s.combat?.reaction==='pinned').length>=Math.ceil(able.length/2)?'PINNED':
-    people.some(s=>s.needs?.life==='incapacitated')?'CASUALTIES':
+    living.some(s=>s.needs&&(s.needs.thirst>=80||(s.carried?.water??0)<1&&s.needs.thirst>=50))?'LOW WATER':
+    living.some(s=>s.needs&&(s.needs.hunger>=80||(s.carried?.food??0)<1&&s.needs.hunger>=55))?'LOW FOOD':
+    living.some(s=>s.needs&&s.needs.energy<=15)?'EXHAUSTED':
+    living.some(s=>s.needs&&s.needs.energy<=25)?'NEEDS REST':
     state.operation&&able.length&&able.reduce((n,s)=>n+(s.carried?.ammo??s.ammunition),0)<able.length*10?'LOW AMMO':
     state.living?.garrisons.some(g=>g.squadIds.some(id=>selected.has(id))&&['decision','hold','recover'].includes(g.cutoff))?'SUPPLY SHORTAGE':'';
   return {name:squads.length===1?first.name:`${squads.length} squads`,role:squads.length===1?roleName[first.kind]:'Selected formation',kind:first.kind,

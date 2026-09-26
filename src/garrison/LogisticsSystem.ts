@@ -16,7 +16,7 @@ export function initializeLiving(state:BattlefieldState):void {
   // This is fresh-state initialization, never save compatibility/migration.
   state.worldVersion??=WORLD_VERSION;state.worldSize??=WORLD_SIZE;
   const rear=rearDepot(),stock=inventory({food:400,water:500,materials:300,fuel:500,ammo:1000});
-  state.schemaVersion=3;
+  state.schemaVersion=4;
   state.combatRules=RULES_VERSION;
   state.living={version:1,campaignHours:8,lethalNeeds:false,garrisons:[],facilities:[],trucks:[],crates:[],rear,rearStock:stock,nextDelivery:0,
     ledger:{initial:{...stock},imported:inventory(),consumed:inventory(),lost:inventory()},

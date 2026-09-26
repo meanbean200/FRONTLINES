@@ -63,6 +63,6 @@ describe('garrison lifecycle',()=>{
   });
   it('initializes legacy needs at migration without retrospective deprivation',()=>{
     const old=createBattlefield();old.elapsed=50000;const restored=new SaveSystem().parse(JSON.stringify(old));
-    expect(restored.schemaVersion).toBe(3);expect(restored.soldiers[0].needs!.energy).toBe(100);expect(restored.living!.campaignHours).toBe(8);
+    expect(restored.schemaVersion).toBe(4);expect(restored.soldiers[0].needs!.energy).toBe(100);expect(restored.living!.campaignHours).toBe(8);
   });
 });

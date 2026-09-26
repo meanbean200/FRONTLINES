@@ -1,6 +1,7 @@
 import type {BattlefieldState} from '../core/types';
 import {WEAPONS} from './Weapons';
 import {RULES_VERSION} from '../garrison/GarrisonPolicy';
+import {validDeathRecord,validDamageOrigin} from '../simulation/DeathRecord';
 import {supportSourceMatchesSide,type SupportSource} from './SupportWeapons';
 
 // Saved histories already support explicitly unknown/scripted provenance on
@@ -16,11 +17,13 @@ export function validCombatSystems(state:BattlefieldState):boolean {
   if(state.living?.facilities.some(f=>f.facing!==undefined&&!finite(f.facing)))return false;
   const patients=new Set<number>();
   for(const s of state.soldiers){
+    if(!validDeathRecord(s,state.elapsed))return false;
     const kit=s.equipment;
     if(kit&&(kit.version!==1||!Object.hasOwn(WEAPONS,kit.weapon)||![kit.tools,kit.mortar,kit.medicalKit].every(v=>typeof v==='boolean')||s.combat?.weapon&&s.combat.weapon.id!==kit.weapon))return false;
     const c=s.combat;if(!c)continue;
     if(c.nextCareReview!==undefined&&!nonnegative(c.nextCareReview))return false;
     const w=c.wound;
+    if(w?.origin&&!validDamageOrigin(w.origin,state.elapsed))return false;
     if(w&&(!['legacy','minor','disabling','critical','fatal'].includes(w.severity)||!nonnegative(w.at)||w.at>state.elapsed+.001||typeof w.stabilized!=='boolean'||!['untreated','stabilized','aid-post','awaiting-transport','transport','evacuated'].includes(w.care)||w.bleedUntil!==undefined&&(!nonnegative(w.bleedUntil)||w.severity!=='critical'||w.stabilized)||w.returnAt!==undefined&&!nonnegative(w.returnAt)||w.care==='awaiting-transport'&&!w.stabilized))return false;
     const t=c.careTask;
     if(t?.buildingExit!==undefined&&typeof t.buildingExit!=='boolean')return false;

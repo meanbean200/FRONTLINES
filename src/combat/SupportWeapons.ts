@@ -149,7 +149,7 @@ export function stepSupport(state:BattlefieldState,terrain:TerrainSystem):void {
         const body=bodyVolume(terrain,s),y=terrain.heightAt(mission.impact.x,mission.impact.z)+.7,clear=terrain.objects.trace(mission.impact,s,y,body.y,false,true).clear;
         const pressure=(1-d/pressureRadius)*(clear?85:15);s.suppression=Math.min(100,s.suppression+pressure);s.morale=Math.max(0,s.morale-pressure*.15);registerIncoming(s,state.elapsed,Math.atan2(mission.impact.x-s.x,mission.impact.z-s.z));
         if(state.squads.find(q=>q.id===s.squadId)?.faction!=='enemy')signalEngagement(state);
-        if(d<woundRadius&&clear)combatWound(state,s,{id:mission.id,at:state.elapsed,shooterId:0,squadId:mission.squadId,from:{...mission.impact,y},to:body,hitId:s.id,energy:Math.max(.1,1-d/(woundRadius+2))});
+        if(d<woundRadius&&clear)combatWound(state,s,{cause:'artillery',id:mission.id,at:state.elapsed,shooterId:0,squadId:mission.squadId,from:{...mission.impact,y},to:body,hitId:s.id,energy:Math.max(.1,1-d/(woundRadius+2))});
       }
       // This impact is resolved against the structure that intercepted it;
       // preset damage affects subsequent shots, never exposes occupants retroactively.

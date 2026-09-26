@@ -1,0 +1,220 @@
+{
+  "entry": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\output\\playwright\\p0-final-offline-1790399377470\\FRONTLINES.html",
+  "mode": "isolated",
+  "errors": [],
+  "requests": [
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/p0-final-offline-1790399377470/FRONTLINES.html",
+    "blob:null/b75d0a28-ee57-46c9-97e7-a196c4026ea3",
+    "blob:null/ee9919f0-02fc-4c54-b4ea-5caf51ecde96",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/p0-final-offline-1790399377470/FRONTLINES.html",
+    "blob:null/39575f7b-87ba-4faa-9161-95eb45942b9d",
+    "blob:null/c0dddd65-9b8d-4358-85c8-d296c207c357",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/p0-final-offline-1790399377470/FRONTLINES.html",
+    "blob:null/b4e68a00-f8f3-4018-9b99-fea714c6957d",
+    "blob:null/c00f3615-e26a-4524-8fdd-9b0167e89d3d",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/p0-final-offline-1790399377470/FRONTLINES.html",
+    "blob:null/c4364aa7-eaa0-425d-913a-e99d4f13c52c",
+    "blob:null/56d8c3e1-ef95-4c34-8522-74ee61e7c858"
+  ],
+  "workers": [
+    "blob:null/b75d0a28-ee57-46c9-97e7-a196c4026ea3",
+    "blob:null/ee9919f0-02fc-4c54-b4ea-5caf51ecde96",
+    "blob:null/39575f7b-87ba-4faa-9161-95eb45942b9d",
+    "blob:null/c0dddd65-9b8d-4358-85c8-d296c207c357",
+    "blob:null/b4e68a00-f8f3-4018-9b99-fea714c6957d",
+    "blob:null/c00f3615-e26a-4524-8fdd-9b0167e89d3d",
+    "blob:null/c4364aa7-eaa0-425d-913a-e99d4f13c52c",
+    "blob:null/56d8c3e1-ef95-4c34-8522-74ee61e7c858"
+  ],
+  "ready": true,
+  "checks": {
+    "movement": true,
+    "saveContinued": true,
+    "refreshSizing": true,
+    "noNetworkDependencies": true
+  },
+  "url": "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/p0-final-offline-1790399377470/FRONTLINES.html",
+  "title": "FRONTLINES — Living Battlefield",
+  "body": "NORTHWEST EUROPE / 1944\nFRONTLINES\n\nEvery position has a purpose.\nEvery soldier has a life.\n\nContinue\n→\nQuick Battle\nOperations\nSandbox\nSettings\n\n4 × 4 km · A living battlefield under your command",
+  "workerResults": [
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "navigation",
+      "points": 1
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    }
+  ],
+  "visuals": {
+    "triangles": 827808,
+    "drawCalls": 117,
+    "particles": 0,
+    "submittedSoldiers": 32,
+    "residentTrees": 5737,
+    "visibleTrees": 61,
+    "cameraTarget": {
+      "x": 713.5932344496656,
+      "z": 992.757272189274
+    },
+    "zoomDistance": 120.00000000000107,
+    "generatedChunks": 64,
+    "detailedChunks": 21,
+    "visibleChunks": 18,
+    "coarseGenerationMs": 774.2999999821186,
+    "workerGenerationMs": 2375,
+    "workerJobs": 40
+  },
+  "stateHashes": [
+    "1625b3c1e1a60c084e218ee63514c5fa64f640570b0480d22e4703172507d999",
+    "1625b3c1e1a60c084e218ee63514c5fa64f640570b0480d22e4703172507d999"
+  ],
+  "sizes": [
+    {
+      "inner": [
+        1280,
+        720
+      ],
+      "canvas": [
+        1280,
+        720
+      ],
+      "menu": [
+        1280,
+        720
+      ],
+      "overflow": false
+    },
+    {
+      "inner": [
+        1920,
+        1080
+      ],
+      "canvas": [
+        1920,
+        1080
+      ],
+      "menu": [
+        1920,
+        1080
+      ],
+      "overflow": false
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import type { TrenchSystem } from '../construction/TrenchSystem';
 import { TrenchNetwork } from './TrenchNetwork';
 import { initializeLiving, LogisticsSystem } from './LogisticsSystem';
 import { CAMPAIGN_HOURS_PER_SECOND, dropCargo, freshNeeds, updateNeeds } from './NeedsSystem';
+import {readyWatch} from './Manpower';
 import { consume, localInventory, total, transfer, transferBounded,carrierCapacity } from './Inventory';
 import { observation, RulePolicy } from './GarrisonPolicy';
 import { effectiveReadiness, inventory, RESOURCES, type DutyKind, type Facility, type Garrison, type Readiness, type Resource, type PersonalOrder } from './types';
@@ -15,6 +16,7 @@ import {bankPoint,defensivePost} from './DefensivePositions';
 import {squadContacts} from '../operations/Visibility';
 import {muzzlePoint} from '../combat/Ballistics';
 import {ownsAction} from '../combat/Reactions';
+import {bodyBlocks} from '../navigation/FriendlyTraffic';
 import {facilitySiteReason,SUPPORT_WORKS} from '../construction/ConstructionReadout';
 import {positionOperator,crewAt,crewOperator,carriesPositionWeapon,migrateWeaponCrews,installPositionWeapons,type WeaponPositionKind} from '../combat/WeaponPositions';
 import {WEAPON_POSITIONS,weaponCrewPoint,trenchAnchorAt,inlineGeometry} from '../construction/PositionDefinitions';
@@ -426,9 +428,10 @@ export class GarrisonSystem {
       g.watchRequired=g.cutoff==='withdraw'?0:Math.ceil(alive.length*WATCH[effectiveReadiness(g,this.state.elapsed)]);
       g.reserveRequired=!breach&&g.threatSector&&alive.length>=8?Math.max(1,Math.floor(alive.length*.15)):0;
       if(breach)g.watchRequired=Math.max(g.watchRequired,Math.ceil(alive.length*.7));
-      g.watchPresent=alive.filter(s=>s.needs!.life==='active'&&s.combat?.owner!=='casualty'&&s.combat?.owner!=='reaction'&&s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&s.duty.rationUntil===undefined).length;
+      const ready=alive.filter(s=>readyWatch(this.state,s));
+      g.watchPresent=ready.length;
       g.lossRate=(people.length-alive.length)/Math.max(1,people.length);
-      g.watchEffectiveness=alive.filter(s=>s.needs!.life==='active'&&s.combat?.owner!=='casualty'&&s.combat?.owner!=='reaction'&&s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&s.duty.rationUntil===undefined).reduce((sum,s)=>sum+.5+s.morale*.005,0);
+      g.watchEffectiveness=ready.reduce((sum,s)=>sum+.5+s.morale*.005,0);
       w.metrics.watchGapHours+=Math.max(0,g.watchRequired-g.watchPresent)*dt*CAMPAIGN_HOURS_PER_SECOND;
       if(this.state.elapsed>=g.nextDecision){const phase=(g.id%10)*.5;g.nextDecision=(Math.floor((this.state.elapsed-phase)/5)+1)*5+phase;this.coordinate(g,people);this.coordinateFiringEdges(g,people);}
       for(const s of people)this.execute(s,g,dt);
@@ -456,7 +459,7 @@ export class GarrisonSystem {
     const w=this.state.living!,component=this.network.component(g.trenchId);if(component===undefined)return;
     if(g.cutoff==='withdraw')return;
     const buildingOrders=new Set(this.state.squads.filter(q=>q.order.building).map(q=>q.id));
-    const active=people.filter(s=>s.needs!.life==='active'&&!s.building&&!buildingOrders.has(s.squadId)&&!s.duty?.relocationExit&&s.combat?.owner!=='reaction'&&s.combat?.owner!=='casualty'&&s.combat?.owner!=='support'),local=localInventory(this.state,g),readiness=effectiveReadiness(g,this.state.elapsed);
+    const active=people.filter(s=>s.needs!.life==='active'&&!s.selfCare&&!s.building&&!buildingOrders.has(s.squadId)&&!s.duty?.relocationExit&&s.combat?.owner!=='reaction'&&s.combat?.owner!=='casualty'&&s.combat?.owner!=='support'),local=localInventory(this.state,g),readiness=effectiveReadiness(g,this.state.elapsed);
     g.scores=this.rulePolicy.decide(observation(this.state,g,people));
     g.policyStatus=g.policy==='rules'?'Deterministic needs-based coordinator':'Deterministic coordinator · previous experimental policy retired';
     g.policy='rules';
@@ -795,7 +798,7 @@ export class GarrisonSystem {
       let blocked=false;
       for(let x=-1;x<=1;x++)for(let z=-1;z<=1;z++)for(const other of this.cells.get(`${Math.floor(next.x/2)+x},${Math.floor(next.z/2)+z}`)??[]){
         if(other===s||other.needs?.life==='dead')continue;
-        if(distance(next,other)<.55&&distance(s,other)>.1&&distance(next,other)<distance(s,other))blocked=true;
+        if(bodyBlocks(this.state,s,other,next,.55))blocked=true;
       }
       if(this.terrain.obstacleAt(next.x,next.z,.4))blocked=true;
       const entryRadius=passageRadius(d.entryPoint??g.entrance),exitRadius=passageRadius(d.exitPoint??g.entrance);
@@ -824,7 +827,7 @@ export class GarrisonSystem {
         for(const angle of [.5,-.5,1,-1,1.5,-1.5,2,-2]){
           const vx=dx*Math.cos(angle)-dz*Math.sin(angle),vz=dx*Math.sin(angle)+dz*Math.cos(angle),p={x:s.x+vx*movement,z:s.z+vz*movement};
           const corridor=corridorMove(p);
-          if(corridor&&!this.terrain.obstacleAt(p.x,p.z,.4)&&!this.nearby(p,.5).some(o=>o!==s&&o.needs?.life!=='dead'&&distance(o,p)<.5))candidates.push(p);
+          if(corridor&&!this.terrain.obstacleAt(p.x,p.z,.4)&&!this.nearby(p,.5).some(o=>bodyBlocks(this.state,s,o,p,.5)))candidates.push(p);
         }
         candidates.sort((a,b)=>distance(a,aim)-distance(b,aim));const alternative=candidates[0];if(alternative){s.x=alternative.x;s.z=alternative.z;w.metrics.distance+=movement;}
         return;}
@@ -1068,7 +1071,7 @@ export class GarrisonSystem {
     // Being within two metres of it does not turn an exterior walker into an
     // interior occupant and trap them outside the end cap.
     const neighbors=this.nearby(s,7).filter(o=>o!==s&&o.needs?.life!=='dead'&&distance(o,s)<7);
-    const clear=(p:Vec2)=>accessible(p)&&!this.terrain.obstacleAt(p.x,p.z,.4)&&neighbors.every(o=>distance(o,p)>.58);
+    const clear=(p:Vec2)=>accessible(p)&&!this.terrain.obstacleAt(p.x,p.z,.4)&&!neighbors.some(o=>bodyBlocks(this.state,s,o,p,.58));
     const nodes=[{x:s.x,z:s.z,gx:0,gz:0,parent:-1}],visited=new Set(['0,0']);let best=-1,bestDistance=distance(s,target);
     for(let at=0;at<nodes.length&&at<220;at++){
       const n=nodes[at],remaining=distance(n,target);

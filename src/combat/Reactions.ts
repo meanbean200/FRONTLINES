@@ -60,14 +60,14 @@ export function prepareActions(state:BattlefieldState,terrain:TerrainSystem,navi
         else delete c.coverAnchor;
       }
     }
-    if(c.reactionRoute?.[c.reactionIndex??0]){c.owner='reaction';c.pauseReason='Taking nearby cover · route retained';followReaction(s,terrain,dt,reaction==='pinned'?'crawling to cover':'seeking cover',space,q);continue;}
+    if(c.reactionRoute?.[c.reactionIndex??0]){c.owner='reaction';c.pauseReason='Taking nearby cover · route retained';followReaction(s,terrain,dt,reaction==='pinned'?'crawling to cover':'seeking cover');continue;}
     if(reaction==='pinned'){c.owner='reaction';s.action='pinned';c.pauseReason='Pinned · prone, using available protection';continue;}
     // Brief orientation/hesitation, not an indefinite veto on the player's route.
     if(reaction!=='steady'&&now-(c.reactionSince??now)<(reaction==='shaken'?3:1.5)){c.owner='reaction';s.action='crouching';c.pauseReason='Under fire · lowering exposure';}
     else if(reaction==='steady'&&terrain.coverAt(s.x,s.z)!=='open'&&q.order.type==='hold')s.posture='crouched';
   }
 }
-function followReaction(s:SoldierState,terrain:TerrainSystem,dt:number,action:string,space?:CoverSpace,q?:import('../core/types').SquadState):void {
+function followReaction(s:SoldierState,terrain:TerrainSystem,dt:number,action:string):void {
   const c=s.combat!,route=c.reactionRoute??[],i=c.reactionIndex??0,target=route[i];
   if(!target){s.action=c.reaction==='broken'?'rallying':'crouching';return;}
   // Old saves can contain a cover waypoint outside the sector. Reject it before
@@ -75,6 +75,6 @@ function followReaction(s:SoldierState,terrain:TerrainSystem,dt:number,action:st
   if(!insideWorld(target)){s.action='sheltering';c.pauseReason='Cover route blocked · map boundary';delete c.reactionRoute;c.reactionIndex=0;c.coverReview=0;return;}
   const d=distance(s,target);if(d<.25){c.reactionIndex=i+1;s.action='crouching';return;}
   const amount=Math.min(d,dt*(c.reaction==='broken'?2:c.reaction==='pinned'?.45:1.2)),x=s.x+(target.x-s.x)/d*amount,z=s.z+(target.z-s.z)/d*amount;
-  if(terrain.obstacleAt(x,z,.5)||space&&q&&space.occupied(s,q,{x,z})){s.action='sheltering';c.pauseReason='Cover route blocked';c.reactionRoute=[];return;}
+  if(terrain.obstacleAt(x,z,.5)){s.action='sheltering';c.pauseReason='Cover route blocked';c.reactionRoute=[];return;}
   s.heading=Math.atan2(target.x-s.x,target.z-s.z);s.x=x;s.z=z;s.action=action;s.cover=terrain.coverAt(x,z);
 }

@@ -9,8 +9,9 @@ import type {ShotEvent} from './types';
 import {beginBuildingTravel} from '../simulation/BuildingSystem';
 import {RESCUE_LIMITS,careRouteLength,nearbyAidPost,rescueExposed,treatmentSeconds} from './CasualtyTriage';
 import {insideWorld} from '../terrain/WorldLayout';
+import {recordDeath,type DamageOrigin} from '../simulation/DeathRecord';
 
-export interface Wound {severity:'legacy'|'minor'|'disabling'|'critical'|'fatal';at:number;bleedUntil?:number;stabilized:boolean;care:'untreated'|'stabilized'|'aid-post'|'awaiting-transport'|'transport'|'evacuated';returnAt?:number}
+export interface Wound {severity:'legacy'|'minor'|'disabling'|'critical'|'fatal';at:number;bleedUntil?:number;stabilized:boolean;care:'untreated'|'stabilized'|'aid-post'|'awaiting-transport'|'transport'|'evacuated';returnAt?:number;origin?:DamageOrigin}
 export interface CareTask {patientId:number;stage:'approach'|'treat'|'carry'|'evacuate';route:Vec2[];index:number;progress:number;destination:Vec2;facilityId?:number;blockedFor:number;buildingExit?:boolean;reviewAt?:number;legStartedAt?:number}
 export interface RescueDecision {patientId:number;side:'player'|'enemy';reason:string;choice:'pending'|'hold'|'approved';reviewAt:number}
 export function combatWound(state:BattlefieldState,s:SoldierState,event:ShotEvent):void {
@@ -19,11 +20,13 @@ export function combatWound(state:BattlefieldState,s:SoldierState,event:ShotEven
   const severity:Wound['severity']=event.energy>.75?(r<.24?'fatal':r<.52?'critical':r<.9?'disabling':'minor'):(r<.2?'critical':r<.55?'disabling':'minor');
   const previous=c.wound;
   if(previous&&previous.severity!=='minor'&&previous.severity!=='legacy'&&severity==='minor')return;
-  c.wound={severity,at:state.elapsed,stabilized:false,care:'untreated',bleedUntil:severity==='critical'?state.elapsed+240:undefined};
-  s.health=severity==='fatal'?0:Math.min(s.health,severity==='minor'?80:severity==='critical'?20:45);s.lastHitAt=state.elapsed;s.morale=Math.max(0,s.morale-25);
+  const origin:DamageOrigin={cause:event.cause??'combat-fire',at:state.elapsed,eventId:event.id,shooterId:event.shooterId,squadId:event.squadId};
+  c.wound={severity,at:state.elapsed,stabilized:false,care:'untreated',bleedUntil:severity==='critical'?state.elapsed+240:undefined,origin};
+  if(severity==='fatal')recordDeath(state,s,origin);
+  else s.health=Math.min(s.health,severity==='minor'?80:severity==='critical'?20:45);
+  s.lastHitAt=state.elapsed;s.morale=Math.max(0,s.morale-25);
   if(severity!=='minor'){
     s.needs!.life=severity==='fatal'?'dead':'incapacitated';s.action=s.needs!.life;delete s.duty;dropCargo(state,s);
-    if(severity==='fatal')state.living!.metrics.deaths++;
   }
 }
 const serious=(w:Wound)=>w.severity==='disabling'||w.severity==='critical';
@@ -51,7 +54,7 @@ export function updateCasualtyCare(state:BattlefieldState,terrain:TerrainSystem,
   for(const s of state.soldiers){
     const wound=s.combat?.wound;if(!wound||s.needs?.life==='dead')continue;
     if(s.action==='being carried'&&!state.soldiers.some(h=>h.combat?.careTask?.patientId===s.id&&['carry','evacuate'].includes(h.combat.careTask.stage)))s.action='incapacitated';
-    if(wound.bleedUntil!==undefined&&!wound.stabilized&&state.elapsed>=wound.bleedUntil){s.health=0;s.needs!.life='dead';s.action='dead';wound.severity='fatal';delete wound.bleedUntil;w.metrics.deaths++;dropCargo(state,s);continue;}
+    if(wound.bleedUntil!==undefined&&!wound.stabilized&&state.elapsed>=wound.bleedUntil){recordDeath(state,s,wound.origin??{cause:'legacy-unknown',at:wound.at});wound.severity='fatal';delete wound.bleedUntil;continue;}
     if(wound.care==='evacuated'){s.action='evacuated';continue;}
   }
   // Passengers are physical truck cargo in their own two-stretcher capacity.

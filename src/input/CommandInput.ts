@@ -3,6 +3,7 @@ import type { StrategyCamera } from '../render/StrategyCamera';
 import { factionOf } from '../operations/types';
 import type {trenchDraft} from '../ui/TrenchDraft';
 import {MIN_TRENCH_LENGTH,type FacilityPreview} from '../construction/ConstructionReadout';
+import {marchPreview,marchMinutes} from '../ui/MarchPreview';
 
 export type InteractionMode = 'select' | 'trench' | 'crater' | 'move' | 'facility'|'observe'|'suppress'|'assault'|'fall-back'|'defend'|'mortarHE'|'mortarSmoke'|'smokeGrenades'|'deploy'|'person-move';
 
@@ -142,6 +143,11 @@ export class CommandInput {
       const screens=this.trenchPoints.map(p=>this.options.camera.project(p,.3));
       this.routeLine.setAttribute('points',[...screens,{x:event.clientX,y:event.clientY}].map(p=>`${p.x},${p.y}`).join(' '));
       if(mode==='trench')this.showDraft(screens);
+      else if(mode==='move'||mode==='assault'||mode==='fall-back'){
+        const r=marchPreview(this.options.getState(),this.options.selectedSquads,this.trenchPoints);
+        this.draft.hidden=false;this.draft.dataset.invalid=String(r.atRisk>0);
+        this.draft.innerHTML=`<strong>ROUTE ESTIMATE / ${Math.round(r.length)} METRES</strong><br>~${marchMinutes(r.travelSeconds)} travel + ~${marchMinutes(r.restSeconds)} recovery at 1×<br>Carried food/water: ~${marchMinutes(r.enduranceSeconds)} to critical need${r.atRisk?`<br>LOW SUPPLIES · ${r.atRisk} people may exceed carried endurance`:''}<br>Terrain, danger and detours may add time. Resupply is not assumed.`;
+      }
     }
   };
 

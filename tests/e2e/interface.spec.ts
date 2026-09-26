@@ -48,7 +48,8 @@ test('pause save/load keeps exact campaign state and manual pause',async({page})
   await begin(page);await page.locator('.operation-menu-button').click();await page.locator('#save-session').click();
   // Compare with the canonical save, which adds the policy/rules identity even
   // before the first simulation tick. Saving does not mutate the live world.
-  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('frontlines-battlefield-v3-world2-4km')!));
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('frontlines-battlefield-v4')!));
+  expect(saved?.schemaVersion).toBe(4);
   await page.locator('#continue-save').click();
   expect(await page.evaluate(()=>window.__FRONTLINES__.getState())).toEqual(saved);
   await expect(page.locator('[data-speed="0"]')).toHaveClass('active');

@@ -11,6 +11,8 @@ export type PolicyKind = 'rules' | 'learned' | 'hybrid';
 export interface Needs {
   energy: number; hunger: number; thirst: number; life: 'active' | 'incapacitated' | 'dead';
   hungryHours: number; thirstyHours: number; sleepHours: number; day: number;
+  /** Simulation seconds, independent of the calendar/daylight clock. */
+  hungrySeconds?:number;thirstySeconds?:number;
   watchHours: number; interruptedSleep: number; taskChanges: number;
 }
 export interface Duty {

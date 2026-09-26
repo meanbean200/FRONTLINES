@@ -24,7 +24,8 @@ import {migrateSupportPositions} from '../combat/SupportWeapons';
 import {validTerrainKnowledge} from '../operations/TrenchIntelligence';
 import {validPreparedOrders} from '../operations/PreparedOrders';
 
-export const SAVE_KEY = 'frontlines-battlefield-v3-world2-4km';
+export const SAVE_KEY = 'frontlines-battlefield-v4';
+const WORLD2_V3_KEY = 'frontlines-battlefield-v3-world2-4km';
 const V3_KEY = 'frontlines-battlefield-v3';
 const V2_KEY = 'frontlines-battlefield-v2';
 const LEGACY_KEY = 'frontlines-battlefield-v1';
@@ -38,14 +39,14 @@ export class SaveSystem {
     const physical={...state,living:state.living?{...state.living,supplyDemands:undefined}:undefined};
     if(!isBattlefieldState(physical))throw new Error('Battlefield contains invalid state; existing save preserved.');
     const snapshot=structuredClone(state);initializeEquipment(snapshot);reconcileSupplyDemands(snapshot);for(const s of snapshot.soldiers)s.posture??='standing';
-    const json = JSON.stringify({...snapshot,schemaVersion:3,combatRules:RULES_VERSION,policySchema:{observationVersion:OBSERVATION_VERSION,rulesVersion:RULES_VERSION}});
+    const json = JSON.stringify({...snapshot,schemaVersion:4,combatRules:RULES_VERSION,policySchema:{observationVersion:OBSERVATION_VERSION,rulesVersion:RULES_VERSION}});
     localStorage.setItem(SAVE_KEY, json);
     return json;
   }
 
   load(): BattlefieldState | undefined {
     this.lastError='';
-    const raw = localStorage.getItem(SAVE_KEY)??localStorage.getItem(V3_KEY)??localStorage.getItem(V2_KEY)??localStorage.getItem(LEGACY_KEY);
+    const raw = localStorage.getItem(SAVE_KEY)??localStorage.getItem(WORLD2_V3_KEY)??localStorage.getItem(V3_KEY)??localStorage.getItem(V2_KEY)??localStorage.getItem(LEGACY_KEY);
     if (!raw) return undefined;
     try{return this.parse(raw);}catch(error){this.lastError=error instanceof Error?error.message:'Save could not be loaded.';throw error;}
   }
@@ -69,7 +70,8 @@ export class SaveSystem {
         g.modelId=`unavailable-schema:${g.modelId??'unspecified'}`;g.policyStatus='Fallback: saved policy observation/rules version is unavailable';
       }
     }
-    const wasLegacy=state.schemaVersion!==3;
+    const wasLegacy=state.schemaVersion<3;
+    const migratedV4=state.schemaVersion<4;
     if(state.schemaVersion===1){
       // No retrospective deprivation, free rations, or depot refill on migration.
       initializeLiving(state);
@@ -101,14 +103,18 @@ export class SaveSystem {
     migrateExplicitWorkQueues(state);
     migrateSupportPositions(state);
     if(!state.living!.supplyDemands)reconcileSupplyDemands(state);
-    state.schemaVersion=3;state.combatRules=RULES_VERSION;
+    if(migratedV4){
+      for(const s of state.soldiers)if(s.needs?.life==='dead'&&!s.death)s.death={cause:'legacy-unknown',at:state.elapsed,occurredAt:state.elapsed,condition:{healthBefore:s.health,energy:s.needs.energy,hunger:s.needs.hunger,thirst:s.needs.thirst}};
+      state.living!.migrationNote='Copy migrated to v4. People, coordinates, stock and existing timing preserved. Historical death causes are unknown; no retrospective deprivation. Original saves remain untouched.';
+    }
+    state.schemaVersion=4;state.combatRules=RULES_VERSION;
     return state;
   }
 
   hasSave(): boolean {
-    return localStorage.getItem(SAVE_KEY) !== null||localStorage.getItem(V3_KEY)!==null||localStorage.getItem(V2_KEY)!==null||localStorage.getItem(LEGACY_KEY)!==null;
+    return localStorage.getItem(SAVE_KEY) !== null||localStorage.getItem(WORLD2_V3_KEY)!==null||localStorage.getItem(V3_KEY)!==null||localStorage.getItem(V2_KEY)!==null||localStorage.getItem(LEGACY_KEY)!==null;
   }
-  legacyNotice():string{return localStorage.getItem(SAVE_KEY)===null&&this.hasSave()?'Legacy 8 km save found · preserved separately. It needs the matching older build; start a new 4 km battle to play here.':'';}
+  legacyNotice():string{return localStorage.getItem(SAVE_KEY)!==null?'':localStorage.getItem(WORLD2_V3_KEY)!==null?'Existing campaign will be migrated as a copy; the original save is preserved.':this.hasSave()?'Legacy 8 km save found · preserved separately. It needs the matching older build; start a new 4 km battle to play here.':'';}
 }
 
 function isBattlefieldState(value: unknown): value is BattlefieldState {
@@ -116,7 +122,7 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
   const candidate = value as Partial<BattlefieldState>;
   if(candidate.worldVersion!==WORLD_VERSION||candidate.worldSize!==WORLD_SIZE)return false;
   const shape = (
-    ([1,2,3].includes(candidate.schemaVersion!)) &&
+    ([1,2,3,4].includes(candidate.schemaVersion!)) &&
     typeof candidate.seed === 'number' &&
     typeof candidate.elapsed === 'number' &&
     typeof candidate.nextEntityId === 'number' &&
@@ -299,14 +305,18 @@ function validLiving(state:BattlefieldState):boolean {
   for(const c of w.crates)if(!point(c)||!stock(c.stock)||c.droppedBy!==undefined&&!sIds.has(c.droppedBy))return false;
   for(const s of state.soldiers){
     const n=s.needs;if(!n||!['active','incapacitated','dead'].includes(n.life)||!['energy','hunger','thirst','hungryHours','thirstyHours','sleepHours','day','watchHours','interruptedSleep','taskChanges'].every(k=>nonnegative(n[k as keyof typeof n]))||n.energy>100||n.hunger>100||n.thirst>100||!stock(s.carried))return false;
+    if([n.hungrySeconds,n.thirstySeconds].some(v=>v!==undefined&&!nonnegative(v)))return false;
     const care=s.selfCare;
     if(s.nextSelfCareReview!==undefined&&!nonnegative(s.nextSelfCareReview)||s.survivalReason!==undefined&&(typeof s.survivalReason!=='string'||s.survivalReason.length>500))return false;
     if(care){
+      if(care.mobile!==undefined&&typeof care.mobile!=='boolean')return false;
+      if(care.networkBound!==undefined&&typeof care.networkBound!=='boolean')return false;
+      if(care.rationUntil!==undefined&&!nonnegative(care.rationUntil))return false;
       if(care.retryAt!==undefined&&!nonnegative(care.retryAt))return false;
       if(care.recovering!==undefined&&typeof care.recovering!=='boolean')return false;
-      if(!['sleep','meal','resupply'].includes(care.kind)||!['exit','outbound','use','return'].includes(care.stage)||![care.orderAt,care.since,care.until,care.blockedFor].every(nonnegative)||!point(care.home)||!Array.isArray(care.route)||care.route.length>4096||!care.route.every(point)||!Number.isInteger(care.index)||care.index<0||care.index>care.route.length)return false;
+      if(!['sleep','meal','resupply','supply-wait'].includes(care.kind)||!['exit','outbound','use','return'].includes(care.stage)||![care.orderAt,care.since,care.until,care.blockedFor].every(nonnegative)||!point(care.home)||!Array.isArray(care.route)||care.route.length>4096||!care.route.every(point)||!Number.isInteger(care.index)||care.index<0||care.index>care.route.length)return false;
       if(care.home.building&&(!Number.isSafeInteger(care.home.building.id)||care.home.building.id<0||![0,1].includes(care.home.building.floor)||!point(care.home.building.target)))return false;
-      if(care.source&&(!['cache','forward','facility','rear'].includes(care.source.kind)||!Number.isSafeInteger(care.source.id)||care.source.id<0))return false;
+      if(care.source&&(!['cache','forward','facility','rear','crate'].includes(care.source.kind)||!Number.isSafeInteger(care.source.id)||care.source.id<0))return false;
     }
     if(s.personalArea!==undefined&&typeof s.personalArea!=='boolean')return false;
     if(s.garrisonId!==undefined){const g=w.garrisons.find(g=>g.id===s.garrisonId),q=state.squads.find(q=>q.id===s.squadId);if(!g||!q||(g.faction??'player')!==(q.faction??'player')||!s.personalArea&&!g.squadIds.includes(s.squadId))return false;}

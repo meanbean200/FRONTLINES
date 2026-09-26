@@ -18,7 +18,7 @@ describe('field command presentation is truthful and read only',()=>{
     expect(selectionReadout(state,ids)!.warning).toBe('');
     const people=state.soldiers.filter(s=>s.squadId===q.id);for(const s of people)s.carried!.ammo=5;
     expect(selectionReadout(state,ids)!.warning).toBe('LOW AMMO');people[0].needs!.life='incapacitated';
-    expect(selectionReadout(state,ids)!.warning).toBe('CASUALTIES');
+    expect(selectionReadout(state,ids)!.warning).toBe('LOW AMMO'); // routine losses no longer leave a permanent banner
     for(const s of people)s.combat={shotSequence:0,reaction:'pinned'};
     expect(selectionReadout(state,ids)!.warning).toBe('PINNED');
   });

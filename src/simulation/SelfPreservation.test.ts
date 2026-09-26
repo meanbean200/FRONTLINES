@@ -61,6 +61,9 @@ describe('general survival without losing standing orders',()=>{
     stepSelfPreservation(s,sim.terrain,sim.navigation,.05);
     expect(s.soldiers.filter(o=>o.squadId===q.id&&o.selfCare?.kind==='sleep').length).toBe(Math.ceil(q.soldierIds.length/4));
     delete p.selfCare;p.nextSelfCareReview=0;p.needs!.thirst=85;p.needs!.energy=16;p.carried!.water=0;
+    // Personal errands are now bounded to 120m; this is a reachable local trip,
+    // not permission to dispatch an exhausted person across half the map.
+    s.living!.rear=sim.navigation.freeDestination({x:p.x+25,z:p.z+15});
     stepSelfPreservation(s,sim.terrain,sim.navigation,.05);expect(s.soldiers.find(o=>o.id===p.id)!.selfCare?.kind).toBe('resupply');
     p.needs!.energy=11;p.selfCare!.stage='outbound';const before={x:p.x,z:p.z};
     for(let i=0;i<100;i++)tick(sim);

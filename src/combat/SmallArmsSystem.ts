@@ -2,6 +2,7 @@ import {distance,type BattlefieldState,type SoldierState} from '../core/types';
 import {hash2D} from '../core/random';
 import {consume} from '../garrison/Inventory';
 import {dropCargo} from '../garrison/NeedsSystem';
+import {recordDeath} from '../simulation/DeathRecord';
 import {canSpot,squadContacts} from '../operations/Visibility';
 import type {Faction} from '../operations/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
@@ -16,7 +17,7 @@ export const RIFLE_RULES=Object.freeze({range:360,shotInterval:3.8,damage:60});
 
 /** No renderer dependencies. Shots resolve in stable simulation order. */
 export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,active:SoldierState[],factions:Map<number,Faction>,alarm:(shooter:SoldierState,event:ShotEvent)=>void):void {
-  const op=state.operation!,damage=new Map<SoldierState,number>();
+  const op=state.operation!,damage=new Map<SoldierState,{amount:number;event:ShotEvent}>();
   op.shotEvents=(op.shotEvents??[]).filter(e=>state.elapsed-e.at<.25);
   const buckets=new Map<string,SoldierState[]>(),cell=500;
   for(const s of active){const key=`${Math.floor(s.x/cell)},${Math.floor(s.z/cell)}`;const row=buckets.get(key)??[];row.push(s);buckets.set(key,row);}
@@ -97,11 +98,12 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
       weapon.effectiveUntil=state.elapsed+3;
       weapon.effectivePoint={x:event.to.x,z:event.to.z};
     }
-    if(event.hitId!==undefined){const hit=candidates.find(s=>s.id===event.hitId)!;if(op.casualtyRules)combatWound(state,hit,event);else damage.set(hit,(damage.get(hit)??0)+RIFLE_RULES.damage);op.hits++;}
+    if(event.hitId!==undefined){const hit=candidates.find(s=>s.id===event.hitId)!;if(op.casualtyRules)combatWound(state,hit,event);else damage.set(hit,{amount:(damage.get(hit)?.amount??0)+RIFLE_RULES.damage,event});op.hits++;}
   }
-  for(const [soldier,amount] of damage){
-    soldier.health=Math.max(0,soldier.health-amount);soldier.morale=Math.max(0,soldier.morale-amount*.3);soldier.lastHitAt=state.elapsed;
-    if(soldier.health===0){soldier.needs!.life='dead';soldier.action='dead';state.living!.metrics.deaths++;dropCargo(state,soldier);}
+  for(const [soldier,{amount,event}] of damage){
+    const fatal=soldier.health<=amount;if(!fatal)soldier.health-=amount;
+    soldier.morale=Math.max(0,soldier.morale-amount*.3);soldier.lastHitAt=state.elapsed;
+    if(fatal)recordDeath(state,soldier,{cause:'combat-fire',at:state.elapsed,eventId:event.id,shooterId:event.shooterId,squadId:event.squadId});
     else if(soldier.health<15){soldier.needs!.life='incapacitated';soldier.action='incapacitated';dropCargo(state,soldier);}
     if(soldier.needs!.life!=='active')delete soldier.duty;
   }

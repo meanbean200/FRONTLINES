@@ -4,14 +4,13 @@ import {
   type SquadState,
   type Vec2,
   type ConstructionRequest,
-  WORLD_HALF,
-  clamp,
   distance,
   polylineLength,
 } from '../core/types';
 import { addSquad } from './createBattlefield';
 import { SquadNavigation } from '../navigation/SquadNavigation';
 import {FormationWalker} from '../navigation/FormationWalker';
+import {routeJoin} from '../navigation/RouteJoin';
 import { TerrainSystem } from '../terrain/TerrainSystem';
 import { TrenchSystem } from '../construction/TrenchSystem';
 import {MIN_TRENCH_LENGTH} from '../construction/ConstructionReadout';
@@ -29,7 +28,6 @@ import {stepSupport} from '../combat/SupportWeapons';
 import {stepReplacements} from '../operations/Replacements';
 import {stepBuildings} from './BuildingSystem';
 import {stepSelfPreservation} from './SelfPreservation';
-import {postureSpeed} from '../combat/Posture';
 import {initializeEquipment,squadHasEquipment} from '../combat/Equipment';
 import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
 import {resumeWorkChoices} from '../construction/ResumeWork';
@@ -69,7 +67,6 @@ export class BattlefieldSimulation {
   readonly garrisons: GarrisonSystem;
   readonly operations: OperationSystem;
   readonly engineers:EngineerSystem;
-  private spatial = new Map<string, SoldierState[]>();
   scheduleNavigation?: (start:Vec2,goal:Vec2,done:(route:Vec2[])=>void)=>void;
   private routeRevision=new Map<number,number>();
   private worldRevision=0;
@@ -328,11 +325,6 @@ export class BattlefieldSimulation {
 
   private updateOrders(dt: number): void {
     this.formationWalker.begin(this.state);
-    this.spatial.clear();
-    for (const soldier of this.state.soldiers) {
-      const key=`${Math.floor(soldier.x/4)},${Math.floor(soldier.z/4)}`;
-      const bucket=this.spatial.get(key)??[];bucket.push(soldier);this.spatial.set(key,bucket);
-    }
     const soldiersById = new Map(this.state.soldiers.map((soldier) => [soldier.id, soldier]));
     for (const squad of this.state.squads) {
       const soldiers = squad.soldierIds.map((id) => soldiersById.get(id)).filter((soldier): soldier is SoldierState => Boolean(soldier)&&!soldier!.personalArea&&(!soldier!.needs||soldier!.needs.life==='active'));
@@ -365,49 +357,14 @@ export class BattlefieldSimulation {
 
   private updateEngineerSquad(squad: SquadState, soldiers: SoldierState[], dt: number): void {
     if(!this.state.trenches.some(t=>t.id===squad.order.trenchId)){this.issueHold([squad.id]);return;}
-    this.engineers.step(squad,soldiers,dt,(s,target,seconds,action)=>this.moveSoldier(s,target,[],seconds,action));
+    this.engineers.step(squad,soldiers,dt,(s,target,seconds,action)=>this.moveSoldier(s,target,seconds,action));
   }
 
-  private moveSoldier(soldier: SoldierState, target: Vec2, neighbors: SoldierState[], dt: number, action: string): void {
+  private moveSoldier(soldier: SoldierState, target: Vec2, dt: number, action: string): void {
     if(!ownsAction(soldier,'order'))return;
-    let dx = target.x - soldier.x;
-    let dz = target.z - soldier.z;
-    const targetDistance = Math.hypot(dx, dz);
-    if (targetDistance < 0.12) {soldier.cover=this.terrain.coverAt(soldier.x,soldier.z);return;}
-    dx /= targetDistance;
-    dz /= targetDistance;
-    const local: SoldierState[]=[];
-    if(neighbors.length) for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)local.push(...(this.spatial.get(`${Math.floor(soldier.x/4)+dx},${Math.floor(soldier.z/4)+dz}`)??[]));
-    for (const other of local) {
-      if (other.id === soldier.id) continue;
-      const ox = soldier.x - other.x;
-      const oz = soldier.z - other.z;
-      const d = Math.hypot(ox, oz);
-      if (d > 0.01 && d < 2.2) {
-        dx += (ox / d) * (2.2 - d) * 0.42;
-        dz += (oz / d) * (2.2 - d) * 0.42;
-      }
-    }
-    const normalized = Math.max(0.001, Math.hypot(dx, dz));
-    dx /= normalized;
-    dz /= normalized;
-    const slopePenalty = 1 / (1 + this.terrain.slopeAt(soldier.x, soldier.z) * 3);
-    const fatiguePenalty = 1 - clamp(soldier.fatigue / 180, 0, 0.35);
-    const speed = 3.4 * postureSpeed(soldier) * slopePenalty * fatiguePenalty * (this.state.operation ? Math.max(.12,1 - soldier.suppression / 110) : 1);
-    const movement = Math.min(targetDistance, speed * dt);
-    const nextX=soldier.x+dx*movement,nextZ=soldier.z+dz*movement;
-    if(this.terrain.obstacleAt(nextX,nextZ,.8)) {
-      // Slide around the nearest footprint; no global per-soldier query.
-      const candidates=[{x:-dz,z:dx},{x:dz,z:-dx}].sort((a,b)=>((target.x-soldier.x)*b.x+(target.z-soldier.z)*b.z)-((target.x-soldier.x)*a.x+(target.z-soldier.z)*a.z));
-      const slide=candidates.find(p=>!this.terrain.obstacleAt(soldier.x+p.x*movement,soldier.z+p.z*movement,.8));
-      if(!slide){soldier.action='waiting for clearance';return;}
-      dx=slide.x;dz=slide.z;
-    }
-    soldier.x = clamp(soldier.x + dx * movement, -WORLD_HALF, WORLD_HALF);
-    soldier.z = clamp(soldier.z + dz * movement, -WORLD_HALF, WORLD_HALF);
-    soldier.heading = Math.atan2(dx, dz);
-    soldier.action = action;
-    soldier.cover = this.terrain.coverAt(soldier.x, soldier.z);
+    if(distance(soldier,target)<.12){soldier.cover=this.terrain.coverAt(soldier.x,soldier.z);return;}
+    this.formationWalker.walk(soldier,target,dt);
+    if(soldier.action==='advancing')soldier.action=action;
   }
 
   private updateSquadCenters(): void {
@@ -484,7 +441,7 @@ export class BattlefieldSimulation {
       // The drawn corridor itself is never simplified by global pathfinding.
       squad.order={type:'move',target:path.at(-1),drawnPath:path.map(p=>({...p})),pathEndOffset:endOffset,issuedAt:this.state.elapsed};
       endOffset+=Math.ceil(squad.soldierIds.length/2)*2.5+4;
-      this.soldiersFor(squad).forEach(s=>s.pathTravel=0);
+      this.soldiersFor(squad).forEach(s=>delete s.pathTravel);
       this.planDrawnApproach(squad);
     }
     return true;
@@ -505,15 +462,15 @@ export class BattlefieldSimulation {
     soldiers.forEach((s,i)=>{
       if(!ownsAction(s,'order')){finished=false;return;}
       const end=Math.max(0,total-(squad.order.pathEndOffset??0)-Math.floor(i/2)*2.5);
-      let along=Math.min(s.pathTravel??0,end);
+      let along=Math.min(s.pathTravel??routeJoin(path,s,(a,b)=>this.navigation.segmentClear(a,b,.65))?.along??0,end);
       const center=atDistance(path,along),ahead=atDistance(path,Math.min(total,along+.5));
       const heading=Math.atan2(ahead.x-center.x,ahead.z-center.z),lateral=(i%2?1:-1)*.75;
       const target={x:center.x+Math.cos(heading)*lateral,z:center.z-Math.sin(heading)*lateral};
-      const maxAdvance=i<2||squad.tactics?end:Math.max(0,(soldiers[i-2].pathTravel??0)-2.5);
+      const maxAdvance=end;
       if(distance(s,target)<1.1)along=Math.min(end,maxAdvance,along+dt*1.8);
       s.pathTravel=along;
       const p=atDistance(path,along);p.x+=Math.cos(heading)*lateral;p.z-=Math.sin(heading)*lateral;
-      if(along<end-.01||distance(s,p)>.5){finished=false;this.moveSoldier(s,p,[],dt,'following drawn path');}else{s.action='holding';s.cover=this.terrain.coverAt(s.x,s.z);}
+      if(along<end-.01||distance(s,p)>.5){finished=false;this.moveSoldier(s,p,dt,'following drawn path');}else{s.action='holding';s.cover=this.terrain.coverAt(s.x,s.z);}
     });
     if(finished){squad.order={type:'hold',issuedAt:this.state.elapsed};squad.route=[];squad.movementState='idle';}else squad.movementState='moving';
   }
