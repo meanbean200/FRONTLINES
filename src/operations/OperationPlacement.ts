@@ -25,8 +25,8 @@ export function placeOperation(id:OperationId,seed:number,setup?:ResolvedBattleS
   // Use the full depth and width: no single deep flag is mandatory.
   zone('deep','Ground beyond the belt',atDepth(front,1450),1800,400);
   zone('fallback','Rear access boundary',atDepth(front,-1450),1800,400);
-  const middle=SETTLEMENTS.filter(p=>Math.abs(frontDepth(front,p))<1080)
-    .sort((a,b)=>hash2D(a.x,a.z,seed)-hash2D(b.x,b.z,seed)).slice(0,3);
+  const middle=SETTLEMENTS.filter(p=>setup?.battleMode==='endless'||Math.abs(frontDepth(front,p))<1080)
+    .sort((a,b)=>hash2D(a.x,a.z,seed)-hash2D(b.x,b.z,seed)).slice(0,setup?.battleMode==='endless'?SETTLEMENTS.length:3);
   const locations:StrategicLocation[]=middle.map((p,i)=>({id:`site-${i}`,name:p.name,kind:'village',position:{x:p.x,z:p.z},zoneId:zone(`site-${i}`,p.name,p,p.r+55,p.r+55)}));
   const roads=ROADS.filter(r=>r.axis===(forward.x?'x':'z'));
   const main=roads[Math.floor(hash2D(seed,91,43)*roads.length)];

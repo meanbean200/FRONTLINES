@@ -657,3 +657,103 @@ substitutes. No training, automation restart or platform publication occurred.
   AUTOMATED VERIFIED / UI BROWSER VERIFIED.** Integrated new combat, wider
   logistics/artillery, physical phone and subjective acceptance remain open;
   this does not clear the overall **PARTIAL** release status.
+
+## 2026-09-26 — Endless: first playable persistent-mode milestone
+
+Verified starting local/remote master:
+`7426ba7916daca38c070b6ba5af682a36483eada`. The attachment's `20404c4` is stale.
+Preserved normal Operations, old saves, prior repair work, separate DEV and the
+genuinely authored living menu. **Overall and full Endless handoff: PARTIAL.**
+
+### Issue status
+
+- **USER-REQUESTED:** a distinct persistent war, not a hidden normal result screen;
+  finite/replenishing/continuous physical replacements, persistent towns, fair
+  long-running AI, save/resume, bounded state and quiet UI. Original long-journey
+  deaths remain **not causally reproduced**; the prior nonlethal food/water
+  override is preserved rather than re-diagnosed here.
+- **IMPLEMENTED:** explicit Operation/Endless setup and schema-4 mode state;
+  one authoritative Endless outcome/history controller. Normal objective/timer
+  completion cannot end it. All generated strategic settlements use production
+  capture authority; control changes alter flags/map labels without cache refills.
+- **IMPLEMENTED:** target-strength-limited rifle loss replacement, conservative
+  Finite exhaustion, bounded authorized rear supplies with import accounting,
+  demand/inbound-aware truck loading, real convoy/shuttle arrival and heavy-kit
+  non-regeneration. No extra army is manufactured each interval. Old Operations
+  retain their existing dispatch rules; old saves are not refilled or enlarged.
+- **IMPLEMENTED:** persisted probe/commit/hold/regroup director using own forces,
+  known terrain and delivered reports only; failed-approach cooldowns and reserves.
+  Pressure adjusts tempo/commitment/risk, not stats or knowledge. A lone available
+  group probes while the main body is busy instead of permanently doing nothing.
+- **REPRODUCED / ROOT CAUSE:** the integrated casualty's replacement reached the
+  rear but its moving squad had no arrival-network assignment. This is a physical
+  delivery prerequisite, not permission to spawn at the front. Separately, the
+  new enemy director lacked the existing commander's nearby safe reoccupation
+  handoff. **IMPLEMENTED:** regrouping enemies now use real nearby network entry,
+  respecting delivered threats, capacity and ordinary navigation.
+- **IMPLEMENTED:** optional 10/20/30-minute calendars separate from physiological
+  and physical clocks; no calendar-based acceleration of truck movement,
+  consumption or loss-dispatch timing. This does not certify the wider cross-role
+  survival/512-person scale gate or change normal battle defaults.
+- **IMPLEMENTED:** compact day/control/reserve HUD, optional bounded history,
+  separate Save & Exit and confirmed End Battle, no fabricated winner. Ending
+  leaves earlier saved progress intact; saving a concluded record is explicit.
+  Old casualty **presentation** retires after five simulation minutes and is
+  capped at 64 recent bodies; identities/provenance/real cargo are preserved.
+- **BROWSER VERIFIED:** actual headed Edge setup and movement to La Prairie,
+  physical capture without an operation result, day/night continuation, Save &
+  Exit, refresh, Continue, cancellation and confirmation of End. Final desktop
+  and portrait layouts checked; no browser warnings/errors. These controls did
+  not inject solved runtime states. Attract/player ownership remains separate.
+- **REPRODUCED / REMAINING:** direct cross-map trench entry was rejected for a
+  genuine route-access check (person 259); preserved failed soak attempt 2.
+  A normal march followed by local entry succeeded. Distant return/entry UX still
+  needs improvement; no teleport or capacity bypass was added.
+
+### Frozen verification and claim boundaries
+
+- **884/884 tests, 128 files, 451.15 seconds**; existing 865 baseline plus 19
+  focused Endless checks. Mode rejection/migration, repeated capture authority,
+  bounds/conservation, three real truck-delivered fixture replacements, reported
+  knowledge, independent clocks and exact fixed-step save continuation pass.
+- **27/27 maintained Edge regressions, 116.16 seconds**, zero flaky/skipped/
+  unexpected. Synthetic restored-state tests remain labeled as such; they are
+  not substituted for the separate actual-control playthrough.
+- Production/portable and strict separate DEV builds pass; packaging **5/5**.
+  Existing large-bundle warnings remain. Portable game **1,433,016 bytes**, two
+  embedded workers; SHA-256
+  `c972984bde169413100463f6778002d007df704d82804c90d497a819a31a61ee`.
+- Network-disabled isolated Edge checks pass ordinary Operation movement,
+  exact paused save/Continue, both workers and six cold-refresh sizes. The
+  dedicated Endless offline check passes exact active continuation, unchanged
+  End cancellation, preservation of earlier active storage, and explicit saved
+  concluded-record restoration. No network dependencies/page errors.
+- **96.02-hour production headless run (96 initial people): PARTIAL soak**.
+  108 real shots, one real casualty, useful construction, both factions captured
+  a town, and one real convoy/shuttle replacement after return to a position.
+  Living force restored to 96, not 97; the historical dead identity remains.
+  Sixteen exact loaded-copy continuation checks and inventory conservation pass.
+  **No artillery and no recapture occurred.** Neither this run nor earlier
+  incomplete/failed attempts clears the required integrated-combat endurance gate.
+- Preserved reports/screenshots/failures: `docs/evidence/endless/README.md`.
+  Runtime/UI boundaries and exact pacing: `docs/endless-mode.md`. DEV and session
+  documents explicitly distinguish unsupported Endless authoring from the already
+  working disposable title preset. Game-foundations/Three.js guidance kept the
+  simulation authoritative; UI/playtest guidance drove quiet layered presentation
+  and actual-control browser/offline checks.
+
+### Remaining, not certified
+
+Set Supply Point, multi-hub urgency/fairness, selectable local-stock recovery,
+fair-observation enemy convoy interception/control-aware routing; more capable
+persistent operations/recapture/support; per-gun cycles, local rounds and
+structural repair; Endless initial-condition DEV authoring; safe historical
+casualty/manifest archival and empty-container/crater consolidation; extended
+actual-control integrated playthroughs; 3-km/512-person standard, 5× achieved
+advancement, long-run browser resource growth, 300/1000-person comparisons,
+physical mid-range-phone and subjective player acceptance. Preserved meaningful
+stock/damage is not discarded to create a misleading bounded-count result.
+
+No automation, neural training, unrelated system rewrite or platform submission
+was started. This validated foundation is not a claim that Endless is delivered
+under section 50 of the handoff.

@@ -40,7 +40,7 @@ export class OperationRenderer {
       }
     }
     op?.objectives.forEach((o, i) => {
-      const color = op.runtime?0xdbca96:o.contested ? 0xc5a568 : o.owner === 'player' ? 0x9bacb2 : o.owner === 'enemy' ? 0xb8796b : 0xdbca96;
+      const color = op.runtime&&!op.endless?0xdbca96:o.contested ? 0xc5a568 : o.owner === 'player' ? 0x9bacb2 : o.owner === 'enemy' ? 0xb8796b : 0xdbca96;
       for (const mesh of [this.markers[i].ring, this.markers[i].flag]) (mesh.material as THREE.MeshBasicMaterial).color.setHex(color);
     });
     let count = 0;

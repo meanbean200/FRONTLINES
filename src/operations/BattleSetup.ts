@@ -3,6 +3,7 @@ import {OPERATION_DEFINITIONS,isOperationId,forceSize} from './OperationDefiniti
 import type {OperationDefinition,OperationId} from './OperationalTypes';
 import type {BattlefieldState} from '../core/types';
 import type {Faction} from './types';
+import {validEndlessOptions,type EndlessOptions} from './EndlessTypes';
 
 export type BattleSize='small'|'medium'|'large';
 export type Army='us'|'german';
@@ -13,6 +14,8 @@ export interface AdvancedBattleOptions {
 }
 /** Configuration only; never includes units, inventory, DOM or mutable mission progress. */
 export interface BattleSetup {
+  battleMode?:'operation'|'endless';endless?:EndlessOptions;
+  calendarDayMinutes?:10|20|30;
   version:1; operation:OperationId; size:BattleSize; side:Army|'random';
   map:'random'|'seed'; seed:number; advanced:AdvancedBattleOptions;
 }
@@ -37,6 +40,9 @@ export function validBattleSetup(value:unknown,resolved=false):value is BattleSe
   if(!value||typeof value!=='object')return false;
   const s=value as BattleSetup,a=s.advanced;
   return s.version===1&&isOperationId(s.operation)&&['small','medium','large'].includes(s.size)&&
+    (s.battleMode===undefined||s.battleMode==='operation'||s.battleMode==='endless')&&
+    (s.battleMode==='endless'?s.operation==='open-front'&&validEndlessOptions(s.endless):s.endless===undefined)&&
+    (s.calendarDayMinutes===undefined||[10,20,30].includes(s.calendarDayMinutes))&&
     (resolved?['us','german']:['us','german','random']).includes(s.side)&&
     (resolved?s.map==='seed':['random','seed'].includes(s.map))&&Number.isSafeInteger(s.seed)&&s.seed>=1&&s.seed<=2147483647&&!!a&&
     ['dawn','day','dusk','night'].includes(a.time)&&['auto','east','south','west','north'].includes(a.direction)&&

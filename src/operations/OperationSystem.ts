@@ -12,6 +12,8 @@ import {signalEngagement} from '../combat/Engagement';
 import {stepOperationalRuntime,updateOperationalCaches} from './OperationalRuntime';
 import {commandOperationalEnemy} from './OperationalCommander';
 import {requestSupport} from '../combat/SupportWeapons';
+import {stepEndlessController} from './EndlessController';
+import {commandEndless} from './EndlessDirector';
 export {lineOfFire} from './Visibility';
 
 export const COMBAT_RULES = Object.freeze({ range: 360, interval: .5, shotInterval: 3.8, damage: 60, captureSeconds: 35, captureTroops: 3 });
@@ -36,7 +38,19 @@ export class OperationSystem {
     if(op.contacts?.player.some(c=>c.visible&&c.active))signalEngagement(this.state);
     if (op.elapsed >= op.nextOrders) {
       op.nextOrders = op.elapsed + 3;
-      if(op.authored){
+      if(op.battleMode==='endless'){
+        const observation=observeEnemy(this.state),e=op.endless!,result=commandEndless(observation,this.terrain,e.director,e.options.pressure,op.enemyAI);
+        e.director=result.director;op.enemyAI=result.memory;
+        for(const c of result.commands){if(c.type==='move')moveEnemy([c.squadId],c.goal);else holdEnemy([c.squadId]);}
+        if(result.support)requestSupport(this.state,'mortarHE',result.support.squadId,result.support.target,false,this.terrain,'ENEMY_AI');
+        // A regrouping formation must actually reoccupy a nearby safe network
+        // before the existing physical replacement shuttle can serve it.
+        if(result.director.phase==='regroup')for(const q of this.state.squads.filter(q=>q.faction==='enemy'&&q.order.type!=='construct-trench'&&q.order.type!=='occupy-trench')){
+          const rally=this.state.living!.garrisons.filter(g=>g.faction==='enemy'&&distance(q,g.entrance)<120).sort((a,b)=>distance(q,a.entrance)-distance(q,b.entrance)||a.id-b.id)[0];
+          if(rally&&!observation.contacts.some(c=>distance(c,rally.entrance)<180))occupyEnemy([q.id],rally.trenchId);
+        }
+      }
+      else if(op.authored){
         for(const side of ['player','enemy'] as const){if(op.authored.controllers[side]!=='ai')continue;
           const observation=observeFaction(this.state,side),intents=op.authored.intentions;
           for(const target of op.authored.targets)if(!observation.objectives.some(o=>o.id===target.id))observation.objectives.push({...target,owner:'neutral',contested:false,ammo:0});
@@ -68,6 +82,9 @@ export class OperationSystem {
       }
       }
     }
+    // Exactly one outcome controller owns a battle. Endless never invokes the
+    // operation/mission evaluator, even if all its former objectives are held.
+    if(op.battleMode==='endless'){stepEndlessController(this.state);return;}
     if(op.runtime){stepOperationalRuntime(this.state,this.terrain);return;}
     if(op.authored){
       for(const side of ['player','enemy'] as const){const activeSide=active.some(s=>factions.get(s.squadId)===side);if(!activeSide&&this.state.soldiers.some(s=>factions.get(s.squadId)===side)){this.finish(side==='player'?'defeat':'victory','The opposing force can no longer hold this sector.');return;}

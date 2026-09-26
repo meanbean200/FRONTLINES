@@ -31,13 +31,16 @@ export interface Objective extends Vec2 {
   cacheId: number;
 }
 export interface OperationState {
+  /** Absent in old saves means an operation; never infer from duration. */
+  battleMode?:'operation'|'endless';
+  endless?:import('./EndlessTypes').EndlessState;
   authored?:{presetId:string;controllers:Record<Faction,'human'|'ai'>;intentions:{squadId:number;intent:import('../scenarios/ScenarioPreset').ScenarioIntent;targetId?:string;home:Vec2}[];targets:(Vec2&{id:string;radius:number})[];memories:Partial<Record<Faction,import('./EnemyCommander').EnemyMemory>>;hold:Record<Faction,number>};
   forceModel?:'infantry-equipment-v1';
   setup?:import('./BattleSetup').ResolvedBattleSetup;
   runtime?:import('./OperationalTypes').OperationRuntime;
   version: 1;
   mode: OperationMode;
-  status: 'active' | 'victory' | 'defeat';
+  status: 'active' | 'victory' | 'defeat' | 'ended';
   elapsed: number;
   duration: number;
   score: number;

@@ -7,6 +7,7 @@ import {reconcileSupplyDemands,unfulfilled} from './SupplyDemand';
 import { freshNeeds } from './NeedsSystem';
 import {RULES_VERSION} from './GarrisonPolicy';
 import {initializeEquipment} from '../combat/Equipment';
+import {loadEndlessManifest,stepEndlessAvailability} from '../operations/EndlessEconomy';
 
 export function roadPoint(x:number):Vec2{return {x,z:supplyRoadZ(x)};}
 export const defaultLogistics=():LogisticsConfig=>({deliveryInterval:450,manifest:inventory({food:400,water:600,materials:120,fuel:180,ammo:160,medical:12,mortarHE:12,mortarSmoke:6,smokeGrenades:10}),rearCapacity:12000,forwardCapacity:400,cacheCapacity:600,storeCapacity:600,convoyCapacity:1500,shuttleCapacity:140,carrierCapacity:16});
@@ -58,6 +59,7 @@ export class LogisticsSystem {
   private depart(t:Truck,destination:Vec2,state:'outbound'|'returning'):void{t.route=roadRoute(t,destination);t.routeIndex=0;t.state=state;delete t.resume;t.reason=state==='outbound'?'En route':'Returning to depot';}
   step(dt:number):void {
     const w=this.state.living!,config=w.logistics!;
+    stepEndlessAvailability(this.state);
     for(const g of w.garrisons){
       if(g.cutoff==='withdraw'||total(g.forwardStock)>0||this.clear(g.forward,g.forward))continue;
       // Existing stocked depots and in-flight handovers stay at their physical
@@ -93,10 +95,14 @@ export class LogisticsSystem {
           if(total(config.manifest)>config.convoyCapacity){t.reason='Manifest exceeds convoy capacity';continue;}
           // Returned, undelivered stock stays aboard. A later scheduled delivery
           // tops up only the missing manifest; never overwrite or count it twice.
-          let available=config.convoyCapacity-total(t.cargo);
-          for(const key of RESOURCES){const added=Math.min(available,Math.max(0,config.manifest[key]-t.cargo[key]));t.cargo[key]+=added;available-=added;w.ledger.imported[key]+=added;}
-          const added=Math.min(30-t.fuel,30);t.fuel+=added;w.ledger.imported.fuel+=added;
+          if(this.state.operation?.battleMode==='endless')loadEndlessManifest(this.state,t,rearStock);
+          else {
+            let available=config.convoyCapacity-total(t.cargo);
+            for(const key of RESOURCES){const added=Math.min(available,Math.max(0,config.manifest[key]-t.cargo[key]));t.cargo[key]+=added;available-=added;w.ledger.imported[key]+=added;}
+            const added=Math.min(30-t.fuel,30);t.fuel+=added;w.ledger.imported.fuel+=added;
+          }
           if(enemy)enemy.nextDelivery=this.state.elapsed+config.deliveryInterval;else w.nextDelivery=this.state.elapsed+config.deliveryInterval;
+          if(this.state.operation?.endless&&total(t.cargo)===0&&!this.state.operation.campaign?.replacements?.manifests.some(m=>m.side===side&&m.stage==='edge')){t.reason='Rear target stocked or authorized supply exhausted';continue;}
           t.state='loading';t.timer=8;t.reason='Scheduled rear manifest loading';
         }else{
           const peopleTrip=(g:Garrison)=>Boolean(this.state.operation?.campaign?.replacements?.manifests.some(m=>m.side===side&&m.stage==='rear'&&g.squadIds.includes(m.squadId)))||this.state.soldiers.some(s=>s.combat?.careTask?.stage==='evacuate'&&distance(s.combat.careTask.destination,g.forward)<5);

@@ -9,6 +9,7 @@ import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
 import {armyFor} from '../operations/BattleSetup';
 import {postureOf} from '../combat/Posture';
 import {operatedPosition} from '../combat/WeaponPositions';
+import {renderedPersonnel} from './PersonnelVisibility';
 
 export class UnitRenderer {
   spectator=false;
@@ -58,9 +59,11 @@ export class UnitRenderer {
     if(!this.group.visible)return;
     this.bodyMaterial.opacity=this.legMaterial.opacity=this.weaponMaterial.opacity=this.armMaterial.opacity=detail;
     this.ringMaterial.opacity=detail*.65;
-    if(this.count!==this.state.soldiers.length){
+    const people=renderedPersonnel(this.state),capacity=this.state.operation?.endless?Math.max(1,Math.ceil(people.length/64)*64):people.length;
+    const retained=new Set(people.map(s=>s.id));for(const id of this.displayed.keys())if(!retained.has(id))this.displayed.delete(id);
+    if(this.count!==capacity){
       this.group.traverse(o=>{if(o instanceof THREE.InstancedMesh)o.dispose();});this.group.clear();
-      this.count=this.state.soldiers.length;
+      this.count=capacity;
       this.body=new THREE.InstancedMesh(this.rifleGeometry,this.bodyMaterial,this.count);
       this.engineers=new THREE.InstancedMesh(this.engineerGeometry,this.bodyMaterial,this.count);
       this.enemies=new THREE.InstancedMesh(this.enemyGeometry,this.bodyMaterial,this.count);
@@ -89,7 +92,7 @@ export class UnitRenderer {
     const bodyMatrix=new THREE.Matrix4(),a=new THREE.Vector3(),b=new THREE.Vector3(),axis=new THREE.Vector3(0,1,0),jointRotation=new THREE.Quaternion();
     let rifles=0,engineers=0,enemies=0,ringCount=0,legs=0,weapons=0,flashes=0,arms=0,hands=0,tools=0;
     const variantCounts={smg:0,automatic:0,machinegun:0};
-    this.state.soldiers.forEach((soldier,i)=>{
+    people.forEach((soldier,i)=>{
       if(soldier.combat?.wound?.care==='evacuated'||soldier.combat?.wound?.care==='transport'){this.displayed.delete(soldier.id);return;}
       if(!this.spectator&&this.state.operation&&enemyIds.has(soldier.squadId)&&!visibleEnemies.has(soldier.id)){this.displayed.delete(soldier.id);return;}
       const position=this.displayed.get(soldier.id)??new THREE.Vector3(soldier.x,0,soldier.z);

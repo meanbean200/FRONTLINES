@@ -27,3 +27,13 @@ Quick Battle / Operations leave attract mode before creating a preview. Begin cr
 `__FRONTLINES__.getSessionStats()` is read-only: kind/generation, owner and planner counts, render-host and terrain-worker count, entities and WebGL memory. `__FRONTLINES_DEV__.inspect()` is also read-only and exposes source/runtime separately for test evidence.
 
 Automated checks cover deterministic instantiation, strict initial-condition schemas, no source residue, save-capability rejection, idempotent disposal, stable forwarding ports, repeated ownership changes and faction information isolation. Real Edge acceptance and any failures are recorded in `docs/v1-combat-artillery-mobile-pacing-pass.md` and its DEV/menu evidence directory. Automated tests are not player acceptance or physical-phone verification.
+
+## Endless player sessions
+
+Endless is an explicit player battle mode, not an attract configuration. Its
+controller has no four-minute/inactivity reset. Save & Exit closes the player
+owner and opens a fresh attract owner; Continue restores the saved Endless
+world. End Battle records a concluded player world without resetting it into
+the title preset or silently deleting the earlier save. The Endless evidence
+directory records actual Edge save/exit/refresh/Continue checks. This extension
+does not recertify long-duration worker/GPU growth or physical phones.

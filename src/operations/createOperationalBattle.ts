@@ -16,13 +16,14 @@ import type {Faction} from './types';
 import {configuredDefinition,validBattleSetup,type ResolvedBattleSetup} from './BattleSetup';
 import {equipInfantryForce} from './InfantryLoadout';
 import {placeMissionOperation} from './MissionContent';
+import {initializeEndless} from './EndlessController';
 
 /** Shared force/deployment builder; no mission-specific soldier or combat behavior. */
 export function createOperationalBattle(id:OperationId,seed=1944,setup?:ResolvedBattleSetup,newContent=false,missionVersion:1|2|3=3):BattlefieldState {
   if(!Number.isSafeInteger(seed)||seed<1||seed>2147483647)throw new Error('Sector seed must be an integer from 1 to 2147483647');
   if(setup&&(!validBattleSetup(setup,true)||setup.seed!==seed||setup.operation!==id))throw new Error('Invalid battle setup');
   const state=createBattlefield(seed);state.soldiers=[];state.squads=[];state.trenches=[];state.craters=[];
-  const definition=structuredClone(setup?configuredDefinition(id,setup):OPERATION_DEFINITIONS[id]),runtime=newContent?placeMissionOperation(id,seed,setup,missionVersion):placeOperation(id,seed,setup),mission=runtime.missionPlan;
+  const definition=structuredClone(setup?configuredDefinition(id,setup):OPERATION_DEFINITIONS[id]),runtime=newContent&&setup?.battleMode!=='endless'?placeMissionOperation(id,seed,setup,missionVersion):placeOperation(id,seed,setup),mission=runtime.missionPlan;
   if(mission){definition.deployment=mission.deployment;definition.prepared=[...new Set(mission.prepared.map(p=>p.side))];definition.defenseSeconds=0;}
   const terrain=new TerrainSystem(state),navigation=new SquadNavigation(terrain),construction=new TrenchSystem(state);
   const prepared=new Map<Faction,number[]>(),groups=new Map<number,number[]>();
@@ -100,6 +101,7 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
   if(definition.persistent){state.operation.campaign={playerTrench:prepared.get('player')![0],enemyTrench:prepared.get('enemy')![0],nextRaid:0,raidSquads:[],returnAt:0,phase:'preparing',playerHold:0,enemyHold:0};initializeReplacements(state);}
   // Clear separation is an invariant, not a camera trick hiding nearby enemies.
   if(state.squads.some(a=>a.faction==='player'&&state.squads.some(b=>b.faction==='enemy'&&distance(a,b)<(mission?200:600))))throw new Error('Deployment zones overlap');
+  if(setup?.battleMode==='endless')initializeEndless(state,setup.endless);
   return state;
 }
 

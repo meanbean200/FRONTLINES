@@ -5,6 +5,7 @@ import {isWalkingAction} from '../core/SoldierActions';
 import {recordDeath} from '../simulation/DeathRecord';
 export {dropCargo} from '../simulation/DeathRecord';
 
+/** Legacy exported name: physiological budget units, NOT the adjustable calendar. */
 export const CAMPAIGN_HOURS_PER_SECOND=24/1800;
 export const NEED_RULES=Object.freeze({hungerPerHour:4,thirstPerHour:6,awakeLossPerHour:4,travelLossPerHour:6,workLossPerHour:8,sleepRecoveryPerHour:12,floorSleepRecoveryPerHour:10,restRecoveryPerHour:3,fieldRestRecoveryPerSecond:20/45});
 export const freshNeeds=(fatigue=0):Needs=>({energy:100-clamp(fatigue,0,100),hunger:10,thirst:10,life:'active',hungryHours:0,thirstyHours:0,sleepHours:0,day:0,watchHours:0,interruptedSleep:0,taskChanges:0});

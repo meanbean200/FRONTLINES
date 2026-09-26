@@ -7,20 +7,24 @@ import {equipWeapon} from '../combat/Weapons';
 import {armyFor} from './BattleSetup';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {networkCapacity} from '../garrison/NetworkCapacity';
+import {endlessDeficit,endlessReleaseInterval,stepEndlessAvailability} from './EndlessEconomy';
 
 export interface ReplacementManifest {
   id:number;side:Faction;squadId:number;personId:number;returning:boolean;
   stage:'edge'|'convoy'|'rear'|'shuttle'|'arrived';truckId?:number;garrisonId?:number;
   stock:Inventory;releasedAt:number;arrivedAt?:number;
   replacesId?:number;
+  releasedSimAt?:number;
 }
 export interface ReplacementSystem {
+  clock?:'simulation';
   reserve:Record<Faction,number>;nextAt:Record<Faction,number>;
   /** Shared daily dispatch allowance for requested squads and automatic loss replacement. */
   dispatchAt?:Partial<Record<Faction,number>>;
   establishment:{squadId:number;strength:number}[];manifests:ReplacementManifest[];
 }
 export function reserveDispatchAt(r:ReplacementSystem,side:Faction):number{
+  if(r.clock==='simulation')return r.dispatchAt?.[side]??0;
   // Older saves predate the explicit shared cooldown, but retain their release ledger.
   const previous=r.manifests.filter(m=>m.side===side&&!m.returning).map(m=>m.releasedAt+24);
   return Math.max(r.dispatchAt?.[side]??0,...previous);
@@ -31,6 +35,11 @@ export function requestReserveSquad(state:BattlefieldState,garrisonId:number):{a
   const reject=(reason:string)=>({accepted:false,reason});
   if(!r||!w||state.operation?.status!=='active')return reject('Extra troops are available only in open-ended campaigns.');
   if(!g||g.cutoff==='withdraw'||!g.squadIds.length)return reject('Choose an occupied friendly trench as the arrival area.');
+  if(state.operation.battleMode==='endless'){
+    if(state.elapsed<reserveDispatchAt(r,'player'))return reject(`Next dispatch in ${Math.ceil(reserveDispatchAt(r,'player')-state.elapsed)} simulation seconds.`);
+    const count=releaseLossReplacements(state,'player',new Set(g.squadIds));
+    return count?{accepted:true,reason:`${count} loss replacements requested · map-edge convoy → rear → position. No extra formations created.`}:reject(r.reserve.player===0?'Reserve empty; no dispatch authorized.':'No eligible losses at this position. Replacements cannot exceed starting force strength.');
+  }
   if(r.reserve.player<8)return reject('Need 8 personnel remaining in the finite reserve pool.');
   if(w.campaignHours<reserveDispatchAt(r,'player'))return reject(`Next dispatch in ${(reserveDispatchAt(r,'player')-w.campaignHours).toFixed(1)} campaign hours.`);
   const graph=new TrenchNetwork();graph.sync(state.trenches);const capacity=networkCapacity(state,graph,g.trenchId);
@@ -56,20 +65,13 @@ export function initializeReplacements(state:BattlefieldState):void {
 /** Called immediately before truck motion, so loading and unloading are real timed handoffs. */
 export function stepReplacements(state:BattlefieldState,dt:number):void {
   const r=state.operation?.campaign?.replacements,w=state.living;if(!r||!w)return;
+  stepEndlessAvailability(state);
+  const now=r.clock==='simulation'?state.elapsed:w.campaignHours;
   for(const side of ['player','enemy'] as const){
-    if(w.campaignHours>=r.nextAt[side]&&w.campaignHours>=(r.dispatchAt?.[side]??0)){
+    if(now>=r.nextAt[side]&&now>=(r.dispatchAt?.[side]??0)){
       // No accumulated wave after a loaded clock jump, and no army growth.
-      r.nextAt[side]=w.campaignHours+24;let allowance=Math.min(8,r.reserve[side]),released=0;
-      for(const row of r.establishment){
-        const q=state.squads.find(q=>q.id===row.squadId&&(q.faction??'player')===side);if(!q)continue;
-        const alive=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life!=='dead').length;
-        const pending=r.manifests.filter(m=>m.squadId===q.id&&!m.returning&&m.stage!=='arrived').length;
-        const count=Math.min(allowance,Math.max(0,row.strength-alive-pending));
-        const losses=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life==='dead'&&!r.manifests.some(m=>m.replacesId===s.id));
-        for(let i=0;i<count;i++)r.manifests.push({id:state.nextEntityId++,side,squadId:q.id,personId:state.nextEntityId++,returning:false,stage:'edge',stock:inventory(),releasedAt:w.campaignHours,replacesId:losses[i]?.id});
-        allowance-=count;r.reserve[side]-=count;released+=count;
-      }
-      if(released)(r.dispatchAt??={})[side]=w.campaignHours+24;
+      r.nextAt[side]=now+(r.clock==='simulation'?endlessReleaseInterval(state):24);
+      releaseLossReplacements(state,side);
     }
   }
   for(const s of state.soldiers){
@@ -115,4 +117,21 @@ export function stepReplacements(state:BattlefieldState,dt:number):void {
     }
     if(m.returning&&truck){const s=state.soldiers.find(s=>s.id===m.personId)!;s.x=truck.x;s.z=truck.z;}
   }
+}
+
+/** Common loss accounting for requested and automatic transport; no formation cloning. */
+function releaseLossReplacements(state:BattlefieldState,side:Faction,squads?:Set<number>):number {
+  const r=state.operation!.campaign!.replacements!,w=state.living!;
+  let allowance=Math.min(8,r.reserve[side],state.operation?.endless?endlessDeficit(state,side):Infinity),released=0;
+  for(const row of r.establishment){
+    const q=state.squads.find(q=>q.id===row.squadId&&(q.faction??'player')===side&&(!squads||squads.has(q.id)));if(!q)continue;
+    const alive=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life!=='dead').length;
+    const pending=r.manifests.filter(m=>m.squadId===q.id&&!m.returning&&m.stage!=='arrived').length;
+    const count=Math.min(allowance,Math.max(0,row.strength-alive-pending));
+    const losses=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life==='dead'&&!r.manifests.some(m=>m.replacesId===s.id));
+    for(let i=0;i<count;i++)r.manifests.push({id:state.nextEntityId++,side,squadId:q.id,personId:state.nextEntityId++,returning:false,stage:'edge',stock:inventory(),releasedAt:w.campaignHours,replacesId:losses[i]?.id,...(r.clock==='simulation'?{releasedSimAt:state.elapsed}:{})});
+    allowance-=count;r.reserve[side]-=count;released+=count;
+  }
+  if(released){const next=(r.clock==='simulation'?state.elapsed+endlessReleaseInterval(state):w.campaignHours+24);(r.dispatchAt??={})[side]=next;r.nextAt[side]=next;}
+  return released;
 }

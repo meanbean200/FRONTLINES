@@ -5,6 +5,9 @@ import {OPERATION_IDS,OPERATION_DEFINITIONS} from '../operations/OperationDefini
 import {MISSION_COPY} from '../operations/MissionContent';
 import {readSetupPresets,saveSetupPreset,type SavedSetup} from '../persistence/SetupPresets';
 import {renderBattleSetup,renderBattleBriefing,readBattleForm,escapeText as escape} from './BattleSetupView';
+import {defaultEndlessOptions} from '../operations/EndlessTypes';
+import {endEndlessBattle} from '../operations/EndlessController';
+import {endlessSummary,endlessHud} from './EndlessView';
 
 interface OperationActions {
   home?:()=>void;leaveHome?:()=>void;
@@ -13,7 +16,7 @@ interface OperationActions {
   load:()=>boolean; save:()=>boolean; hasSave:()=>boolean; loadError?:()=>string; saveNotice?:()=>string;
   focus:(point:Vec2)=>void; quality:(level:string)=>void; mute:(muted:boolean)=>void;
 }
-type MenuScreen='main'|'quick'|'operations'|'briefing'|'pause'|'settings'|'leave';
+type MenuScreen='main'|'quick'|'operations'|'briefing'|'pause'|'settings'|'leave'|'end-battle';
 const operationCopy:Record<string,string>={breakthrough:'Break a prepared line. Keep a route open beyond it.','line-defense':'Hold your sector until relief arrives.',meeting:'Scout, maneuver and seize the initiative.','open-front':'Build and sustain a front. Save and return anytime.'};
 
 /** Menu state is presentation only. A briefing is a reversible world preview. */
@@ -74,6 +77,7 @@ export class OperationUI {
     document.querySelector<HTMLCanvasElement>('#battlefield')?.focus();
   }
   private back():void{
+    if(this.screen==='end-battle'){this.open('pause');return;}
     if(this.screen==='leave'){this.open('pause');return;}
     if(this.screen==='briefing'){this.cancelPreview();this.open('quick');}
     else if(this.screen==='settings')this.open(this.settingsReturn);
@@ -107,10 +111,27 @@ export class OperationUI {
     if(this.screen==='quick')content=renderBattleSetup(this.setup,this.advancedOpen,presets);
     if(this.screen==='operations')content=`<span class="eyebrow">CHOOSE YOUR MISSION</span><h2>Operations</h2><div class="operation-rows">${OPERATION_IDS.map(id=>`<button data-operation="${id}"><strong>${escape(id==='open-front'?OPERATION_DEFINITIONS[id].title:MISSION_COPY[id].title)}</strong><span>${id==='open-front'?operationCopy[id]:MISSION_COPY[id].intent}</span><i>→</i></button>`).join('')}</div>`;
     if(this.screen==='briefing')content=renderBattleBriefing(this.pending!);
+    if(this.screen==='end-battle')content=`<span class="eyebrow">CONCLUDE THIS WAR</span><h2>End this battle?</h2><p>This concludes the current session with a historical summary, not a victory declaration. Existing saved campaigns are not deleted. Use Save &amp; Exit to continue this battle later.</p><nav class="pause-actions"><button id="confirm-end-battle">End Battle</button><button id="cancel-end-battle" class="menu-primary">Keep fighting</button></nav>`;
     if(this.screen==='pause')content=`<span class="eyebrow">${result?'AFTER ACTION':'BATTLE PAUSED'}</span><h2>${result?(op.status==='victory'?'Sector secured':'Operation ended'):'Take a moment.'}</h2><p class="pause-intent">${result?escape(op.reason):op?escape(op.runtime?.missionPlan?MISSION_COPY[op.runtime.missionPlan.kind].title:MODE_INFO[op.mode].title):'Living battlefield'}</p>${result?`<div class="result-stats"><span>${this.able('player')} / ${op.initialPlayer}<small>Troops able</small></span><span>${Math.floor(op.elapsed/60)} min<small>Elapsed</small></span></div>`:''}<nav class="pause-actions"><button id="resume-session" class="menu-primary">${result?'Inspect battlefield':'Resume'} <span>→</span></button><div class="pause-save"><button id="save-session">Save</button><button id="continue-save" ${!this.actions.hasSave()?'disabled':''}>Load</button></div><button data-settings>Settings</button>${op?.setup?'<button id="rematch-operation">Restart battle <small>Same sector and settings · current mission rules</small></button><button id="change-settings">Change battle settings</button>':''}<button id="return-main">Return to main menu</button></nav>`;
     if(this.screen==='settings')content=`<span class="eyebrow">PREFERENCES</span><h2>Settings</h2><nav class="settings-tabs">${['graphics','audio','controls','interface'].map(t=>`<button data-setting-tab="${t}" aria-pressed="${t===this.settingTab}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</nav><div class="settings-page">${this.settingTab==='graphics'?`<label>Rendering quality<select id="menu-quality"><option value="low">Performance</option><option value="balanced">Balanced</option><option value="high">High</option></select></label><p>Adjusts terrain detail, shadows and rendering resolution. Simulation rules stay the same.</p>`:this.settingTab==='audio'?`<label class="setting-switch"><input type="checkbox" id="menu-mute" ${this.muted?'checked':''}>Mute combat sounds</label><p>Weapon and impact audio only.</p>`:this.settingTab==='controls'?`<dl class="controls-list"><dt>Move camera</dt><dd>WASD / arrows</dd><dt>Rotate / zoom</dt><dd>Middle drag / wheel</dd><dt>Select formations</dt><dd>Click / left-drag</dd><dt>Draw a route</dt><dd>Right-drag / V</dd><dt>Defend / trench</dt><dd>T / B</dd><dt>Hold / focus</dt><dd>H / F</dd><dt>Operational map</dt><dd>M (G also works)</dd><dt>Pause / menu</dt><dd>Space / Esc</dd></dl>`:`<label class="setting-switch"><input type="checkbox" id="reduce-motion" ${document.documentElement.dataset.reducedMotion?'checked':''}>Reduce interface motion</label><p>Your system's reduced-motion preference is also respected.</p><button id="show-manual">Field manual</button><button id="show-diagnostics">Developer tools</button>`}</div>`;
     this.dialog.innerHTML=`<div class="menu-shell">${this.screen!=='main'?'<button class="menu-back" id="menu-back">← Back</button>':''}<div class="menu-content">${content}<p class="menu-status" role="status" hidden></p>${this.screen==='quick'&&this.started?'<p class="menu-save-note">Previewing is safe. Beginning replaces your unsaved session, not your saved campaign.</p>':''}</div></div>${this.screen==='briefing'?'<div class="preview-caption"><span>LIVE SECTOR PREVIEW</span><small>Actual terrain · simulation paused</small></div>':''}`;
+    if(this.screen==='pause'&&op?.endless){
+      this.dialog.querySelector('h2')!.textContent=result?'Battle concluded':'Battle paused';
+      this.dialog.querySelector('.pause-intent')!.textContent=result?op.reason:'Endless · capture changes control, not the end of the battle';
+      this.dialog.querySelector('.pause-actions')!.insertAdjacentHTML('beforebegin',endlessSummary(this.getState()));
+      this.dialog.querySelector('#resume-session')!.insertAdjacentHTML('afterend',`<button id="save-endless-exit">${op.status==='active'?'Save &amp; Exit':'Save record &amp; Exit'}</button>`);
+      this.dialog.querySelector('#return-main')!.insertAdjacentHTML('beforebegin',op.status==='active'?'<button id="end-endless">End Battle…</button>':'');
+    }
     const bind=(selector:string,fn:()=>void)=>this.dialog.querySelector(selector)?.addEventListener('click',fn);
+    bind('#end-endless',()=>this.open('end-battle'));bind('#cancel-end-battle',()=>this.open('pause'));
+    bind('#confirm-end-battle',()=>{endEndlessBattle(this.getState());this.resultShown=true;this.open('pause');});
+    bind('#save-endless-exit',()=>{if(this.actions.save())this.open('main');else this.status('Save failed. Battle retained; no progress discarded.');});
+    this.dialog.querySelectorAll<HTMLButtonElement>('[data-battle-mode]').forEach(b=>b.onclick=()=>{
+      if(!this.captureSetup())return;
+      this.setup.battleMode=b.dataset.battleMode as 'operation'|'endless';
+      if(this.setup.battleMode==='endless'){this.setup.operation='open-front';this.setup.endless=defaultEndlessOptions();}else {delete this.setup.endless;delete this.setup.calendarDayMinutes;}
+      this.renderMenu();this.dialog.querySelector<HTMLButtonElement>(`[data-battle-mode="${this.setup.battleMode}"]`)?.focus();
+    });
     bind('#menu-back',()=>this.back());bind('#main-continue',()=>this.load());
     bind('#choose-operation',()=>{this.setup=defaultBattleSetup();this.advancedOpen=false;this.open('quick');});
     bind('#operations-menu',()=>this.open('operations'));bind('#return-main',()=>this.open('leave'));
@@ -152,8 +173,12 @@ export class OperationUI {
   update(now:number):void{
     if(now-this.lastRender<200)return;this.lastRender=now;
     const op=this.getState().operation;this.menuButton.hidden=Boolean(document.documentElement.dataset.replay);this.hud.hidden=!op||Boolean(document.documentElement.dataset.replay);
-    document.documentElement.dataset.gameMode=op?.mode??'sandbox';if(!op)return;
+    document.documentElement.dataset.gameMode=op?.battleMode==='endless'?'endless':op?.mode??'sandbox';if(!op)return;
     if(this.started&&!this.pending&&op.status!=='active'&&!this.resultShown&&!document.documentElement.dataset.replay){this.resultShown=true;this.open('pause');}
+    if(op.endless){
+      if(this.hudIdentity!==op){this.hudIdentity=op;this.hud.innerHTML='<div class="operation-topline"><span>Endless</span><b></b></div><button class="primary-intent" title="Focus a strategic site"><strong></strong></button><details class="optional-intents"><summary>War record</summary><p class="intent-status"></p><p>Capture changes control. Save &amp; Exit continues later. Full history is in the pause menu.</p></details>';this.hud.querySelector('button')!.addEventListener('click',()=>{const site=op.objectives.find(o=>o.owner==='neutral')??op.objectives[0];if(site)this.actions.focus(site);});}
+      const view=endlessHud(this.getState());this.hud.querySelector('b')!.textContent=view.day;this.hud.querySelector('strong')!.textContent=view.control;this.hud.querySelector('.intent-status')!.textContent=op.status==='active'?view.details:op.reason;return;
+    }
     if(this.hudIdentity!==op){
       this.hudIdentity=op;
       const r=op.runtime,primary=r?.objectives.find(o=>o.side==='player'&&o.priority==='primary');

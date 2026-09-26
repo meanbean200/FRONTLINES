@@ -6,7 +6,8 @@ import {connectedName} from './TrenchReadout';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {networkCapacity} from '../garrison/NetworkCapacity';
 import {reinforcementReadout,TRANSPORT_STAGES} from './ReinforcementReadout';
-import {CAMPAIGN_HOURS_PER_SECOND} from '../garrison/NeedsSystem';
+import {calendarHoursPerSecond} from '../simulation/Calendar';
+import {endlessDeficit} from '../operations/EndlessEconomy';
 
 /** Normal player controls, separate from the developer stress fixture. */
 export class DeploymentPanel {
@@ -52,10 +53,16 @@ export class DeploymentPanel {
     });
     const networkKey=networks.map(g=>`${g.id}:${this.network.anchor(g.trenchId)}`).join('|');
     if(select.dataset.key!==networkKey){const chosen=select.value;select.dataset.key=networkKey;select.replaceChildren();for(const g of networks)select.add(new Option(connectedName(state,this.network,g.trenchId),String(g.id)));if(!networks.length)select.add(new Option('Assign a formation to a completed trench','0'));if([...select.options].some(o=>o.value===chosen))select.value=chosen;}
-    const delay=Math.max(0,reserveDispatchAt(pool,'player')-w.campaignHours),request=section.querySelector<HTMLButtonElement>('[data-request-reserves]')!;
+    const delay=Math.max(0,reserveDispatchAt(pool,'player')-(pool.clock==='simulation'?state.elapsed:w.campaignHours)),request=section.querySelector<HTMLButtonElement>('[data-request-reserves]')!;
     const destination=networks.find(g=>g.id===Number(select.value)),space=destination&&networkCapacity(state,this.network,destination.trenchId);
     request.disabled=this.button.disabled||pool.reserve.player<8||!networks.length||delay>0||!space||space.free<8;
-    section.querySelector('.dispatch-reason')!.textContent=delay?`Next release in ${Math.ceil(delay/CAMPAIGN_HOURS_PER_SECOND/60)} simulation min · ${state.simSpeed||'paused'}${state.simSpeed?'×':''}`:pool.reserve.player<8?'Reserve below 8. Remaining personnel replace losses.':!space?'Defend a completed trench to establish a destination.':space.free<8?`POSITION FULL · ${space.free} free places; 8 needed.`:`${space.free} places free · transport available on request`;
+    section.querySelector('.dispatch-reason')!.textContent=delay?`Next release in ${Math.ceil(delay/calendarHoursPerSecond(state)/60)} simulation min · ${state.simSpeed||'paused'}${state.simSpeed?'×':''}`:pool.reserve.player<8?'Reserve below 8. Remaining personnel replace losses.':!space?'Defend a completed trench to establish a destination.':space.free<8?`POSITION FULL · ${space.free} free places; 8 needed.`:`${space.free} places free · transport available on request`;
+    request.textContent=op?.endless?'Request loss replacements':'Request 8 personnel';
+    section.querySelector('details p')!.textContent=op?.endless?`${op.endless.options.reinforcements} rear policy. Rifle replacements fill losses up to ${op.endless.targetStrength.player}; no new heavy equipment. People travel by convoy and shuttle. Automatic replacement dispatch remains active.`:'Finite reserve. Up to 8 new personnel per campaign day, shared with casualty replacements. Troops arrive on real trucks; a request does not spawn them.';
+    if(op?.endless){
+      const deficit=endlessDeficit(state,'player');request.disabled=this.button.disabled||pool.reserve.player===0||!networks.length||delay>0||deficit===0;
+      section.querySelector('.dispatch-reason')!.textContent=delay?`Next dispatch in ${Math.ceil(delay)} simulation sec`:pool.reserve.player===0?'Reserve empty.':!networks.length?'Assign a formation to a completed trench for arrivals.':deficit===0?'At force cap, or replacements already inbound.':`${deficit} losses not yet replaced · requests fill losses at the selected position`;
+    }
     const key=JSON.stringify([pool.manifests.filter(m=>m.side==='player').map(m=>[m.id,m.stage,m.truckId,m.garrisonId]),w.trucks.filter(t=>t.faction!=='enemy').map(t=>[t.id,t.state,t.reason]),Math.floor(state.elapsed/5)]);
     if(key===this.manifestKey)return;this.manifestKey=key;
     const list=section.querySelector('.passenger-manifests')!;list.replaceChildren();

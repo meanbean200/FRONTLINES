@@ -5,6 +5,7 @@ import type { TrenchSystem } from '../construction/TrenchSystem';
 import { TrenchNetwork } from './TrenchNetwork';
 import { initializeLiving, LogisticsSystem } from './LogisticsSystem';
 import { CAMPAIGN_HOURS_PER_SECOND, dropCargo, freshNeeds, updateNeeds } from './NeedsSystem';
+import {calendarHoursPerSecond} from '../simulation/Calendar';
 import {readyWatch} from './Manpower';
 import { consume, localInventory, total, transfer, transferBounded,carrierCapacity } from './Inventory';
 import { observation, RulePolicy } from './GarrisonPolicy';
@@ -439,7 +440,7 @@ export class GarrisonSystem {
   step(dt:number):void {
     this.stepMovementBound=dt*2.1;
     installPositionWeapons(this.state,true);
-    const w=this.state.living!;w.campaignHours+=dt*CAMPAIGN_HOURS_PER_SECOND;
+    const w=this.state.living!;w.campaignHours+=dt*calendarHoursPerSecond(this.state);
     // Quantized geometry revisions are checked every fixed step so save/load has no hidden timer phase.
     if(this.network.sync(this.state.trenches)){
       for(const g of w.garrisons)g.nextDecision=0;

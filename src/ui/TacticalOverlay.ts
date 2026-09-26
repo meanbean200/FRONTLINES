@@ -107,7 +107,8 @@ export class TacticalOverlay {
     for(const[id,marker]of this.objectiveMarkers)if(!objectiveIds.has(id)){marker.remove();this.objectiveMarkers.delete(id);}
     for(const[i,o]of (state.operation?.objectives??[]).entries()){
       let marker=this.objectiveMarkers.get(o.id);if(!marker){marker=document.createElement('div');this.objectiveMarkers.set(o.id,marker);this.layer.append(marker);}
-      marker.className=`objective-world-label ${state.operation?.runtime?'neutral':o.owner}`;marker.textContent=state.operation?.runtime?o.name:`${String.fromCharCode(65+i)} · ${o.name}${o.contested?' · CONTESTED':''}`;
+      const landmark=state.operation?.runtime&&!state.operation?.endless;
+      marker.className=`objective-world-label ${landmark?'neutral':o.owner}`;marker.textContent=landmark?o.name:`${String.fromCharCode(65+i)} · ${o.name}${o.contested?' · CONTESTED':''}`;
     }
   }
   private positionMarkers():void {

@@ -103,7 +103,8 @@ export class FieldMap {
     const operation=state.operation?.runtime;
     this.assets=planningAssets(state,this.network);this.updatePlanning(state);
     this.dialog.querySelector('h2')!.textContent=operation?`${(operation.missionPlan?MISSION_COPY[operation.missionPlan.kind].title:OPERATION_DEFINITIONS[operation.definitionId].title).toUpperCase()} / SECTOR ${state.seed}`:'FIELD OPERATIONS';
-    if(operation)drawOperationPlan(ctx,operation,screen,true,true,textScale,label);
+    if(state.operation?.endless)this.dialog.querySelector('h2')!.textContent=`ENDLESS / SECTOR ${state.seed}`;
+    else if(operation)drawOperationPlan(ctx,operation,screen,true,true,textScale,label);
     const line=(points:Vec2[],color:string,width:number,dash:number[]=[])=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();points.forEach((p,i)=>{const v=screen(p);if(i)ctx.lineTo(v.x,v.y);else ctx.moveTo(v.x,v.y);});ctx.stroke();ctx.setLineDash([]);};
     ctx.strokeStyle='#c0c6b51b';ctx.lineWidth=1;ctx.font=`${12*textScale}px Bahnschrift`;ctx.fillStyle='#b5bfab';
     for(let i=0;i<8;i++){const x=i*w/8;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();ctx.fillText(String.fromCharCode(65+i),x+8,16);}
@@ -131,7 +132,7 @@ export class FieldMap {
     for(const o of state.preparedOrders??[]){if(o.releasedAt!==undefined&&!o.raid||o.raid&&['secured','failed'].includes(o.raid.phase))continue;const q=state.squads.find(q=>q.id===o.squadId);if(!q||q.faction==='enemy')continue;const target=o.raid?.phase==='regrouping'?o.raid.home:o.raid?.entry??o.target;line([q,target],'#d9c18b',2,[9,6]);const p=screen(target);ctx.font=`bold ${13*textScale}px Bahnschrift`;ctx.fillStyle='#e2c994';ctx.textAlign='left';label((o.releasedAt===undefined?'WAIT':o.raid?.phase.toUpperCase()??'GO')+' · '+q.name,p.x+14,p.y+18,6);}
     for(const place of SETTLEMENTS){const p=screen(place);ctx.font=`600 ${14*textScale}px Bahnschrift`;ctx.fillStyle='#e0e7d2';ctx.textAlign='center';label(place.name,p.x,p.y-18,2);}
     for(const [i,o] of (state.operation?.objectives??[]).entries()){
-      const p=screen(o),color=operation?'#ded1a3':o.owner==='player'?'#bacfd9':o.owner==='enemy'?'#d49889':'#ded1a3';ctx.fillStyle='#1c2b26';ctx.fillRect(p.x-10,p.y-11,20,22);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.strokeRect(p.x-10,p.y-11,20,22);ctx.fillStyle=color;ctx.textAlign='center';ctx.font=`600 ${16*textScale}px Bahnschrift`;ctx.fillText(operation?'◇':String.fromCharCode(65+i),p.x,p.y+5);
+      const p=screen(o),color=operation&&!state.operation?.endless?'#ded1a3':o.contested?'#c5a568':o.owner==='player'?'#bacfd9':o.owner==='enemy'?'#d49889':'#ded1a3';ctx.fillStyle='#1c2b26';ctx.fillRect(p.x-10,p.y-11,20,22);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.strokeRect(p.x-10,p.y-11,20,22);ctx.fillStyle=color;ctx.textAlign='center';ctx.font=`600 ${16*textScale}px Bahnschrift`;ctx.fillText(operation?'◇':String.fromCharCode(65+i),p.x,p.y+5);
       if(operation&&o.id.endsWith('-rear')){ctx.font=`${12*textScale}px Bahnschrift`;label(o.name,p.x,p.y+25,2);}
     }
     for(const q of mapClusters(mapUnits(state),screen)){

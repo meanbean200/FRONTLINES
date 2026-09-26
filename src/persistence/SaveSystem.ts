@@ -12,6 +12,7 @@ import {WEAPONS,type WeaponId} from '../combat/Weapons';
 import {validIntelligence,validContactTracking} from '../operations/IntelligenceValidation';
 import {validCombatSystems} from '../combat/CombatValidation';
 import {validCampaignSystems} from '../operations/CampaignValidation';
+import {validEndless} from '../operations/EndlessValidation';
 import {initializeReplacements} from '../operations/Replacements';
 import {validBuildings} from '../terrain/BuildingValidation';
 import {validOperationalRuntime} from '../operations/OperationalValidation';
@@ -237,11 +238,12 @@ function validWorldPositions(s:BattlefieldState):boolean {
 }
 
 function validOperation(state:BattlefieldState):boolean {
+  if(!validEndless(state))return false;
   if(!validCampaignSystems(state))return false;
   const op=state.operation!;
   if(!validIntelligence(state))return false;
   const nonnegative=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v)&&v>=0;
-  if(!op||op.version!==1||state.schemaVersion===1||!(['advance','defense','campaign'].includes(op.mode)||isOperationId(op.mode))||!['active','victory','defeat'].includes(op.status)||typeof op.reason!=='string'||!validOperationalRuntime(state))return false;
+  if(!op||op.version!==1||state.schemaVersion===1||!(['advance','defense','campaign'].includes(op.mode)||isOperationId(op.mode))||!['active','victory','defeat','ended'].includes(op.status)||typeof op.reason!=='string'||!validOperationalRuntime(state))return false;
   if(op.shotEvents!==undefined&&(!Array.isArray(op.shotEvents)||op.shotEvents.length>256||!op.shotEvents.every(e=>e&&Number.isSafeInteger(e.id)&&nonnegative(e.at)&&nonnegative(e.energy)&&state.soldiers.some(s=>s.id===e.shooterId&&s.squadId===e.squadId)&&[e.from,e.to].every(p=>p&&[p.x,p.y,p.z].every(Number.isFinite))&&(e.hitId===undefined||state.soldiers.some(s=>s.id===e.hitId))&&(e.obstruction===undefined||['terrain','building','trunk'].includes(e.obstruction)))))return false;
   if(![op.elapsed,op.duration,op.score,op.targetScore,op.nextCombat,op.nextOrders,op.initialPlayer,op.initialEnemy,op.shots,op.hits].every(nonnegative)||(!op.runtime&&op.mode!=='campaign'&&op.duration<=0)||op.targetScore<=0)return false;
   if(!Array.isArray(op.objectives)||new Set(op.objectives.map(o=>o?.id)).size!==op.objectives.length||(!op.runtime&&(op.objectives.length!==3||!op.objectives.some(o=>o?.id==='village'))))return false;

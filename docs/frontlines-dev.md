@@ -54,3 +54,9 @@ The normal/offline build embeds only the selected validated published snapshot, 
 This is a first-release battle setup editor, not a terrain sculptor. It uses the current production facilities, inventories, objectives and commanders. Advanced town-control/hub/convoy editing, structural damage authoring and the remaining larger-scale campaign systems are not newly implemented by this tool. They remain tied to their underlying gameplay milestones. Physical phone acceptance and player judgment are separate from automated/browser checks.
 
 The initial title battle, **The Orchard Approach**, was drawn, populated, supplied, saved, reopened, tested and published through the DEV controls in Edge. Its runtime preset contains initial conditions only: no casualties, spent ammunition, active routes, shells, suppression or AI memory.
+
+The first generated Endless-mode milestone is separate from this preset format.
+DEV does **not yet author Endless initial conditions**. Its strict loader rejects
+unsupported mode/economy fields; never paste a running Endless save into a preset.
+Future authoring must describe initial ownership, rear sources and policies
+without importing control history, casualties, spent stock or active manifests.
