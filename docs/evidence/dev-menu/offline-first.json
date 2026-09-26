@@ -1,0 +1,338 @@
+{
+  "entry": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\output\\playwright\\dev-menu-offline-1790440883538\\FRONTLINES.html",
+  "mode": "isolated",
+  "errors": [],
+  "requests": [
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/dev-menu-offline-1790440883538/FRONTLINES.html",
+    "blob:null/260b1626-3fe3-43c3-843f-30a03a684388",
+    "blob:null/d5e8563e-88b9-4cd7-bcf5-d0b890f83844",
+    "blob:null/aac403d0-ea64-4b29-8e97-021116520b3c",
+    "blob:null/a4a1b113-a20b-432a-a96b-8b1f13018cf3",
+    "blob:null/23878ad9-57c4-44d5-a12e-b83cdf05d456",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/dev-menu-offline-1790440883538/FRONTLINES.html",
+    "blob:null/c1b11f28-f849-4237-b4d8-56d46dcc36c8",
+    "blob:null/2fa0c8c1-9cc4-4441-b628-61d26fa48fbe",
+    "blob:null/7b775582-25f9-472b-b225-5219e7e1c359",
+    "blob:null/a17eeb70-eb47-4198-a6ff-44b89a14e028",
+    "blob:null/dab783d1-2bac-4101-adf1-d8d1d66e4363",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/dev-menu-offline-1790440883538/FRONTLINES.html",
+    "blob:null/f106a949-f7c4-4958-b5ed-fb3c993c775b",
+    "blob:null/6f606e49-0300-4ea1-9f56-5088ee75cff0",
+    "blob:null/9d6aa744-a034-4aab-ab6e-89272762b2be",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/dev-menu-offline-1790440883538/FRONTLINES.html",
+    "blob:null/cddc8d35-cde2-4c2e-aad0-e48864240237",
+    "blob:null/0effc994-f6f1-4f0f-b803-cd680e94ef73",
+    "blob:null/adb49ba5-8bc4-4dcc-a0a3-57e94199229f",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/dev-menu-offline-1790440883538/FRONTLINES.html",
+    "blob:null/c0528bb2-8f8e-48ba-af9e-105fa39edd00",
+    "blob:null/88a83c60-f2dd-4fb5-b65e-ea54a7b141b4",
+    "blob:null/e5997672-0f72-40af-93ff-6ec9ac41d8e8",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/dev-menu-offline-1790440883538/FRONTLINES.html",
+    "blob:null/c057d193-7c65-4945-83d9-0884560e4e95",
+    "blob:null/4b0b735d-ac4a-493c-8ddf-85baca77a278",
+    "blob:null/cb2eb260-deec-407a-b7b8-5fefe6826667",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/dev-menu-offline-1790440883538/FRONTLINES.html",
+    "blob:null/506dd709-146d-4167-9fb1-10955b9786f4",
+    "blob:null/38f76bd3-70cc-4da2-b16a-97a79fab0c50",
+    "blob:null/9d38d915-880e-458c-8979-f5e71e9ff48b",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/dev-menu-offline-1790440883538/FRONTLINES.html",
+    "blob:null/1f9d2c86-e2a0-4290-8d18-099508468ec3",
+    "blob:null/87a30ea6-0c65-4b90-a995-42968afeb0b5",
+    "blob:null/dc3b6eb3-0bba-4f50-ad07-0bcf6d27fa48"
+  ],
+  "workers": [
+    "blob:null/d5e8563e-88b9-4cd7-bcf5-d0b890f83844",
+    "blob:null/aac403d0-ea64-4b29-8e97-021116520b3c",
+    "blob:null/a4a1b113-a20b-432a-a96b-8b1f13018cf3",
+    "blob:null/23878ad9-57c4-44d5-a12e-b83cdf05d456",
+    "blob:null/2fa0c8c1-9cc4-4441-b628-61d26fa48fbe",
+    "blob:null/7b775582-25f9-472b-b225-5219e7e1c359",
+    "blob:null/a17eeb70-eb47-4198-a6ff-44b89a14e028",
+    "blob:null/dab783d1-2bac-4101-adf1-d8d1d66e4363",
+    "blob:null/6f606e49-0300-4ea1-9f56-5088ee75cff0",
+    "blob:null/9d6aa744-a034-4aab-ab6e-89272762b2be",
+    "blob:null/0effc994-f6f1-4f0f-b803-cd680e94ef73",
+    "blob:null/adb49ba5-8bc4-4dcc-a0a3-57e94199229f",
+    "blob:null/88a83c60-f2dd-4fb5-b65e-ea54a7b141b4",
+    "blob:null/e5997672-0f72-40af-93ff-6ec9ac41d8e8",
+    "blob:null/4b0b735d-ac4a-493c-8ddf-85baca77a278",
+    "blob:null/cb2eb260-deec-407a-b7b8-5fefe6826667",
+    "blob:null/38f76bd3-70cc-4da2-b16a-97a79fab0c50",
+    "blob:null/9d38d915-880e-458c-8979-f5e71e9ff48b",
+    "blob:null/87a30ea6-0c65-4b90-a995-42968afeb0b5",
+    "blob:null/dc3b6eb3-0bba-4f50-ad07-0bcf6d27fa48"
+  ],
+  "ready": true,
+  "checks": {
+    "movement": true,
+    "saveContinued": true,
+    "refreshSizing": true,
+    "noNetworkDependencies": true
+  },
+  "url": "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/dev-menu-offline-1790440883538/FRONTLINES.html",
+  "title": "FRONTLINES — Living Battlefield",
+  "body": "FIELD COMMAND\nFRONTLINES\n\nEvery position has a purpose.\nEvery soldier has a life.\n\nContinue\n→\nQuick Battle\nOperations\nSandbox\nSettings\n\nA living battlefield under your command\n\nThe Orchard Approach · 64 personnel · LIVE / SOUND MUTED",
+  "titleSession": {
+    "kind": "attract",
+    "generation": 2,
+    "resets": 0,
+    "created": 2,
+    "disposed": 1,
+    "active": 1,
+    "planners": 1,
+    "gpu": {
+      "geometries": 106,
+      "textures": 4
+    },
+    "entities": 64,
+    "renderHosts": 1,
+    "terrainWorkers": 1
+  },
+  "workerResults": [
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "navigation",
+      "points": 1
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    },
+    {
+      "kind": "terrain"
+    }
+  ],
+  "visuals": {
+    "triangles": 543604,
+    "drawCalls": 83,
+    "particles": 0,
+    "submittedSoldiers": 32,
+    "residentTrees": 4731,
+    "visibleTrees": 44,
+    "cameraTarget": {
+      "x": 713.5932293058682,
+      "z": 992.757268829064
+    },
+    "zoomDistance": 120.00000000000168,
+    "generatedChunks": 64,
+    "detailedChunks": 16,
+    "visibleChunks": 7,
+    "coarseGenerationMs": 986.5,
+    "workerGenerationMs": 1449.2999997735023,
+    "workerJobs": 25
+  },
+  "stateHashes": [
+    "d39765e8da4f28ba68f2363f5efdafb6957762997caf208d8f5f26ebd0471f58",
+    "d39765e8da4f28ba68f2363f5efdafb6957762997caf208d8f5f26ebd0471f58"
+  ],
+  "sizes": [
+    {
+      "inner": [
+        1280,
+        720
+      ],
+      "canvas": [
+        1280,
+        720
+      ],
+      "menu": [
+        1280,
+        720
+      ],
+      "overflow": false
+    },
+    {
+      "inner": [
+        1920,
+        1080
+      ],
+      "canvas": [
+        1920,
+        1080
+      ],
+      "menu": [
+        1920,
+        1080
+      ],
+      "overflow": false
+    },
+    {
+      "inner": [
+        2560,
+        1440
+      ],
+      "canvas": [
+        2560,
+        1440
+      ],
+      "menu": [
+        2560,
+        1440
+      ],
+      "overflow": false
+    },
+    {
+      "inner": [
+        960,
+        540
+      ],
+      "canvas": [
+        960,
+        540
+      ],
+      "menu": [
+        960,
+        540
+      ],
+      "overflow": false
+    },
+    {
+      "inner": [
+        844,
+        390
+      ],
+      "canvas": [
+        844,
+        390
+      ],
+      "menu": [
+        844,
+        390
+      ],
+      "overflow": false
+    },
+    {
+      "inner": [
+        390,
+        844
+      ],
+      "canvas": [
+        390,
+        844
+      ],
+      "menu": [
+        390,
+        844
+      ],
+      "overflow": false
+    }
+  ]
+}

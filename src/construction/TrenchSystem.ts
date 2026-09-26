@@ -70,7 +70,7 @@ export class TrenchSystem {
   }
 
   create(points: Vec2[], engineerSquadId?: number): TrenchState {
-    const smoothed = smoothRoute(simplifyRoute(points));
+    const smoothed = productionTrenchPath(points);
     const trench: TrenchState = {
       id: this.state.nextEntityId++,
       points: smoothed,
@@ -156,6 +156,7 @@ export class TrenchSystem {
   }
 }
 
+export function productionTrenchPath(points:Vec2[]):Vec2[]{return smoothRoute(simplifyRoute(points));}
 function smoothRoute(points: Vec2[]): Vec2[] {
   if (points.length < 3) return points.map((point) => ({ ...point }));
   let route = points.map((point) => ({ ...point }));

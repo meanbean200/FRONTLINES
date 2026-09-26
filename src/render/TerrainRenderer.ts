@@ -47,6 +47,8 @@ export class TerrainRenderer {
     this.reset();
   }
   reset(): void {
+    // Detach the previous generation before new work is queued. Late responses cannot claim a new chunk.
+    this.job=undefined;
     for (const chunk of this.chunks) {chunk.mesh.geometry.dispose(); if (chunk.vegetation) this.disposeInstances(chunk.vegetation);}
     if (this.infrastructure) {const materials=new Set<THREE.Material>();this.infrastructure.traverse(o => {if (o instanceof THREE.Mesh) {o.geometry.dispose();for(const material of Array.isArray(o.material)?o.material:[o.material])materials.add(material);}});materials.forEach(m=>m.dispose());}
     this.dressing.reset();this.group.clear();this.group.add(this.dressing.group); this.chunks=[];this.seed=this.terrain.seed;this.generation++;

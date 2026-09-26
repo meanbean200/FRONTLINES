@@ -6,12 +6,13 @@ import {mkdir, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 import {standaloneHTML} from './standalone-html.mjs';
+import {presetContentPlugin} from './preset-content.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const workers = new Set();
 const built = await build({
   configFile: false, root, base: './', publicDir: false,
-  plugins: [{
+  plugins: [presetContentPlugin(),{
     name: 'frontlines-offline-packaging', enforce: 'pre',
     transformIndexHtml: {
       order: 'pre',

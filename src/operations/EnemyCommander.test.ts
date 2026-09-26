@@ -16,6 +16,7 @@ function fixture(){
   return {sim,o};
 }
 describe('enemy tactical commander',()=>{
+  it('does not abandon a healthy complete two-person installed crew just because it has fewer than three people',()=>{const {sim,o}=fixture();o.squads=[{...o.squads[0],able:2,initial:2,emplaced:true}];const result=commandEnemy(o,sim.terrain);expect(result.commands).toEqual([]);});
   it('pairs a holding fire-support squad with a lateral maneuver instead of charging together',()=>{
     const {sim,o}=fixture(),result=commandEnemy(o,sim.terrain);
     expect(result.memory.plans.map(p=>p.role)).toEqual(['support','flank']);

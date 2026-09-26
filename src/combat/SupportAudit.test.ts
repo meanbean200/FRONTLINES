@@ -16,6 +16,20 @@ function fixture(){
 const row=(squadId:number,side:'player'|'enemy',source:SupportSource):SupportRequest=>({at:0,squadId,side,source,kind:'mortarHE',target:{x:100,z:100},accepted:false,reason:'No ammunition'});
 
 describe('truthful support audit ownership',()=>{
+  it('authorizes authored friendly AI only with its actual controller and delivered faction report',()=>{
+    const {state,terrain,q,target,enemy}=fixture(),op=state.operation!;
+    expect(requestSupport(state,'mortarHE',q.id,target,false,terrain,'AUTHORED_AI').reason).toContain('authority');
+    op.authored={presetId:'test',controllers:{player:'ai',enemy:'ai'},intentions:[],targets:[],memories:{},hold:{player:0,enemy:0}};
+    if(op.intelligence)op.intelligence.command.player=[];if(op.contacts)op.contacts.player=[];
+    expect(requestSupport(state,'mortarHE',q.id,target,false,terrain,'AUTHORED_AI').reason).toContain('report');
+    const report={soldierId:enemy.soldierIds[0],squadId:enemy.id,...target,lastSeen:state.elapsed,active:true,visible:true};
+    if(op.intelligence)op.intelligence.command.player=[report];else op.contacts={player:[report],enemy:[]};
+    expect(requestSupport(state,'mortarHE',q.id,target,false,terrain,'AUTHORED_AI').accepted).toBe(true);
+    expect(op.supportMissions!.at(-1)).toMatchObject({side:'player',source:'AUTHORED_AI'});
+    expect(()=>new SaveSystem().parse(JSON.stringify(state))).not.toThrow();
+    op.authored.controllers.player='human';const before=JSON.stringify(state);
+    expect(requestSupport(state,'mortarHE',q.id,target,false,terrain,'AUTHORED_AI').reason).toContain('authority');expect(JSON.stringify(state)).toBe(before);
+  });
   it('rejects an unknown requester without inventing player history or changing state',()=>{
     const {state,terrain,target}=fixture(),before=JSON.stringify(state);
     expect(requestSupport(state,'mortarHE',state.nextEntityId+900,target,false,terrain).accepted).toBe(false);

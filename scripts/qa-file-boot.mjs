@@ -41,6 +41,7 @@ try {
   evidence.title = await page.title();
   evidence.body = (await page.locator('body').innerText()).slice(0, 6000);
   if (evidence.ready) await page.waitForFunction(() => window.__FRONTLINES__.getVisualStats().workerJobs >= 3);
+  if(evidence.ready){evidence.titleSession=await page.evaluate(()=>window.__FRONTLINES__.getSessionStats());assert.equal(evidence.titleSession.kind,'attract');assert.equal(evidence.titleSession.entities,64);}
   await page.screenshot({path: join(folder, 'boot.png')});
   if (evidence.ready && mode === 'native') {
     assert.equal(page.viewportSize(), null);
@@ -122,8 +123,9 @@ try {
     assert.equal(after, before, 'Offline saved game must resume exactly while paused.');
     await page.locator('.operation-menu-button').click();
     await page.locator('#return-main').click();
+    await page.locator('#discard-return').click();
     evidence.sizes = [];
-    for (const [width, height] of [[1280, 720], [1920, 1080]]) {
+    for (const [width, height] of [[1280, 720], [1920, 1080], [2560,1440], [960,540], [844,390], [390,844]]) {
       await page.setViewportSize({width, height});
       await page.reload();
       await page.locator('#choose-operation').waitFor();
@@ -133,11 +135,14 @@ try {
         canvas: [document.querySelector('#battlefield').clientWidth, document.querySelector('#battlefield').clientHeight],
         menu: [document.querySelector('.operation-menu').clientWidth, document.querySelector('.operation-menu').clientHeight],
         overflow: document.documentElement.scrollWidth > innerWidth,
+        homeActionsVisible: [...document.querySelectorAll('.main-actions button')].every(button=>{const r=button.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&r.width>=44&&r.height>=44;}),
       }));
       assert.deepEqual(size.canvas, size.inner);
       assert.deepEqual(size.menu, size.inner);
       assert.equal(size.overflow, false);
+      assert.equal(size.homeActionsVisible,true,'Home actions must fit after a cold refresh.');
       evidence.sizes.push(size);
+      if(width<1000)await page.screenshot({path:join(folder,`home-${width}x${height}.png`)});
     }
     evidence.checks.refreshSizing = true;
   }

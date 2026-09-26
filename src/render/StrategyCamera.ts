@@ -80,6 +80,8 @@ export class StrategyCamera {
   }
 
   get zoomDistance():number {return this.distance;}
+  capture():import('../scenarios/ScenarioPreset').ScenarioCamera{return {x:this.target.x,z:this.target.z,zoom:this.distance,azimuth:this.azimuth,polar:this.polar};}
+  restore(p:import('../scenarios/ScenarioPreset').ScenarioCamera):void{this.focus(p,p.zoom);this.target.copy(this.desiredTarget);this.distance=this.desiredDistance;this.azimuth=this.desiredAzimuth=p.azimuth;this.polar=this.desiredPolar=p.polar;this.update(0);}
   project(point:Vec2,offset=0):{x:number;y:number;visible:boolean;inFront:boolean} {
     const rect=this.viewport;
     const world=new THREE.Vector3(point.x,this.terrain.heightAt(point.x,point.z)+offset,point.z),inFront=world.clone().applyMatrix4(this.camera.matrixWorldInverse).z< -this.camera.near;

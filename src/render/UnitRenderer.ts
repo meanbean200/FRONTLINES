@@ -11,6 +11,7 @@ import {postureOf} from '../combat/Posture';
 import {operatedPosition} from '../combat/WeaponPositions';
 
 export class UnitRenderer {
+  spectator=false;
   readonly group=new THREE.Group();
   private body?:THREE.InstancedMesh;
   private engineers?:THREE.InstancedMesh;
@@ -90,7 +91,7 @@ export class UnitRenderer {
     const variantCounts={smg:0,automatic:0,machinegun:0};
     this.state.soldiers.forEach((soldier,i)=>{
       if(soldier.combat?.wound?.care==='evacuated'||soldier.combat?.wound?.care==='transport'){this.displayed.delete(soldier.id);return;}
-      if(this.state.operation&&enemyIds.has(soldier.squadId)&&!visibleEnemies.has(soldier.id)){this.displayed.delete(soldier.id);return;}
+      if(!this.spectator&&this.state.operation&&enemyIds.has(soldier.squadId)&&!visibleEnemies.has(soldier.id)){this.displayed.delete(soldier.id);return;}
       const position=this.displayed.get(soldier.id)??new THREE.Vector3(soldier.x,0,soldier.z);
       const target=new THREE.Vector3(soldier.x,position.y,soldier.z);
       if(position.distanceTo(target)>30)position.copy(target);else position.lerp(target,1-Math.exp(-dt*18));

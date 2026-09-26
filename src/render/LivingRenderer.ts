@@ -12,6 +12,7 @@ import {fieldGunGeometry} from './FieldGunVisual';
 import {gunRecoil,latestGunDischarge} from './SupportAnimation';
 import {playerCanSeeObject} from '../operations/ObjectSight';
 export class LivingRenderer {
+  spectator=false;
   readonly group=new THREE.Group();
   private readonly boxes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({roughness:1}),8192);
   private readonly routes=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xd9b56b,transparent:true,opacity:.55}));
@@ -29,10 +30,10 @@ export class LivingRenderer {
     const state=this.getState(),w=state.living;if(!w){this.boxes.count=this.vehicles.count=this.wheels.count=this.mortars.count=this.fieldGuns.count=this.fieldTubes.count=0;return;}
     if(this.identity!==w){this.identity=w;this.lastTrucks.clear();}
     const visible=playerVisibleEnemies(state),enemies=new Set(state.squads.filter(q=>q.faction==='enemy').map(q=>q.id));
-    const hidden=(s:BattlefieldState['soldiers'][number])=>Boolean(state.operation&&enemies.has(s.squadId)&&!visible.has(s.id));
-    const seen=(p:Vec2)=>playerCanSeePoint(state,this.terrain,p);
+    const hidden=(s:BattlefieldState['soldiers'][number])=>Boolean(!this.spectator&&state.operation&&enemies.has(s.squadId)&&!visible.has(s.id));
+    const seen=(p:Vec2)=>this.spectator||playerCanSeePoint(state,this.terrain,p);
     const garrisons=w.garrisons.filter(g=>g.faction!=='enemy'||seen(g.entrance));
-    const trucks=w.trucks.filter(t=>t.faction!=='enemy'||playerCanSeeObject(state,this.terrain,t,'truck'));
+    const trucks=w.trucks.filter(t=>this.spectator||t.faction!=='enemy'||playerCanSeeObject(state,this.terrain,t,'truck'));
     const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),color=new THREE.Color(),position=new THREE.Vector3(),scale=new THREE.Vector3();let count=0;
     const box=(x:number,y:number,z:number,sx:number,sy:number,sz:number,tint:number,angle=0,pitch=0)=>{if(count>=8192)return;position.set(x,y,z);scale.set(sx,sy,sz);q.setFromEuler(new THREE.Euler(pitch,angle,0,'YXZ'));matrix.compose(position,q,scale);this.boxes.setMatrixAt(count,matrix);this.boxes.setColorAt(count++,color.setHex(tint));};
     let vehicleCount=0,wheelCount=0;const axis=new THREE.Vector3(0,1,0),wheelAxis=new THREE.Vector3(1,0,0),wheelRotation=new THREE.Quaternion();
@@ -50,7 +51,7 @@ export class LivingRenderer {
     for(const {point:p,stock} of piles){const crates=Math.min(12,Math.ceil((stock.food+stock.water+stock.materials)/20));for(let i=0;i<crates;i++){const x=p.x+2+(i%4)*1.15,z=p.z+Math.floor(i/4)*1.1;box(x,this.terrain.heightAt(x,z)+.35,z,.9,.65,.8,i%2?0x80734c:0x686e49);}}
     let mortarCount=0,gunCount=0;
     for(const f of w.facilities){
-      if(w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!playerCanSeeObject(state,this.terrain,f,f.artillery&&f.progress===1?'field-gun':'position'))continue;
+      if(!this.spectator&&w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!playerCanSeeObject(state,this.terrain,f,f.artillery&&f.progress===1?'field-gun':'position'))continue;
       const h=this.terrain.heightAt(f.x,f.z);
       const detail=!view||Math.hypot(f.x-view.x,f.z-view.z,view.zoom*.6)<230;
       for(const p of supportAppearance(f,state.trenches.find(t=>t.id===f.connectorId),(x,z)=>this.terrain.heightAt(x,z),detail))box(p.x,p.y,p.z,p.sx,p.sy,p.sz,p.color,p.angle,p.pitch??0);

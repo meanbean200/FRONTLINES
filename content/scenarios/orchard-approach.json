@@ -1,0 +1,513 @@
+{
+  "version": 1,
+  "id": "orchard-approach",
+  "name": "The Orchard Approach",
+  "seed": 1944,
+  "generatorVersion": 2,
+  "worldSize": 4000,
+  "hour": 10,
+  "controllers": {
+    "player": "ai",
+    "enemy": "ai"
+  },
+  "camera": {
+    "x": -1250,
+    "z": -1350,
+    "zoom": 385.77240945515604,
+    "azimuth": 0,
+    "polar": 0.65
+  },
+  "entities": [
+    {
+      "id": "trench-1",
+      "name": "South orchard line",
+      "type": "trench",
+      "side": "player",
+      "points": [
+        {
+          "x": -1213.9505837004403,
+          "z": -1257.7471999014167
+        },
+        {
+          "x": -1204.94641668957,
+          "z": -1259.830936802999
+        },
+        {
+          "x": -1195.9074121385702,
+          "z": -1261.908637640777
+        },
+        {
+          "x": -1186.8363692594235,
+          "z": -1263.9774259312744
+        },
+        {
+          "x": -1177.569139590701,
+          "z": -1260.685326923471
+        },
+        {
+          "x": -1168.415298102922,
+          "z": -1257.4065530287999
+        },
+        {
+          "x": -1159.3757727046084,
+          "z": -1254.1434481741094
+        },
+        {
+          "x": -1149.0617291217388,
+          "z": -1256.8043741842666
+        },
+        {
+          "x": -1141.302854112371,
+          "z": -1258.7925563696
+        },
+        {
+          "x": -1133.5258521481715,
+          "z": -1260.773701618417
+        },
+        {
+          "x": -1128.3320784142895,
+          "z": -1262.09012150666
+        }
+      ],
+      "completed": true,
+      "width": 4.2,
+      "depth": 1.75
+    },
+    {
+      "id": "trench-2",
+      "name": "North orchard line",
+      "type": "trench",
+      "side": "enemy",
+      "points": [
+        {
+          "x": -1209.465862833328,
+          "z": -1403.7286143796277
+        },
+        {
+          "x": -1198.6583595046789,
+          "z": -1407.2225885546989
+        },
+        {
+          "x": -1187.8015547566197,
+          "z": -1410.6239006337767
+        },
+        {
+          "x": -1177.09807974773,
+          "z": -1411.4227384500118
+        },
+        {
+          "x": -1166.8591064497305,
+          "z": -1407.1374131736006
+        },
+        {
+          "x": -1156.7486887657276,
+          "z": -1402.8479603587975
+        },
+        {
+          "x": -1146.2165422011412,
+          "z": -1403.4836906898822
+        },
+        {
+          "x": -1135.3994274583306,
+          "z": -1406.5710114958304
+        },
+        {
+          "x": -1124.536650285675,
+          "z": -1409.6729908499965
+        }
+      ],
+      "completed": true,
+      "width": 4.2,
+      "depth": 1.75
+    },
+    {
+      "id": "objective-3",
+      "name": "Orchard crossing",
+      "x": -1146,
+      "z": -1332.1,
+      "type": "objective",
+      "owner": "neutral",
+      "radius": 25
+    },
+    {
+      "id": "formation-4",
+      "name": "Able One",
+      "x": -1223.5,
+      "z": -1239.8,
+      "type": "formation",
+      "side": "player",
+      "kind": "rifle",
+      "count": 8,
+      "intent": "attack",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3"
+    },
+    {
+      "id": "formation-5",
+      "name": "Able Two",
+      "x": -1189,
+      "z": -1239.1,
+      "type": "formation",
+      "side": "player",
+      "kind": "rifle",
+      "count": 8,
+      "intent": "probe",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3"
+    },
+    {
+      "id": "formation-6",
+      "name": "Able Reserve",
+      "x": -1158.2,
+      "z": -1238.4,
+      "type": "formation",
+      "side": "player",
+      "kind": "rifle",
+      "count": 8,
+      "intent": "reserve",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3"
+    },
+    {
+      "id": "formation-7",
+      "name": "Able Pioneers",
+      "x": -1138.9,
+      "z": -1237.8,
+      "type": "formation",
+      "side": "player",
+      "kind": "engineer",
+      "count": 4,
+      "intent": "hold",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3",
+      "trenchId": "trench-1"
+    },
+    {
+      "id": "formation-8",
+      "name": "Able MG crew",
+      "x": -1205.9,
+      "z": -1258,
+      "type": "formation",
+      "side": "player",
+      "kind": "machinegun",
+      "count": 2,
+      "intent": "support",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3",
+      "trenchId": "trench-1"
+    },
+    {
+      "id": "formation-9",
+      "name": "Able Gun crew",
+      "x": -1168.6,
+      "z": -1258.1,
+      "type": "formation",
+      "side": "player",
+      "kind": "mortar",
+      "count": 2,
+      "intent": "support",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3",
+      "trenchId": "trench-1"
+    },
+    {
+      "id": "formation-10",
+      "name": "Grenadier One",
+      "x": -1216.5,
+      "z": -1434.4,
+      "type": "formation",
+      "side": "enemy",
+      "kind": "rifle",
+      "count": 8,
+      "intent": "attack",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3"
+    },
+    {
+      "id": "formation-11",
+      "name": "Grenadier Two",
+      "x": -1172.8,
+      "z": -1433.1,
+      "type": "formation",
+      "side": "enemy",
+      "kind": "rifle",
+      "count": 8,
+      "intent": "probe",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3"
+    },
+    {
+      "id": "formation-12",
+      "name": "Grenadier Reserve",
+      "x": -1134,
+      "z": -1430.8,
+      "type": "formation",
+      "side": "enemy",
+      "kind": "rifle",
+      "count": 8,
+      "intent": "reserve",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3"
+    },
+    {
+      "id": "formation-13",
+      "name": "Grenadier Pioneers",
+      "x": -1109.7,
+      "z": -1429.4,
+      "type": "formation",
+      "side": "enemy",
+      "kind": "engineer",
+      "count": 4,
+      "intent": "hold",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3",
+      "trenchId": "trench-2"
+    },
+    {
+      "id": "formation-14",
+      "name": "Grenadier MG crew",
+      "x": -1196.9,
+      "z": -1408.4,
+      "type": "formation",
+      "side": "enemy",
+      "kind": "machinegun",
+      "count": 2,
+      "intent": "support",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3",
+      "trenchId": "trench-2"
+    },
+    {
+      "id": "formation-15",
+      "name": "Grenadier Gun crew",
+      "x": -1152.8,
+      "z": -1404.3,
+      "type": "formation",
+      "side": "enemy",
+      "kind": "mortar",
+      "count": 2,
+      "intent": "support",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "objective-3",
+      "trenchId": "trench-2"
+    },
+    {
+      "id": "facility-16",
+      "name": "South MG post",
+      "x": -1206.129972276698,
+      "z": -1259.5441974492378,
+      "type": "facility",
+      "kind": "emplacement",
+      "trenchId": "trench-1",
+      "facing": 180,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 600,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "weapon": "crew-mg",
+      "crewId": "formation-8"
+    },
+    {
+      "id": "facility-17",
+      "name": "South field gun",
+      "x": -1168.7964640646044,
+      "z": -1257.6645195260028,
+      "type": "facility",
+      "kind": "mortar",
+      "trenchId": "trench-1",
+      "facing": 180,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 12,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "weapon": "field-gun",
+      "crewId": "formation-9"
+    },
+    {
+      "id": "facility-18",
+      "name": "North MG post",
+      "x": -1196.5558373143633,
+      "z": -1407.8375995909917,
+      "type": "facility",
+      "kind": "emplacement",
+      "trenchId": "trench-2",
+      "facing": 0,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 600,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "weapon": "crew-mg",
+      "crewId": "formation-14"
+    },
+    {
+      "id": "facility-19",
+      "name": "North mortar",
+      "x": -1152.8542691914452,
+      "z": -1403.0934362205228,
+      "type": "facility",
+      "kind": "mortar",
+      "trenchId": "trench-2",
+      "facing": 0,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 12,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "weapon": "mortar",
+      "crewId": "formation-15"
+    },
+    {
+      "id": "facility-20",
+      "name": "South supply dugout",
+      "x": -1144.7588022393852,
+      "z": -1257.8851513461732,
+      "type": "facility",
+      "kind": "store",
+      "trenchId": "trench-1",
+      "facing": 180,
+      "stock": {
+        "food": 48,
+        "water": 72,
+        "materials": 60,
+        "fuel": 0,
+        "ammo": 400,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "id": "facility-21",
+      "name": "North supply dugout",
+      "x": -1168.824203307137,
+      "z": -1407.9363120259993,
+      "type": "facility",
+      "kind": "store",
+      "trenchId": "trench-2",
+      "facing": 0,
+      "stock": {
+        "food": 48,
+        "water": 72,
+        "materials": 60,
+        "fuel": 0,
+        "ammo": 400,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "id": "facility-22",
+      "name": "South floor rest",
+      "x": -1185.3361882804134,
+      "z": -1261.8731977353223,
+      "type": "facility",
+      "kind": "rest",
+      "trenchId": "trench-1",
+      "facing": 180,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "id": "facility-23",
+      "name": "North floor rest",
+      "x": -1131.9990324246633,
+      "z": -1407.5425871031618,
+      "type": "facility",
+      "kind": "rest",
+      "trenchId": "trench-2",
+      "facing": 0,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "id": "staging-24",
+      "name": "South reserve assembly",
+      "x": -1134.2,
+      "z": -1227.6,
+      "type": "staging",
+      "side": "player",
+      "radius": 30
+    },
+    {
+      "id": "staging-25",
+      "name": "North reserve assembly",
+      "x": -1093.5,
+      "z": -1453.3,
+      "type": "staging",
+      "side": "enemy",
+      "radius": 30
+    }
+  ]
+}

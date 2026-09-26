@@ -1,0 +1,24 @@
+### Result
+{"resets":[{"cycle":1,"generation":3,"gpu":{"geometries":106,"textures":4},"owners":1,"planners":1},{"cycle":2,"generation":4,"gpu":{"geometries":106,"textures":4},"owners":1,"planners":1},{"cycle":3,"generation":5,"gpu":{"geometries":106,"textures":4},"owners":1,"planners":1},{"cycle":4,"generation":6,"gpu":{"geometries":106,"textures":4},"owners":1,"planners":1},{"cycle":5,"generation":7,"gpu":{"geometries":106,"textures":4},"owners":1,"planners":1},{"cycle":6,"generation":8,"gpu":{"geometries":106,"textures":4},"owners":1,"planners":1},{"cycle":7,"generation":9,"gpu":{"geometries":106,"textures":4},"owners":1,"planners":1},{"cycle":8,"generation":10,"gpu":{"geometries":106,"textures":4},"owners":1,"planners":1},{"cycle":9,"generation":11,"gpu":{"geometries":106,"textures":4},"owners":1,"planners":1},{"cycle":10,"generation":12,"gpu":{"geometries":106,"textures":4},"owners":1,"planners":1}],"inputIsolated":true,"savesUnchanged":true}
+### Ran Playwright code
+```js
+await (async page => {
+ if(await page.locator('#menu-back').count())await page.locator('#menu-back').click();
+ const stats=()=>page.evaluate(()=>window.__FRONTLINES__.getSessionStats());
+ const saved=await page.evaluate(()=>localStorage.getItem('frontlines-battlefield-v4'));
+ const rows=[];
+ for(let n=0;n<10;n++){
+  const old=await stats();await page.locator('[data-settings]').click();await page.locator('#menu-back').click();const current=await stats();
+  if(current.kind!=='attract'||current.generation<=old.generation||current.active!==1||current.planners!==1||current.entities!==64)throw new Error('Attract reset ownership failed');
+  if(await page.evaluate(()=>localStorage.getItem('frontlines-battlefield-v4'))!==saved)throw new Error('Attract wrote campaign storage');
+  rows.push({cycle:n+1,generation:current.generation,gpu:current.gpu,owners:current.active,planners:current.planners});
+ }
+ const camera=await page.evaluate(()=>{const v=window.__FRONTLINES__.getVisualStats();return {target:v.cameraTarget,zoom:v.zoomDistance};});
+ await page.mouse.move(1000,500);await page.mouse.wheel(0,800);await page.keyboard.press('w');await page.keyboard.press('b');await page.mouse.click(1080,530,{button:'right'});
+ const after=await page.evaluate(()=>{const v=window.__FRONTLINES__.getVisualStats();return {target:v.cameraTarget,zoom:v.zoomDistance};});
+ if(JSON.stringify(camera)!==JSON.stringify(after)||(await page.evaluate(()=>window.__FRONTLINES__.getSummary().selected)).length)throw new Error('Home input leaked into battle');
+ await page.screenshot({path:'output/playwright/dev-menu-20260926/08-living-home.png'});
+ return {resets:rows,inputIsolated:true,savesUnchanged:true};
+}
+)(page);
+```

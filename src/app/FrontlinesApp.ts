@@ -11,7 +11,11 @@ import { SaveSystem } from '../persistence/SaveSystem';
 import { BattlefieldUI, type PerfSnapshot } from '../ui/BattlefieldUI';
 import { CommandInput, type InteractionMode } from '../input/CommandInput';
 import { TacticalOverlay } from '../ui/TacticalOverlay';
-import { AsyncSquadPlanner } from '../navigation/AsyncSquadPlanner';
+import {WorldSession,simulationPort,type SessionKind} from '../sessions/WorldSession';
+import {AttractCycle} from '../sessions/AttractCycle';
+import {menuPreset} from '../scenarios/MenuCatalogue';
+import {instantiateScenario} from '../scenarios/instantiateScenario';
+import {blankScenario,type ScenarioPreset} from '../scenarios/ScenarioPreset';
 import { GarrisonPanel } from '../ui/GarrisonPanel';
 import {TrenchPanel} from '../ui/TrenchPanel';
 import {trenchName} from '../ui/TrenchReadout';
@@ -54,6 +58,10 @@ export class FrontlinesApp {
   };
   private state: BattlefieldState;
   private readonly simulation: BattlefieldSimulation;
+  private session:WorldSession;
+  private attractPreset?:ScenarioPreset;
+  private readonly attractCycle=new AttractCycle();
+  private attractResets=0;
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
   private readonly camera: StrategyCamera;
@@ -94,11 +102,9 @@ export class FrontlinesApp {
   private battlePreview?:{state:BattlefieldState;point:Vec2;zoom:number;selected:number[]};
 
   constructor(private readonly canvas: HTMLCanvasElement) {
-    this.state = createPlayableSandbox();
-    this.simulation = new BattlefieldSimulation(this.state);
-    this.simulation.issueOccupyNearest([this.state.squads[0].id,this.state.squads[1].id,this.state.squads.find(s=>s.kind==='engineer')!.id],this.state.trenches[0].id);
-    const planner=new AsyncSquadPlanner();
-    this.simulation.scheduleNavigation=(start,goal,done)=>planner.plan(start,goal,this.state,done);
+    this.state = instantiateScenario(blankScenario());
+    this.session=new WorldSession('attract',this.state);
+    this.simulation = simulationPort(()=>this.session.simulation);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     this.renderer.shadowMap.enabled = true;
@@ -221,7 +227,8 @@ export class FrontlinesApp {
     });
     installViewportDiagnostic(host,canvas,this.renderer,this.camera.camera);
     new ReplayPanel(()=>this.state,state=>window.__FRONTLINES__.restoreState(state),(x,z)=>this.camera.focus({x,z},180));
-    this.operationUI=new OperationUI(()=>this.state,{start:setup=>this.beginPreview(setup),preview:setup=>this.previewBattle(setup),cancelPreview:()=>this.cancelBattlePreview(),legacyStart:(mode,seed)=>this.startGame(mode,seed),load:()=>this.load(),save:()=>Boolean(this.save()),hasSave:()=>this.saveSystem.hasSave(),loadError:()=>this.saveSystem.lastError,saveNotice:()=>this.saveSystem.legacyNotice(),focus:p=>this.camera.focus(p,520),quality:level=>this.setQuality(level),mute:muted=>{this.audio.muted=muted;}});
+    this.operationUI=new OperationUI(()=>this.state,{home:()=>this.startHome(),leaveHome:()=>this.leaveHome(),start:setup=>this.beginPreview(setup),preview:setup=>this.previewBattle(setup),cancelPreview:()=>this.cancelBattlePreview(),legacyStart:(mode,seed)=>this.startGame(mode,seed),load:()=>this.load(),save:()=>Boolean(this.save()),hasSave:()=>this.saveSystem.hasSave(),loadError:()=>this.saveSystem.lastError,saveNotice:()=>this.saveSystem.legacyNotice(),focus:p=>this.camera.focus(p,520),quality:level=>this.setQuality(level),mute:muted=>{this.audio.muted=muted;}});
+    this.startHome();
     new HudLayout(document.querySelector<HTMLElement>('#ui-root')!);
     canvas.addEventListener('webglcontextlost',event=>{
       event.preventDefault();this.graphicsLost=true;this.accumulator=0;this.operationUI.setGraphicsLost(true);
@@ -238,7 +245,7 @@ export class FrontlinesApp {
 
   private readonly frame = (now: number): void => {
     this.viewport.checkPixelRatio();
-    if(this.graphicsLost){
+    if(this.graphicsLost||document.hidden){
       // Never let an invisible battlefield advance during a driver/context interruption.
       this.lastTime=now;this.accumulator=0;requestAnimationFrame(this.frame);return;
     }
@@ -248,18 +255,22 @@ export class FrontlinesApp {
     // was queued. Negative time reverses camera damping and clock accumulation.
     const realDt = Number.isFinite(interval)?Math.max(0,Math.min(0.1,interval/1000)):0;
     this.lastTime = now;
-    const speed=this.state.simSpeed,running=!document.documentElement.dataset.replay&&!document.documentElement.dataset.help&&!document.documentElement.dataset.fieldMap&&!this.operationUI.isOpen&&speed>0;
+    const attract=this.session.kind==='attract',speed=attract?1:this.state.simSpeed,running=attract?Boolean(this.attractPreset):!document.documentElement.dataset.replay&&!document.documentElement.dataset.help&&!document.documentElement.dataset.fieldMap&&!this.operationUI.isOpen&&speed>0;
     this.accumulator=running?Math.min(.5,this.accumulator+realDt*speed):0;
     let simulationDuration = 0;
-    while (this.accumulator >= FIXED_STEP) {
+    try{while (this.accumulator >= FIXED_STEP) {
       const simStart = performance.now();
-      this.simulation.stepFixed();
+      this.session.step();
       simulationDuration += performance.now() - simStart;
       this.accumulator -= FIXED_STEP;
       if(this.state.simSpeed!==speed){this.accumulator=0;break;}
       // Never batch five expensive combat ticks into a single camera frame.
       // Every tick stays 50ms; measured advancement exposes hardware overload.
       if(simulationDuration+(performance.now()-simStart)>10)break;
+    }}catch(error){if(!attract)throw error;this.failAttract(error);}
+    if(attract&&this.attractPreset){
+      const op=this.state.operation!,at=this.state.elapsed,contact=Boolean(op.contacts?.player.some(c=>c.visible)||op.contacts?.enemy.some(c=>c.visible));
+      if(this.attractCycle.update(at,op.status,contact,op.shots)){this.attractResets++;this.startHome();}
     }
     this.camera.update(realDt);
     this.input.updatePreview();
@@ -277,7 +288,7 @@ export class FrontlinesApp {
     phaseStart=performance.now();this.trenchPanel.update();this.assaultOrders.update();this.frameCosts.positions=performance.now()-phaseStart;
     this.buildPanel.update();this.deploymentPanel.update();
     this.operationRenderer.update();this.operationUI.update(now);
-    this.audio.update();
+    if(!attract)this.audio.update();
     this.lighting.update(this.state.living?.campaignHours??12,this.camera.target,this.camera.zoomDistance,now);
     phaseStart=performance.now();this.renderer.render(this.scene, this.camera.camera);this.frameCosts.webgl=performance.now()-phaseStart;
     phaseStart=performance.now();this.ui.render(now, this.perf, this.mode);this.frameCosts.hud=performance.now()-phaseStart;
@@ -357,9 +368,10 @@ export class FrontlinesApp {
   }
 
   private save(): string {
+    if(this.session.kind!=='player'){this.ui.notify('Only a player battle can save a campaign.','warn');return '';}
     if(document.documentElement.dataset.replay){this.ui.notify('Return to the campaign before saving. Replay snapshots do not replace campaign saves.','warn');return '';}
     try {
-      const json = this.saveSystem.save(this.state);
+      const json = this.session.save(state=>this.saveSystem.save(state));
       this.ui.notify(`Battlefield saved · ${(json.length / 1024).toFixed(0)} KB`);return json;
     } catch(error) {this.ui.notify(`Save failed; previous save preserved. ${error instanceof Error?error.message:''}`,'warn');return '';}
   }
@@ -410,10 +422,17 @@ export class FrontlinesApp {
     const target=restoredViewTarget(this.state);if(target)this.camera.focus(target,520);
     this.ui.notify('Select a formation to issue orders. M opens the operational map.');
   }
-  private replaceWorld(loaded:BattlefieldState):void {
+  private startHome():void {
+    this.battlePreview=undefined;this.attractCycle.reset();
+    try{const preset=menuPreset(),fresh=instantiateScenario(preset);this.replaceWorld(fresh,'attract');this.attractPreset=preset;this.camera.restore(preset.camera);this.operationUI.setAttractStatus(`${preset.name} · ${fresh.soldiers.length} personnel · LIVE / SOUND MUTED`);}
+    catch(error){this.failAttract(error);}
+  }
+  private failAttract(error:unknown):void{console.error('Title battle unavailable',error);this.attractPreset=undefined;this.replaceWorld(instantiateScenario(blankScenario()),'attract');this.camera.restore(blankScenario().camera);this.operationUI.setAttractStatus('Title battle unavailable · '+(error instanceof Error?error.message:String(error)));}
+  private leaveHome():void{if(this.session.kind==='attract'){this.attractPreset=undefined;this.replaceWorld(instantiateScenario(blankScenario()),'player');}}
+  private replaceWorld(loaded:BattlefieldState,kind:SessionKind='player'):void {
     // Loading/new worlds invalidate any unfinished pointer or keyboard gesture.
     window.dispatchEvent(new Event('frontlines-menu'));this.setMode('select');
-    this.state=loaded;this.simulation.replaceState(loaded);this.unitRenderer.replaceState(loaded);this.trenchRenderer.replaceState(loaded);this.debugRenderer.replaceState(loaded);this.ui.replaceState(loaded);this.selectedSquads.clear();this.accumulator=0;this.lastTime=performance.now();
+    this.session.dispose();this.session=new WorldSession(kind,loaded);this.state=loaded;this.unitRenderer.spectator=this.livingRenderer.spectator=kind==='attract';this.unitRenderer.replaceState(loaded);this.trenchRenderer.replaceState(loaded);this.debugRenderer.replaceState(loaded);this.ui.replaceState(loaded);this.terrainRenderer.reset();this.renderer.shadowMap.needsUpdate=true;this.selectedSquads.clear();this.accumulator=0;this.lastTime=performance.now();
   }
 
   private stress(target: number): number {
@@ -446,6 +465,7 @@ export class FrontlinesApp {
 
   private installDeveloperAPI(): void {
     window.__FRONTLINES__ = {
+      getSessionStats:()=>({kind:this.session.kind,generation:this.session.generation,resets:this.attractResets,...WorldSession.ownership,gpu:{...this.renderer.info.memory},entities:this.state.soldiers.length,renderHosts:1,terrainWorkers:1}),
       ready: true,
       getSummary: () => ({
         soldiers: this.state.soldiers.length,

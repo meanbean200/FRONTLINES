@@ -7,12 +7,13 @@ import {readSetupPresets,saveSetupPreset,type SavedSetup} from '../persistence/S
 import {renderBattleSetup,renderBattleBriefing,readBattleForm,escapeText as escape} from './BattleSetupView';
 
 interface OperationActions {
+  home?:()=>void;leaveHome?:()=>void;
   start:(setup:ResolvedBattleSetup)=>void; preview:(setup:ResolvedBattleSetup)=>void; cancelPreview:()=>void;
   legacyStart:(mode:GameMode,seed:number)=>void;
   load:()=>boolean; save:()=>boolean; hasSave:()=>boolean; loadError?:()=>string; saveNotice?:()=>string;
   focus:(point:Vec2)=>void; quality:(level:string)=>void; mute:(muted:boolean)=>void;
 }
-type MenuScreen='main'|'quick'|'operations'|'briefing'|'pause'|'settings';
+type MenuScreen='main'|'quick'|'operations'|'briefing'|'pause'|'settings'|'leave';
 const operationCopy:Record<string,string>={breakthrough:'Break a prepared line. Keep a route open beyond it.','line-defense':'Hold your sector until relief arrives.',meeting:'Scout, maneuver and seize the initiative.','open-front':'Build and sustain a front. Save and return anytime.'};
 
 /** Menu state is presentation only. A briefing is a reversible world preview. */
@@ -34,6 +35,8 @@ export class OperationUI {
   private muted=false;
   private graphicsLost=false;
   private graphicsNotice='';
+  private attractStatus='';
+  setAttractStatus(text:string):void{this.attractStatus=text;const el=this.dialog.querySelector('.attract-status');if(el)el.textContent=text;}
 
   constructor(private getState:()=>BattlefieldState,private actions:OperationActions){
     this.dialog.className='operation-menu';this.dialog.setAttribute('aria-label','FRONTLINES menu');
@@ -61,6 +64,8 @@ export class OperationUI {
   private cancelPreview():void{if(this.pending){this.actions.cancelPreview();this.pending=undefined;}}
   private open(screen:MenuScreen):void{
     if(document.documentElement.dataset.replay)return;
+    if(screen==='main'&&this.screen!=='main'){this.started=false;this.resultShown=false;this.actions.home?.();}
+    if(this.screen==='main'&&(screen==='quick'||screen==='operations'))this.actions.leaveHome?.();
     this.screen=screen;document.documentElement.dataset.menu='open';window.dispatchEvent(new Event('frontlines-menu'));
     this.renderMenu();if(!this.dialog.open)this.dialog.showModal();
   }
@@ -69,6 +74,7 @@ export class OperationUI {
     document.querySelector<HTMLCanvasElement>('#battlefield')?.focus();
   }
   private back():void{
+    if(this.screen==='leave'){this.open('pause');return;}
     if(this.screen==='briefing'){this.cancelPreview();this.open('quick');}
     else if(this.screen==='settings')this.open(this.settingsReturn);
     else if(this.screen==='quick'||this.screen==='operations')this.open('main');
@@ -96,7 +102,8 @@ export class OperationUI {
     const op=this.getState().operation,presets=this.localPresets(),result=this.started&&op&&op.status!=='active'&&this.screen==='pause';
     this.dialog.dataset.screen=this.screen;
     let content='';
-    if(this.screen==='main')content=`<div class="main-title"><span class="eyebrow">NORTHWEST EUROPE / 1944</span><h1>FRONTLINES</h1><p>Every position has a purpose.<br>Every soldier has a life.</p></div><nav class="main-actions" aria-label="Main menu"><button id="main-continue" ${!this.started&&!this.actions.hasSave()?'disabled':''}>Continue <span>→</span></button><button id="choose-operation">Quick Battle</button><button id="operations-menu">Operations</button><button id="sandbox-session">Sandbox</button><button data-settings>Settings</button></nav><p class="menu-caption">4 × 4 km · A living battlefield under your command</p>`;
+    if(this.screen==='main')content=`<div class="main-title"><span class="eyebrow">FIELD COMMAND</span><h1>FRONTLINES</h1><p>Every position has a purpose.<br>Every soldier has a life.</p></div><nav class="main-actions" aria-label="Main menu"><button id="main-continue" ${!this.actions.hasSave()?'disabled':''}>Continue <span>→</span></button><button id="choose-operation">Quick Battle</button><button id="operations-menu">Operations</button><button id="sandbox-session">Sandbox</button><button data-settings>Settings</button></nav><p class="menu-caption">A living battlefield under your command</p><p class="attract-status">${escape(this.attractStatus)}</p>`;
+    if(this.screen==='leave')content=`<span class="eyebrow">CLOSE THIS BATTLE</span><h2>Return to headquarters?</h2><p>The live battle will close. Continue loads your last saved campaign; the title battle is independent.</p><nav class="pause-actions"><button id="save-return" class="menu-primary">Save and return</button><button id="discard-return">Discard and return</button><button id="cancel-return">Cancel</button></nav>`;
     if(this.screen==='quick')content=renderBattleSetup(this.setup,this.advancedOpen,presets);
     if(this.screen==='operations')content=`<span class="eyebrow">CHOOSE YOUR MISSION</span><h2>Operations</h2><div class="operation-rows">${OPERATION_IDS.map(id=>`<button data-operation="${id}"><strong>${escape(id==='open-front'?OPERATION_DEFINITIONS[id].title:MISSION_COPY[id].title)}</strong><span>${id==='open-front'?operationCopy[id]:MISSION_COPY[id].intent}</span><i>→</i></button>`).join('')}</div>`;
     if(this.screen==='briefing')content=renderBattleBriefing(this.pending!);
@@ -104,9 +111,11 @@ export class OperationUI {
     if(this.screen==='settings')content=`<span class="eyebrow">PREFERENCES</span><h2>Settings</h2><nav class="settings-tabs">${['graphics','audio','controls','interface'].map(t=>`<button data-setting-tab="${t}" aria-pressed="${t===this.settingTab}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</nav><div class="settings-page">${this.settingTab==='graphics'?`<label>Rendering quality<select id="menu-quality"><option value="low">Performance</option><option value="balanced">Balanced</option><option value="high">High</option></select></label><p>Adjusts terrain detail, shadows and rendering resolution. Simulation rules stay the same.</p>`:this.settingTab==='audio'?`<label class="setting-switch"><input type="checkbox" id="menu-mute" ${this.muted?'checked':''}>Mute combat sounds</label><p>Weapon and impact audio only.</p>`:this.settingTab==='controls'?`<dl class="controls-list"><dt>Move camera</dt><dd>WASD / arrows</dd><dt>Rotate / zoom</dt><dd>Middle drag / wheel</dd><dt>Select formations</dt><dd>Click / left-drag</dd><dt>Draw a route</dt><dd>Right-drag / V</dd><dt>Defend / trench</dt><dd>T / B</dd><dt>Hold / focus</dt><dd>H / F</dd><dt>Operational map</dt><dd>M (G also works)</dd><dt>Pause / menu</dt><dd>Space / Esc</dd></dl>`:`<label class="setting-switch"><input type="checkbox" id="reduce-motion" ${document.documentElement.dataset.reducedMotion?'checked':''}>Reduce interface motion</label><p>Your system's reduced-motion preference is also respected.</p><button id="show-manual">Field manual</button><button id="show-diagnostics">Developer tools</button>`}</div>`;
     this.dialog.innerHTML=`<div class="menu-shell">${this.screen!=='main'?'<button class="menu-back" id="menu-back">← Back</button>':''}<div class="menu-content">${content}<p class="menu-status" role="status" hidden></p>${this.screen==='quick'&&this.started?'<p class="menu-save-note">Previewing is safe. Beginning replaces your unsaved session, not your saved campaign.</p>':''}</div></div>${this.screen==='briefing'?'<div class="preview-caption"><span>LIVE SECTOR PREVIEW</span><small>Actual terrain · simulation paused</small></div>':''}`;
     const bind=(selector:string,fn:()=>void)=>this.dialog.querySelector(selector)?.addEventListener('click',fn);
-    bind('#menu-back',()=>this.back());bind('#main-continue',()=>{if(this.started)this.close();else this.load();});
+    bind('#menu-back',()=>this.back());bind('#main-continue',()=>this.load());
     bind('#choose-operation',()=>{this.setup=defaultBattleSetup();this.advancedOpen=false;this.open('quick');});
-    bind('#operations-menu',()=>this.open('operations'));bind('#return-main',()=>this.open('main'));
+    bind('#operations-menu',()=>this.open('operations'));bind('#return-main',()=>this.open('leave'));
+    bind('#save-return',()=>{if(this.actions.save())this.open('main');else this.status('Save failed. This battle is still available; Cancel to return to it.');});
+    bind('#discard-return',()=>this.open('main'));bind('#cancel-return',()=>this.open('pause'));
     bind('#resume-session',()=>this.close());bind('#begin-operation',()=>this.launch());bind('#back-to-setup',()=>this.back());
     bind('[data-settings]',()=>{this.settingsReturn=this.screen;this.open('settings');});
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-setting-tab]').forEach(b=>b.onclick=()=>{this.settingTab=b.dataset.settingTab!;this.renderMenu();});

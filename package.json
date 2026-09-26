@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:author": "vite --config vite.dev.config.ts --open /dev.html",
+    "build:dev": "tsc -p tsconfig.dev.json && vite build --config vite.dev.config.ts",
     "build": "tsc -b && vite build && node scripts/build-standalone.mjs",
     "standalone": "tsc -b && node scripts/build-standalone.mjs",
     "test:launch": "node scripts/qa-file-boot.mjs",

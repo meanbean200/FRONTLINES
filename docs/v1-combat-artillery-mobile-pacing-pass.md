@@ -457,3 +457,108 @@ performance are claimed as delivered by this worker-control milestone.
   necessary after a concurrent workload timeout and an in-flight test run that
   mixed older cached implementation with newly added edge-case assertions.
   The final report tests the complete unchanged implementation together.
+
+## 2026-09-26 — Separate FRONTLINES DEV and genuinely authored living home
+
+Baseline: local and remote `20404c4d563335c30cc82bb260a329b34570e5fc`.
+This is the focused authoring/home-screen handoff, not a claim that A–G is
+finished. **Overall project: PARTIAL.** Historical long-journey deaths remain
+**USER-REPORTED / not causally reproduced** by this milestone.
+
+### Issue and implementation status
+
+- **USER-REPORTED / REPRODUCED:** the baseline had no separate visual battle
+  authoring entry and no isolated, genuinely authored title-screen battle.
+  Sandbox and Quick Battle's saved settings were not that workflow.
+- **ROOT CAUSE:** no shared initial-condition preset/publication path or explicit
+  attract-session owner existed. The existing menu used the gameplay world's
+  backdrop instead of independently constructing an authored AI-vs-AI scene.
+- **IMPLEMENTED:** `FRONTLINES-DEV.cmd`, `/dev.html`, separate author server/build,
+  visual trench drawing/branching/extension/reshape, both factions, formations,
+  installed weapons/crews, finite stock, facilities, objectives, staging,
+  broad AI intentions and opening camera. Terrain generation remains read-only.
+- **IMPLEMENTED:** strict versioned `ScenarioPreset`, shared deterministic
+  `instantiateScenario`, reversible source-only document, explicit folder
+  selection, Save/Duplicate/Load/Import/Download, isolated Play Test/Stop/Reset
+  and explicit Use for title screen publication. Draft saves do not change the
+  active immutable published snapshot. Reserved filenames cannot overwrite the
+  catalogue; pending file operations lock authoring edits.
+- **IMPLEMENTED:** `WorldSession` owns player/attract/editor-test simulation and
+  navigation lifetimes; disposal rejects late results. One render host remains.
+  Only player owners can save campaigns. Both authored AI factions use the
+  production commander and their own delivered knowledge; spectator rendering
+  grants no targeting information. Real finite-ammunition support is attributed
+  to `AUTHORED_AI` only when that faction is actually AI-controlled.
+- **IMPLEMENTED:** transparent live home, exclusive menu input, no command HUD,
+  muted attract audio, independent Continue/new-game transitions, explicit
+  Save/Discard/Cancel return, safe title-load/step failure fallback, hidden-page
+  and context-loss suspension without catch-up. Victory, four-minute and
+  post-contact inactivity resets recreate the preset, never revive/refill it.
+- **BROWSER VERIFIED:** The Orchard Approach was actually drawn, populated,
+  supplied, saved, reopened, played and published through headed Edge controls.
+  It has 64 people, two trench lines, MG posts, a field gun and mortar, finite
+  stores, rest areas and a physical objective. Both sides fired real ammunition.
+  Source and published snapshot hash:
+  `ed826cec964a142a46a05b6c337bdf115bc988b9b9b7305020f1f11851999b45`.
+- **BROWSER VERIFIED:** branch/extend/node drag, item duplicate/delete, exact
+  undo/redo, duplicate-file independence, failed-save document retention, ten
+  editor resets, thirty Continue/home transitions, ten UI attract resets and
+  one naturally timed four-minute reset. Save data and owner/resource counts
+  remained stable. Title failure and Save-and-return quota failure kept the
+  appropriate menus/battle usable. Publishing did not reload the editor.
+- **BROWSER VERIFIED:** project-folder selection refreshes its DEV-server token;
+  the final reopen/save/play/stop/publish flow retained the exact source.
+  Native directory-picker rejection/write behavior is unit-tested; an actual
+  OS folder-picker permission interaction is not physically accepted here.
+
+### Evidence and boundaries
+
+See `docs/frontlines-dev.md`, `docs/world-session-isolation.md` and
+`docs/evidence/dev-menu/README.md`. Raw scripts, failed runs and screenshots are
+preserved under local `output/playwright/dev-menu-20260926` and `.playwright-cli`;
+selected reports/screenshots are retained in the evidence directory.
+
+The first release authors current production 4-km generated sectors. Unsupported
+world/generator versions fail explicitly; this does not silently substitute a
+4-km release for the pending 3-km/512-person gate. DEV Play Test provides the real
+production battle with spectator camera, pause/speed/reset controls; it does not
+add a second full player-command HUD. Advanced town/hub/convoy/damage authoring
+remains dependent on the corresponding gameplay work.
+
+**USER ACCEPTED: PENDING.** Protected overflow staging, distinct field rest and
+the full survival/calendar matrix, artillery/reload/damage/construction repairs,
+town/hub/interdiction logistics, 512-person performance, physical-phone checks,
+72-hour combat/supply-interruption soak and CrazyGames submission review remain
+separate outstanding gates. No automation, training or unrelated gameplay
+overhaul was started.
+
+### Final delivery verification
+
+- Full final regression: **846/846 tests, 123 files, 388.37 seconds**. This
+  preserves the 818-test baseline and adds 28 focused checks. Ten independent
+  four-minute/reset-boundary production showcase runs pass real firing from
+  both sides, finite-inventory balance, clean recreation and owner disposal.
+  A late-worker-response regression verifies disposed planners cannot complete
+  old requests or deliver them to the replacement session.
+- Maintained Edge suite: **27/27, 257.93 seconds**, no skipped, flaky or unexpected
+  results (`edge-frozen.json`). The separate source-change/navigation failure
+  is preserved rather than pooled into this successful run. Final DEV-only
+  label simplification was separately exercised through Edge selection controls
+  and included in the final full unit/type/build verification.
+- Production, standalone and strict-TypeScript separate DEV builds pass;
+  packaging **5/5**. Existing large-bundle warnings remain visible. Portable
+  game: **1373 KiB**, two embedded workers. Player/offline artifacts contain no
+  authoring controls, project-folder endpoint, directory picker or writable-file
+  API; only the validated selected published runtime preset is embedded.
+- Final isolated, network-disabled Edge launch passes: the real 64-person
+  attract scene, physical player movement, both worker responses, exact paused
+  Save/Continue state, no page errors and no external network dependencies
+  (`offline-final.json`). Canvas/menu fit and all home actions remain visible
+  with at least 44-pixel targets at 1280×720, 1920×1080, 2560×1440, 960×540,
+  844×390 and 390×844. These are desktop viewport checks, not physical-phone
+  acceptance or a 512-person frame-time result.
+- Final portable SHA-256:
+  `2c5d315b3b820a5538686b5988cda5b24a00009fdde072e97edb57d8488d1c49`.
+- **E/F focused handoff: IMPLEMENTED / AUTOMATED VERIFIED / BROWSER VERIFIED.**
+  Native OS folder-picker interaction and subjective presentation/believability
+  remain for user acceptance; broader release status remains **PARTIAL**.

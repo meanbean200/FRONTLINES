@@ -35,10 +35,11 @@ export interface EnemyObservation {
 export interface EnemyCommand {squadId:number;type:'move'|'hold';goal:Vec2;role:EnemyRole;reason:string}
 
 /** Information firewall: no opposing live soldier, health, route or order enters the planner. */
-export function observeEnemy(state:BattlefieldState):EnemyObservation {
+export function observeEnemy(state:BattlefieldState):EnemyObservation {return observeFaction(state,'enemy');}
+export function observeFaction(state:BattlefieldState,side:'player'|'enemy'):EnemyObservation {
   const op=state.operation!;
   const observation:EnemyObservation={at:state.elapsed,seed:state.seed,mode:op.mode,
-    squads:state.squads.filter(q=>factionOf(q)==='enemy').map(q=>{
+    squads:state.squads.filter(q=>factionOf(q)===side).map(q=>{
       const people=state.soldiers.filter(s=>s.squadId===q.id&&s.health>0&&s.needs?.life==='active');
       const mean=(f:(s:typeof people[number])=>number)=>people.reduce((n,s)=>n+f(s),0)/Math.max(1,people.length);
       // Keep the prepared area's support detail in place while its engineers build;
@@ -47,9 +48,9 @@ export function observeEnemy(state:BattlefieldState):EnemyObservation {
       const mortar=assignedWeaponPosition(state,q.id,'mortar');
       return {id:q.id,x:q.x,z:q.z,kind:q.kind,emplaced:supportDetail||state.living!.facilities.some(f=>crewAt(state,f).some(s=>s.squadId===q.id)),mortarReady:!weaponPositionReadiness(state,q.id,'mortar'),working:q.order.type==='construct-trench'||q.order.type==='occupy-trench'&&squadHasEquipment(state,q,'tools')&&state.living!.facilities.some(f=>f.progress<1&&state.living!.garrisons.some(g=>g.id===f.garrisonId&&g.squadIds.includes(q.id))),supportBusy:op.supportMissions?.some(m=>m.squadId===q.id&&m.stage==='preparing')??false,mortar:Boolean(mortar?.installation)||squadHasEquipment(state,q,'mortar'),mortarAmmo:mortar?.stock.mortarHE??people.reduce((n,s)=>n+(s.carried?.mortarHE??0),0),automatic:Boolean(assignedWeaponPosition(state,q.id,'emplacement')?.installation)||squadHasEquipment(state,q,'automatic'),effectiveUntil:Math.max(0,...people.map(s=>currentWeapon(state,s)?.effectiveUntil??0)),able:people.length,initial:q.soldierIds.length,health:mean(s=>s.health),morale:mean(s=>s.morale),energy:mean(s=>s.needs!.energy),suppression:mean(s=>s.suppression),ammo:mean(s=>s.carried?.ammo??0),moving:q.order.type==='move',planning:q.movementState==='planning',orderTarget:q.order.target?{...q.order.target}:undefined};
     }).filter(q=>q.able>0),
-    contacts:(op.intelligence?.command.enemy??op.contacts?.enemy??[]).filter(c=>c.active&&state.elapsed-c.lastSeen<=12).map(c=>({...c})),
+    contacts:(op.intelligence?.command[side]??op.contacts?.[side]??[]).filter(c=>c.active&&state.elapsed-c.lastSeen<=12).map(c=>({...c})),
     // Flag ownership is public to both players. Enemy-owned caches are finite friendly stock.
-    objectives:op.runtime?[]:op.objectives.map(o=>({id:o.id,x:o.x,z:o.z,radius:o.radius,owner:o.owner,contested:o.contested,ammo:o.owner==='enemy'?(state.living!.crates.find(c=>c.id===o.cacheId)?.stock.ammo??0):0}))};
+    objectives:op.runtime?[]:op.objectives.map(o=>({id:o.id,x:o.x,z:o.z,radius:o.radius,owner:o.owner==='neutral'?'neutral':o.owner===side?'enemy':'player',contested:o.contested,ammo:o.owner===side?(state.living!.crates.find(c=>c.id===o.cacheId)?.stock.ammo??0):0}))};
   for(const own of observation.squads){const building=state.squads.find(q=>q.id===own.id)?.order.building;if(building)own.buildingOrder=building.id;}
   if(op.runtime){
     const r=op.runtime,d=configuredDefinition(r.definitionId,op.setup);
@@ -112,7 +113,7 @@ export function commandEnemy(o:EnemyObservation,terrain:Ground,previous?:EnemyMe
     const contact=visible.filter(c=>distance(q,c)<360).sort((a,b)=>distance(q,a)-distance(q,b)||a.soldierId-b.soldierId)[0];
     const remembered=o.contacts.filter(c=>!c.visible&&distance(q,c)<300).sort((a,b)=>b.lastSeen-a.lastSeen)[0];
     const nearest=contact?distance(q,contact):Infinity;
-    const weak=q.able<3||q.morale<25||q.energy<18||q.health<32;
+    const weak=q.able<Math.min(3,q.initial)||q.morale<25||q.energy<18||q.health<32;
     const shock=q.able<=q.initial*.45&&nearest<145;
     const emergency=(weak||shock)&&nearest<180||q.ammo<4&&nearest<145||q.suppression>72;
     if(q.buildingOrder!==undefined&&!emergency)continue;

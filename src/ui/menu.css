@@ -1,6 +1,9 @@
 /* A battlefield-backed screen, not a document or a card dashboard. */
 .operation-menu{position:fixed;inset:var(--game-top,0) auto auto var(--game-left,0);margin:0;width:var(--game-width,100%);height:var(--game-height,100%);max-width:none;max-height:none;padding:0;border:0;overflow:auto;background:transparent;color:var(--text)}
 .operation-menu::backdrop{background:linear-gradient(90deg,rgba(8,16,14,.96) 0%,rgba(8,16,14,.83) 35%,rgba(8,16,14,.25) 100%);backdrop-filter:saturate(.65)}
+.operation-menu[data-screen=main]::backdrop{background:linear-gradient(90deg,#0c1613dc 0%,#0c1613b0 26%,#0c16133d 52%,#0c161305 85%)}
+.attract-status{position:fixed;right:28px;bottom:25px;max-width:45vw;text-align:right;color:#dfd9c4;font:11px var(--mono,monospace);letter-spacing:.07em;text-shadow:0 1px 4px #000;line-height:1.6;pointer-events:none}
+.operation-menu[data-screen=leave] .menu-content{max-width:500px}
 .menu-shell{min-height:100%;padding:90px clamp(40px,8vw,200px);display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
 .menu-content{width:min(690px,100%);animation:menu-arrive 160ms ease-out}
 .main-title h1{font-size:clamp(54px,5.6vw,106px);font-weight:700;letter-spacing:.035em;line-height:1;margin:20px 0 22px}
@@ -65,3 +68,6 @@
 @media(max-width:1100px){.menu-shell{padding:85px 6vw 40px}.menu-back{left:6vw}.menu-content{width:min(670px,100%)}.operation-menu::backdrop{background:linear-gradient(90deg,#08100eef,#08100eaa 70%,#08100e66)}}
 @media(max-height:800px){.menu-shell{padding-top:80px;padding-bottom:28px}.main-title p{margin-bottom:25px;font-size:18px}.main-title h1{margin-top:12px}.main-actions button{min-height:48px;padding-block:10px;font-size:23px}.menu-caption{margin-top:24px}.operation-menu[data-screen=briefing] .menu-shell{justify-content:flex-start}.battle-briefing dl{margin:15px 0}.battle-briefing dl>div{padding:10px 0}.battle-briefing .setup-title{margin-bottom:14px}.preview-caption{position:fixed;max-width:40vw}.pause-actions{gap:5px}}
 @media(max-width:650px){.menu-shell{padding:76px 24px 28px}.menu-back{left:24px}.quick-fields{grid-template-columns:1fr}.quick-fields label{display:grid;grid-template-columns:90px 1fr;align-items:center}.quick-operations strong{font-size:17px}.quick-operations button{padding:10px}.advanced-groups{grid-template-columns:1fr}.advanced-groups fieldset:last-child{grid-column:auto}.operation-menu[data-screen=briefing] .menu-shell{padding:16px}.operation-menu[data-screen=briefing] .menu-content{width:100%;padding:24px}.preview-caption{display:none}.main-title h1{font-size:50px}}
+/* Keep every home action on short desktop / phone-landscape screens. */
+@media(max-height:540px){.operation-menu[data-screen=main] .menu-shell{padding:18px 6vw 16px}.main-title .eyebrow,.main-title p{display:none}.main-title h1{font-size:42px;margin:0 0 14px}.main-actions button{min-height:44px;padding-block:6px;font-size:22px}.menu-caption{margin:14px 0 0;font-size:11px}.attract-status{right:20px;bottom:16px}}
+@media(max-height:380px){.operation-menu[data-screen=main] .menu-shell{padding-block:10px}.main-title h1{font-size:36px;margin-bottom:10px}.menu-caption{display:none}}

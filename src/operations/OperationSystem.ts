@@ -4,7 +4,7 @@ import type { TerrainSystem } from '../terrain/TerrainSystem';
 import { factionOf, type Faction } from './types';
 import {updateContacts} from './Visibility';
 import {fireSmallArms} from '../combat/SmallArmsSystem';
-import {commandEnemy,observeEnemy} from './EnemyCommander';
+import {commandEnemy,observeEnemy,observeFaction} from './EnemyCommander';
 import {commandCampaign} from './CampaignCommander';
 import type {ShotEvent} from '../combat/types';
 import {segmentDistance,bodyVolume} from '../combat/Ballistics';
@@ -36,7 +36,22 @@ export class OperationSystem {
     if(op.contacts?.player.some(c=>c.visible&&c.active))signalEngagement(this.state);
     if (op.elapsed >= op.nextOrders) {
       op.nextOrders = op.elapsed + 3;
-      if(op.runtime){
+      if(op.authored){
+        for(const side of ['player','enemy'] as const){if(op.authored.controllers[side]!=='ai')continue;
+          const observation=observeFaction(this.state,side),intents=op.authored.intentions;
+          for(const target of op.authored.targets)if(!observation.objectives.some(o=>o.id===target.id))observation.objectives.push({...target,owner:'neutral',contested:false,ammo:0});
+          observation.squads=observation.squads.filter(q=>!['hold','reserve'].includes(intents.find(i=>i.squadId===q.id)?.intent??''));
+          observation.assignments=observation.squads.flatMap(q=>{const i=intents.find(i=>i.squadId===q.id),target=observation.objectives.find(o=>o.id===i?.targetId);return target?[{squadId:q.id,objectiveId:target.id,goal:target,defend:i?.intent==='defend'||i?.intent==='support'}]:[];});
+          const result=commandEnemy(observation,this.terrain,op.authored.memories[side]);op.authored.memories[side]=result.memory;
+          for(const c of result.commands){if(c.type==='move')moveEnemy([c.squadId],c.goal);else holdEnemy([c.squadId]);}
+          // Support uses reported positions, never opposing live coordinates.
+          const targets=observation.contacts.filter(c=>c.visible).sort((a,b)=>b.lastSeen-a.lastSeen||a.soldierId-b.soldierId).slice(0,8);
+          for(const q of observation.squads.filter(q=>q.mortarReady&&q.mortarAmmo&&q.mortarAmmo>0))for(const target of targets){
+            if(requestSupport(this.state,'mortarHE',q.id,{x:target.x,z:target.z},false,this.terrain,'AUTHORED_AI').accepted)break;
+          }
+        }
+      }
+      else if(op.runtime){
         const observation=observeEnemy(this.state),result=commandOperationalEnemy(observation,this.terrain,op.enemyAI,op.runtime.commander);op.enemyAI=result.memory;op.runtime.commander=result.commander;
         for(const c of result.commands){if(c.type==='move')moveEnemy([c.squadId],c.goal);else holdEnemy([c.squadId]);}
         if(result.support)requestSupport(this.state,'mortarHE',result.support.squadId,result.support.target,false,this.terrain,'ENEMY_AI');
@@ -54,6 +69,12 @@ export class OperationSystem {
       }
     }
     if(op.runtime){stepOperationalRuntime(this.state,this.terrain);return;}
+    if(op.authored){
+      for(const side of ['player','enemy'] as const){const activeSide=active.some(s=>factions.get(s.squadId)===side);if(!activeSide&&this.state.soldiers.some(s=>factions.get(s.squadId)===side)){this.finish(side==='player'?'defeat':'victory','The opposing force can no longer hold this sector.');return;}
+        op.authored.hold[side]=op.objectives.length&&op.objectives.every(o=>o.owner===side&&!o.contested)?op.authored.hold[side]+dt:0;
+        if(op.authored.hold[side]>=90){this.finish(side==='player'?'victory':'defeat','All authored objectives held for 90 seconds.');return;}}
+      return;
+    }
     const able = this.state.soldiers.filter(s => s.health > 0 && s.needs?.life === 'active');
     const player = able.filter(s => factions.get(s.squadId) === 'player').length;
     const enemy = able.length - player;

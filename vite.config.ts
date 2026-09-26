@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
+import {presetContentPlugin} from './scripts/preset-content.mjs';
 
 export default defineConfig({
   base: './',
-  plugins: [{
+  plugins: [presetContentPlugin(),{
     name: 'file-safe-entry', apply: 'build',
     // Do not fetch an external module under file:// while the disk-launch
     // redirect runs. HTTP still uses the normal split/cached production bundle.

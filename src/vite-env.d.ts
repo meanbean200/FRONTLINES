@@ -37,6 +37,7 @@ declare global {
       getSimulationCosts:()=>{actions:number;movement:number;earthworks:number;garrison:number;combat:number;terrainIntel:number;support:number;total:number};
       getVisualStats:()=>{triangles:number;drawCalls:number;particles:number;submittedSoldiers:number;residentTrees:number;visibleTrees:number;generatedChunks:number;detailedChunks:number;visibleChunks:number;coarseGenerationMs:number;workerGenerationMs:number;workerJobs:number;cameraTarget:{x:number;z:number};zoomDistance:number};
       getState: () => BattlefieldState;
+      getSessionStats:()=>{kind:string;generation:number;resets:number;created:number;disposed:number;active:number;planners:number;gpu:{geometries:number;textures:number};entities:number;renderHosts:number;terrainWorkers:number};
       getCombatDiagnostics:()=>ReturnType<typeof import('./combat/Diagnostics').combatDiagnostics>;
       getPolicyPerf:()=>{inferenceMs:number};
       setReadiness:(id:number,value:'routine'|'alert'|'stand-to')=>void;
