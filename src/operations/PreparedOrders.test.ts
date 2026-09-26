@@ -5,13 +5,15 @@ import {SaveSystem} from '../persistence/SaveSystem';
 import {preparedStatus,validPreparedOrders} from './PreparedOrders';
 import {raidEligibility} from './RaidEligibility';
 import {preparedPosition} from '../combat/testing/PositionFixture';
+import {effectiveSquad} from './AssaultPlan';
 describe('persistent signal orders',()=>{
-  it('keeps mixed formations with assigned gun crews home unless explicitly released',()=>{
+  it('keeps assigned gun crews home while the rest of a mixed formation can participate',()=>{
     const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),[gunSquad,rifles]=state.squads.filter(q=>q.faction==='player');
     state.soldiers.find(s=>s.squadId===gunSquad.id)!.equipment!.mortar=true;
     const f=preparedPosition(state,gunSquad.id,'mortar'),crew=f.weaponCrewIds!.slice(),ids=[gunSquad.id,rifles.id];
-    expect(raidEligibility(state,ids)).toMatchObject({eligible:[rifles.id],protectedIds:[gunSquad.id]});
-    expect(sim.prepareOrder(ids,'assault',{x:rifles.x+20,z:rifles.z})).toBe(1);expect(f.weaponCrewIds).toEqual(crew);
+    expect(raidEligibility(state,ids)).toMatchObject({eligible:ids,protectedIds:[gunSquad.id]});
+    expect(sim.prepareOrder(ids,'assault',{x:rifles.x+20,z:rifles.z})).toBe(2);expect(f.weaponCrewIds).toEqual(crew);
+    expect(state.preparedOrders![0].assault!.participantIds.some(id=>crew.includes(id))).toBe(false);
     expect(new SaveSystem().parse(JSON.stringify(state)).living!.facilities.find(p=>p.id===f.id)!.weaponCrewIds).toEqual(crew);
     expect(sim.prepareOrder([gunSquad.id],'assault',{x:rifles.x+20,z:rifles.z},undefined,true)).toBe(1);
     sim.signalPrepared();sim.step(.05);expect(f.weaponCrewIds).toEqual([]);
@@ -19,7 +21,7 @@ describe('persistent signal orders',()=>{
   it('cancels the actual released movement as well as its saved planning marker',()=>{
     const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),q=state.squads[0];
     sim.prepareOrder([q.id],'assault',{x:q.x+45,z:q.z+20});sim.signalPrepared();sim.step(.05);
-    expect(q.order.intent).toBe('assault');sim.cancelPrepared();
+    expect(state.preparedOrders![0].assault!.march!.order.intent).toBe('assault');sim.cancelPrepared();
     expect(state.preparedOrders).toEqual([]);expect(q.order.type).toBe('hold');expect(q.route).toEqual([]);
     const loaded=new SaveSystem().parse(JSON.stringify(state));expect(loaded.preparedOrders).toEqual([]);expect(loaded.squads[0].order.type).toBe('hold');
   });
@@ -32,7 +34,7 @@ describe('persistent signal orders',()=>{
     expect(state.preparedOrders!.every(o=>o.releasedAt===undefined)).toBe(true); // signaling while paused does not execute a tick
     sim.step(.05);copy.step(.05);expect(loaded).toEqual(state);
     expect(new Set(state.preparedOrders!.map(o=>o.releasedAt)).size).toBe(1);expect(state.preparedOrders![0].releasedAt).toBeCloseTo(.1);
-    expect(squads.map(q=>q.order.intent)).toEqual(['assault','assault','suppress']);expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);
+    expect(squads.map(q=>effectiveSquad(state,state.soldiers.find(s=>s.squadId===q.id)!,q).order.intent)).toEqual(['assault','assault','suppress']);expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);
   });
   it('cancels a prepared intention on an explicit order, and reports pinned formations truthfully',()=>{
     const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),q=state.squads[0];
@@ -44,10 +46,10 @@ describe('persistent signal orders',()=>{
     const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),q=state.squads[0];sim.prepareOrder([q.id],'observe',q);expect(validPreparedOrders(state)).toBe(true);
     state.preparedOrders![0].releasedAt=0;expect(validPreparedOrders(state)).toBe(false);delete state.preparedOrders![0].releasedAt;state.preparedOrders![0].target.x=Infinity;expect(validPreparedOrders(state)).toBe(false);
   });
-  it('does not restart queued excavation while a tool formation waits for its signal',()=>{
+  it('does not cancel queued excavation merely because an assault preview is open',()=>{
     const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),q=state.squads.find(q=>q.faction==='player'&&state.soldiers.some(s=>s.squadId===q.id&&s.equipment?.tools))!;
     const id=state.nextEntityId++;state.trenches.push({id,points:[{x:q.x,z:q.z+20},{x:q.x+25,z:q.z+20}],width:4.2,depth:1.75,progress:0,status:'planned',engineerSquadId:q.id});q.constructionQueue=[id];
     sim.prepareOrder([q.id],'assault',{x:q.x+40,z:q.z});sim.step(.05);
-    expect(q.order.type).toBe('hold');expect(q.constructionQueue).toEqual([]);expect(state.trenches.find(t=>t.id===id)!.progress).toBe(0);expect(state.preparedOrders![0].releasedAt).toBeUndefined();
+    expect(q.order.type).toBe('construct-trench');expect(state.trenches.find(t=>t.id===id)).toBeDefined();expect(state.preparedOrders![0].releasedAt).toBeUndefined();
   });
 });

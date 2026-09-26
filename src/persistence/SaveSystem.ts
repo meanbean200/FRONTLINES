@@ -319,6 +319,7 @@ function validLiving(state:BattlefieldState):boolean {
       if(care.source&&(!['cache','forward','facility','rear','crate'].includes(care.source.kind)||!Number.isSafeInteger(care.source.id)||care.source.id<0))return false;
     }
     if(s.personalArea!==undefined&&typeof s.personalArea!=='boolean')return false;
+    if(s.assaultHold!==undefined&&(!nonnegative(s.assaultHold)||s.assaultHold>state.elapsed))return false;
     if(s.garrisonId!==undefined){const g=w.garrisons.find(g=>g.id===s.garrisonId),q=state.squads.find(q=>q.id===s.squadId);if(!g||!q||(g.faction??'player')!==(q.faction??'player')||!s.personalArea&&!g.squadIds.includes(s.squadId))return false;}
     const d=s.duty;if(d&&(!['watch','patrol','sleep','rest','meal','haul','construct'].includes(d.kind)||!point(d.destination)||!Array.isArray(d.route)||!d.route.every(point)||!Number.isInteger(d.routeIndex)||d.routeIndex<0||d.routeIndex>d.route.length||!nonnegative(d.since)||!nonnegative(d.until)||!nonnegative(d.blockedFor)||(d.arrivedAt!==undefined&&!nonnegative(d.arrivedAt))||(d.patientId!==undefined&&!sIds.has(d.patientId))))return false;
     if(d){

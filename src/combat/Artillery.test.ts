@@ -48,7 +48,7 @@ describe('independently owned field artillery',()=>{
     const stock={...f.stock},positions=s.soldiers.filter(p=>ids.includes(p.id)).map(p=>({x:p.x,z:p.z}));
     expect(sim.garrisons.setArtilleryFacing(id,Math.PI/2).accepted).toBe(true);expect(f.facing).toBe(Math.PI/2);
     expect(f.stock).toEqual(stock);expect(f.weaponCrewIds).toEqual(ids);expect(s.soldiers.filter(p=>ids.includes(p.id)).map(p=>({x:p.x,z:p.z}))).toEqual(positions);
-    sim.garrisons.removeCrew(id);expect(f.installation?.kind).toBe('field-gun');expect(positionReadiness(s,f)).toContain('NO GUNNER');
+    sim.garrisons.removeCrew(id);expect(f.installation?.kind).toBe('field-gun');expect(positionReadiness(s,f)).toContain('NO CREW');
     expect(new SaveSystem().parse(JSON.stringify(s))).toEqual(s);for(const n of Object.values(balance(s)))expect(Math.abs(n)).toBeLessThan(1e-6);
   },20000);
   it('legacy mortar loads unchanged; field-gun flight consumes one real round and makes persistent ground damage',()=>{

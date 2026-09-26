@@ -8,6 +8,7 @@ import {doorPoint} from '../terrain/BuildingGeometry';
 import {bodyBlocks} from '../navigation/FriendlyTraffic';
 import {routeJoin} from '../navigation/RouteJoin';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
+import {effectiveSquad} from '../operations/AssaultPlan';
 
 export interface SelfCare {
   kind:'sleep'|'meal'|'resupply'|'supply-wait'; stage:'exit'|'outbound'|'use'|'return';
@@ -67,7 +68,8 @@ export function stepSelfPreservation(state:BattlefieldState,terrain:TerrainSyste
   if(!state.living)return;
   const squads=new Map(state.squads.map(q=>[q.id,q]));
   for(const s of state.soldiers){
-    const n=s.needs,q=squads.get(s.squadId);if(!n||!q||n.life==='dead')continue;
+    const n=s.needs,formation=squads.get(s.squadId);if(!n||!formation||n.life==='dead')continue;
+    const q=effectiveSquad(state,s,formation);
     if(n.life==='incapacitated'){
       // An exhausted person can eat their own pack or stock within arm's reach;
       // never march an incapacitated casualty or remotely refill their meters.

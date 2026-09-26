@@ -1,6 +1,7 @@
 import {distanceToSegment,type Vec2,type BattlefieldState,type TrenchState} from '../core/types';
 import {excavatedPoints} from '../core/TrenchGeometry';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
+import {assaultFor,detachedFromFormation} from '../operations/AssaultPlan';
 
 /** A saved trench's array order is stable; use the same short name on every surface. */
 export const trenchName=(state:BattlefieldState,id:number)=>`Trench ${String(state.trenches.findIndex(t=>t.id===id)+1).padStart(2,'0')}`;
@@ -17,7 +18,7 @@ export const distanceToPolyline=(point:Vec2,points:Vec2[])=>({distance:points.sl
 export function friendlyTrenches(state:BattlefieldState,network:TrenchNetwork):TrenchState[]{
   return state.trenches.filter(t=>{
     const component=network.component(t.id),owners=state.living?.garrisons.filter(g=>component!==undefined&&network.component(g.trenchId)===component)??[];
-    if(owners.some(g=>g.faction!=='enemy'&&g.squadIds.length))return true;
+    if(owners.some(g=>g.faction!=='enemy'&&(g.squadIds.length||state.soldiers.some(s=>s.garrisonId===g.id))))return true;
     if(state.squads.some(q=>q.id===t.engineerSquadId&&q.faction==='enemy'))return false;
     if(state.living?.facilities.some(f=>f.connectorId===t.id&&state.living?.garrisons.some(g=>g.id===f.garrisonId&&g.faction==='enemy')))return false;
     return component===undefined||!state.living?.garrisons.some(g=>g.faction==='enemy'&&network.component(g.trenchId)===component);
@@ -28,7 +29,7 @@ export function trenchPeople(state:BattlefieldState,network:TrenchNetwork,t:Tren
   const builders=state.squads.filter(q=>q.faction!=='enemy'&&q.order.type==='construct-trench'&&(q.order.trenchId===t.id||q.engineerWork?.crews.some(c=>c.trenchId===t.id)));
   const built=excavatedPoints(t);
   return state.soldiers.filter(s=>s.needs?.life!=='dead'&&state.squads.some(q=>q.id===s.squadId&&q.faction!=='enemy')&&
-    (garrisons.some(g=>g.id===s.garrisonId)||builders.some(q=>q.id===s.squadId)||built.length>1&&distanceToPolyline(s,built).distance<t.width/2));
+    (garrisons.some(g=>g.id===s.garrisonId||assaultFor(state,s.id)?.assault?.preview.sourcePositionIds.includes(g.id))||builders.some(q=>q.id===s.squadId)||built.length>1&&distanceToPolyline(s,built).distance<t.width/2));
 }
 
 /** Count this worksite, not everyone digging somewhere in its connected area. */
@@ -37,7 +38,7 @@ export function trenchWorkforce(state:BattlefieldState,t?:TrenchState){
   const crew=new Set(state.squads.filter(q=>q.faction!=='enemy'&&q.order.type==='construct-trench').flatMap(q=>q.engineerWork?
     q.engineerWork.crews.filter(c=>c.trenchId===t.id).flatMap(c=>c.soldierIds):q.order.trenchId===t.id?q.soldierIds:[]));
   const facilities=new Set(state.living?.facilities.filter(f=>f.connectorId===t.id).map(f=>f.id));
-  const people=state.soldiers.filter(s=>s.health>0&&s.needs?.life!=='dead'&&(crew.has(s.id)||s.duty?.kind==='construct'&&facilities.has(s.duty.facilityId!)));
+  const people=state.soldiers.filter(s=>!detachedFromFormation(state,s)&&s.health>0&&s.needs?.life!=='dead'&&(crew.has(s.id)||s.duty?.kind==='construct'&&facilities.has(s.duty.facilityId!)));
   return {assigned:people.length,digging:people.filter(s=>s.action==='digging').length,helpers:people.filter(s=>s.action==='clearing spoil').length,
     recovering:people.filter(s=>['sleeping','resting','eating'].includes(s.action)).length,
     hauling:people.filter(s=>s.selfCare?.kind==='resupply'||s.duty?.kind==='haul').length,

@@ -3,7 +3,7 @@ import {inlineGeometry,WEAPON_POSITIONS} from './PositionDefinitions';
 import {excavatedSpan} from '../core/TrenchGeometry';
 import {WEAPONS} from '../combat/Weapons';
 export function validPositionState(state:BattlefieldState):boolean {
-  const crew=new Set<number>(),workers=new Set<number>();
+  const crew=new Set<number>(),workers=new Set<number>(),reliefs=new Set<number>();
   for(const f of state.living?.facilities??[]){
     const g=state.living!.garrisons.find(g=>g.id===f.garrisonId)!;
     if(f.facing!==undefined&&!Number.isFinite(f.facing))return false;
@@ -33,10 +33,16 @@ export function validPositionState(state:BattlefieldState):boolean {
     if(f.workOrder){
       const o=f.workOrder;if(typeof o.explicit!=='boolean'||!Number.isFinite(o.createdAt)||o.createdAt<0||!Array.isArray(o.workerIds)||o.workerIds.length>16)return false;
       if(o.autoWorkers!==undefined&&typeof o.autoWorkers!=='boolean')return false;
+      if(o.pausedByAssault!==undefined&&typeof o.pausedByAssault!=='boolean')return false;
       if(o.cancelledAt!==undefined&&(!Number.isFinite(o.cancelledAt)||o.cancelledAt<o.createdAt||o.cancelledAt>state.elapsed||o.workerIds.length>0))return false;
       for(const id of o.workerIds){const s=state.soldiers.find(s=>s.id===id),q=state.squads.find(q=>q.id===s?.squadId);if(!s||!q||workers.has(id)||(q.faction??'player')!==(g.faction??'player'))return false;workers.add(id);}
     }
+    if(f.crewRelief){const r=f.crewRelief,incoming=state.soldiers.find(s=>s.id===r.incomingId),outgoing=state.soldiers.find(s=>s.id===r.outgoingId);
+      if(!['emplacement','mortar'].includes(f.kind)||!incoming||!outgoing||r.incomingId===r.outgoingId||!f.weaponCrewIds?.includes(r.outgoingId)||reliefs.has(r.incomingId)||!Number.isFinite(r.since)||r.since<0||r.since>state.elapsed||!['rest','meal'].includes(r.reason)||(state.squads.find(q=>q.id===incoming.squadId)?.faction??'player')!==(g.faction??'player'))return false;
+      if(!['approaching','handover'].includes(r.phase)||r.phase==='approaching'&&r.handoverAt!==undefined||r.phase==='handover'&&(!Number.isFinite(r.handoverAt)||r.handoverAt!<r.since||r.handoverAt!>state.elapsed))return false;
+      reliefs.add(r.incomingId);
+    }
   }
-  if([...crew].some(id=>workers.has(id)))return false;
+  if([...crew].some(id=>workers.has(id)||reliefs.has(id))||[...reliefs].some(id=>workers.has(id)))return false;
   return (state.living?.garrisons??[]).every(g=>g.lastDeliveryAt===undefined||Number.isFinite(g.lastDeliveryAt)&&g.lastDeliveryAt>=0&&g.lastDeliveryAt<=state.elapsed);
 }

@@ -38,6 +38,7 @@ export interface Duty {
   exitPoint?:Vec2;
 }
 export interface Facility extends Vec2 {
+  crewRelief?:{incomingId:number;outgoingId:number;since:number;reason:'rest'|'meal';phase:'approaching'|'handover';handoverAt?:number};
   id: number; garrisonId: number; kind: 'rest' | 'meal' | 'store' | 'ammo'|'aid'|'emplacement'|'mortar';
   /** Installed equipment and ready stock belong to the position, not its crew. */
   installation?: {kind:'crew-mg'|'mg42'|'mortar'|'field-gun'; source:'construction'|'legacy-kit'; personId?:number; weapon?:import('../combat/Weapons').WeaponState};
@@ -53,7 +54,7 @@ export interface Facility extends Vec2 {
   weaponCrewIds?:number[];
   /** Metres along the parent centreline; no detached connector for inline posts. */
   trenchAnchor?:{trenchId:number;along:number};
-  workOrder?:{explicit:boolean;workerIds:number[];createdAt:number;cancelledAt?:number;autoWorkers?:boolean};
+  workOrder?:{explicit:boolean;workerIds:number[];createdAt:number;cancelledAt?:number;autoWorkers?:boolean;pausedByAssault?:boolean};
   connectorId: number; progress: number; capacity: number; paid: boolean;
   stock: Inventory; materialCost: number;
   facing?:number;

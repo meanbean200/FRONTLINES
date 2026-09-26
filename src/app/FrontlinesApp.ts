@@ -41,6 +41,7 @@ import {DeploymentPanel} from '../ui/DeploymentPanel';
 import {deploySandbox,deploymentPreview,type DeploymentKind} from '../simulation/SandboxDeployment';
 import {HostViewport} from '../render/HostViewport';
 import {installViewportDiagnostic} from '../diagnostics/ViewportDiagnostic';
+import {AssaultOrders} from '../ui/AssaultOrders';
 
 export class FrontlinesApp {
   readonly selectedSquads = new Set<number>();
@@ -82,6 +83,7 @@ export class FrontlinesApp {
   private readonly viewport:HostViewport;
   private readonly garrisonPanel:GarrisonPanel;
   private readonly trenchPanel:TrenchPanel;
+  private readonly assaultOrders:AssaultOrders;
   private readonly buildPanel:BuildPanel;
   private readonly deploymentPanel:DeploymentPanel;
   private pendingDeployment:{kind:DeploymentKind;count:number}={kind:'rifle',count:1};
@@ -122,6 +124,7 @@ export class FrontlinesApp {
     this.ui = new BattlefieldUI(this.state, this.selectedSquads, this.flags, {
       setSpeed: (speed) => this.simulation.setSpeed(speed),
       hold: () => this.simulation.issueHold([...this.selectedSquads]),
+      cancelAssault:()=>{if(this.simulation.commandsLocked)return;this.simulation.cancelPrepared([...this.selectedSquads]);this.ui.notify('Assault cancelled · detachment holds here; return and re-crewing need new orders');},
       occupy: () => this.setMode('defend'),
       trenchMode: () => this.enterTrenchMode(),
       moveMode: () => this.setMode('move'),
@@ -150,6 +153,7 @@ export class FrontlinesApp {
       },
     },this.simulation.terrain);
     this.garrisonPanel=new GarrisonPanel(this.simulation,id=>this.trenchPanel.open(id));
+    this.assaultOrders=new AssaultOrders(this.simulation,text=>this.ui.notify(text));
     this.buildPanel=new BuildPanel(()=>this.state,{manage:id=>this.trenchPanel.openConstruction(id),place:(id,kind,guns)=>this.beginFacility(id,kind,guns),focus:point=>this.camera.focus(point,100),assign:id=>{
       if(this.simulation.commandsLocked)return;
       const engineer=chooseEngineer(this.state,this.selectedSquads),g=this.state.living!.garrisons.find(g=>g.id===id&&g.faction!=='enemy');
@@ -167,8 +171,8 @@ export class FrontlinesApp {
     });
     this.tactical=new TacticalOverlay(()=>this.state,this.selectedSquads,this.camera,this.simulation.terrain,(ids,add)=>this.selectSquads(ids,add),id=>this.trenchPanel.open(id),point=>{this.simulation.issueMove([...this.selectedSquads],point);this.ui.notify('Map move order issued');},{
       inspect:a=>{if(a.key.startsWith('facility:'))this.trenchPanel.inspectFacility(a.id);else if(a.networkId!==undefined)this.trenchPanel.open(a.networkId);else{this.camera.focus(a.point,100);this.trenchPanel.inspectAt(a.point);}},
-      prepare:a=>{this.simulation.prepareOrder([...this.selectedSquads],'assault',a.point,a.networkId);this.ui.notify('Prepared · formations hold for your GO signal');},
-      signal:()=>this.ui.notify(`GO · ${this.simulation.signalPrepared()} formations receive the signal next tick`),
+      prepare:a=>{this.simulation.prepareOrder([...this.selectedSquads],'assault',a.point,a.networkId);this.ui.notify('Review assault · current duties continue until GO');},
+      signal:()=>{this.simulation.signalPrepared();this.ui.notify(this.simulation.lastSignalReason);},
     });
     this.deploymentPanel=new DeploymentPanel(()=>this.state,(kind,count)=>{this.pendingDeployment={kind,count};this.setMode('deploy');this.ui.notify(`Place ${count} ${kind==='rifle'?'rifle squad':'engineer team'}${count>1?'s':''} · click clear ground · Esc finishes`);},point=>this.camera.focus(point,90),text=>this.ui.notify(text));
     this.input=new CommandInput({
@@ -186,7 +190,7 @@ export class FrontlinesApp {
       previewDeployment:point=>deploymentPreview(this.state,this.simulation.terrain,this.pendingDeployment.kind,this.pendingDeployment.count,point),
       onDeploy:point=>{if(this.simulation.commandsLocked||document.documentElement.dataset.replay)return;const result=deploySandbox(this.state,this.simulation.terrain,this.pendingDeployment.kind,this.pendingDeployment.count,point);if(result.ids.length)this.selectSquads(result.ids);this.ui.notify(result.reason,result.ids.length?'normal':'warn');},
       onMove: (point) => {this.simulation.issueMove([...this.selectedSquads], point);if(this.selectedSquads.size)this.ui.notify(`Move order · ${this.selectedSquads.size} squad${this.selectedSquads.size===1?'':'s'}`);},
-      onTactical:(mode,point)=>{this.simulation.issueTactical([...this.selectedSquads],mode,point);this.ui.notify(`${mode} order issued`);},
+      onTactical:(mode,point)=>{this.simulation.issueTactical([...this.selectedSquads],mode,point);this.ui.notify(mode==='assault'?'Review assault personnel and consequences, then confirm GO':`${mode} order issued`);},
       onSupport:(kind,point)=>{const pit=this.supportPosition,squad=selectedSupportTeam(this.state,this.selectedSquads,kind,this.simulation.terrain);if(kind==='smokeGrenades'?squad===undefined:pit===undefined&&!this.supportPositions.length){this.ui.notify(kind==='smokeGrenades'?'Select a squad with smoke grenades':'Open Fire support and choose your weapons','warn');return false;}const request=(risk:boolean)=>kind==='smokeGrenades'?requestSupport(this.state,kind,squad!,point,risk,this.simulation.terrain,'PLAYER'):this.supportPositions.length?requestSupportGroup(this.state,kind,this.supportPositions,point,risk,this.simulation.terrain):this.supportBattery?requestBatterySupport(this.state,kind,pit!,point,risk,this.simulation.terrain):requestPositionSupport(this.state,kind,pit!,point,risk,this.simulation.terrain,'PLAYER');let result=request(false);if(result.warning&&window.confirm(result.reason))result=request(true);this.ui.notify(result.reason,result.accepted?'normal':'warn');return result.accepted;},
       onDrawPath:(points,append,intent)=>{const ok=this.simulation.issueDrawnPath([...this.selectedSquads],points,append);if(ok&&intent)for(const q of this.state.squads.filter(q=>this.selectedSquads.has(q.id)&&factionOf(q)==='player'))q.order.intent=intent;this.ui.notify(ok?`${append?'Extended':'Drawn'} ${intent??'move'} route · ${this.selectedSquads.size} squad(s)`:'Route crosses a building or cannot be reached · adjust the corridor',ok?'normal':'warn');},
       onTrench: (points) => this.buildTrench(points),
@@ -270,7 +274,7 @@ export class FrontlinesApp {
     this.debugRenderer.update(realDt, this.flags, this.selectedSquads);
     phaseStart=performance.now();this.tactical.update(realDt);this.frameCosts.tactical=performance.now()-phaseStart;
     this.livingRenderer.update(now,this.garrisonPanel.showRoutes||this.deploymentPanel.showRoutes||this.trenchPanel.showRoutes,{...this.camera.target,zoom:this.camera.zoomDistance});this.garrisonPanel.update(now);
-    phaseStart=performance.now();this.trenchPanel.update();this.frameCosts.positions=performance.now()-phaseStart;
+    phaseStart=performance.now();this.trenchPanel.update();this.assaultOrders.update();this.frameCosts.positions=performance.now()-phaseStart;
     this.buildPanel.update();this.deploymentPanel.update();
     this.operationRenderer.update();this.operationUI.update(now);
     this.audio.update();

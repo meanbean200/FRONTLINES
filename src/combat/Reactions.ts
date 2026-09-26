@@ -4,6 +4,7 @@ import type {SquadNavigation} from '../navigation/SquadNavigation';
 import type {Reaction} from './types';
 import {chooseLocalCover,CoverSpace} from './LocalCover';
 import {insideWorld} from '../terrain/WorldLayout';
+import {effectiveSquad} from '../operations/AssaultPlan';
 
 const severity:Record<Reaction,number>={steady:0,'under-fire':1,shaken:2,pinned:3,broken:4};
 const duration:Record<Reaction,number>={steady:0,'under-fire':4,shaken:8,pinned:6,broken:20};
@@ -18,7 +19,7 @@ export function prepareActions(state:BattlefieldState,terrain:TerrainSystem,navi
   const space=new CoverSpace(state);
   for(const s of state.soldiers){
     if(!state.operation&&!s.combat)continue;
-    const c=s.combat??={shotSequence:0},q=squads.get(s.squadId)!;
+    const c=s.combat??={shotSequence:0},q=effectiveSquad(state,s,squads.get(s.squadId)!);
     s.posture??='standing';
     if(s.needs&&s.needs.life!=='active'){s.posture='prone';c.owner='casualty';continue;}
     const now=state.elapsed,recent=now-(c.lastIncoming??-1000)<4;

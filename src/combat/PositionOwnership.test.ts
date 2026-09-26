@@ -35,7 +35,7 @@ describe('position-owned installed weapons',()=>{
     const trench=state.trenches.find(t=>t.id===f.connectorId)!;trench.points[0].x-=30;trench.points[1].x+=30; // enough usable area for a full formation, not just a two-person fixture
     expect(sim.garrisons.assign([q.id],f.connectorId)).toBe(true);expect(f.weaponCrewIds).toContain(operator.id);expect(operator.duty?.kind).toBe('sleep');
     expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);
-    sim.garrisons.removeCrew(f.id);expect(positionReadiness(state,f)).toContain('NO GUNNER');expect(f.installation).toBeDefined();expect(f.stock).toEqual(stock);
+    sim.garrisons.removeCrew(f.id);expect(positionReadiness(state,f)).toContain('NO CREW');expect(f.installation).toBeDefined();expect(f.stock).toEqual(stock);
     expect(balance(state)).toEqual(before);
   });
   it('completion installs paid equipment exactly once, but never refills ready ammunition',()=>{

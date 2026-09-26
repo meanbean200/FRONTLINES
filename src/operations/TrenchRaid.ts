@@ -123,8 +123,8 @@ export class TrenchRaidSystem {
       // This is an ownership gate, not planner knowledge. Unseen/unsearched
       // branches cannot be captured remotely by touching the first entry.
       if(!raidSearchComplete(state,garrisons.network,o.networkId)){r.reason='Known passages searched · more reconnaissance required';continue;}
-      const ids=group.map(p=>p.squadId);
-      if(garrisons.assign(ids,o.networkId))for(const p of group){p.raid!.phase='secured';p.raid!.securedAt=state.elapsed;p.raid!.reason='POSITION SECURED · reorganizing defense';const q=state.squads.find(q=>q.id===p.squadId);if(q)q.orderNote=p.raid!.reason;}
+      const ids=group.map(p=>p.squadId),participants=group.flatMap(p=>p.assault?.participantIds??state.squads.find(q=>q.id===p.squadId)!.soldierIds);
+      if(garrisons.assign(ids,o.networkId,participants))for(const p of group){p.raid!.phase='secured';p.raid!.securedAt=state.elapsed;p.raid!.reason='POSITION SECURED · reorganizing defense';if(p.assault)p.assault.phase='secured';else{const q=state.squads.find(q=>q.id===p.squadId);if(q)q.orderNote=p.raid!.reason;}}
       else r.reason=garrisons.lastAssignment.reason;
     }
   }

@@ -191,3 +191,91 @@ the calendar until the remaining survival/crew gates are met.
 Historical one-off QA scripts that explicitly read the v3 key remain historical;
 refresh their fixtures before reuse. The maintained Edge suite and offline launch
 runner above were used for this v4 milestone instead. No prior evidence was erased.
+
+## Crew control continuation — 2026-09-26 (milestone A)
+
+Starting revision: `699e5da`. Overall release remains **PARTIAL**. The original
+long-journey deaths are still **not causally reproduced**. No new population or
+calendar defaults, neural training, or automation changes in this milestone.
+
+### Implementation
+
+- Added per-person `AssaultPlan` membership beneath unchanged squad identity.
+  NORMAL protects installed crews, construction, hauling and recovery; ALL IN
+  lists actual eligible people, exclusions, awakened sleepers, equipment gaps,
+  released worksites and weapon consequences before confirmation.
+- Preview/cancellation does not Hold formations, remove duties, pause queues or
+  reserve workers. Empty NORMAL previews stay open so a crew-only formation can
+  explicitly choose ALL IN. Changes before GO or before the release tick require
+  renewed confirmation; no unconfirmed participant is silently added.
+- Release occurs on a fixed tick. Detached route intent is used by movement,
+  reactions, cooperation, self-care, buildings and small arms. Nonparticipants
+  retain their existing order. Coordinators cannot reclaim committed personnel.
+- Physical cargo remains on its carrier, installed weapons stay at their posts,
+  spent materials/unfinished work remain, unfired affected missions cancel and
+  airborne shells continue. Cancelled detachments hold locally; return and
+  re-crewing require new orders and actual movement.
+- Persisted crew-relief reservation and approach/handover phases. The arriving
+  replacement does not occupy an operational crew berth before handover. Critical
+  recovery can leave a visible shortage; 90% readiness does not forbid rest.
+- Exclusive manpower precedence is recovery, assault, station crew, work,
+  available; relationship badges remain separate. Position blockers distinguish
+  crew rest/eating, relief, missing ammunition, pinning and obstruction.
+- Compatible v4 extension validates individual references and continuation state;
+  no original save is overwritten or assigned new personnel/supplies on migration.
+
+### Verification and failed evidence
+
+- Initial legacy tests expected whole-squad Hold/assault/capture; updated those
+  assertions to individual authority, keeping old behavior tests where applicable.
+- Focused tests cover pure preparation and live duty equivalence, empty NORMAL,
+  changed consequences, source-position membership, physical cargo/material/ammo
+  conservation, medical/critical exclusions, no auto-reclaim, partial mission
+  cancellation, save continuation and malformed membership rejection.
+- Crew fixture verifies real approach, timed handover, deterministic saves during
+  both phases, explicit cancellation, and an exhausted 90%-readiness crew with no
+  fit relief. The latter initially failed because the work-eligibility guard also
+  blocked rest; recovery uses its separate eligibility path after the repair.
+- Intermediate full run: 791/792, with the supplied noncombat 72-hour soak timing
+  out during concurrent build/browser work. Isolated rerun passed in 32.42 s,
+  without increasing the timeout. This is not the combined combat/cutoff soak.
+- New Edge UI test uses a declared synthetic occupied-post fixture and actual UI
+  thereafter: NORMAL protects two crew, ALL IN previews eight, cancel preserves
+  the post, GO waits for a tick, and detached save/Continue does not auto-recrew.
+  First test attempt failed due to a test-side closure variable; screenshot and
+  error context retained at `output/playwright/crew-control-failed-test-1/`.
+- Separate headed Edge controls on the production preview: Quick Battle, pause,
+  select Able, Assault ground target, NORMAL/ALL IN, Save, refresh, Continue.
+  Inspected screenshots at 1920x1080 and 844x390. Fixed duplicate GO controls,
+  closed the old detail drawer on review, and hid redundant selection information
+  during short-window review. Preview survived refresh; console reported zero
+  errors/warnings. This is desktop viewport emulation, not a physical phone.
+- Production/offline build succeeds; existing large-bundle warning remains.
+  Final frozen-source regression and packaging results are recorded below when
+  complete. Authoring, living menu/session isolation, occupied-traffic and full
+  cross-role/calendar gates are **not** implied by this milestone.
+
+### Milestone A delivery checks
+
+- Final full simulation run: **799/799, 115 files**, unchanged timeout limits.
+  Report: `docs/evidence/v1-crew-control/regressions-final.json` (earlier 796-test
+  passing report also retained). The final multi-squad release tests verify one
+  pre-release snapshot and withhold the entire signal if any participant changes.
+- Subsequent explicit reoccupation regression also passes: an initially stocked
+  operational post loses its crew, returning people receive an actual route, and
+  the gun becomes ready only after arrival. Its first fixture omitted shell stock
+  and correctly stayed NO AMMO; repaired the **initial test manifest**, not the
+  game, with two accounted rounds. Latest focused 16-test report is
+  `return-and-relief.json`. No infinite stock or runtime refill was introduced.
+- Maintained Edge UI suite **26/26**, zero skipped/flaky/unexpected, 119.80 s.
+  Includes separate Cancel assault control after GO and after save/Continue.
+  This full UI run preceded the final simulation-only atomic-batch correction;
+  that correction is covered by the full 799-test simulation run.
+- Build and offline packaging **5/5** pass. Isolated on-disk Edge launch of the
+  rebuilt HTML passes movement, exact paused save hashes, embedded workers,
+  1280x720/1920x1080 refresh sizing and no external network requests/errors.
+  Result: `docs/evidence/v1-crew-control/offline.json`.
+- Scope is individual assault/crew-control infrastructure and focused acceptance,
+  not certification of long-duration combat staffing or every release scenario.
+  Next: milestone B occupied production-network acceptance. Milestones C–G,
+  developer authoring and living-menu isolation remain pending.

@@ -20,6 +20,7 @@ interface UIActions {
   resume:()=>void;quality:(level:string)=>void;
   resumePreview?:()=>string;
   tactical?:(mode:'observe'|'suppress'|'assault'|'fall-back')=>void;pushThrough?:()=>void;
+  cancelAssault?:()=>void;
   support?:(kind:'mortarHE'|'mortarSmoke'|'smokeGrenades')=>void;
   fireGroup?:(ids:number[],kind:'mortarHE'|'mortarSmoke')=>void;
   staffWeapons?:(ids:number[])=>void;
@@ -48,6 +49,7 @@ export class BattlefieldUI {
     for(const [mode,label] of [['observe','Observe'],['suppress','Suppress'],['assault','Assault'],['fall-back','Withdraw']] as const){const b=document.createElement('button');b.innerHTML=fieldIcon(mode)+label;b.dataset.tactical=mode;b.title=mode==='suppress'?'Suppress a reported area; consumes real ammunition':mode==='fall-back'?'Draw a withdrawal route':mode==='observe'?'Face and observe a position':'Draw an assault route';b.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help)this.actions.tactical?.(mode);});optional.append(b);}
     const push=document.createElement('button');push.textContent='Push through';push.dataset.tactical='push';push.title='Accept exposure on this order. Does not override pinning or incapacitation.';push.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help)this.actions.pushThrough?.();});dock.append(push);
     const context=document.createElement('div');context.className='selection-actions';this.root.querySelector('.selection-card')!.append(context);
+    const cancelAssault=document.createElement('button');cancelAssault.id='cancel-assault';cancelAssault.hidden=true;cancelAssault.textContent='Cancel assault';cancelAssault.title='Stop the selected assault detachment here. Other squad members keep their duties; no automatic return or re-crewing.';cancelAssault.onclick=()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help)this.actions.cancelAssault?.();};this.root.querySelector('#selection-docket')!.append(cancelAssault);
     context.append(this.root.querySelector('#resume-command')!);optional.append(push);
     this.root.querySelector('#move-command')!.innerHTML=fieldIcon('move')+'Move';
     this.root.querySelector('#move-command')!.setAttribute('title','Draw a route [V] · right-drag also works');
@@ -152,6 +154,7 @@ export class BattlefieldUI {
     const panel=this.root.querySelector('#selection-detail')!,debug=this.root.querySelector('#debug-selection')!;
     const readout=selectionReadout(this.state,this.selected,this.terrain),docket=this.root.querySelector<HTMLElement>('#selection-docket')!;
     docket.hidden=!readout;
+    this.root.querySelector<HTMLButtonElement>('#cancel-assault')!.hidden=!this.state.preparedOrders?.some(o=>this.selected.has(o.squadId)&&o.releasedAt!==undefined&&o.assault&&o.assault.phase!=='secured');
     if(readout){
       const ammo=readout.able?readout.ammo/readout.able:0;
       const ammoLabel=ammo<10?'Low':ammo<25?'Limited':'Good',suppression=readout.suppression>65?'Pinned':readout.suppression>30?'High':'Low';

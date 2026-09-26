@@ -12,6 +12,7 @@ import {registerIncoming} from './Reactions';
 import {equipWeapon,weaponReady,WEAPONS} from './Weapons';
 import {combatWound} from './Casualties';
 import {operatedPosition,weaponStock} from './WeaponPositions';
+import {effectiveSquad} from '../operations/AssaultPlan';
 
 export const RIFLE_RULES=Object.freeze({range:360,shotInterval:3.8,damage:60});
 
@@ -32,7 +33,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     // when the next firing opportunity arrives. Cadence still gates the shot.
     if(!weaponReady(state,shooter,active)||op.elapsed<(shooter.nextShotAt??0))continue;
     const combat=shooter.combat??={shotSequence:0};
-    const squad=state.squads.find(q=>q.id===shooter.squadId)!,area=squad.order.intent==='suppress'?squad.order.target:undefined;
+    const squad=effectiveSquad(state,shooter,state.squads.find(q=>q.id===shooter.squadId)!),area=squad.order.intent==='suppress'?squad.order.target:undefined;
     const known=new Set(squadContacts(state,shooter.squadId).filter(c=>c.visible).map(c=>c.soldierId));
     const faction=factions.get(shooter.squadId)!,candidates:SoldierState[]=[];
     const cx=Math.floor(shooter.x/cell),cz=Math.floor(shooter.z/cell);

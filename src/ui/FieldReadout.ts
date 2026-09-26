@@ -22,7 +22,7 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>,
   if(orders.size===1&&squads.every(q=>q.order.type==='occupy-trench')&&['observe','suppress'].includes(first.order.intent??''))order=`Defending · ${order.toLowerCase()}`;
   if(squads.length===1)order=constructionStatus(state,first)??order;
   if(squads.length===1&&first.orderNote?.startsWith('Route blocked'))order=first.orderNote;
-  const prepared=state.preparedOrders?.filter(o=>ids.has(o.squadId)&&(o.releasedAt===undefined||o.raid));if(prepared?.length)order=preparedStatus(state,prepared[0]);
+  const prepared=state.preparedOrders?.filter(o=>ids.has(o.squadId)&&(o.releasedAt===undefined||o.raid||o.assault&&o.assault.phase!=='secured'));if(prepared?.length)order=preparedStatus(state,prepared[0]);
   const mission=state.operation?.supportMissions?.filter(m=>selected.has(m.squadId)).at(-1);
   if(mission&&(['preparing','flight'].includes(mission.stage)||state.elapsed-mission.requestedAt<30))order=SUPPORT_NAMES[mission.kind]+' · '+supportMissionText(mission,state.elapsed);
   const activities=new Map<string,number>();for(const s of able)activities.set(s.action,(activities.get(s.action)??0)+1);

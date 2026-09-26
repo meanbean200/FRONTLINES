@@ -4,10 +4,10 @@ import type {TrenchNetwork} from './TrenchNetwork';
 /** One accounting boundary for the inspector, assignment and reserve requests.
  * Living people retain their standing reservation during sleep, travel or evacuation.
  * Returning evacuees are already counted; new manifests reserve exactly one place. */
-export function networkCapacity(state:BattlefieldState,network:TrenchNetwork,trenchId:number,side:'player'|'enemy'='player',selected:number[]=[]){
+export function networkCapacity(state:BattlefieldState,network:TrenchNetwork,trenchId:number,side:'player'|'enemy'='player',selected:number[]=[],personIds?:number[]){
   const component=network.component(trenchId),groups=state.living?.garrisons.filter(g=>(g.faction??'player')===side&&component!==undefined&&network.component(g.trenchId)===component)??[];
   const groupIds=new Set(groups.map(g=>g.id)),squadIds=new Set([...groups.flatMap(g=>g.squadIds),...selected]);
-  const people=state.soldiers.filter(s=>s.needs?.life!=='dead'&&(groupIds.has(s.garrisonId!)||selected.includes(s.squadId)));
+  const people=state.soldiers.filter(s=>s.needs?.life!=='dead'&&(groupIds.has(s.garrisonId!)||(personIds?personIds.includes(s.id):selected.includes(s.squadId))));
   const manifests=state.operation?.campaign?.replacements?.manifests??[];
   const inbound=new Set(manifests.filter(m=>m.side===side&&m.stage!=='arrived'&&!m.returning&&squadIds.has(m.squadId)&&!people.some(s=>s.id===m.personId)).map(m=>m.personId)).size;
   const capacity=component===undefined?0:network.capacity(component);

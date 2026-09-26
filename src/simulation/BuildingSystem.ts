@@ -4,6 +4,7 @@ import type {SquadNavigation} from '../navigation/SquadNavigation';
 import {buildingContains,buildingFloors,doorPoint,firingPoints,floorHeight,stairPoint} from '../terrain/BuildingGeometry';
 import {postureSpeed} from '../combat/Posture';
 import {bodyBlocks,sameSide} from '../navigation/FriendlyTraffic';
+import {detachedFromFormation} from '../operations/AssaultPlan';
 
 /** Formation navigation uses a coarse grid. Its rounded first cell is not a
  * safe individual leg past a house corner. Validate every exterior leg and
@@ -42,7 +43,7 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
     const order=q.order.building,site=order?terrain.buildings[order.id]:undefined;
     const people=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life==='active');
     if(site&&order)for(const s of people){
-      if(s.building||s.combat?.owner==='reaction'||s.combat?.owner==='casualty'||s.selfCare&&s.selfCare.stage!=='return')continue;
+      if(detachedFromFormation(state,s)||s.building||s.combat?.owner==='reaction'||s.combat?.owner==='casualty'||s.selfCare&&s.selfCare.stage!=='return')continue;
       const points=firingPoints(site),level=Math.min(order.floor,buildingFloors(site)-1) as 0|1;
       const occupied=state.soldiers.filter(p=>p!==s&&p.needs?.life==='active'&&sides.get(p.squadId)===(q.faction??'player')).flatMap(p=>p.selfCare?.home.building?.id===order.id&&p.selfCare.home.building.floor===level?[p.selfCare.home.building.target]:p.building?.id===order.id&&p.building.targetFloor===level&&!p.building.exitRequested?[p.building.target]:[]);
       const reserved=s.selfCare?.home.building;
@@ -58,7 +59,7 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
       const task=c.careTask,patient=task?state.soldiers.find(p=>p.id===task.patientId):undefined;
       if(c.owner==='support'||c.owner==='casualty'&&(!task||task.stage==='treat')||c.reaction==='pinned')continue;
       const patientInside=patient?.building&&terrain.buildingAt(patient)===patient.building.id;
-      const personalOrder=task?(task.stage==='approach'&&patientInside?{id:patient.building!.id,floor:patient.building!.floor}:undefined):s.selfCare?.stage==='exit'?undefined:order;
+      const personalOrder=task?(task.stage==='approach'&&patientInside?{id:patient.building!.id,floor:patient.building!.floor}:undefined):s.selfCare?.stage==='exit'||detachedFromFormation(state,s)?undefined:order;
       const leaving=!personalOrder||personalOrder.id!==inside.id||c.reaction==='broken';
       // An Occupy reservation exists during the exterior approach. Cancelling
       // it for aid/withdrawal is not an indoor exit: walking to the hall first

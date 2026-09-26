@@ -33,29 +33,49 @@ import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
 import {resumeWorkChoices} from '../construction/ResumeWork';
 import {observeTrenches,knownTrenchNetworks} from '../operations/TrenchIntelligence';
 import {prepareRaid,TrenchRaidSystem} from '../operations/TrenchRaid';
-import {raidEligibility} from '../operations/RaidEligibility';
+import {previewAssault,sameAssaultPreview,commitAssault,assaultSquad,detachedFromFormation} from '../operations/AssaultPlan';
 
 export class BattlefieldSimulation {
   readonly stepCosts={actions:0,movement:0,earthworks:0,garrison:0,combat:0,terrainIntel:0,support:0,total:0};
-  prepareOrder(ids:number[],intent:TacticalIntent,target:Vec2,networkId?:number,includeWeaponCrews=false):number {
+  prepareOrder(ids:number[],intent:TacticalIntent,target:Vec2,networkId?:number,includeWeaponCrews=false,sourcePositionIds?:number[]):number {
     if(this.commandsLocked||![target.x,target.z].every(Number.isFinite))return 0;
-    if(intent==='assault')ids=raidEligibility(this.state,ids,includeWeaponCrews).eligible;
-    const chosen=this.state.squads.filter(q=>ids.includes(q.id)&&q.faction!=='enemy'&&this.state.soldiers.some(s=>s.squadId===q.id&&s.needs?.life==='active'));
-    this.issueHold(chosen.map(q=>q.id));
+    const staffing=includeWeaponCrews?'all-in':'normal';
+    const chosen=this.state.squads.filter(q=>ids.includes(q.id)&&q.faction!=='enemy'&&this.state.soldiers.some(s=>s.squadId===q.id&&s.health>0&&s.needs?.life!=='dead'));
     const orders=this.state.preparedOrders??=[];
     const known=intent==='assault'?knownTrenchNetworks(this.state).find(n=>n.id===networkId):undefined;
     const reserved=orders.filter(o=>o.networkId===networkId&&o.releasedAt===undefined&&o.raid).map(o=>o.raid!.entry);
-    for(const [i,q] of chosen.entries()){const old=orders.findIndex(o=>o.squadId===q.id);if(old>=0)orders.splice(old,1);const raid=known?prepareRaid(this.state,q,known,i,chosen.length,reserved):undefined;if(raid)reserved.push(raid.entry);orders.push({squadId:q.id,intent,target:{...this.terrain.clampToWorld(target)},networkId,preparedAt:this.state.elapsed,...(raid?{raid}:{})});q.orderNote='WAIT FOR SIGNAL';}
-    return chosen.length;
+    let prepared=0;
+    for(const [i,q] of chosen.entries()){
+      const old=orders.findIndex(o=>o.squadId===q.id);if(old>=0){if(orders[old].releasedAt!==undefined)continue;orders.splice(old,1);}
+      const preview=intent==='assault'?previewAssault(this.state,[q.id],staffing,sourcePositionIds):undefined;
+      const participants=preview?this.state.soldiers.filter(s=>preview.participantIds.includes(s.id)):[];
+      const origin=participants.length?{...q,x:participants.reduce((n,s)=>n+s.x,0)/participants.length,z:participants.reduce((n,s)=>n+s.z,0)/participants.length}:q;
+      const raid=known&&participants.length?prepareRaid(this.state,origin,known,i,chosen.length,reserved):undefined;
+      if(raid){reserved.push(raid.entry);raid.startingAble=preview?.participantIds.length??raid.startingAble;}
+      orders.push({squadId:q.id,intent,target:{...this.terrain.clampToWorld(target)},networkId,preparedAt:this.state.elapsed,...(raid?{raid}:{}),...(preview?{assault:{staffing,sourcePositionIds,preview,participantIds:preview.participantIds.slice(),phase:'preview' as const}}:{})});prepared++;
+    }
+    return prepared;
   }
-  signalPrepared():number {if(this.commandsLocked)return 0;const orders=(this.state.preparedOrders??[]).filter(o=>o.releasedAt===undefined);for(const o of orders)o.signalAt=this.state.elapsed;return orders.length;}
+  lastSignalReason='';
+  signalPrepared():number {
+    if(this.commandsLocked)return 0;
+    const orders=(this.state.preparedOrders??[]).filter(o=>o.releasedAt===undefined);let changed=false;
+    for(const o of orders)if(o.assault){const preview=previewAssault(this.state,[o.squadId],o.assault.staffing,o.assault.sourcePositionIds);if(!sameAssaultPreview(preview,o.assault.preview)){o.assault.preview=preview;o.assault.participantIds=preview.participantIds.slice();o.assault.reviewRequired=true;delete o.signalAt;changed=true;}}
+    if(changed){this.lastSignalReason='Personnel or consequences changed · review the preview, then confirm GO again';return 0;}
+    const eligible=orders.filter(o=>!o.assault||o.assault.participantIds.length);
+    for(const o of eligible){o.signalAt=this.state.elapsed;if(o.assault)delete o.assault.reviewRequired;}
+    this.lastSignalReason=eligible.length?`GO · ${eligible.length} detachments receive the signal next tick`:'No eligible participants';return eligible.length;
+  }
   cancelPrepared(ids?:number[],stop=true):void {
     const cancelled=(this.state.preparedOrders??[]).filter(o=>!ids||ids.includes(o.squadId));
     this.state.preparedOrders=(this.state.preparedOrders??[]).filter(o=>ids&&!ids.includes(o.squadId));
     for(const o of cancelled){const q=this.state.squads.find(q=>q.id===o.squadId);if(q?.orderNote==='WAIT FOR SIGNAL')delete q.orderNote;}
     // Cancelling the marker must also stop its already-released intention.
     // Remove the records first: Hold also clears prepared intentions.
-    if(stop&&cancelled.length)this.issueHold(cancelled.map(o=>o.squadId));
+    if(stop){
+      for(const o of cancelled)if(o.assault&&o.releasedAt!==undefined)for(const s of this.state.soldiers.filter(s=>o.assault!.participantIds.includes(s.id))){s.assaultHold=this.state.elapsed;delete s.formationTravel;s.action='holding · assault cancelled';}
+      const legacy=cancelled.filter(o=>!o.assault&&o.releasedAt!==undefined);if(legacy.length)this.issueHold(legacy.map(o=>o.squadId));
+    }
   }
   lastResumeReason='Choose a local worksite';
   previewResume(squadId:number,requested?:number){const q=this.state.squads.find(q=>q.id===squadId);return q?resumeWorkChoices(this.state,this.garrisons.network,q,t=>this.engineers.workFaces(t,q),requested):{reason:'Select a formation',candidates:[]};}
@@ -107,8 +127,8 @@ export class BattlefieldSimulation {
 
   private resumeSavedOrders():void {
     if(this.commandsLocked)return;
-    for(const squad of this.state.squads)if(squad.order.type==='occupy-trench'&&squad.order.trenchId&&!this.state.soldiers.some(s=>s.squadId===squad.id&&s.garrisonId!==undefined))this.garrisons.assign([squad.id],squad.order.trenchId);
-    for(const squad of this.state.squads)if(squad.order.type==='construct-trench'&&squad.workStarted===undefined&&squad.order.trenchId)this.startConstruction(squad,squad.order.trenchId);
+    for(const squad of this.state.squads)if(squad.order.type==='occupy-trench'&&squad.order.trenchId&&!this.state.soldiers.some(s=>s.squadId===squad.id&&(s.garrisonId!==undefined||detachedFromFormation(this.state,s))))this.garrisons.assign([squad.id],squad.order.trenchId);
+    for(const squad of this.state.squads)if(squad.order.type==='construct-trench'&&squad.workStarted===undefined&&squad.order.trenchId&&!this.state.soldiers.some(s=>s.squadId===squad.id&&detachedFromFormation(this.state,s)))this.startConstruction(squad,squad.order.trenchId);
     for(const squad of this.state.squads)if(squad.order.type==='move'&&squad.order.target&&!squad.route.length){if(squad.order.drawnPath)this.planDrawnApproach(squad);else this.planSquadRoute(squad,squad.order.target);}
   }
 
@@ -140,7 +160,22 @@ export class BattlefieldSimulation {
     this.state.elapsed += dt;
     // Release all signalled intentions on this fixed tick; normal physical reactions still own movement.
     const released=(this.state.preparedOrders??[]).filter(o=>o.signalAt!==undefined&&o.releasedAt===undefined);
-    for(const o of released){this.issueTactical([o.squadId],o.intent,o.raid?.entry??o.target,true);o.releasedAt=this.state.elapsed;if(o.raid){o.raid.phase='approach';o.raid.reason='GO · approaching assigned trench entry';}}
+    // Validate the entire signal against one pre-release world. Releasing the
+    // first squad must not make a second squad's own confirmed staffing stale.
+    const checks=released.filter(o=>o.assault).map(o=>({o,preview:previewAssault(this.state,[o.squadId],o.assault!.staffing,o.assault!.sourcePositionIds)}));
+    const changed=checks.some(({o,preview})=>!sameAssaultPreview(preview,o.assault!.preview)||!preview.participantIds.length);
+    if(changed){
+      for(const o of released)delete o.signalAt;
+      for(const {o,preview} of checks){o.assault!.preview=preview;o.assault!.participantIds=preview.participantIds.slice();o.assault!.reviewRequired=true;}
+    }
+    for(const o of released){
+      if(changed)continue;
+      if(o.assault){
+        const q=this.state.squads.find(q=>q.id===o.squadId)!;commitAssault(this.state,q,o.assault,o.raid?.entry??o.target);
+        o.assault.march!.route=this.navigation.planFormation(o.assault.march!,o.assault.march!.order.target!);
+      }else this.issueTactical([o.squadId],o.intent,o.raid?.entry??o.target,true);
+      o.releasedAt=this.state.elapsed;if(o.raid){o.raid.startingAble=o.assault?.participantIds.length??o.raid.startingAble;o.raid.phase='approach';o.raid.reason='GO · approaching assigned trench entry';}
+    }
     if(released.length)this.state.preparedOrders=[...(this.state.preparedOrders??[]).filter(o=>!released.some(r=>r.squadId===o.squadId)),...released];
     prepareActions(this.state,this.terrain,this.navigation,dt);
     updateCasualtyCare(this.state,this.terrain,this.navigation,dt);
@@ -155,7 +190,7 @@ export class BattlefieldSimulation {
     this.engineers.finishFrame(dt);
     this.stepCosts.movement=performance.now()-phase;phase=performance.now();
     this.trenches.update(dt);
-    for(const squad of this.state.squads)if(squadHasEquipment(this.state,squad,'tools')&&squad.order.type==='hold'&&squad.constructionQueue?.length){const job=squad.constructionQueue.shift()!;if(typeof job==='number'||job.kind==='trench')this.startConstruction(squad,typeof job==='number'?job:job.id);}
+    for(const squad of this.state.squads)if(squadHasEquipment(this.state,squad,'tools')&&squad.order.type==='hold'&&squad.constructionQueue?.length&&!this.state.soldiers.some(s=>s.squadId===squad.id&&detachedFromFormation(this.state,s))){const job=squad.constructionQueue.shift()!;if(typeof job==='number'||job.kind==='trench')this.startConstruction(squad,typeof job==='number'?job:job.id,true);}
     this.terrain.syncModifications();
     this.stepCosts.earthworks=performance.now()-phase;phase=performance.now();
     stepReplacements(this.state,dt);
@@ -215,7 +250,7 @@ export class BattlefieldSimulation {
     if(this.commandsLocked||!Number.isFinite(target.x)||!Number.isFinite(target.z))return;
     if(intent==='assault'&&!releasing){
       const known=knownTrenchNetworks(this.state).find(n=>n.sections.some(s=>distance(target,{x:(s.points[0].x+s.points[1].x)/2,z:(s.points[0].z+s.points[1].z)/2})<12));
-      if(known){this.prepareOrder(squadIds,intent,target,known.id);for(const o of this.state.preparedOrders??[])if(squadIds.includes(o.squadId))o.signalAt=this.state.elapsed;return;}
+      this.prepareOrder(squadIds,intent,target,known?.id);return;
     }
     if(intent==='observe'||intent==='suppress')this.issueHold(squadIds);else this.issueMove(squadIds,target);
     for(const q of this.state.squads.filter(q=>squadIds.includes(q.id)&&factionOf(q)==='player')){
@@ -327,7 +362,7 @@ export class BattlefieldSimulation {
     this.formationWalker.begin(this.state);
     const soldiersById = new Map(this.state.soldiers.map((soldier) => [soldier.id, soldier]));
     for (const squad of this.state.squads) {
-      const soldiers = squad.soldierIds.map((id) => soldiersById.get(id)).filter((soldier): soldier is SoldierState => Boolean(soldier)&&!soldier!.personalArea&&(!soldier!.needs||soldier!.needs.life==='active'));
+      const soldiers = squad.soldierIds.map((id) => soldiersById.get(id)).filter((soldier): soldier is SoldierState => Boolean(soldier)&&!soldier!.personalArea&&!detachedFromFormation(this.state,soldier!)&&(!soldier!.needs||soldier!.needs.life==='active'));
       if (soldiers.length === 0) continue;
       if (squad.order.type === 'move') this.updateMovingSquad(squad, soldiers, dt);
       else if (squad.order.type === 'occupy-trench') squad.movementState='entrenching';
@@ -340,6 +375,15 @@ export class BattlefieldSimulation {
           soldier.cover = this.terrain.coverAt(soldier.x, soldier.z);
         });
       }
+    }
+    for(const o of this.state.preparedOrders??[]){
+      const a=o.assault,q=this.state.squads.find(q=>q.id===o.squadId);if(!a?.march||a.phase==='secured'||o.releasedAt===undefined||!q)continue;
+      const people=this.state.soldiers.filter(s=>a.participantIds.includes(s.id)&&s.needs?.life==='active');if(!people.length)continue;
+      const detached=assaultSquad(q,a);detached.x=people.reduce((n,s)=>n+s.x,0)/people.length;detached.z=people.reduce((n,s)=>n+s.z,0)/people.length;
+      if(detached.order.type==='move')this.updateMovingSquad(detached,people,dt);
+      else for(const s of people)if(ownsAction(s,'order'))s.action='holding assault objective';
+      a.march={x:detached.x,z:detached.z,order:detached.order,route:detached.route,routeIndex:detached.routeIndex,movementState:detached.movementState,orderNote:detached.orderNote,tactics:detached.tactics};
+      if(detached.order.type==='hold')a.phase='holding';
     }
   }
 
@@ -371,7 +415,8 @@ export class BattlefieldSimulation {
     const soldiersById = new Map(this.state.soldiers.map((soldier) => [soldier.id, soldier]));
     for (const squad of this.state.squads) {
       // Casualties stay where they fell; they cannot anchor the survivors' route or flag.
-      const soldiers = squad.soldierIds.map((id) => soldiersById.get(id)).filter((soldier): soldier is SoldierState => Boolean(soldier) && !soldier!.personalArea && soldier!.health > 0 && (!soldier!.needs || soldier!.needs.life === 'active'));
+      let soldiers = squad.soldierIds.map((id) => soldiersById.get(id)).filter((soldier): soldier is SoldierState => Boolean(soldier) && !soldier!.personalArea && soldier!.health > 0 && (!soldier!.needs || soldier!.needs.life === 'active'));
+      const home=soldiers.filter(s=>!detachedFromFormation(this.state,s));if(home.length)soldiers=home;
       if (soldiers.length === 0) continue;
       squad.x = soldiers.reduce((sum, soldier) => sum + soldier.x, 0) / soldiers.length;
       squad.z = soldiers.reduce((sum, soldier) => sum + soldier.z, 0) / soldiers.length;
@@ -386,6 +431,7 @@ export class BattlefieldSimulation {
   private clearTrenchAssignments(squad: SquadState): void {
     this.garrisons.release(squad.id);
     for (const soldier of this.soldiersFor(squad)) {
+      delete soldier.assaultHold;
       delete soldier.formationTravel;
       if(soldier.combat?.careTask){delete soldier.combat.careTask;soldier.combat.nextCareReview=this.state.elapsed+15;}
       delete soldier.trenchId;
@@ -416,10 +462,10 @@ export class BattlefieldSimulation {
     for(const t of this.state.trenches)if(t.engineerSquadId===squad.id&&t.status==='building'&&!stillWorking(t.id))t.status='planned';
     squad.constructionQueue=[];squad.workStarted=false;delete squad.engineerWork;squad.orderNote=undefined;
   }
-  private startConstruction(squad:SquadState,trenchId:number):boolean {
+  private startConstruction(squad:SquadState,trenchId:number,preservePreview=false):boolean {
     const trench=this.state.trenches.find(t=>t.id===trenchId);if(!trench||trench.status==='complete')return false;
     if(!this.engineers.start(squad,trench)){trench.status='planned';return false;}
-    this.cancelPrepared([squad.id],false);
+    if(!preservePreview)this.cancelPrepared([squad.id],false);
     this.clearTrenchAssignments(squad);
     return true;
   }

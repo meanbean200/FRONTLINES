@@ -48,7 +48,7 @@ describe('persistent physical trench raid',()=>{
     }
     expect({entered,orders:state.preparedOrders!.map(o=>({phase:o.raid!.phase,reason:o.raid!.reason,entry:o.raid!.entry,members:o.raid!.members})),squads:state.squads.slice(0,3).map(q=>({x:q.x,z:q.z,order:q.order,route:q.route}))}).toMatchObject({entered:true});expect(partial).toBe(true);
     expect(state.preparedOrders!.map(o=>({phase:o.raid!.phase,reason:o.raid!.reason,cleared:o.raid!.cleared.length,members:o.raid!.members}))).toEqual(expect.arrayContaining([expect.objectContaining({phase:'secured'})]));
-    expect(state.squads.filter(q=>ids.includes(q.id)).every(q=>q.order.type==='occupy-trench')).toBe(true);
+    expect(state.soldiers.filter(s=>ids.includes(s.squadId)).every(s=>s.personalArea&&s.garrisonId!==undefined)).toBe(true);
     expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);
   },20000);
   it('retains failed assault identity, regroups physically and accepts a new preparation',()=>{
@@ -58,6 +58,8 @@ describe('persistent physical trench raid',()=>{
     const o=state.preparedOrders!.find(o=>o.squadId===ids[0])!;
     expect(['regrouping','failed']).toContain(o.raid!.phase);expect(preparedStatus(state,o)).toContain('ASSAULT FAILED');
     expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);
+    // New previews never replace an already released intention. Cancel explicitly first.
+    expect(sim.prepareOrder([ids[0]],'assault',o.target,id)).toBe(0);sim.cancelPrepared([ids[0]]);
     expect(sim.prepareOrder([ids[0]],'assault',o.target,id)).toBe(1);expect(state.preparedOrders!.find(o=>o.squadId===ids[0])!.raid!.phase).toBe('wait');
   });
   it('cannot bypass progressive search by securing another branch of the same network',()=>{

@@ -25,6 +25,7 @@ export class HudLayout {
     // Retire drawer state when entering the spacious layout; do not close a
     // player's open trench inspector merely because the window was resized.
     this.compact.addEventListener('change',()=>{this.setPanel(undefined);this.schedule();});
+    window.addEventListener('frontlines-assault-review',()=>{this.setPanel(undefined);this.garrison.open=false;if(support)support.open=false;});
     window.addEventListener('frontlines-menu',()=>{this.setPanel(undefined);this.garrison.open=false;if(support)support.open=false;root.querySelector<HTMLDetailsElement>('.hud-tools')!.open=false;});
     window.addEventListener('keydown',e=>{if(e.code!=='Escape'||document.documentElement.dataset.menu||document.documentElement.dataset.fieldMap)return;if(root.dataset.hudPanel||this.garrison.open||support?.open){this.setPanel(undefined);this.garrison.open=false;if(support)support.open=false;e.preventDefault();e.stopImmediatePropagation();}},true);
     const observer=new ResizeObserver(()=>this.schedule());

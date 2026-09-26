@@ -16,6 +16,8 @@ export type ConstructionJob = {kind:'trench'|'facility';id:number};
 export type ConstructionRequest = {kind:'trench';points:Vec2[];engineerSquadId?:number}|{kind:'facility';garrisonId:number;facilityKind:import('../garrison/types').Facility['kind'];origin:Vec2;position:Vec2;facing?:number;explicit?:boolean;guns?:1|4};
 
 export interface SoldierState extends Vec2 {
+  /** After cancelling a detached assault, hold here until explicitly reassigned. */
+  assaultHold?:number;
   death?:import('../simulation/DeathRecord').DeathRecord;
   formationTravel?:import('../navigation/FormationWalker').FormationTravel;
   /** Temporary survival task. Standing formation/building orders remain authoritative. */

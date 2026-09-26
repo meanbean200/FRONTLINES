@@ -49,7 +49,7 @@ export class TrenchPanel {
   get inspectedFloor(){return this.buildingFloor;}
   constructor(private sim:BattlefieldSimulation,private camera:StrategyCamera,private selected:ReadonlySet<number>,private actions:Actions){
     const root=document.querySelector<HTMLElement>('#ui-root')!;
-    this.signal.id='signal-orders';this.signal.hidden=true;this.signal.onclick=()=>{const n=this.sim.signalPrepared();this.actions.notify(`GO · ${n} formations receive the signal on the next simulation tick`);};root.append(this.signal);
+    this.signal.id='signal-orders';this.signal.hidden=true;this.signal.onclick=()=>{this.sim.signalPrepared();this.actions.notify(this.sim.lastSignalReason);};root.append(this.signal);
     this.button.id='trenches-command';this.button.innerHTML=fieldIcon('defend')+'Positions';this.button.setAttribute('aria-expanded','false');root.querySelector('.hud-tools summary')!.after(this.button);
     this.element.id='trench-panel';this.element.className='trench-panel position-inspector';this.element.hidden=true;this.element.setAttribute('aria-label','Position management');
     this.element.innerHTML='<header><div><small>POSITION / TRENCH NETWORK</small><h2>Position</h2></div><button data-close aria-label="Close position management">×</button></header><label class="position-picker">Trench<select id="trench-choice" aria-label="Trench"></select></label><nav class="position-tabs" aria-label="Position pages">'+(['overview','personnel','weapons','construction','supplies'] as Page[]).map(p=>'<button data-page="'+p+'">'+({overview:'Overview',personnel:'People',weapons:'Weapons',construction:'Build',supplies:'Supplies'}[p])+'</button>').join('')+'</nav><div class="position-content"></div>';
@@ -111,13 +111,13 @@ export class TrenchPanel {
     if(this.enemy){
       const target=this.enemy.point,ids=[...this.selected];
       if(b.hasAttribute('data-enemy-locate'))this.camera.focus(target,140);
-      if(b.hasAttribute('data-signal'))this.actions.notify(`GO · ${this.sim.signalPrepared()} formations`);
+      if(b.hasAttribute('data-signal')){this.sim.signalPrepared();this.actions.notify(this.sim.lastSignalReason);}
       if(b.hasAttribute('data-cancel-prepared'))this.sim.cancelPrepared();
       if(b.hasAttribute('data-secure-network')){const taken=this.sim.assignGarrison(ids,this.enemy.id);this.actions.notify(taken?'Position secured · installed equipment and stores retained':this.sim.garrisons.lastAssignment.reason);if(taken)this.enemy=undefined;this.update(true);return;}
       const action=b.dataset.enemyAction;
       if(action){const intent=(action==='approach'?'move':action==='stage'?'assault':action==='stage-support'?'suppress':action) as 'move'|'observe'|'suppress'|'assault';
         if(!ids.length)this.actions.notify('Select the formations first · Shift-click adds squads');
-        else if(action.startsWith('stage')||action==='assault'){const n=this.sim.prepareOrder(ids,intent,target,this.enemy.id,this.includeWeaponCrews);if(action==='assault')for(const o of this.sim.state.preparedOrders??[])if(ids.includes(o.squadId)&&o.releasedAt===undefined)o.signalAt=this.sim.state.elapsed;this.actions.notify(n?`${n} formations ${action==='assault'?'assaulting':'prepared · WAIT for GO'} · assigned weapon crews protected unless released`:'No eligible formations · weapon crews remain at their posts');this.includeWeaponCrews=false;}
+        else if(action.startsWith('stage')||action==='assault'){const n=this.sim.prepareOrder(ids,intent,target,this.enemy.id,this.includeWeaponCrews);this.actions.notify(n?'Review personnel and consequences · current duties continue until GO':'No eligible personnel · protected roles remain at their posts');this.includeWeaponCrews=false;if(intent==='assault')this.close();}
         else this.sim.issueTactical(ids,intent,target);
       }
       this.update(true);return;
@@ -151,7 +151,7 @@ export class TrenchPanel {
   }
   update(force=false):void{
     const state=this.sim.state,network=this.sim.garrisons.network;this.button.disabled=this.locked();
-    const prepared=state.preparedOrders?.filter(o=>o.releasedAt===undefined)??[];this.signal.hidden=!prepared.length||this.locked();this.signal.textContent=`GO · ${prepared.length} prepared`;this.signal.disabled=prepared.every(o=>o.signalAt!==undefined);
+    const prepared=state.preparedOrders?.filter(o=>o.releasedAt===undefined)??[];this.signal.hidden=!prepared.length||prepared.some(o=>o.assault)||this.locked();this.signal.textContent=`GO · ${prepared.length} prepared`;this.signal.disabled=prepared.every(o=>o.signalAt!==undefined);
     // The existing emergency decision owns the right drawer until it is answered.
     if(!this.element.hidden&&state.living!.garrisons.some(g=>g.faction!=='enemy'&&g.cutoff==='decision'))this.close();
     if(force||performance.now()-this.last>250){
@@ -177,7 +177,7 @@ export class TrenchPanel {
       for(const e of this.element.querySelectorAll<HTMLElement>('.position-picker,.position-tabs'))e.hidden=true;
       const eligibility=raidEligibility(state,[...this.selected],this.includeWeaponCrews);
       const orders=(state.preparedOrders??[]).filter(o=>o.networkId===this.enemy!.id),html='<p>'+Math.round(this.enemy.length)+' m known · occupants unknown</p><p>Orders target remembered ground. Unseen extensions and current strength are not reported.</p><div class="position-actions">'+[['observe','Observe'],['suppress','Suppress'],['approach','Approach'],['assault','Assault'],['stage','Prepare assault'],['stage-support','Prepare support']].map(([id,label])=>'<button data-enemy-action="'+id+'" '+(!this.selected.size?'disabled':'')+'>'+label+'</button>').join('')+'<button data-enemy-locate>Locate</button><button data-secure-network '+(!this.selected.size?'disabled':'')+'>Secure & defend</button></div>'+orders.map(o=>'<p>'+esc(state.squads.find(q=>q.id===o.squadId)?.name)+' · '+esc(o.intent)+'<small>'+preparedStatus(state,o)+'</small></p>').join('')+(orders.length?'<div class="position-actions"><button data-signal>GO · signal all</button><button data-cancel-prepared>Cancel prepared orders</button></div>':'');
-      const view=`<p>${eligibility.eligible.length} selected formations / ${eligibility.people} able available for assault · ${eligibility.protectedIds.length} formations assigned to weapons.</p><details><summary>Weapon-crew protection</summary><p>Mixed formations stay home with their gun crews. Choose other infantry, or explicitly release the whole formation.</p><label><input type="checkbox" data-raid-release-crews ${this.includeWeaponCrews?'checked':''}> Include formations with weapon crews for this order</label></details>`+html;
+      const view=`<p>${eligibility.people} eligible individuals in ${eligibility.eligible.length} formations. Normal assault preserves station crews and workers without holding the rest of their squads.</p><label><input type="checkbox" data-raid-release-crews ${this.includeWeaponCrews?'checked':''}> Preview ALL IN · review crew/work consequences before GO</label>`+html;
       if(this.key!==view){this.key=view;updateLiveContent(this.element.querySelector('.position-content')!,view);}return;
     }
     const house=this.buildingId>=0?buildingReadout(state,this.sim.terrain,this.buildingId):undefined;
