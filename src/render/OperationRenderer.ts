@@ -7,6 +7,8 @@ import type {VisualQuality} from './VisualQuality';
 
 /** Small reusable meshes, no per-frame text textures, lights, or allocations per shot. */
 export class OperationRenderer {
+  /** Presentation only. AI observation remains faction-local. */
+  cinematic=false;
   readonly group = new THREE.Group();
   private identity?: object;
   private markers: { ring: THREE.Mesh; flag: THREE.Mesh }[] = [];
@@ -40,6 +42,7 @@ export class OperationRenderer {
       }
     }
     op?.objectives.forEach((o, i) => {
+      this.markers[i].ring.visible=!this.cinematic&&!op.runtime;
       const color = op.runtime&&!op.endless?0xdbca96:o.contested ? 0xc5a568 : o.owner === 'player' ? 0x9bacb2 : o.owner === 'enemy' ? 0xb8796b : 0xdbca96;
       for (const mesh of [this.markers[i].ring, this.markers[i].flag]) (mesh.material as THREE.MeshBasicMaterial).color.setHex(color);
     });
@@ -61,7 +64,7 @@ export class OperationRenderer {
     const matrix=new THREE.Matrix4();let dangers=0;
     this.effects.update(state,this.terrain);
     for(const mission of op?.supportMissions??[]){if(dangers>=32||!['preparing','flight'].includes(mission.stage)||enemySquads.has(mission.squadId)||!mission.dangerRadius)continue;matrix.makeScale(mission.dangerRadius,1,mission.dangerRadius);matrix.setPosition(mission.target.x,this.terrain.heightAt(mission.target.x,mission.target.z)+1,mission.target.z);this.danger.setMatrixAt(dangers++,matrix);}
-    this.danger.count=dangers;
+    this.danger.count=this.cinematic?0:dangers;
     // Reports remain as restrained, aged screen-space annotations in TacticalOverlay.
     // Do not paint remembered/sound uncertainty as magic ground targeting circles.
     this.danger.frustumCulled=false;this.danger.instanceMatrix.needsUpdate=true;

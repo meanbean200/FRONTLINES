@@ -1,0 +1,33 @@
+{
+  "scope": "Offline standalone Endless via normal controls; isolated profile; no injected state",
+  "errors": [],
+  "requests": [
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/endless-disk-sgwkqB/FRONTLINES.html",
+    "blob:null/1316dbda-5942-4ba5-a1e0-1ecffa720a02",
+    "blob:null/e401687d-26a2-4efe-9912-42a99fb9122b",
+    "blob:null/fa6e2a95-87d2-4084-9f41-a26d144053e0",
+    "blob:null/1dd559e3-c4e4-4321-aad5-ad4a18d95fe6",
+    "blob:null/00fa1abb-b6ef-49b8-9cbf-2f8584c83c4a",
+    "blob:null/19dbed96-72f5-4005-a943-11fb94fca48f",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/endless-disk-sgwkqB/FRONTLINES.html",
+    "blob:null/d205db0f-d01e-4150-b9dc-5621ae7e68c7",
+    "blob:null/5202bec8-68b6-45e2-bd46-dcf041075f8e",
+    "blob:null/715ce28d-081b-416b-946c-66636b907018",
+    "blob:null/9f697623-6dec-41bb-a3a4-d4915cce4b0c",
+    "blob:null/ec3b04d3-d182-409b-8996-3a0be5aa3ccc",
+    "file:///C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/endless-disk-sgwkqB/FRONTLINES.html",
+    "blob:null/8ed9eea3-90af-4801-a726-447cf2caded8",
+    "blob:null/6eeca360-276b-402e-9928-77d5e0ad0b62",
+    "blob:null/461aaf54-c02f-4be1-89f9-86e1c1cf525a",
+    "blob:null/a67c8e13-74e5-43e1-962a-44366427c4eb"
+  ],
+  "checks": {
+    "exactContinue": true,
+    "cancelUnchanged": true,
+    "explicitEndPreservesSave": true,
+    "concludedRecordRestores": true,
+    "noNetworkDependencies": true
+  },
+  "folder": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\output\\playwright\\endless-disk-sgwkqB",
+  "stateHash": "4857f1f7b066991da1d815ba0298aeca85a6dc74071b493030924ed37f1085aa"
+}

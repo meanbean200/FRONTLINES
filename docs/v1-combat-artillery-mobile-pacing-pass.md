@@ -757,3 +757,123 @@ stock/damage is not discarded to create a misleading bounded-count result.
 No automation, neural training, unrelated system rewrite or platform submission
 was started. This validated foundation is not a claim that Endless is delivered
 under section 50 of the handoff.
+
+## 2026-09-26 — DEV + living home corrective pass
+
+Verified starting local/remote master:
+`7179b8a667e34a1e997217af645722ae2a8e410e`. Continued on top of Endless;
+no reset to the earlier DEV/menu commit. **Overall PARTIAL.** The previous E/F
+implementation was mechanically **IMPLEMENTED / BROWSER VERIFIED**, but is now
+recorded as **USER REJECTED UX/performance**. This corrective revision is not
+user acceptance. Original long-journey deaths remain **not causally reproduced**.
+
+### Issue status and architectural repair
+
+- **USER-REPORTED:** laggy authoring, unclear/broken-feeling authored units,
+  uncomfortable workflow, home battlefield filling only part of the window,
+  and distant/hard-to-read title action.
+- **REPRODUCED / ROOT CAUSE (author work):** five static seconds produced 137
+  SVG mutations; an ordinary formation edit created another WorldSession and
+  disposed the previous one. Source traced edits to full instantiation, terrain
+  reset and repeated whole-overlay rebuilding. This establishes wasteful work,
+  not an invented root cause for the separate home-size screenshot.
+- **IMPLEMENTED:** `AuthoringWorld` retains lightweight terrain/trench/network
+  geometry without a simulation, soldiers or navigation session. `EditorInk`
+  keeps keyed marks and updates changed content/projection. A gesture uses a
+  transient preview and one immutable document/history commit on release;
+  Escape/pointer cancellation discards it. Production world creation is reserved
+  for explicit Play/publication. Seed changes deliberately reset terrain.
+- **IMPLEMENTED:** aggregate named geometry preflight, Locate, invalid highlights,
+  and explicit Snap. Formation footprint/obstacle, floor, owner, capacity, crew,
+  ammunition and target warnings are actionable. This is not a claim of exhaustive
+  target reachability analysis; production Play remains the final assignment gate.
+- **IMPLEMENTED / BROWSER VERIFIED:** choose faction/type/count before placement,
+  rifle-eight default, map target/trench picking, visible selected relationships,
+  compact tool rail, contextual scrollable inspector, collapsed document settings.
+  Overlapping gun/crew drag initially selected the wrong entity; selected-mark
+  precedence fixed the reproduced defect. An off-floor gun is now explicitly
+  located/snapped, with the original source recovered through Undo.
+- **IMPLEMENTED / BEHAVIOR VERIFIED:** redundant six intentions reduced to three:
+  Advance/contest, Guard target, Remain here. Old aliases still load without
+  altering their commander meaning. A tiny control-authored 35.05-second fixture
+  showed actual advance, guard-cover arrival/hold, and no commander order for
+  Remain. Installed-crew and self-preservation precedence is explained; no separate
+  reserve, probe, or support AI is falsely advertised.
+- **BROWSER VERIFIED:** actual production combat in the duplicated title draft,
+  Play/Reset/Stop with unchanged source, zero active session/planner after Stop,
+  and a fresh 1× Play even after pausing the prior test. Prepared production data
+  is validated before disposing the prior owner; reset never owns two sessions.
+
+### Measurements, framing and viewport boundary
+
+- **BROWSER VERIFIED:** actual 10/25/50/100-entity control-authored fixtures and the
+  real 25-entity title preset. Five-second idle, pan, formation drag and node drag.
+  Static overlay writes: **zero**. During every drag: **zero** production scenario,
+  session or terrain rebuilds; one release-time validation/history commit. At 100
+  entities, dirty overlay work averaged 0.36–0.53 ms and the explicit aggregated
+  preflight took 3.4 ms. Observed p95 RAF interval about 6.2 ms at 165 Hz. This is
+  editor responsiveness, not the outstanding 512-person combat performance gate.
+- **IMPLEMENTED / BROWSER VERIFIED:** the final title camera was composed with
+  DEV pan/zoom/rotation, saved, reopened, played and explicitly published:
+  `orchard-approach-8e4800f6033d`. Distance ~201.59, polar ~0.95, aiming near
+  (-1213.33, -1310.18), rather than the earlier ~385.77-distance overhead view.
+  Published changes are camera initial conditions only. Both trenches and real
+  finite-ammunition combat remain; home hides tactical objective/danger rings,
+  not simulation outcomes. Old and intermediate snapshots are preserved.
+- **USER-REPORTED / NOT REPRODUCED:** the home 75%-width/black-right-strip failure.
+  **No verified root cause or claimed fix.** Added read-only actual client/body/
+  app/canvas/backing/renderer/aspect/CSS-variable/constraint diagnostics. Visible
+  bounds and screenshots passed at the requested seven viewport sizes, cold
+  refresh, native resize/maximize/restore, real browser zoom/DPR, Settings/home
+  and normal/offline launch. These successful samples do not disprove the user's
+  screenshot or close the issue without its failing environment.
+- **BROWSER VERIFIED:** 30 actual menu/Sandbox/return cycles, unchanged campaign
+  storage, one active owner/planner and stable immediate GPU counts. The prior
+  ten-reset evidence remains preserved, but ten natural resets and long-duration
+  resource growth were not repeated in this corrective pass.
+- **PRESERVED FAILURES:** original overlapping selection, two long-test timeouts,
+  first grouped-contact E2E fixture failure, incorrect OS foreground-window
+  capture, and native CSS screenshot rescaling failure. The latter two were QA
+  capture bugs: final owned-tab screenshots are extent-checked against DPR and
+  measured bounds. No unrelated browser tabs are published as evidence.
+
+### Verification and remaining acceptance
+
+See `docs/evidence/dev-home-corrective/README.md`, `docs/frontlines-dev.md` and
+`docs/world-session-isolation.md` for reproduction scripts, evidence and boundaries.
+The game-foundations/Three.js separation drove the author/production split; the
+UI/playtest guidance drove contextual controls and real interaction/screenshot
+checks rather than accepting a fast finished playtest as proof of a usable editor.
+
+**REMAINING:** user review of editor feel and title framing; capture/root-cause of
+the reported home fill failure in its actual failing setup; fuller aggregated
+navigation diagnostics; ten natural attract resets/long resource stability;
+physical phones; broader A–G survival, occupancy, artillery/repair, logistics,
+512-person scale, performance and integrated combat/shortage-soak gates. Endless
+initial-condition authoring and editable generated terrain remain outside this
+corrective scope. No campaign save overwrite, training, automation restart,
+rigid-body physics, platform submission or unrelated gameplay rewrite occurred.
+
+### Frozen corrective verification
+
+- **890/890 tests, 129 files, 414.80 seconds** on the complete final rerun. No
+  timeout limits or simulation assertions were weakened. The first 888/890 run
+  and separate 32/32 isolated retry are retained, not overwritten.
+- **27/27 maintained Edge regressions, 181.98 seconds**, no unexpected/skipped/
+  flaky cases. The grouped-contact test correction is explicitly a synthetic
+  local-knowledge fixture repair, not a player-playthrough claim.
+- Production/standalone and strict separate DEV builds pass; packaging **5/5**.
+  Existing large-bundle warnings remain. Player bundle excludes author controls
+  and filesystem-writing code. Offline game **1,434,034 bytes**, two embedded
+  workers; SHA-256
+  `24874b3c85d962233805f96b1a0d7acbc482ad831a131ab4af0788ae6bbdcfb1`.
+- Final package: **42/42 native Edge viewport/zoom/fullscreen samples** across
+  production and standalone; exact tab images checked against visible bounds and
+  DPR, app/canvas origins (0,0). Network-disabled isolated normal-game launch,
+  real movement, both workers, six refresh sizes and exact paused save/Continue
+  passed with no page errors. Endless checks retain exact continuation, unchanged
+  End cancellation, preservation of prior active storage and concluded-record load.
+- **Corrective implementation: IMPLEMENTED / AUTOMATED VERIFIED / BROWSER
+  VERIFIED within the stated scope. USER ACCEPTED remains pending.** The reported
+  black strip is still NOT REPRODUCED here, not a closed/fixed defect. Overall
+  project and remaining A–G/Endless gates remain **PARTIAL**.

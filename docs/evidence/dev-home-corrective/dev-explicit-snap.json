@@ -1,0 +1,5 @@
+{
+  "invalid": "PREFLIGHT\nClose\nERROR · South field gun: Off the parent trench floor. Use Snap to trench or move it explicitly.\nLocate",
+  "fixed": "PREFLIGHT\nClose\n\nNo blocking geometry issues found.",
+  "unchanged": true
+}

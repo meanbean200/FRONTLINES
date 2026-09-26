@@ -24,6 +24,7 @@ export class TerrainRenderer {
   private lastRequest=0;
   private lastVegetation=0;
   private generation=0;
+  get resetCount():number{return this.generation;}
   private failed=false;
   private quality:VisualQuality='balanced';
   private coarseGenerationMs=0;

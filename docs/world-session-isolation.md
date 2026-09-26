@@ -8,12 +8,23 @@ The player app retains one render host, camera and UI. A narrow stable simulatio
 
 Render components clear previous unit interpolation, trench instances, transient objective/impact identity and truck interpolation. They do not become save data. Existing saves remain under the existing v4 key; no editor/attract save key aliases it.
 
+DEV **edit mode has no WorldSession at all**. `AuthoringWorld` retains generated
+terrain and lightweight trench/network geometry; `EditorInk` projects keyed map
+marks. Only Play Test constructs an `editor-test` session. Stop disposes that
+session/planner and returns to the unchanged author document. Routine edits and
+drag previews do not reset terrain or instantiate soldiers. The render host and
+bound terrain port are reused; seed changes and deliberate Play/Stop boundaries
+are the exceptions. Failed production instantiation leaves the authoring view usable.
+
 ## Attract mode
 
 - Loads the published `ScenarioPreset` with the shared deterministic constructor.
 - Uses the production commander for both factions, with separate faction report inputs and memories. Spectator rendering may show both sides; it does not change their knowledge.
 - Real fixed 50-ms steps, finite initial manifests, real crews, real small-arms/support resolution. No scripted contact, cosmetic-only gunfire, unlimited supplies or player-campaign backdrop.
 - One authored camera; menu owns pointer/keyboard/wheel/touch. Gameplay HUD is hidden and audio is muted by default.
+- Objective/danger plotting rings are hidden in attract presentation only. Real
+  combat, world flags and opposing AI knowledge remain production-owned; the
+  player and editor-test plotting overlays are unchanged.
 - Fresh instantiation on victory/defeat, 240 simulation seconds, or 60 seconds without firing after first contact. No in-place resurrection or refilling.
 - Hidden documents/context loss suspend stepping and clear accumulated time; no return-to-tab catch-up burst.
 - Missing/bad title data reports an error but leaves normal menu workflows available. The fallback is an empty generated sector, never the player's campaign or old Sandbox.
@@ -27,6 +38,13 @@ Quick Battle / Operations leave attract mode before creating a preview. Begin cr
 `__FRONTLINES__.getSessionStats()` is read-only: kind/generation, owner and planner counts, render-host and terrain-worker count, entities and WebGL memory. `__FRONTLINES_DEV__.inspect()` is also read-only and exposes source/runtime separately for test evidence.
 
 Automated checks cover deterministic instantiation, strict initial-condition schemas, no source residue, save-capability rejection, idempotent disposal, stable forwarding ports, repeated ownership changes and faction information isolation. Real Edge acceptance and any failures are recorded in `docs/v1-combat-artillery-mobile-pacing-pass.md` and its DEV/menu evidence directory. Automated tests are not player acceptance or physical-phone verification.
+
+The September 26 corrective pass repeated 30 real Sandbox/home transitions:
+one active attract session/planner and 64 initial people after each return,
+unchanged campaign storage, and stable immediate GPU counts. DEV Play/Reset/Stop
+also left source initial conditions byte-equivalent and zero active sessions or
+planners after Stop. These are bounded checks, not long-duration resource proof;
+the ten natural attract-reset gate was not repeated in this corrective pass.
 
 ## Endless player sessions
 

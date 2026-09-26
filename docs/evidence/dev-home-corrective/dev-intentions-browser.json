@@ -1,0 +1,183 @@
+{
+  "result": {
+    "preflight": "PREFLIGHT\nClose\n\nNo blocking geometry issues found.",
+    "source": {
+      "version": 1,
+      "id": "untitled-sector",
+      "name": "Untitled sector",
+      "seed": 1944,
+      "generatorVersion": 2,
+      "worldSize": 4000,
+      "hour": 10,
+      "controllers": {
+        "player": "ai",
+        "enemy": "ai"
+      },
+      "camera": {
+        "x": -1250,
+        "z": -1350,
+        "zoom": 450,
+        "azimuth": 0,
+        "polar": 0.65
+      },
+      "entities": [
+        {
+          "id": "objective-102",
+          "name": "Objective 103",
+          "x": -1175.2,
+          "z": -1255.2,
+          "type": "objective",
+          "owner": "neutral",
+          "radius": 25
+        },
+        {
+          "id": "formation-103",
+          "name": "Formation 104",
+          "x": -1289.5,
+          "z": -1290.3,
+          "type": "formation",
+          "side": "player",
+          "kind": "rifle",
+          "count": 2,
+          "intent": "attack",
+          "ammo": 80,
+          "food": 2,
+          "water": 3,
+          "targetId": "objective-102"
+        },
+        {
+          "id": "formation-104",
+          "name": "Formation 105",
+          "x": -1250,
+          "z": -1233.4,
+          "type": "formation",
+          "side": "player",
+          "kind": "rifle",
+          "count": 2,
+          "intent": "defend",
+          "ammo": 80,
+          "food": 2,
+          "water": 3,
+          "targetId": "objective-102"
+        },
+        {
+          "id": "formation-105",
+          "name": "Formation 106",
+          "x": -1413.5,
+          "z": -1287.1,
+          "type": "formation",
+          "side": "player",
+          "kind": "rifle",
+          "count": 2,
+          "intent": "hold",
+          "ammo": 80,
+          "food": 2,
+          "water": 3,
+          "targetId": "objective-102"
+        }
+      ]
+    },
+    "elapsed": 35.050000000000146,
+    "plans": {
+      "player": {
+        "version": 1,
+        "decisions": 12,
+        "plans": [
+          {
+            "squadId": 1,
+            "role": "advance",
+            "objectiveId": "objective-102",
+            "goal": {
+              "x": -1195.1420594319045,
+              "z": -1261.425271335874
+            },
+            "home": {
+              "x": -1294.3000000000002,
+              "z": -1292.3999999999999
+            },
+            "since": 19.100000000000136,
+            "commitUntil": 34.64577961274105,
+            "lastIssued": 19.100000000000136,
+            "lastPosition": {
+              "x": -1208.2514531189227,
+              "z": -1265.5164086102254
+            },
+            "stalledFor": 0,
+            "reason": "Reinforce or retake an objective",
+            "orders": 2
+          },
+          {
+            "squadId": 4,
+            "role": "defend",
+            "objectiveId": "objective-102",
+            "goal": {
+              "x": -1175.2,
+              "z": -1270.2
+            },
+            "home": {
+              "x": -1254.8000000000002,
+              "z": -1235.5
+            },
+            "since": 1.0000000000000002,
+            "commitUntil": 52.96332978980254,
+            "lastIssued": 1.0000000000000002,
+            "lastPosition": {
+              "x": -1175.4175005288241,
+              "z": -1270.1009681989099
+            },
+            "stalledFor": 0,
+            "reason": "Guard an objective from nearby usable cover",
+            "orders": 1
+          }
+        ]
+      },
+      "enemy": {
+        "version": 1,
+        "decisions": 12,
+        "plans": []
+      }
+    },
+    "positions": [
+      {
+        "id": 1,
+        "x": -1205.884438627506,
+        "z": -1264.7774320295134,
+        "order": {
+          "type": "move",
+          "target": {
+            "x": -1195.1420594319045,
+            "z": -1261.425271335874
+          },
+          "issuedAt": 19.100000000000136
+        }
+      },
+      {
+        "id": 4,
+        "x": -1175.4175005288241,
+        "z": -1270.1009681989099,
+        "order": {
+          "type": "hold",
+          "issuedAt": 32.55000000000029
+        }
+      },
+      {
+        "id": 7,
+        "x": -1418.3000000000002,
+        "z": -1289.1999999999998,
+        "order": {
+          "type": "hold",
+          "issuedAt": 0
+        }
+      }
+    ],
+    "sourceUnchanged": true,
+    "stopped": {
+      "created": 1,
+      "disposed": 1,
+      "active": 0,
+      "planners": 0
+    }
+  },
+  "notice": "Stopped. Source initial conditions unchanged.",
+  "playing": false
+}

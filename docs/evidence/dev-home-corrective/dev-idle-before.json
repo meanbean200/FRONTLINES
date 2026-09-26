@@ -1,0 +1,26 @@
+{
+  "intervalMs": 5000,
+  "mutations": 137,
+  "ownership": {
+    "created": 2,
+    "disposed": 1,
+    "active": 1,
+    "planners": 0
+  },
+  "viewport": {
+    "inner": [
+      921,
+      920
+    ],
+    "app": {
+      "x": 0,
+      "y": 0,
+      "width": 921,
+      "height": 920,
+      "top": 0,
+      "right": 921,
+      "bottom": 920,
+      "left": 0
+    }
+  }
+}

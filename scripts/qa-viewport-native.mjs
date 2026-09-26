@@ -3,7 +3,6 @@ import {chromium} from 'playwright';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 const folder=resolve('output/playwright',`viewport-native-${Date.now()}`);await mkdir(folder,{recursive:true});
 // Empty userDataDir gives Playwright a fresh temporary profile, removed on
@@ -29,9 +28,13 @@ async function shot(label){
     window.__viewportPreviousCamera={...s.cameraTarget,zoom:s.zoomDistance};
     return s.generatedChunks===64&&s.triangles>50000&&p&&Math.hypot(s.cameraTarget.x-p.x,s.cameraTarget.z-p.z)<.001&&Math.abs(s.zoomDistance-p.zoom)<.001;
   });
-  await page.bringToFront();const {bounds}=await cdp.send('Browser.getWindowBounds',{windowId});
-  const helper=resolve(process.env.USERPROFILE,'.codex/skills/screenshot/scripts/take_screenshot.ps1');
-  execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',helper,'-Path',join(folder,label+'.png'),'-Region',`${Math.max(0,bounds.left)},${Math.max(0,bounds.top)},${bounds.width},${bounds.height}`]);
+  // OS region grabs can capture an unrelated foreground Edge window. Bind the
+  // image to this owned native-window tab. Chromium captures device pixels;
+  // avoid Playwright's CSS rescaling, which double-scales native browser zoom.
+  const capture=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false}),buffer=Buffer.from(capture.data,'base64'),d=await read();
+  await writeFile(join(folder,label+'.png'),buffer);
+  assert.ok(Math.abs(buffer.readUInt32BE(16)-d.inner.width*d.devicePixelRatio)<2,`${label} visible screenshot width`);
+  assert.ok(Math.abs(buffer.readUInt32BE(20)-d.inner.height*d.devicePixelRatio)<2,`${label} visible screenshot height`);
 }
 try{
   worker=context.serviceWorkers()[0]??await context.waitForEvent('serviceworker');

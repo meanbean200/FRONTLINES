@@ -1,0 +1,282 @@
+{
+  "samples": [
+    {
+      "kind": "idle",
+      "before": {
+        "scenarioInstantiations": 1,
+        "terrainResets": 3,
+        "overlay": {
+          "passes": 1741,
+          "entityBuilds": 1333,
+          "attributeWrites": 28952,
+          "removed": 179,
+          "lastUpdateMs": 1.699999988079071,
+          "totalUpdateMs": 528.2000000476837,
+          "maxUpdateMs": 1.699999988079071
+        },
+        "ownership": {
+          "created": 1,
+          "disposed": 1,
+          "active": 0,
+          "planners": 0
+        },
+        "preflightRuns": 3,
+        "preflight": {
+          "runs": 3,
+          "lastMs": 0.19999998807907104,
+          "totalMs": 3.799999952316284
+        },
+        "document": {
+          "commits": 113,
+          "validations": 113,
+          "lastValidationMs": 0,
+          "totalValidationMs": 9.399999678134918
+        }
+      },
+      "after": {
+        "scenarioInstantiations": 1,
+        "terrainResets": 3,
+        "overlay": {
+          "passes": 1741,
+          "entityBuilds": 1333,
+          "attributeWrites": 28952,
+          "removed": 179,
+          "lastUpdateMs": 1.699999988079071,
+          "totalUpdateMs": 528.2000000476837,
+          "maxUpdateMs": 1.699999988079071
+        },
+        "ownership": {
+          "created": 1,
+          "disposed": 1,
+          "active": 0,
+          "planners": 0
+        },
+        "preflightRuns": 3,
+        "preflight": {
+          "runs": 3,
+          "lastMs": 0.19999998807907104,
+          "totalMs": 3.799999952316284
+        },
+        "document": {
+          "commits": 113,
+          "validations": 113,
+          "lastValidationMs": 0,
+          "totalValidationMs": 9.399999678134918
+        }
+      },
+      "mutations": 0,
+      "p95": 6.199999999982538,
+      "max": 6.2000000000116415
+    },
+    {
+      "kind": "pan",
+      "before": {
+        "scenarioInstantiations": 1,
+        "terrainResets": 3,
+        "overlay": {
+          "passes": 1741,
+          "entityBuilds": 1333,
+          "attributeWrites": 28952,
+          "removed": 179,
+          "lastUpdateMs": 1.699999988079071,
+          "totalUpdateMs": 528.2000000476837,
+          "maxUpdateMs": 1.699999988079071
+        },
+        "ownership": {
+          "created": 1,
+          "disposed": 1,
+          "active": 0,
+          "planners": 0
+        },
+        "preflightRuns": 3,
+        "preflight": {
+          "runs": 3,
+          "lastMs": 0.19999998807907104,
+          "totalMs": 3.799999952316284
+        },
+        "document": {
+          "commits": 113,
+          "validations": 113,
+          "lastValidationMs": 0,
+          "totalValidationMs": 9.399999678134918
+        }
+      },
+      "after": {
+        "scenarioInstantiations": 1,
+        "terrainResets": 3,
+        "overlay": {
+          "passes": 1980,
+          "entityBuilds": 1644,
+          "attributeWrites": 32246,
+          "removed": 179,
+          "lastUpdateMs": 0.10000002384185791,
+          "totalUpdateMs": 593.2000007033348,
+          "maxUpdateMs": 1.699999988079071
+        },
+        "ownership": {
+          "created": 1,
+          "disposed": 1,
+          "active": 0,
+          "planners": 0
+        },
+        "preflightRuns": 3,
+        "preflight": {
+          "runs": 3,
+          "lastMs": 0.19999998807907104,
+          "totalMs": 3.799999952316284
+        },
+        "document": {
+          "commits": 113,
+          "validations": 113,
+          "lastValidationMs": 0,
+          "totalValidationMs": 9.399999678134918
+        }
+      },
+      "mutations": 3605,
+      "p95": 6.199999999982538,
+      "max": 6.2000000000116415
+    },
+    {
+      "kind": "formation-drag",
+      "before": {
+        "scenarioInstantiations": 1,
+        "terrainResets": 3,
+        "overlay": {
+          "passes": 1982,
+          "entityBuilds": 1648,
+          "attributeWrites": 32270,
+          "removed": 179,
+          "lastUpdateMs": 0.40000003576278687,
+          "totalUpdateMs": 594.0000007748604,
+          "maxUpdateMs": 1.699999988079071
+        },
+        "ownership": {
+          "created": 1,
+          "disposed": 1,
+          "active": 0,
+          "planners": 0
+        },
+        "preflightRuns": 3,
+        "preflight": {
+          "runs": 3,
+          "lastMs": 0.19999998807907104,
+          "totalMs": 3.799999952316284
+        },
+        "document": {
+          "commits": 113,
+          "validations": 113,
+          "lastValidationMs": 0,
+          "totalValidationMs": 9.399999678134918
+        }
+      },
+      "after": {
+        "scenarioInstantiations": 1,
+        "terrainResets": 3,
+        "overlay": {
+          "passes": 2038,
+          "entityBuilds": 1703,
+          "attributeWrites": 32325,
+          "removed": 179,
+          "lastUpdateMs": 0.30000001192092896,
+          "totalUpdateMs": 610.8000004887581,
+          "maxUpdateMs": 1.699999988079071
+        },
+        "ownership": {
+          "created": 1,
+          "disposed": 1,
+          "active": 0,
+          "planners": 0
+        },
+        "preflightRuns": 3,
+        "preflight": {
+          "runs": 3,
+          "lastMs": 0.19999998807907104,
+          "totalMs": 3.799999952316284
+        },
+        "document": {
+          "commits": 114,
+          "validations": 114,
+          "lastValidationMs": 0.19999998807907104,
+          "totalValidationMs": 9.59999966621399
+        }
+      },
+      "mutations": 110,
+      "p95": 6.199999999982538,
+      "max": 6.2000000000116415,
+      "previewMoved": true,
+      "sourceUnchangedDuring": true
+    },
+    {
+      "kind": "node-drag",
+      "before": {
+        "scenarioInstantiations": 1,
+        "terrainResets": 3,
+        "overlay": {
+          "passes": 2041,
+          "entityBuilds": 1706,
+          "attributeWrites": 32326,
+          "removed": 180,
+          "lastUpdateMs": 0.19999998807907104,
+          "totalUpdateMs": 611.6000004410744,
+          "maxUpdateMs": 1.699999988079071
+        },
+        "ownership": {
+          "created": 1,
+          "disposed": 1,
+          "active": 0,
+          "planners": 0
+        },
+        "preflightRuns": 3,
+        "preflight": {
+          "runs": 3,
+          "lastMs": 0.19999998807907104,
+          "totalMs": 3.799999952316284
+        },
+        "document": {
+          "commits": 114,
+          "validations": 114,
+          "lastValidationMs": 0.19999998807907104,
+          "totalValidationMs": 9.59999966621399
+        }
+      },
+      "after": {
+        "scenarioInstantiations": 1,
+        "terrainResets": 3,
+        "overlay": {
+          "passes": 2097,
+          "entityBuilds": 1762,
+          "attributeWrites": 32326,
+          "removed": 180,
+          "lastUpdateMs": 0.19999998807907104,
+          "totalUpdateMs": 632.4000002145767,
+          "maxUpdateMs": 1.699999988079071
+        },
+        "ownership": {
+          "created": 1,
+          "disposed": 1,
+          "active": 0,
+          "planners": 0
+        },
+        "preflightRuns": 3,
+        "preflight": {
+          "runs": 3,
+          "lastMs": 0.19999998807907104,
+          "totalMs": 3.799999952316284
+        },
+        "document": {
+          "commits": 115,
+          "validations": 115,
+          "lastValidationMs": 0.19999998807907104,
+          "totalValidationMs": 9.79999965429306
+        }
+      },
+      "mutations": 56,
+      "p95": 6.2000000000116415,
+      "max": 6.2000000000116415,
+      "previewMoved": true,
+      "sourceUnchangedDuring": true
+    }
+  ],
+  "sourceUnchanged": true,
+  "entities": 25
+}

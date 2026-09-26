@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "id": "orchard-approach",
-  "name": "The Orchard Approach",
+  "id": "orchard-editor-review",
+  "name": "The Orchard Approach copy",
   "seed": 1944,
   "generatorVersion": 2,
   "worldSize": 4000,
@@ -11,11 +11,11 @@
     "enemy": "ai"
   },
   "camera": {
-    "x": -1213.3291966347035,
-    "z": -1310.1786784497447,
-    "zoom": 201.59234873313488,
+    "x": -1250,
+    "z": -1350,
+    "zoom": 385.77240945515604,
     "azimuth": 0,
-    "polar": 0.9500000000635659
+    "polar": 0.65
   },
   "entities": [
     {
@@ -168,7 +168,7 @@
       "side": "player",
       "kind": "rifle",
       "count": 8,
-      "intent": "reserve",
+      "intent": "defend",
       "ammo": 80,
       "food": 2,
       "water": 3,

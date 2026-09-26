@@ -1,0 +1,186 @@
+[
+  {
+    "width": 1920,
+    "height": 1080,
+    "inner": [
+      1920,
+      1080
+    ],
+    "app": {
+      "x": 0,
+      "y": 0,
+      "width": 1920,
+      "height": 1080
+    },
+    "canvas": {
+      "x": 0,
+      "y": 0,
+      "width": 1920,
+      "height": 1080
+    },
+    "header": {
+      "x": 0,
+      "y": 0,
+      "width": 1920,
+      "height": 72
+    },
+    "inspector": {
+      "x": 1608,
+      "y": 88,
+      "width": 300,
+      "height": 928
+    },
+    "rail": {
+      "x": 12,
+      "y": 88,
+      "width": 116,
+      "height": 928
+    },
+    "save": {
+      "x": 1539.328125,
+      "y": 13.5,
+      "width": 57.921875,
+      "height": 44
+    },
+    "overflow": false,
+    "selection": "engineer"
+  },
+  {
+    "width": 1366,
+    "height": 768,
+    "inner": [
+      1366,
+      768
+    ],
+    "app": {
+      "x": 0,
+      "y": 0,
+      "width": 1366,
+      "height": 768
+    },
+    "canvas": {
+      "x": 0,
+      "y": 0,
+      "width": 1366,
+      "height": 768
+    },
+    "header": {
+      "x": 0,
+      "y": 0,
+      "width": 1366,
+      "height": 72
+    },
+    "inspector": {
+      "x": 1054,
+      "y": 88,
+      "width": 300,
+      "height": 616
+    },
+    "rail": {
+      "x": 12,
+      "y": 88,
+      "width": 116,
+      "height": 616
+    },
+    "save": {
+      "x": 985.328125,
+      "y": 13.5,
+      "width": 57.921875,
+      "height": 44
+    },
+    "overflow": false,
+    "selection": "engineer"
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "inner": [
+      844,
+      390
+    ],
+    "app": {
+      "x": 0,
+      "y": 0,
+      "width": 844,
+      "height": 390
+    },
+    "canvas": {
+      "x": 0,
+      "y": 0,
+      "width": 844,
+      "height": 390
+    },
+    "header": {
+      "x": 0,
+      "y": 0,
+      "width": 844,
+      "height": 72
+    },
+    "inspector": {
+      "x": 562,
+      "y": 88,
+      "width": 270,
+      "height": 238
+    },
+    "rail": {
+      "x": 12,
+      "y": 88,
+      "width": 116,
+      "height": 238
+    },
+    "save": {
+      "x": 463.328125,
+      "y": 13.5,
+      "width": 57.921875,
+      "height": 44
+    },
+    "overflow": false,
+    "selection": "engineer"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "inner": [
+      390,
+      844
+    ],
+    "app": {
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844
+    },
+    "canvas": {
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844
+    },
+    "header": {
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 108
+    },
+    "inspector": {
+      "x": 106,
+      "y": 499.046875,
+      "width": 278,
+      "height": 286.953125
+    },
+    "rail": {
+      "x": 6,
+      "y": 120,
+      "width": 90,
+      "height": 666
+    },
+    "save": {
+      "x": 63.5,
+      "y": 55.25,
+      "width": 47.359375,
+      "height": 44
+    },
+    "overflow": false,
+    "selection": "engineer"
+  }
+]

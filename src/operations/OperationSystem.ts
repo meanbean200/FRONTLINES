@@ -14,6 +14,7 @@ import {commandOperationalEnemy} from './OperationalCommander';
 import {requestSupport} from '../combat/SupportWeapons';
 import {stepEndlessController} from './EndlessController';
 import {commandEndless} from './EndlessDirector';
+import {intentKind} from '../scenarios/ScenarioIntent';
 export {lineOfFire} from './Visibility';
 
 export const COMBAT_RULES = Object.freeze({ range: 360, interval: .5, shotInterval: 3.8, damage: 60, captureSeconds: 35, captureTroops: 3 });
@@ -54,8 +55,8 @@ export class OperationSystem {
         for(const side of ['player','enemy'] as const){if(op.authored.controllers[side]!=='ai')continue;
           const observation=observeFaction(this.state,side),intents=op.authored.intentions;
           for(const target of op.authored.targets)if(!observation.objectives.some(o=>o.id===target.id))observation.objectives.push({...target,owner:'neutral',contested:false,ammo:0});
-          observation.squads=observation.squads.filter(q=>!['hold','reserve'].includes(intents.find(i=>i.squadId===q.id)?.intent??''));
-          observation.assignments=observation.squads.flatMap(q=>{const i=intents.find(i=>i.squadId===q.id),target=observation.objectives.find(o=>o.id===i?.targetId);return target?[{squadId:q.id,objectiveId:target.id,goal:target,defend:i?.intent==='defend'||i?.intent==='support'}]:[];});
+          observation.squads=observation.squads.filter(q=>intentKind(intents.find(i=>i.squadId===q.id)?.intent??'attack')!=='hold');
+          observation.assignments=observation.squads.flatMap(q=>{const i=intents.find(i=>i.squadId===q.id),target=observation.objectives.find(o=>o.id===i?.targetId);return target?[{squadId:q.id,objectiveId:target.id,goal:target,defend:intentKind(i?.intent??'attack')==='defend'}]:[];});
           const result=commandEnemy(observation,this.terrain,op.authored.memories[side]);op.authored.memories[side]=result.memory;
           for(const c of result.commands){if(c.type==='move')moveEnemy([c.squadId],c.goal);else holdEnemy([c.squadId]);}
           // Support uses reported positions, never opposing live coordinates.

@@ -1,0 +1,270 @@
+{
+  "sourceId": "orchard-editor-review",
+  "running": {
+    "elapsed": 15.650000000000087,
+    "shots": 98,
+    "sourceUnchanged": true,
+    "ownership": {
+      "created": 1,
+      "disposed": 0,
+      "active": 1,
+      "planners": 1
+    },
+    "plans": {
+      "player": {
+        "version": 1,
+        "decisions": 5,
+        "plans": [
+          {
+            "squadId": 3,
+            "role": "advance",
+            "objectiveId": "objective-3",
+            "goal": {
+              "x": -1188.8971091805672,
+              "z": -1282.0760839257107
+            },
+            "home": {
+              "x": -1224.7000000000003,
+              "z": -1240.3249999999998
+            },
+            "since": 1.0000000000000002,
+            "commitUntil": 16.398337968485045,
+            "lastIssued": 1.0000000000000002,
+            "lastPosition": {
+              "x": -1215.6891678075206,
+              "z": -1250.8949326128102
+            },
+            "stalledFor": 0,
+            "reason": "Reinforce or retake an objective",
+            "orders": 1
+          },
+          {
+            "squadId": 12,
+            "role": "advance",
+            "objectiveId": "objective-3",
+            "goal": {
+              "x": -1166.4818156747365,
+              "z": -1289.2480564587954
+            },
+            "home": {
+              "x": -1190.2000000000003,
+              "z": -1239.6249999999998
+            },
+            "since": 1.0000000000000002,
+            "commitUntil": 16.113830759915018,
+            "lastIssued": 1.0000000000000002,
+            "lastPosition": {
+              "x": -1185.630705243694,
+              "z": -1250.2829545809032
+            },
+            "stalledFor": 0,
+            "reason": "Reinforce or retake an objective",
+            "orders": 1
+          },
+          {
+            "squadId": 21,
+            "role": "defend",
+            "objectiveId": "objective-3",
+            "goal": {
+              "x": -1137.183221215613,
+              "z": -1344.2352549156242
+            },
+            "home": {
+              "x": -1159.4,
+              "z": -1238.925
+            },
+            "since": 1.0000000000000002,
+            "commitUntil": 25.273254222765857,
+            "lastIssued": 1.0000000000000002,
+            "lastPosition": {
+              "x": -1156.603137057326,
+              "z": -1251.243446049698
+            },
+            "stalledFor": 0,
+            "reason": "Guard an objective from nearby usable cover",
+            "orders": 1
+          }
+        ]
+      },
+      "enemy": {
+        "version": 1,
+        "decisions": 5,
+        "plans": [
+          {
+            "squadId": 41,
+            "role": "advance",
+            "objectiveId": "objective-3",
+            "goal": {
+              "x": -1195.2413371817413,
+              "z": -1405.3985757578344
+            },
+            "home": {
+              "x": -1217.7000000000003,
+              "z": -1434.9249999999997
+            },
+            "since": 1.0000000000000002,
+            "commitUntil": 15.417830207016745,
+            "lastIssued": 1.0000000000000002,
+            "lastPosition": {
+              "x": -1213.429754839887,
+              "z": -1428.6329430855712
+            },
+            "stalledFor": 0,
+            "reason": "Reinforce or retake an objective",
+            "orders": 1
+          },
+          {
+            "squadId": 50,
+            "role": "advance",
+            "objectiveId": "objective-3",
+            "goal": {
+              "x": -1159.3772520910968,
+              "z": -1380.6044828053075
+            },
+            "home": {
+              "x": -1174,
+              "z": -1433.6249999999998
+            },
+            "since": 1.0000000000000002,
+            "commitUntil": 16.453667658719624,
+            "lastIssued": 1.0000000000000002,
+            "lastPosition": {
+              "x": -1169.9842048193398,
+              "z": -1424.4117751293043
+            },
+            "stalledFor": 0,
+            "reason": "Reinforce or retake an objective",
+            "orders": 1
+          }
+        ]
+      }
+    },
+    "positions": [
+      {
+        "name": "Able One",
+        "x": -1213.901485824043,
+        "z": -1253.0211481762587,
+        "order": "move"
+      },
+      {
+        "name": "Able Two",
+        "x": -1184.1031677799767,
+        "z": -1253.4673019853083,
+        "order": "move"
+      },
+      {
+        "name": "Able Reserve",
+        "x": -1155.8396520265628,
+        "z": -1254.0502524498634,
+        "order": "move"
+      },
+      {
+        "name": "Able Pioneers",
+        "x": -1145.5535179955068,
+        "z": -1257.844999575417,
+        "order": "occupy-trench"
+      },
+      {
+        "name": "Able MG crew",
+        "x": -1205.9025443123637,
+        "z": -1261.2159383472108,
+        "order": "occupy-trench"
+      },
+      {
+        "name": "Able Gun crew",
+        "x": -1168.802636200483,
+        "z": -1256.9545687965112,
+        "order": "occupy-trench"
+      },
+      {
+        "name": "Grenadier One",
+        "x": -1212.3433676160657,
+        "z": -1426.9287947408402,
+        "order": "move"
+      },
+      {
+        "name": "Grenadier Two",
+        "x": -1169.5030373913119,
+        "z": -1421.1714897832414,
+        "order": "move"
+      },
+      {
+        "name": "Grenadier Reserve",
+        "x": -1135.2000000000003,
+        "z": -1431.3249999999998,
+        "order": "hold"
+      },
+      {
+        "name": "Grenadier Pioneers",
+        "x": -1128.726913258115,
+        "z": -1407.9933638442872,
+        "order": "occupy-trench"
+      },
+      {
+        "name": "Grenadier MG crew",
+        "x": -1195.491000215227,
+        "z": -1406.507867927734,
+        "order": "occupy-trench"
+      },
+      {
+        "name": "Grenadier Gun crew",
+        "x": -1152.3926668204224,
+        "z": -1402.2309199569931,
+        "order": "occupy-trench"
+      }
+    ]
+  },
+  "reset": {
+    "elapsed": 0,
+    "sourceUnchanged": true,
+    "ownership": {
+      "created": 2,
+      "disposed": 1,
+      "active": 1,
+      "planners": 1
+    }
+  },
+  "stopped": {
+    "sourceUnchanged": true,
+    "ownership": {
+      "created": 2,
+      "disposed": 2,
+      "active": 0,
+      "planners": 0
+    },
+    "metrics": {
+      "scenarioInstantiations": 2,
+      "terrainResets": 4,
+      "overlay": {
+        "passes": 2,
+        "entityBuilds": 25,
+        "attributeWrites": 26,
+        "removed": 0,
+        "lastUpdateMs": 1.800000011920929,
+        "totalUpdateMs": 1.9000000357627869,
+        "maxUpdateMs": 1.800000011920929
+      },
+      "ownership": {
+        "created": 2,
+        "disposed": 2,
+        "active": 0,
+        "planners": 0
+      },
+      "preflightRuns": 1,
+      "preflight": {
+        "runs": 1,
+        "lastMs": 2.100000023841858,
+        "totalMs": 2.100000023841858
+      },
+      "document": {
+        "commits": 0,
+        "validations": 0,
+        "lastValidationMs": 0,
+        "totalValidationMs": 0
+      }
+    }
+  },
+  "offFloor": "PREFLIGHT\nClose\nERROR · South field gun: Off the parent trench floor. Use Snap to trench or move it explicitly.\nLocate",
+  "snapped": "PREFLIGHT\nClose\n\nNo blocking geometry issues found.",
+  "afterUndo": true
+}

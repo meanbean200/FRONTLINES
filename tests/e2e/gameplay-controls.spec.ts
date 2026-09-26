@@ -110,6 +110,13 @@ test('grouped contact symbols stay quiet and allow tactical orders through them'
     const state=window.__FRONTLINES__.getState(),q=state.squads.find(q=>q.name==='Able')!;
     const enemies=state.soldiers.filter(s=>state.squads.find(q=>q.id===s.squadId)?.faction==='enemy').slice(0,2);
     state.operation!.contacts={player:enemies.map((s,i)=>({soldierId:s.id,squadId:s.squadId,x:q.x+15+i*2,z:q.z+12,lastSeen:state.elapsed,visible:true,active:true})),enemy:[]};
+    // Supply the selected formation's delivered knowledge too. A commander-only
+    // fixture must not unlock local suppression merely because pause beat tick 1.
+    if(state.operation!.intelligence){
+      const intel=state.operation!.intelligence,local=intel.squads.find(s=>s.squadId===q.id);
+      if(local)local.contacts=structuredClone(state.operation!.contacts.player);
+      else intel.squads.push({squadId:q.id,contacts:structuredClone(state.operation!.contacts.player)});
+    }
     window.__FRONTLINES__.restoreState(state);return q.id;
   });
   await select(page,'Able');await page.keyboard.press('f');

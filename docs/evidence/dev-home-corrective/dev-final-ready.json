@@ -1,0 +1,42 @@
+{
+  "notice": "Preflight clear. Play Test verifies production assignments.",
+  "source": {
+    "x": -1213.3291966347035,
+    "z": -1310.1786784497447,
+    "zoom": 201.59234873313488,
+    "azimuth": 0,
+    "polar": 0.9500000000635659
+  },
+  "dirty": false,
+  "metrics": {
+    "scenarioInstantiations": 2,
+    "terrainResets": 4,
+    "overlay": {
+      "passes": 22,
+      "entityBuilds": 48,
+      "attributeWrites": 64,
+      "removed": 2,
+      "lastUpdateMs": 0.5999999642372131,
+      "totalUpdateMs": 9.900000035762787,
+      "maxUpdateMs": 1.800000011920929
+    },
+    "ownership": {
+      "created": 2,
+      "disposed": 2,
+      "active": 0,
+      "planners": 0
+    },
+    "preflightRuns": 4,
+    "preflight": {
+      "runs": 4,
+      "lastMs": 2.699999988079071,
+      "totalMs": 8.100000083446503
+    },
+    "document": {
+      "commits": 2,
+      "validations": 3,
+      "lastValidationMs": 0.09999996423721313,
+      "totalValidationMs": 0.2999999523162842
+    }
+  }
+}

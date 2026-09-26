@@ -16,6 +16,8 @@ export class TrenchRenderer {
   constructor(private state:BattlefieldState,private readonly terrain:TerrainSystem){}
   replaceState(state:BattlefieldState):void {this.state=state;for(const g of this.visuals.values())this.dispose(g);this.group.clear();this.visuals.clear();this.signatures.clear();this.neighborhoods.clear();}
   update(zoom=0):void {
+    const retained=new Set(this.state.trenches.map(t=>t.id));
+    for(const [id,visual] of this.visuals)if(!retained.has(id)){this.group.remove(visual);this.dispose(visual);this.visuals.delete(id);this.signatures.delete(id);this.neighborhoods.delete(id);}
     for(const trench of this.state.trenches) {
       // Neighbour excavation can open a branch through this trench's old timber.
       let neighborhood=this.neighborhoods.get(trench.id);

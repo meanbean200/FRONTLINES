@@ -288,7 +288,7 @@ export class FrontlinesApp {
     this.livingRenderer.update(now,this.garrisonPanel.showRoutes||this.deploymentPanel.showRoutes||this.trenchPanel.showRoutes,{...this.camera.target,zoom:this.camera.zoomDistance});this.garrisonPanel.update(now);
     phaseStart=performance.now();this.trenchPanel.update();this.assaultOrders.update();this.frameCosts.positions=performance.now()-phaseStart;
     this.buildPanel.update();this.deploymentPanel.update();
-    this.operationRenderer.update();this.operationUI.update(now);
+    this.operationRenderer.cinematic=attract;this.operationRenderer.update();this.operationUI.update(now);
     if(!attract)this.audio.update();
     this.lighting.update(this.state.living?.campaignHours??12,this.camera.target,this.camera.zoomDistance,now);
     phaseStart=performance.now();this.renderer.render(this.scene, this.camera.camera);this.frameCosts.webgl=performance.now()-phaseStart;

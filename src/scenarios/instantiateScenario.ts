@@ -11,7 +11,9 @@ import {trenchAnchorAt} from '../construction/PositionDefinitions';
 
 export function emptyScenarioWorld(seed=1944):BattlefieldState{return {worldVersion:WORLD_VERSION,worldSize:WORLD_SIZE,schemaVersion:4,seed,elapsed:0,simSpeed:1,nextEntityId:1,soldiers:[],squads:[],trenches:[],craters:[]};}
 /** Deterministic production-world constructor. Never reads storage or accepts runtime snapshots. */
+export const scenarioDiagnostics={instantiations:0};
 export function instantiateScenario(input:ScenarioPreset):BattlefieldState{
+ scenarioDiagnostics.instantiations++;
  validateScenario(input);const preset=structuredClone(input),state=emptyScenarioWorld(preset.seed),ids=new Map<string,number>();
  const terrain=new TerrainSystem(state),trenches=new TrenchSystem(state);
  const ground=(p:{x:number;z:number},name:string)=>{if(terrain.groundTypeAt(p.x,p.z)==='river'||terrain.obstacleAt(p.x,p.z,.3))throw new Error(`${name}: placement intersects water, a building or a solid obstacle. Move it onto clear terrain.`);};
