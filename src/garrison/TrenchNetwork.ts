@@ -142,6 +142,12 @@ export class TrenchNetwork {
     }
     return best?[a.point,...best.map(i=>({x:this.nodes[i].x,z:this.nodes[i].z})),b.point]:[];
   }
+  /** Graph routes include their junction vertices. At a shared endpoint nearest()
+   * can select the adjoining edge, so include leg interiors for invalidation. */
+  routeTrenches(route:readonly Vec2[]):number[]{
+    const probes=route.flatMap((p,i)=>i?[p,lerpVec(route[i-1],p,.5)]:[p]);
+    return [...new Set(probes.flatMap(p=>{const hit=this.nearest(p);return hit?this.edges[hit.edge].trenches:[];}))];
+  }
   private shortest(start:number,end:number):number[]{
     const coord=(id:number)=>`${Math.round(this.nodes[id].x*100)},${Math.round(this.nodes[id].z*100)}`;
     const key=`${coord(start)}:${coord(end)}`,cached=this.cache.get(key);

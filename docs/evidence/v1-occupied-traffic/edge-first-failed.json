@@ -1,0 +1,1077 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--reporter=json",
+      "--output=output/playwright/occupied-traffic-browser-release"
+    ],
+    "configFile": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\playwright.config.ts",
+    "rootDir": "C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 6
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/output/playwright/occupied-traffic-browser-release",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 6
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 12,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://127.0.0.1:4173",
+      "reuseExistingServer": true
+    }
+  },
+  "suites": [
+    {
+      "title": "assault-control.spec.ts",
+      "file": "assault-control.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "NORMAL and ALL IN review actual individuals, release on GO and restore detached movement",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15024,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:47.961Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "aa611a0155de6f229268-6616a31fbdfa6d7bcd06",
+          "file": "assault-control.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "gameplay-controls.spec.ts",
+      "file": "gameplay-controls.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Add troops is a normal sandbox action with repeatable batch placement",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 5665,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:47.961Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "711f7132d9ddfd7e680c-c9e66e0854d3cea141a2",
+          "file": "gameplay-controls.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "finite operations explain reserves without offering sandbox spawning",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "failed",
+                  "duration": 9468,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.operation-topline')\nExpected substring: \u001b[32m\"PREPARATION\"\u001b[39m\nReceived string:    \u001b[31m\"Race for the HamletBUILDING\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('.operation-topline') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.operation-topline')\u001b[22m\n\u001b[2m    13 × locator resolved to <div class=\"operation-topline\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"Race for the HamletBUILDING\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.operation-topline')\nExpected substring: \u001b[32m\"PREPARATION\"\u001b[39m\nReceived string:    \u001b[31m\"Race for the HamletBUILDING\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('.operation-topline') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.operation-topline')\u001b[22m\n\u001b[2m    13 × locator resolved to <div class=\"operation-topline\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"Race for the HamletBUILDING\"\u001b[22m\n\n    at C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\tests\\e2e\\gameplay-controls.spec.ts:28:138",
+                    "location": {
+                      "file": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\tests\\e2e\\gameplay-controls.spec.ts",
+                      "column": 138,
+                      "line": 28
+                    },
+                    "snippet": "  26 | test('finite operations explain reserves without offering sandbox spawning',async({page})=>{\n  27 |   await meeting(page);const before=await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length);await page.getByRole('button',{name:'Reinforcements',exact:true}).click();\n> 28 |   await expect(page.locator('.operation-topline')).toContainText('Race for the Hamlet');await expect(page.locator('.operation-topline')).toContainText('PREPARATION');\n     |                                                                                                                                          ^\n  29 |   await expect(page.locator('.deployment-status')).toContainText('Finite-force');await expect(page.locator('[data-deploy=\"rifle\"]')).toBeHidden();\n  30 |   await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length)).toBe(before);\n  31 | });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\tests\\e2e\\gameplay-controls.spec.ts",
+                        "column": 138,
+                        "line": 28
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.operation-topline')\nExpected substring: \u001b[32m\"PREPARATION\"\u001b[39m\nReceived string:    \u001b[31m\"Race for the HamletBUILDING\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('.operation-topline') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.operation-topline')\u001b[22m\n\u001b[2m    13 × locator resolved to <div class=\"operation-topline\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"Race for the HamletBUILDING\"\u001b[22m\n\n\n  26 | test('finite operations explain reserves without offering sandbox spawning',async({page})=>{\n  27 |   await meeting(page);const before=await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length);await page.getByRole('button',{name:'Reinforcements',exact:true}).click();\n> 28 |   await expect(page.locator('.operation-topline')).toContainText('Race for the Hamlet');await expect(page.locator('.operation-topline')).toContainText('PREPARATION');\n     |                                                                                                                                          ^\n  29 |   await expect(page.locator('.deployment-status')).toContainText('Finite-force');await expect(page.locator('[data-deploy=\"rifle\"]')).toBeHidden();\n  30 |   await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length)).toBe(before);\n  31 | });\n    at C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\tests\\e2e\\gameplay-controls.spec.ts:28:138"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:54.048Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\output\\playwright\\occupied-traffic-browser-release\\gameplay-controls-finite-o-1c379-t-offering-sandbox-spawning\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\output\\playwright\\occupied-traffic-browser-release\\gameplay-controls-finite-o-1c379-t-offering-sandbox-spawning\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\tests\\e2e\\gameplay-controls.spec.ts",
+                    "column": 138,
+                    "line": 28
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "711f7132d9ddfd7e680c-5a7dccc13477cdcd50d3",
+          "file": "gameplay-controls.spec.ts",
+          "line": 26,
+          "column": 1
+        },
+        {
+          "title": "Support routes players to physical positions rather than abstract mortar formations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4792,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:04.329Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "711f7132d9ddfd7e680c-a67c847d6e91145fcb40",
+          "file": "gameplay-controls.spec.ts",
+          "line": 32,
+          "column": 1
+        },
+        {
+          "title": "machine-gun inspection separates crew readiness from urgent warnings",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3560,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:09.399Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "711f7132d9ddfd7e680c-6e99394570230a4a2c98",
+          "file": "gameplay-controls.spec.ts",
+          "line": 38,
+          "column": 1
+        },
+        {
+          "title": "actual pit inspector rejects roofs and fires a mixed-formation outdoor mortar without a squad selected",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14794,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:12.971Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "711f7132d9ddfd7e680c-e647aa6f558f0e93ba57",
+          "file": "gameplay-controls.spec.ts",
+          "line": 77,
+          "column": 1
+        },
+        {
+          "title": "position reports a moving crew and retains it after a normal Hold",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6925,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:27.773Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "711f7132d9ddfd7e680c-4a407fce4269b5428599",
+          "file": "gameplay-controls.spec.ts",
+          "line": 95,
+          "column": 1
+        },
+        {
+          "title": "grouped contact symbols stay quiet and allow tactical orders through them",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5611,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:34.708Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "711f7132d9ddfd7e680c-e2e1229eb140b31b4a59",
+          "file": "gameplay-controls.spec.ts",
+          "line": 102,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "interface.spec.ts",
+      "file": "interface.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "main menu separates setup, settings and operations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 5678,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:47.931Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-f3350817f75961401ccb",
+          "file": "interface.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "briefing previews the generated world, then rolls back without a save write",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 3957,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:53.949Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-b5ee912cf604db6d29cd",
+          "file": "interface.spec.ts",
+          "line": 20,
+          "column": 1
+        },
+        {
+          "title": "contextual commands, drawer escape and direct trench entry remain accessible",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 8832,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:57.920Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-249533f66ec8ae3c3b14",
+          "file": "interface.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "pause save/load keeps exact campaign state and manual pause",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 4225,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:06.763Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-f86c77cd94c8d0e70c34",
+          "file": "interface.spec.ts",
+          "line": 47,
+          "column": 1
+        },
+        {
+          "title": "a supply decision cannot be obscured by the Position inspector",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2723,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:11.000Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-9339c1c450dc9533656f",
+          "file": "interface.spec.ts",
+          "line": 57,
+          "column": 1
+        },
+        {
+          "title": "full canvas and usable menus at 1920×1080",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 3870,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:13.732Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-5f2d0ec52733d03ce76e",
+          "file": "interface.spec.ts",
+          "line": 68,
+          "column": 3
+        },
+        {
+          "title": "full canvas and usable menus at 2560×1440",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 4096,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:17.609Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-91f5be71fa66f4a41dd0",
+          "file": "interface.spec.ts",
+          "line": 68,
+          "column": 3
+        },
+        {
+          "title": "full canvas and usable menus at 1654×910",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 3775,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:21.721Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-5101d7af345b0d8dbb72",
+          "file": "interface.spec.ts",
+          "line": 68,
+          "column": 3
+        },
+        {
+          "title": "full canvas and usable menus at 1366×768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 3719,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:25.513Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-20da30f9b2223ec71950",
+          "file": "interface.spec.ts",
+          "line": 68,
+          "column": 3
+        },
+        {
+          "title": "full canvas and usable menus at 1280×720",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 3757,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:29.245Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-4ddee1c2ef1130292790",
+          "file": "interface.spec.ts",
+          "line": 68,
+          "column": 3
+        },
+        {
+          "title": "full canvas and usable menus at 1024×768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 3607,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:33.010Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-28572b8cb69d1c608a2e",
+          "file": "interface.spec.ts",
+          "line": 68,
+          "column": 3
+        },
+        {
+          "title": "full canvas and usable menus at 2560×1080",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 4246,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:36.626Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-9916198e502fe95d69b7",
+          "file": "interface.spec.ts",
+          "line": 68,
+          "column": 3
+        },
+        {
+          "title": "full canvas and usable menus at 1280×540",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 3349,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:40.880Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "07743df4f35bb054ea2e-32fc5204f1882f861273",
+          "file": "interface.spec.ts",
+          "line": 68,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "live-controls.spec.ts",
+      "file": "live-controls.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "advanced changes preserve native fields and launch with the chosen rules",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 3,
+                  "status": "passed",
+                  "duration": 6281,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:47.932Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "828512d28c0db996bf29-237aed89e1be280082f9",
+          "file": "live-controls.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "live trench updates keep an open native select and apply its keyboard choice",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 3,
+                  "status": "passed",
+                  "duration": 7005,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:54.599Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "828512d28c0db996bf29-3f1802166f71d2b4f92d",
+          "file": "live-controls.spec.ts",
+          "line": 17,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "occupied-traffic.spec.ts",
+      "file": "occupied-traffic.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Edge advances real occupied trench counterflow using the speed controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 4,
+                  "status": "passed",
+                  "duration": 23980,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:48.147Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bce88a13e7b7ad77552b-34e5dc6d1948b07f58c0",
+          "file": "occupied-traffic.spec.ts",
+          "line": 5,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "support-reserves.spec.ts",
+      "file": "support-reserves.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Open Front shows the configured 0-person reserve",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 5,
+                  "status": "passed",
+                  "duration": 7402,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:47.993Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d0f703030a1deb0e3f87-5a2a69a138cc845882f9",
+          "file": "support-reserves.spec.ts",
+          "line": 11,
+          "column": 42
+        },
+        {
+          "title": "Open Front shows the configured 24-person reserve",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 5,
+                  "status": "passed",
+                  "duration": 9800,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:49:55.832Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d0f703030a1deb0e3f87-da54d887d3969785121b",
+          "file": "support-reserves.spec.ts",
+          "line": 11,
+          "column": 42
+        },
+        {
+          "title": "Open Front shows the configured 48-person reserve",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 5,
+                  "status": "passed",
+                  "duration": 4364,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-26T13:50:05.643Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d0f703030a1deb0e3f87-7cf8edd337f2d336e779",
+          "file": "support-reserves.spec.ts",
+          "line": 11,
+          "column": 42
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-26T13:49:46.927Z",
+    "duration": 57605.528,
+    "expected": 26,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

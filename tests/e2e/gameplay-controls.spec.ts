@@ -24,8 +24,11 @@ test('Add troops is a normal sandbox action with repeatable batch placement',asy
   await page.locator('#deployment-command').click();await page.locator('.hud-tools summary').click();await page.locator('#open-build').click();await expect(page.locator('#deployment-panel')).toBeHidden();
 });
 test('finite operations explain reserves without offering sandbox spawning',async({page})=>{
-  await meeting(page);const before=await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length);await page.getByRole('button',{name:'Reinforcements',exact:true}).click();
-  await expect(page.locator('.operation-topline')).toContainText('Race for the Hamlet');await expect(page.locator('.operation-topline')).toContainText('PREPARATION');
+  await meeting(page);const paused=await page.evaluate(()=>window.__FRONTLINES__.getState()),before=paused.soldiers.length;expect(paused.simSpeed).toBe(0);await page.getByRole('button',{name:'Reinforcements',exact:true}).click();
+  // The first real tick may precede the pause click: this mission has no timed
+  // preparation and immediately requests building occupation. Display live truth,
+  // not the transient blankMission placeholder observed by an unusually fast run.
+  await expect(page.locator('.operation-topline')).toContainText('Race for the Hamlet');await expect(page.locator('.operation-topline')).toContainText(paused.operation!.runtime!.mission!.phase.toUpperCase());
   await expect(page.locator('.deployment-status')).toContainText('Finite-force');await expect(page.locator('[data-deploy="rifle"]')).toBeHidden();
   await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length)).toBe(before);
 });

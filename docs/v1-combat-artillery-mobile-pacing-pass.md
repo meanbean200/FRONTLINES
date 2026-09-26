@@ -279,3 +279,109 @@ calendar defaults, neural training, or automation changes in this milestone.
   not certification of long-duration combat staffing or every release scenario.
   Next: milestone B occupied production-network acceptance. Milestones C–G,
   developer authoring and living-menu isolation remain pending.
+
+## Occupied trench continuation — 2026-09-26 (milestone B)
+
+Starting revision: `c2cbfc9`. Overall release remains **PARTIAL**. This slice does
+not change calendar speed, force size, lethal-needs settings or initial stock in
+existing saves. Original long-journey deaths remain **not causally reproduced**.
+
+### Reproduction and fixes
+
+- The routine rest allocator exhausted coarse five-metre samples and then picked
+  a sample by person ID without checking existing reservations. Replaced that
+  fallback with actual floor-width sampling and live temporary reservations.
+  Routine waiting/rest avoids junction centres, entrances, structures and service
+  areas. Full dugouts use free floor, not an invented bed. An explicit rest order
+  reports unavailable space instead of reserving an occupied point.
+- The loop fixture exposed missing route ownership: at a shared junction,
+  endpoint-only nearest-edge queries could omit the connecting trench traversed
+  between two junctions. Route dependencies now include leg interiors, and
+  replanning refreshes those dependencies. Removing that connecting passage
+  replans on remaining excavated floor without jumping or crossing a wall.
+- These are deterministic scheduling/navigation changes. No hard friendly-body
+  veto was restored, no capacity limit was increased, and no renderer-only
+  movement was introduced.
+
+### Quantified acceptance
+
+- `scripts/qa-occupied-traffic.ts` uses the full production fixed-step simulation,
+  actual terrain/network/needs/coordinator and normal individual-order interface.
+  Initial geometry and people are declared fixtures, **not** structures authored
+  through player controls. No geometry, movement or survival mocks.
+- 96 people: 72 opposing/crossing travellers, eight already near their
+  destinations, two operational gun crew, two construction workers, two loaded
+  carriers, eight resters and two other guards. The post has finite accounted
+  ammunition; the dugout has only two beds. Work completes while traffic moves.
+- The matched uncongested control keeps all 96 people and mixed duties, but
+  parks the intermediate travellers off the tested paths; it runs the same three
+  longest routes plus the eight near-destination routes. This is an 11-traveller
+  control, not a claim that 80 isolated simulations were run.
+- T-junction: both control and 80-traveller run complete in **70.50 simulation
+  seconds**, maximum measured stationary travel stall **0 seconds**, maximum
+  near-destination travel **0.105 metres**. The formation anchors deliberately
+  start far away. A second occupied loop fixture actually uses the diagonal
+  connecting passage; the same <=2-second stall and <=2x control gates pass.
+- A separate 96-person junction pile is assigned distinct floor-rest destinations
+  by the real coordinator, walks out of the junction, and continues identically
+  after saving the approach. Additional tests retain hard building exclusions,
+  graph boundaries, finite facility reservations and refusal of invalid capacity.
+- Save/reload at 25 simulation seconds continues to the same **serialized** state.
+  Initial raw-object comparison exposed absent-versus-undefined optional keys;
+  serialized comparison now matches the actual save contract. No simulated value
+  was discarded from comparison. Resource balance is checked at completion.
+
+### Browser evidence and limitations
+
+- Edge uses the declared production-validated fixture, then actual Forces,
+  selection/focus, speed, pause, Save, refresh and Continue controls. No browser
+  stepping or movement injection. All 80 arrive; all 96 remain active; no page
+  errors. Wall timing includes pauses and reload and is **not** a 5x benchmark.
+- Initial junction screenshot framed the deliberately remote formation anchor;
+  the final test focuses again after movement and captures the actual counterflow.
+  Both attempts remain under `output/playwright/occupied-traffic-edge-*`.
+- Failed fixture setup initially overlapped carrier parking with traveller
+  destinations; production orders correctly rejected those reservations. The
+  fixture was corrected rather than weakening occupancy checks. The first
+  exhausted-floor unit fixture failed to exclude the outer berm; its exclusions
+  now cover the full width. The first loop run failed the dependency assertion
+  and led to the route-ownership fix above. Failed reports are retained.
+- Doorways/full buildings and impossible assignment capacity retain the maintained
+  focused regressions. The new quantified 80-person gate is for trench T/loop
+  traffic, **not** an 80-person building-interior performance claim. A network
+  that is truly over capacity still rejects the whole assignment; automatic
+  external staging for that refused order remains unfinished. No unlimited
+  facility occupancy is substituted for that missing workflow.
+- These tests do not certify 512-person performance, combat/cutoff soaks, physical
+  phones or subjective presentation. C's complete survival matrix and independent
+  calendar timing, D's scale, E's developer authoring and F's living-menu/session
+  isolation remain pending. Their interfaces have not been claimed as shipped.
+
+Final frozen-build test/package reports for this slice are appended below after
+verification. The next implementation gate is the remaining B external staging
+workflow, followed by the cross-role survival/calendar matrix before changing
+calendar or population defaults.
+
+### Milestone B slice delivery checks
+
+- Full simulation regression: **808/808, 117 files**. Final focused rest-order
+  rerun covers the last wording/explicit-refusal adjustment. Production build
+  passes; the existing large JavaScript chunk warning remains.
+- Edge **27/27**, zero skipped/flaky/unexpected, 57.17 seconds. First full run
+  was 26/27: the reserves UI test required the transient PREPARATION placeholder
+  even when a real tick had advanced the meeting mission to BUILDING before the
+  pause click. It now asserts the displayed phase against the actual paused
+  mission state, while retaining finite-reserve/no-sandbox-spawn assertions.
+  Failed report and screenshot are preserved, not overwritten.
+- An additional isolated occupied-traffic Edge capture passes, including waiting
+  for the pause indicator before taking the completion screenshot. Screenshots
+  were inspected for actual junction framing and end-state spreading.
+- Offline packaging **5/5**. Isolated portable HTML in network-disabled Edge
+  passes movement, exact paused save/Continue hashes, embedded worker responses,
+  1280x720 and 1920x1080 refresh sizing, and zero external dependencies/errors.
+- Reports/screenshots: `docs/evidence/v1-occupied-traffic/`. The earlier generic
+  96-walker fixture remains unchanged; this adds production garrison/mixed-role
+  coverage rather than replacing a difficult test with a smaller workload.
+- This delivers crew control (A) and the occupied-traffic/rest-allocation portion
+  of B. **B's true over-capacity external staging and C–G are still pending.**
+  No claim of developer-tool, living-menu, 512-person, mobile or release completion.

@@ -28,6 +28,7 @@ import {networkCapacity,type AssignmentResult} from './NetworkCapacity';
 import {artilleryLayout} from '../construction/ArtilleryLayout';
 import {raidSearchComplete} from '../operations/TrenchRaid';
 import {detachedFromFormation} from '../operations/AssaultPlan';
+import {waitingSpace} from './WaitingSpace';
 
 const WATCH={routine:.25,alert:.5,'stand-to':.9};
 const NIGHT=(hours:number)=>hours%24>=20||hours%24<6;
@@ -137,7 +138,8 @@ export class GarrisonSystem {
       if(point&&(!this.network.corridorContains(point)||this.componentAt(point)!==component))return reject('Choose excavated trench floor.');
       destination=point??defensivePost(this.network,this.terrain,component,g.front,s,people,g.entrance,this.state.living!.facilities.filter(f=>f.garrisonId===g.id).map(f=>f),g.threatSector,g.frontage);kind='watch';reason='Player: take watch';
     }else if(order==='rest'){
-      facility=this.facility(g,'rest',people);destination=facility?this.facilityDestination(facility,s):this.localMealPoint(g,s);kind='sleep';reason='Player: rest and recover';
+      facility=this.facility(g,'rest',people);destination=facility?this.facilityDestination(facility,s):this.waitingPoint(s,g,people);kind='sleep';reason=facility?'Player: rest and recover':'Player: floor rest · dugouts unavailable';
+      if(!destination)return reject('No free rest space · occupied floor and service approaches remain reserved.');
     }else if(order==='meal'){
       const packed=(s.carried?.food??0)>0||(s.carried?.water??0)>0,stock=localInventory(this.state,g);
       if(!packed&&stock.food<=0&&stock.water<=0)return reject('No food or water available here.');
@@ -447,7 +449,7 @@ export class GarrisonSystem {
         if(d.relocationExit&&g){this.replanRelocation(s,g);continue;}
         const route=this.network.route(s,d.exitPending&&g?(d.exitPoint??g.entrance):d.destination);d.routeBlocked=!route.length;
         if(route.length&&d.exitPending&&g)route.push(...this.openApproach(route.at(-1)!,d.destination,g.entrance,d.exitPoint));
-        if(route.length){d.route=[...route,d.destination];d.routeIndex=0;delete d.detourWaypoints;}
+        if(route.length){d.route=[...route,d.destination];d.routeIndex=0;d.routeTrenches=this.network.routeTrenches(d.route);delete d.detourWaypoints;}
       }
     }
     this.logistics.step(dt);
@@ -514,16 +516,7 @@ export class GarrisonSystem {
     const points=this.network.samples(component,5);if(!points.length)return;
     this.coordinateWeapons(g,active);
     this.coordinateWork(g,active);
-    const freePoint=(s:SoldierState,front=false):Vec2=>{
-      const source=front&&readiness==='stand-to'?this.network.samples(component,2.5):points;
-      // Occupy nearby usable frontage, rather than marching every new guard to one end.
-      const candidates=[...source].sort((a,b)=>distance(a,s)-distance(b,s));
-      for(let i=0;i<candidates.length;i++){
-        const p=candidates[i],offset=bankPoint(this.network,p,g.front,front);
-        if(distance(offset,g.entrance)<14||w.facilities.some(f=>f.garrisonId===g.id&&distance(f,offset)<6)||this.network.nodes.some(n=>n.edges.length>2&&distance(n,offset)<3))continue;
-        if(!people.some(other=>other!==s&&other.needs?.life!=='dead'&&(distance(other,offset)<.7||other.duty&&distance(other.duty.destination,offset)<1.1)))return offset;
-      }return bankPoint(this.network,candidates[s.id%candidates.length],g.front,false);
-    };
+    const freePoint=(s:SoldierState)=>this.waitingPoint(s,g,people);
     // A guard remains until its named relief physically arrives.
     for(const relief of active.filter(s=>s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&s.duty.relieving!==undefined)){
       const duty=relief.duty;if(duty?.kind!=='watch'||duty.relieving===undefined)continue;
@@ -652,6 +645,10 @@ export class GarrisonSystem {
     this.jobBoard.publish(g,active);
   }
   private isEngineer(s:SoldierState):boolean{return hasEquipment(this.state,s,'tools');}
+  private waitingPoint(s:SoldierState,g:Garrison,people:SoldierState[]):Vec2|undefined {
+    const component=this.network.component(g.trenchId);if(component===undefined)return;
+    return waitingSpace(this.network,this.terrain,component,g.front,s,people,g.entrance,this.state.living!.facilities.filter(f=>f.garrisonId===g.id).map(f=>f));
+  }
   private assignRest(s:SoldierState,g:Garrison,people:SoldierState[],duration:number,fallback?:Vec2):boolean {
     const rests=this.state.living!.facilities.filter(f=>f.garrisonId===g.id&&f.kind==='rest'&&f.progress===1&&people.filter(p=>p!==s&&p.duty?.facilityId===f.id).length<f.capacity)
       .sort((a,b)=>distance(a,s)-distance(b,s)||a.id-b.id);
@@ -659,7 +656,7 @@ export class GarrisonSystem {
       if(s.needs!.energy<8&&distance(f,s)>12)continue;
       if(this.assignDuty(s,g,'sleep',this.facilityDestination(f,s),'Recover in rest dugout · return to assigned duty afterward',duration)){s.duty!.facilityId=f.id;return true;}
     }
-    return this.assignDuty(s,g,'sleep',fallback??this.localMealPoint(g,s),'Floor rest · no reachable free dugout',duration);
+    return this.assignDuty(s,g,'sleep',fallback??this.waitingPoint(s,g,people),'Floor rest · no reachable free dugout',duration);
   }
   private facility(g:Garrison,kind:Facility['kind'],people:SoldierState[]):Facility|undefined {
     return this.state.living!.facilities.find(f=>f.garrisonId===g.id&&f.kind===kind&&f.progress===1&&people.filter(s=>s.duty?.facilityId===f.id).length<f.capacity);
@@ -731,7 +728,7 @@ export class GarrisonSystem {
     const route=plan.route.filter((p,i)=>i===0||distance(p,plan.route[i-1])>.05).map(p=>({x:p.x,z:p.z}));
     s.duty={kind:'patrol',destination:{...plan.entry},route,routeIndex:0,since:this.state.elapsed,until:this.state.elapsed,reason:'Player order: relocate to the new trench',blockedFor:0,relocationExit:{...plan.exit},entryPoint:{...plan.entry},networkBound:plan.inside,exitPending:plan.inside,entryPending:!plan.inside};
     if(rationUntil!==undefined)s.duty.rationUntil=rationUntil;
-    s.duty.routeTrenches=[...new Set(route.flatMap(p=>{const h=this.network.nearest(p);return h?this.network.edges[h.edge].trenches:[];}))];
+    s.duty.routeTrenches=this.network.routeTrenches(route);
   }
   private replanRelocation(s:SoldierState,g:Garrison):void {
     const component=this.network.component(g.trenchId),plan=component===undefined?undefined:this.relocationRoute(s,component,g.entrance);
@@ -777,7 +774,7 @@ export class GarrisonSystem {
       if(this.network.corridorContains(s))s.duty.networkBound=true;else {s.duty.entryPending=true;if(entryPoint)s.duty.entryPoint={...entryPoint};}
     }else if(this.network.corridorContains(s)&&distance(s,exitPoint??g.entrance)>3){s.duty.networkBound=true;s.duty.exitPending=true;}
     if(exitPoint)s.duty.exitPoint={...exitPoint};
-    s.duty.routeTrenches=[...new Set(route.flatMap(p=>{const h=this.network.nearest(p);return h?this.network.edges[h.edge].trenches:[];}))];return true;
+    s.duty.routeTrenches=this.network.routeTrenches(route);return true;
   }
   /** Short physical moves between temporary fighting edges. Never read hidden
    * enemy movement, replace a player post, disrupt relief, or move a mounted gun. */
@@ -860,7 +857,7 @@ export class GarrisonSystem {
           if(d.networkBound&&!this.network.segmentInside(s,target)){
             const route=this.network.route(s,d.exitPending?(d.exitPoint??g.entrance):d.destination);
             if(route.length&&d.exitPending)route.push(...this.openApproach(route.at(-1)!,d.destination,g.entrance,d.exitPoint));
-            if(route.length){d.route=[...route,d.destination];d.routeIndex=0;delete d.detourWaypoints;d.blockedFor=0;d.routeTrenches=[...new Set(route.flatMap(p=>{const h=this.network.nearest(p);return h?this.network.edges[h.edge].trenches:[];}))];return;}
+            if(route.length){d.route=[...route,d.destination];d.routeIndex=0;delete d.detourWaypoints;d.blockedFor=0;d.routeTrenches=this.network.routeTrenches(d.route);return;}
             d.routeBlocked=true;return;
           }
           // An obsolete short avoidance waypoint may now be occupied. Rejoin

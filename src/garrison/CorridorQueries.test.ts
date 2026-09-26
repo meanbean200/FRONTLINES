@@ -6,6 +6,14 @@ const trench=(id:number,points:Vec2[],width=4.2):TrenchState=>({id,points,width,
 const geometry=[trench(1,[{x:-80,z:-32},{x:80,z:-32}]),trench(2,[{x:-64,z:-80},{x:64,z:80}],8),trench(3,[{x:-31,z:31},{x:32,z:31},{x:32,z:65},{x:-31,z:65},{x:-31,z:31}],2),trench(4,[{x:35,z:31},{x:70,z:31}],12)];
 
 describe('indexed corridor membership',()=>{
+  it('records the interior leg of a loop even when both endpoints belong to older edges',()=>{
+    const network=new TrenchNetwork();
+    const trench=(id:number,points:{x:number;z:number}[])=>({id,points,width:2.2,depth:1.75,progress:1,status:'complete' as const});
+    network.sync([trench(1,[{x:-100,z:0},{x:100,z:0}]),trench(2,[{x:0,z:0},{x:0,z:100}]),trench(3,[{x:40,z:0},{x:0,z:40}])]);
+    const route=network.route({x:70,z:0},{x:0,z:70});
+    expect(network.routeTrenches(route)).toContain(3);
+    expect(route.some((p,i)=>i>0&&p.x!==route[i-1].x&&p.z!==route[i-1].z)).toBe(true);
+  });
   it('matches exact full-edge clearance at signed cell boundaries, junctions, and end caps',()=>{
     const network=new TrenchNetwork();network.sync(geometry);
     const points:Vec2[]=[];
