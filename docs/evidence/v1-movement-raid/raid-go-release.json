@@ -1,0 +1,350 @@
+{
+  "elapsed": 785.9999999998329,
+  "orders": [
+    {
+      "squadId": 261,
+      "intent": "assault",
+      "target": {
+        "x": 940.0203458816997,
+        "z": 905.7693432675246
+      },
+      "networkId": 251,
+      "preparedAt": 189.70000000000888,
+      "raid": {
+        "phase": "approach",
+        "entry": {
+          "x": 942.2765861512603,
+          "z": 1021.4373764098949
+        },
+        "home": {
+          "x": 719.8172593295109,
+          "z": 983.4663188397228
+        },
+        "startingAble": 7,
+        "members": [],
+        "cleared": [],
+        "nextReview": 189.70000000000888,
+        "reason": "GO · approaching assigned trench entry"
+      },
+      "signalAt": 777.9499999998402,
+      "releasedAt": 777.9999999998402
+    },
+    {
+      "squadId": 270,
+      "intent": "assault",
+      "target": {
+        "x": 940.0203458816997,
+        "z": 905.7693432675246
+      },
+      "networkId": 251,
+      "preparedAt": 189.70000000000888,
+      "raid": {
+        "phase": "approach",
+        "entry": {
+          "x": 940.7932526993782,
+          "z": 973.5401045386096
+        },
+        "home": {
+          "x": 742.2581993630065,
+          "z": 984.0158473525506
+        },
+        "startingAble": 6,
+        "members": [],
+        "cleared": [],
+        "nextReview": 189.70000000000888,
+        "reason": "GO · approaching assigned trench entry"
+      },
+      "signalAt": 777.9499999998402,
+      "releasedAt": 777.9999999998402
+    },
+    {
+      "squadId": 279,
+      "intent": "assault",
+      "target": {
+        "x": 940.0203458816997,
+        "z": 905.7693432675246
+      },
+      "networkId": 251,
+      "preparedAt": 189.70000000000888,
+      "raid": {
+        "phase": "approach",
+        "entry": {
+          "x": 942.235272248274,
+          "z": 925.6447933013233
+        },
+        "home": {
+          "x": 719.637545249382,
+          "z": 1005.8142739711855
+        },
+        "startingAble": 8,
+        "members": [],
+        "cleared": [],
+        "nextReview": 189.70000000000888,
+        "reason": "GO · approaching assigned trench entry"
+      },
+      "signalAt": 777.9499999998402,
+      "releasedAt": 777.9999999998402
+    },
+    {
+      "squadId": 315,
+      "intent": "suppress",
+      "target": {
+        "x": 940.0203458816997,
+        "z": 905.7693432675246
+      },
+      "networkId": 251,
+      "preparedAt": 633.4999999999716,
+      "signalAt": 777.9499999998402,
+      "releasedAt": 777.9999999998402
+    }
+  ],
+  "people": [
+    {
+      "id": 262,
+      "squadId": 261,
+      "x": 730.3415414010398,
+      "z": 983.3802947441613,
+      "life": "active",
+      "action": "moving to casualty",
+      "owner": "casualty"
+    },
+    {
+      "id": 263,
+      "squadId": 261,
+      "x": 742.1050981751254,
+      "z": 998.7676582248616,
+      "life": "active",
+      "action": "seeking cover",
+      "owner": "reaction"
+    },
+    {
+      "id": 264,
+      "squadId": 261,
+      "x": 726.894339503772,
+      "z": 980.3337983853994,
+      "life": "active",
+      "action": "advancing",
+      "owner": "order"
+    },
+    {
+      "id": 265,
+      "squadId": 261,
+      "x": 721.0640081332315,
+      "z": 978.9607917833594,
+      "life": "active",
+      "action": "covering fire",
+      "owner": "reaction"
+    },
+    {
+      "id": 266,
+      "squadId": 261,
+      "x": 710.4913638195433,
+      "z": 988.8590219980562,
+      "life": "active",
+      "action": "advancing",
+      "owner": "order"
+    },
+    {
+      "id": 267,
+      "squadId": 261,
+      "x": 716.5209061069248,
+      "z": 984.678046119934,
+      "life": "incapacitated",
+      "action": "incapacitated",
+      "owner": "casualty"
+    },
+    {
+      "id": 268,
+      "squadId": 261,
+      "x": 726.4391615797881,
+      "z": 982.635507709943,
+      "life": "active",
+      "action": "advancing",
+      "owner": "order"
+    },
+    {
+      "id": 269,
+      "squadId": 261,
+      "x": 718.4444519551339,
+      "z": 977.4059908689087,
+      "life": "active",
+      "action": "covering fire",
+      "owner": "reaction"
+    },
+    {
+      "id": 271,
+      "squadId": 270,
+      "x": 759.543955699382,
+      "z": 991.6492120145846,
+      "life": "active",
+      "action": "seeking cover",
+      "owner": "reaction"
+    },
+    {
+      "id": 272,
+      "squadId": 270,
+      "x": 754.0663961669187,
+      "z": 993.1914675036064,
+      "life": "incapacitated",
+      "action": "incapacitated",
+      "owner": "casualty"
+    },
+    {
+      "id": 273,
+      "squadId": 270,
+      "x": 742.1339594349012,
+      "z": 981.6502334335663,
+      "life": "dead",
+      "action": "dead",
+      "owner": "casualty"
+    },
+    {
+      "id": 274,
+      "squadId": 270,
+      "x": 755.6500538808108,
+      "z": 995.5910231874357,
+      "life": "active",
+      "action": "covering fire",
+      "owner": "reaction"
+    },
+    {
+      "id": 275,
+      "squadId": 270,
+      "x": 652.9849313914403,
+      "z": 1030.9177794381542,
+      "life": "incapacitated",
+      "action": "incapacitated",
+      "owner": "casualty"
+    },
+    {
+      "id": 276,
+      "squadId": 270,
+      "x": 743.589879210959,
+      "z": 984.7312858629759,
+      "life": "active",
+      "action": "covering fire",
+      "owner": "reaction"
+    },
+    {
+      "id": 277,
+      "squadId": 270,
+      "x": 745.948157485097,
+      "z": 982.4105832226702,
+      "life": "active",
+      "action": "advancing",
+      "owner": "order"
+    },
+    {
+      "id": 278,
+      "squadId": 270,
+      "x": 740.7908411367295,
+      "z": 980.5199054802151,
+      "life": "incapacitated",
+      "action": "incapacitated",
+      "owner": "casualty"
+    },
+    {
+      "id": 280,
+      "squadId": 279,
+      "x": 720.4962716969437,
+      "z": 1009.4336007882654,
+      "life": "incapacitated",
+      "action": "incapacitated",
+      "owner": "casualty"
+    },
+    {
+      "id": 281,
+      "squadId": 279,
+      "x": 721.4050306336528,
+      "z": 1009.4569910474296,
+      "life": "active",
+      "action": "advancing",
+      "owner": "order"
+    },
+    {
+      "id": 282,
+      "squadId": 279,
+      "x": 722.9505720551867,
+      "z": 1006.6743737911725,
+      "life": "active",
+      "action": "advancing",
+      "owner": "order"
+    },
+    {
+      "id": 283,
+      "squadId": 279,
+      "x": 717.6266200018528,
+      "z": 1003.8132838605013,
+      "life": "active",
+      "action": "advancing",
+      "owner": "order"
+    },
+    {
+      "id": 284,
+      "squadId": 279,
+      "x": 747.2200460231868,
+      "z": 1000.3217947091722,
+      "life": "active",
+      "action": "crouching",
+      "owner": "reaction"
+    },
+    {
+      "id": 285,
+      "squadId": 279,
+      "x": 718.1161803955303,
+      "z": 1009.2641076461406,
+      "life": "active",
+      "action": "advancing",
+      "owner": "order"
+    },
+    {
+      "id": 286,
+      "squadId": 279,
+      "x": 721.0633635329542,
+      "z": 1008.2841747397919,
+      "life": "active",
+      "action": "advancing",
+      "owner": "order"
+    },
+    {
+      "id": 287,
+      "squadId": 279,
+      "x": 715.5524174444874,
+      "z": 1005.3704381875997,
+      "life": "active",
+      "action": "advancing",
+      "owner": "order"
+    }
+  ],
+  "missions": [
+    {
+      "id": 485,
+      "squadId": 315,
+      "positionId": 461,
+      "weapon": "field-gun",
+      "kind": "mortarHE",
+      "target": {
+        "x": 940.9610190424827,
+        "z": 972.9162897034747
+      },
+      "impact": {
+        "x": 955.3841513386453,
+        "z": 989.5287039681386
+      },
+      "requestedAt": 777.9499999998402,
+      "launchAt": 797.9499999998402,
+      "impactAt": 802.9895387880035,
+      "stage": "cancelled",
+      "reason": "Cancelled: MOVING TO POSITION",
+      "dangerRadius": 65,
+      "confirmedRisk": false,
+      "source": "PLAYER",
+      "side": "player",
+      "ammoConsumed": 0,
+      "crewIds": [
+        321,
+        312
+      ]
+    }
+  ]
+}

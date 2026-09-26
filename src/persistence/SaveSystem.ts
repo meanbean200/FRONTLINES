@@ -177,6 +177,8 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
     if(order.trenchId!==undefined&&!trenchIds.has(order.trenchId))return false;
   }
   for(const soldier of state.soldiers){
+    const travel=soldier.formationTravel;
+    if(travel&&(!finite(travel.orderAt)||travel.orderAt<0||travel.orderAt>state.elapsed||!Number.isInteger(travel.index)||travel.index<0||!point(travel.goal)||!insideWorld(travel.goal)||!Array.isArray(travel.local)||travel.local.length>8192||!travel.local.every(p=>point(p)&&insideWorld(p))||!Number.isInteger(travel.localIndex)||travel.localIndex<0||travel.localIndex>travel.local.length||!finite(travel.retryAt)||travel.retryAt<0||!point(travel.checkpoint)||!finite(travel.progressAt)||travel.progressAt<0||travel.progressAt>state.elapsed||typeof travel.arrived!=='boolean'))return false;
     if(soldier.posture!==undefined&&!['standing','crouched','prone'].includes(soldier.posture))return false;
     const combat=soldier.combat;
     if(combat){
@@ -281,6 +283,8 @@ function validLiving(state:BattlefieldState):boolean {
     if(!['routine','alert','stand-to'].includes(g.readiness)||!['rules','learned','hybrid'].includes(g.policy)||!['clear','warning','decision','hold','recover','withdraw'].includes(g.cutoff)||typeof g.policyStatus!=='string'||!Array.isArray(g.scores)||!g.scores.every(finite))return false;
     if(![g.watchRequired,g.watchPresent,g.capacity].every(nonnegative)||![0,6].includes(g.scores.length)||(g.modelId!==undefined&&typeof g.modelId!=='string'))return false;
     if(g.underFireUntil!==undefined&&!nonnegative(g.underFireUntil))return false;
+    if(g.breachUntil!==undefined&&!nonnegative(g.breachUntil))return false;
+    if(g.nextRoadheadReview!==undefined&&!nonnegative(g.nextRoadheadReview))return false;
     if(g.threatSector&&(!point(g.threatSector)||!finite(g.threatSector.front))||g.reserveRequired!==undefined&&!nonnegative(g.reserveRequired))return false;
     if(g.frontage!==undefined&&(!Array.isArray(g.frontage)||g.frontage.length<2||g.frontage.length>4096||!g.frontage.every(point)))return false;
     if(g.recoveredSince!==undefined&&!nonnegative(g.recoveredSince)||g.supplyIssue!==undefined&&typeof g.supplyIssue!=='string')return false;

@@ -70,6 +70,9 @@ describe('combat and living-garrison transitions',()=>{
     enemy.nextShotAt=10000;sim.step(.05);
     expect(g.underFireUntil).toBeGreaterThan(state.elapsed);
     for(const s of state.soldiers)s.nextShotAt=10000;
+    // The intruder has withdrawn. A still-visible breach must keep the alarm
+    // alive even when nobody fires; that case has its own regression below.
+    enemy.x=-1700;enemy.z=-1700;
     const restored=new BattlefieldSimulation(new SaveSystem().parse(JSON.stringify(state)));
     for(let i=0;i<620;i++){sim.step(.05);restored.step(.05);}
     expect(restored.state).toEqual(state);
@@ -93,6 +96,16 @@ describe('combat and living-garrison transitions',()=>{
   it('rejects malformed saved alert timers',()=>{
     const {state,g}=sleepingGarrison();g.underFireUntil=-1;
     expect(()=>new SaveSystem().parse(JSON.stringify(state))).toThrow();
+  });
+  it('commits the reserve only to a fresh locally confirmed trench breach',()=>{
+    const {state,sim,g,people,enemy}=sleepingGarrison();
+    const contact={soldierId:enemy.id,squadId:enemy.squadId,x:enemy.x,z:enemy.z,lastSeen:state.elapsed,visible:true,active:true,status:'confirmed' as const,uncertainty:0};
+    state.operation!.intelligence={squads:[{squadId:people[0].squadId,contacts:[contact],exposure:[],link:'connected',nextReport:10000}],reports:[],command:{player:[],enemy:[]},sounds:[]};
+    g.nextDecision=0;sim.garrisons.step(.05);
+    expect(g.breachUntil).toBeGreaterThan(state.elapsed);expect(g.reserveRequired).toBe(0);expect(g.watchRequired).toBe(6);
+    expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);
+    state.elapsed=20;g.nextDecision=0;sim.garrisons.step(.05);
+    expect(g.watchRequired).toBe(2); // stale contact cannot keep tracking a hidden intruder
   });
   it('does not snap an aiming guard back to the selected front between combat ticks',()=>{
     const {sim,g,people,enemy}=sleepingGarrison(),guard=people[0];

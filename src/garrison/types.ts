@@ -68,6 +68,8 @@ export interface Garrison {
   recoveredSince?:number; supplyIssue?:string;
   /** Temporary safety response; never replaces the player's selected readiness. */
   underFireUntil?:number;
+  breachUntil?:number;
+  nextRoadheadReview?:number;
   threatSector?:Vec2&{front:number};
   reserveRequired?:number;
   frontage?:Vec2[];

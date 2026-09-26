@@ -1,0 +1,13 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {BattlefieldSimulation} from '../src/simulation/BattlefieldSimulation';
+import {SaveSystem} from '../src/persistence/SaveSystem';
+const [input,output]=process.argv.slice(2);
+if(!input||!output)throw Error('Usage: tsx scripts/profile-saved-navigation.ts snapshot.json report.json');
+const sim=new BattlefieldSimulation(new SaveSystem().parse(readFileSync(input,'utf8'))),rows:unknown[]=[];
+const original=sim.navigation.plan.bind(sim.navigation);let calls=0;
+sim.navigation.plan=(...args)=>{const at=performance.now(),route=original(...args),ms=performance.now()-at;calls++;
+  if(ms>3)rows.push({elapsed:sim.state.elapsed,ms,start:{x:args[0].x,z:args[0].z},goal:args[1],person:args[3],budget:args[4],avoidsGoal:args[2]?.(args[1]),length:route.length,stack:new Error().stack?.split('\n').slice(2,6)});
+  return route;};
+sim.state.simSpeed=1;const at=performance.now();for(let i=0;i<500;i++)sim.step(.05);
+writeFileSync(output,JSON.stringify({ms:performance.now()-at,calls,rows},null,2));
+console.log({ms:performance.now()-at,calls,slow:rows.length});

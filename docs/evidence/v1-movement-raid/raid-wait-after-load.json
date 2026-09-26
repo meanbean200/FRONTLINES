@@ -1,0 +1,80 @@
+[
+  {
+    "squadId": 261,
+    "intent": "assault",
+    "target": {
+      "x": 940.0203458816997,
+      "z": 905.7693432675246
+    },
+    "networkId": 251,
+    "preparedAt": 189.70000000000888,
+    "raid": {
+      "phase": "wait",
+      "entry": {
+        "x": 942.2765861512603,
+        "z": 1021.4373764098949
+      },
+      "home": {
+        "x": 719.8172593295109,
+        "z": 983.4663188397228
+      },
+      "startingAble": 7,
+      "members": [],
+      "cleared": [],
+      "nextReview": 189.70000000000888,
+      "reason": "WAIT FOR SIGNAL · staged at current position"
+    }
+  },
+  {
+    "squadId": 270,
+    "intent": "assault",
+    "target": {
+      "x": 940.0203458816997,
+      "z": 905.7693432675246
+    },
+    "networkId": 251,
+    "preparedAt": 189.70000000000888,
+    "raid": {
+      "phase": "wait",
+      "entry": {
+        "x": 940.7932526993782,
+        "z": 973.5401045386096
+      },
+      "home": {
+        "x": 742.2581993630065,
+        "z": 984.0158473525506
+      },
+      "startingAble": 6,
+      "members": [],
+      "cleared": [],
+      "nextReview": 189.70000000000888,
+      "reason": "WAIT FOR SIGNAL · staged at current position"
+    }
+  },
+  {
+    "squadId": 279,
+    "intent": "assault",
+    "target": {
+      "x": 940.0203458816997,
+      "z": 905.7693432675246
+    },
+    "networkId": 251,
+    "preparedAt": 189.70000000000888,
+    "raid": {
+      "phase": "wait",
+      "entry": {
+        "x": 942.235272248274,
+        "z": 925.6447933013233
+      },
+      "home": {
+        "x": 719.637545249382,
+        "z": 1005.8142739711855
+      },
+      "startingAble": 8,
+      "members": [],
+      "cleared": [],
+      "nextReview": 189.70000000000888,
+      "reason": "WAIT FOR SIGNAL · staged at current position"
+    }
+  }
+]

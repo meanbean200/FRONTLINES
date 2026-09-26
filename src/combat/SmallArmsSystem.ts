@@ -40,12 +40,16 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     candidates.sort((a,b)=>distance(shooter,a)-distance(shooter,b)||a.id-b.id);
     const mount=operatedPosition(state,shooter,'emplacement');
     const inSector=(p:{x:number;z:number})=>!mount||mount.facing===undefined||Math.cos(Math.atan2(p.x-shooter.x,p.z-shooter.z)-mount.facing)>=.34;
-    const observed=candidates.filter(s=>known.has(s.id)&&canSpot(state,terrain,shooter,s));
+    // Candidates are already in deterministic priority order. Do not trace
+    // every other defender after finding the first usable firing solution.
+    let observed=0,observedInSector=false;
     let target:SoldierState|undefined,solution:ReturnType<typeof clearAimPoint>;
-    for(const candidate of observed)if(inSector(candidate)){
-      solution=clearAimPoint(terrain,shooter,candidate,state);if(solution){target=candidate;break;}
+    for(const candidate of candidates){
+      if(!known.has(candidate.id)||!canSpot(state,terrain,shooter,candidate))continue;
+      observed++;
+      if(inSector(candidate)){observedInSector=true;solution=clearAimPoint(terrain,shooter,candidate,state);if(solution){target=candidate;break;}}
     }
-    if(!target&&!area){combat.pauseReason=observed.some(inSector)?'Firing edge obstructed · cannot clear cover':observed.length?'Outside mounted gun firing sector':'No observed target in weapon range';delete shooter.aimTargetId;delete shooter.aimReadyAt;delete combat.aim;continue;}
+    if(!target&&!area){combat.pauseReason=observedInSector?'Firing edge obstructed · cannot clear cover':observed?'Outside mounted gun firing sector':'No observed target in weapon range';delete shooter.aimTargetId;delete shooter.aimReadyAt;delete combat.aim;continue;}
     const point=area?{...area,y:terrain.heightAt(area.x,area.z)+.8}:solution!;
     const muzzle=muzzlePoint(terrain,{...shooter,heading:Math.atan2(point.x-shooter.x,point.z-shooter.z)},state);
     if(area){

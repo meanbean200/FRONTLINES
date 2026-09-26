@@ -1,0 +1,510 @@
+[
+  {
+    "elapsed": 866.4499999997597,
+    "mission": {
+      "id": 489,
+      "squadId": 315,
+      "positionId": 461,
+      "weapon": "field-gun",
+      "kind": "mortarHE",
+      "target": {
+        "x": 940.9610176798151,
+        "z": 972.9161072490571
+      },
+      "impact": {
+        "x": 923.8771180074764,
+        "z": 970.6963999189512
+      },
+      "requestedAt": 866.4499999997597,
+      "launchAt": 886.4499999997597,
+      "impactAt": 891.4895361229358,
+      "stage": "preparing",
+      "reason": "Preparing support mission",
+      "dangerRadius": 65,
+      "confirmedRisk": false,
+      "source": "PLAYER",
+      "side": "player",
+      "ammoConsumed": 0,
+      "crewIds": [
+        321,
+        312
+      ]
+    },
+    "crew": [
+      {
+        "id": 312,
+        "x": 681.2081986913454,
+        "z": 1029.6732531649636,
+        "duty": {
+          "kind": "watch",
+          "destination": {
+            "x": 681.1441873159133,
+            "z": 1029.7511148380217
+          },
+          "route": [
+            {
+              "x": 699.969119155595,
+              "z": 1003.4071468333252
+            },
+            {
+              "x": 699.969338858293,
+              "z": 1027.9009533026242
+            },
+            {
+              "x": 681.9441873159133,
+              "z": 1027.9011148380218
+            },
+            {
+              "x": 681.1441873159133,
+              "z": 1029.7511148380217
+            }
+          ],
+          "routeIndex": 4,
+          "since": 723.4499999998898,
+          "until": 899.0999999998664,
+          "reason": "Assigned weapon crew",
+          "blockedFor": 0,
+          "networkBound": true,
+          "routeTrenches": [
+            390,
+            462
+          ],
+          "facilityId": 461,
+          "watchPost": {
+            "x": 681.1441873159133,
+            "z": 1029.7511148380217
+          },
+          "arrivedAt": 749.0999999998664
+        },
+        "action": "watching",
+        "owner": "duty",
+        "reaction": "steady"
+      },
+      {
+        "id": 321,
+        "x": 681.2188973435161,
+        "z": 1026.1428798828742,
+        "duty": {
+          "kind": "watch",
+          "destination": {
+            "x": 681.1441873159133,
+            "z": 1026.051114838022
+          },
+          "route": [
+            {
+              "x": 682.41259455766,
+              "z": 1027.9011106403123
+            },
+            {
+              "x": 681.9441873159133,
+              "z": 1027.9011148380218
+            },
+            {
+              "x": 681.1441873159133,
+              "z": 1026.051114838022
+            }
+          ],
+          "routeIndex": 3,
+          "since": 788.099999999831,
+          "until": 939.7499999998295,
+          "reason": "Assigned weapon crew",
+          "blockedFor": 0,
+          "networkBound": true,
+          "routeTrenches": [
+            462
+          ],
+          "facilityId": 461,
+          "watchPost": {
+            "x": 681.1441873159133,
+            "z": 1026.051114838022
+          },
+          "arrivedAt": 789.7499999998295
+        },
+        "action": "watching",
+        "owner": "duty",
+        "reaction": "steady"
+      }
+    ]
+  },
+  {
+    "elapsed": 866.4999999997597,
+    "mission": {
+      "id": 489,
+      "squadId": 315,
+      "positionId": 461,
+      "weapon": "field-gun",
+      "kind": "mortarHE",
+      "target": {
+        "x": 940.9610176798151,
+        "z": 972.9161072490571
+      },
+      "impact": {
+        "x": 923.8771180074764,
+        "z": 970.6963999189512
+      },
+      "requestedAt": 866.4499999997597,
+      "launchAt": 886.4499999997597,
+      "impactAt": 891.4895361229358,
+      "stage": "preparing",
+      "reason": "Preparing support mission",
+      "dangerRadius": 65,
+      "confirmedRisk": false,
+      "source": "PLAYER",
+      "side": "player",
+      "ammoConsumed": 0,
+      "crewIds": [
+        321,
+        312
+      ]
+    },
+    "crew": [
+      {
+        "id": 312,
+        "x": 681.2081986913454,
+        "z": 1029.6732531649636,
+        "duty": {
+          "kind": "watch",
+          "destination": {
+            "x": 681.1441873159133,
+            "z": 1029.7511148380217
+          },
+          "route": [
+            {
+              "x": 699.969119155595,
+              "z": 1003.4071468333252
+            },
+            {
+              "x": 699.969338858293,
+              "z": 1027.9009533026242
+            },
+            {
+              "x": 681.9441873159133,
+              "z": 1027.9011148380218
+            },
+            {
+              "x": 681.1441873159133,
+              "z": 1029.7511148380217
+            }
+          ],
+          "routeIndex": 4,
+          "since": 723.4499999998898,
+          "until": 899.0999999998664,
+          "reason": "Assigned weapon crew",
+          "blockedFor": 0,
+          "networkBound": true,
+          "routeTrenches": [
+            390,
+            462
+          ],
+          "facilityId": 461,
+          "watchPost": {
+            "x": 681.1441873159133,
+            "z": 1029.7511148380217
+          },
+          "arrivedAt": 749.0999999998664
+        },
+        "action": "preparing support weapon",
+        "owner": "support",
+        "reaction": "steady"
+      },
+      {
+        "id": 321,
+        "x": 681.2188973435161,
+        "z": 1026.1428798828742,
+        "duty": {
+          "kind": "watch",
+          "destination": {
+            "x": 681.1441873159133,
+            "z": 1026.051114838022
+          },
+          "route": [
+            {
+              "x": 682.41259455766,
+              "z": 1027.9011106403123
+            },
+            {
+              "x": 681.9441873159133,
+              "z": 1027.9011148380218
+            },
+            {
+              "x": 681.1441873159133,
+              "z": 1026.051114838022
+            }
+          ],
+          "routeIndex": 3,
+          "since": 788.099999999831,
+          "until": 939.7499999998295,
+          "reason": "Assigned weapon crew",
+          "blockedFor": 0,
+          "networkBound": true,
+          "routeTrenches": [
+            462
+          ],
+          "facilityId": 461,
+          "watchPost": {
+            "x": 681.1441873159133,
+            "z": 1026.051114838022
+          },
+          "arrivedAt": 789.7499999998295
+        },
+        "action": "preparing support weapon",
+        "owner": "support",
+        "reaction": "steady"
+      }
+    ]
+  },
+  {
+    "elapsed": 886.5499999997414,
+    "mission": {
+      "id": 489,
+      "squadId": 315,
+      "positionId": 461,
+      "weapon": "field-gun",
+      "kind": "mortarHE",
+      "target": {
+        "x": 940.9610176798151,
+        "z": 972.9161072490571
+      },
+      "impact": {
+        "x": 923.8771180074764,
+        "z": 970.6963999189512
+      },
+      "requestedAt": 866.4499999997597,
+      "launchAt": 886.4499999997597,
+      "impactAt": 891.4895361229358,
+      "stage": "flight",
+      "reason": "Round in flight",
+      "dangerRadius": 65,
+      "confirmedRisk": false,
+      "source": "PLAYER",
+      "side": "player",
+      "ammoConsumed": 1,
+      "crewIds": [
+        321,
+        312
+      ]
+    },
+    "crew": [
+      {
+        "id": 312,
+        "x": 681.2081986913454,
+        "z": 1029.6732531649636,
+        "duty": {
+          "kind": "watch",
+          "destination": {
+            "x": 681.1441873159133,
+            "z": 1029.7511148380217
+          },
+          "route": [
+            {
+              "x": 699.969119155595,
+              "z": 1003.4071468333252
+            },
+            {
+              "x": 699.969338858293,
+              "z": 1027.9009533026242
+            },
+            {
+              "x": 681.9441873159133,
+              "z": 1027.9011148380218
+            },
+            {
+              "x": 681.1441873159133,
+              "z": 1029.7511148380217
+            }
+          ],
+          "routeIndex": 4,
+          "since": 723.4499999998898,
+          "until": 899.0999999998664,
+          "reason": "Assigned weapon crew",
+          "blockedFor": 0,
+          "networkBound": true,
+          "routeTrenches": [
+            390,
+            462
+          ],
+          "facilityId": 461,
+          "watchPost": {
+            "x": 681.1441873159133,
+            "z": 1029.7511148380217
+          },
+          "arrivedAt": 749.0999999998664
+        },
+        "action": "watching",
+        "owner": "duty",
+        "reaction": "steady"
+      },
+      {
+        "id": 321,
+        "x": 681.2188973435161,
+        "z": 1026.1428798828742,
+        "duty": {
+          "kind": "watch",
+          "destination": {
+            "x": 681.1441873159133,
+            "z": 1026.051114838022
+          },
+          "route": [
+            {
+              "x": 682.41259455766,
+              "z": 1027.9011106403123
+            },
+            {
+              "x": 681.9441873159133,
+              "z": 1027.9011148380218
+            },
+            {
+              "x": 681.1441873159133,
+              "z": 1026.051114838022
+            }
+          ],
+          "routeIndex": 3,
+          "since": 788.099999999831,
+          "until": 939.7499999998295,
+          "reason": "Assigned weapon crew",
+          "blockedFor": 0,
+          "networkBound": true,
+          "routeTrenches": [
+            462
+          ],
+          "facilityId": 461,
+          "watchPost": {
+            "x": 681.1441873159133,
+            "z": 1026.051114838022
+          },
+          "arrivedAt": 789.7499999998295
+        },
+        "action": "watching",
+        "owner": "duty",
+        "reaction": "steady"
+      }
+    ]
+  },
+  {
+    "elapsed": 891.4999999997369,
+    "mission": {
+      "id": 489,
+      "squadId": 315,
+      "positionId": 461,
+      "weapon": "field-gun",
+      "kind": "mortarHE",
+      "target": {
+        "x": 940.9610176798151,
+        "z": 972.9161072490571
+      },
+      "impact": {
+        "x": 923.8771180074764,
+        "z": 970.6963999189512
+      },
+      "requestedAt": 866.4499999997597,
+      "launchAt": 886.4499999997597,
+      "impactAt": 891.4895361229358,
+      "stage": "complete",
+      "reason": "Mission complete",
+      "dangerRadius": 65,
+      "confirmedRisk": false,
+      "source": "PLAYER",
+      "side": "player",
+      "ammoConsumed": 1,
+      "crewIds": [
+        321,
+        312
+      ]
+    },
+    "crew": [
+      {
+        "id": 312,
+        "x": 681.2081986913454,
+        "z": 1029.6732531649636,
+        "duty": {
+          "kind": "watch",
+          "destination": {
+            "x": 681.1441873159133,
+            "z": 1029.7511148380217
+          },
+          "route": [
+            {
+              "x": 699.969119155595,
+              "z": 1003.4071468333252
+            },
+            {
+              "x": 699.969338858293,
+              "z": 1027.9009533026242
+            },
+            {
+              "x": 681.9441873159133,
+              "z": 1027.9011148380218
+            },
+            {
+              "x": 681.1441873159133,
+              "z": 1029.7511148380217
+            }
+          ],
+          "routeIndex": 4,
+          "since": 723.4499999998898,
+          "until": 899.0999999998664,
+          "reason": "Assigned weapon crew",
+          "blockedFor": 0,
+          "networkBound": true,
+          "routeTrenches": [
+            390,
+            462
+          ],
+          "facilityId": 461,
+          "watchPost": {
+            "x": 681.1441873159133,
+            "z": 1029.7511148380217
+          },
+          "arrivedAt": 749.0999999998664
+        },
+        "action": "watching",
+        "owner": "duty",
+        "reaction": "steady"
+      },
+      {
+        "id": 321,
+        "x": 681.2188973435161,
+        "z": 1026.1428798828742,
+        "duty": {
+          "kind": "watch",
+          "destination": {
+            "x": 681.1441873159133,
+            "z": 1026.051114838022
+          },
+          "route": [
+            {
+              "x": 682.41259455766,
+              "z": 1027.9011106403123
+            },
+            {
+              "x": 681.9441873159133,
+              "z": 1027.9011148380218
+            },
+            {
+              "x": 681.1441873159133,
+              "z": 1026.051114838022
+            }
+          ],
+          "routeIndex": 3,
+          "since": 788.099999999831,
+          "until": 939.7499999998295,
+          "reason": "Assigned weapon crew",
+          "blockedFor": 0,
+          "networkBound": true,
+          "routeTrenches": [
+            462
+          ],
+          "facilityId": 461,
+          "watchPost": {
+            "x": 681.1441873159133,
+            "z": 1026.051114838022
+          },
+          "arrivedAt": 789.7499999998295
+        },
+        "action": "watching",
+        "owner": "duty",
+        "reaction": "steady"
+      }
+    ]
+  }
+]

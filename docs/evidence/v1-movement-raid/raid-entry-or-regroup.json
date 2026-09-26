@@ -1,0 +1,116 @@
+{
+  "elapsed": 1054.9999999995882,
+  "orders": [
+    {
+      "id": 261,
+      "phase": "failed",
+      "reason": "ASSAULT FAILED — REGROUPED · rest/resupply before preparing again",
+      "entered": 0,
+      "cleared": 0
+    },
+    {
+      "id": 270,
+      "phase": "failed",
+      "reason": "ASSAULT FAILED — REGROUPED · rest/resupply before preparing again",
+      "entered": 0,
+      "cleared": 0
+    },
+    {
+      "id": 279,
+      "phase": "clearing",
+      "reason": "CLEARING · 0/38 observed sections searched",
+      "entered": 2,
+      "cleared": 0
+    },
+    {
+      "id": 315
+    }
+  ],
+  "garrisons": [
+    {
+      "id": 386,
+      "breach": 1061.04999999959,
+      "alert": 1084.4499999995887,
+      "watch": 17,
+      "need": 21
+    },
+    {
+      "id": 459,
+      "alert": 1084.6499999995885,
+      "watch": 10,
+      "need": 9
+    }
+  ],
+  "fit": [
+    {
+      "id": 265,
+      "squad": 261,
+      "x": 734.1533805536785,
+      "z": 987.737498729187,
+      "action": "holding"
+    },
+    {
+      "id": 269,
+      "squad": 261,
+      "x": 732.1666810051101,
+      "z": 983.0197041439446,
+      "action": "holding"
+    },
+    {
+      "id": 276,
+      "squad": 270,
+      "x": 743.0771866752996,
+      "z": 995.7251345265067,
+      "action": "holding"
+    },
+    {
+      "id": 277,
+      "squad": 270,
+      "x": 757.0484963948103,
+      "z": 981.7483357698119,
+      "action": "holding"
+    },
+    {
+      "id": 281,
+      "squad": 279,
+      "x": 916.772371404265,
+      "z": 943.2169341492779,
+      "action": "approaching entrance"
+    },
+    {
+      "id": 282,
+      "squad": 279,
+      "x": 940.6867235973638,
+      "z": 920.799275737872,
+      "action": "seeking cover"
+    },
+    {
+      "id": 283,
+      "squad": 279,
+      "x": 910.2422771565099,
+      "z": 943.8746864382539,
+      "action": "approaching entrance"
+    },
+    {
+      "id": 285,
+      "squad": 279,
+      "x": 914.8579442817066,
+      "z": 948.9161550734561,
+      "action": "approaching entrance"
+    },
+    {
+      "id": 286,
+      "squad": 279,
+      "x": 939.8160441677128,
+      "z": 915.183102835812,
+      "action": "covering fire"
+    },
+    {
+      "id": 287,
+      "squad": 279,
+      "x": 908.8431834368671,
+      "z": 953.2088170119998,
+      "action": "approaching entrance"
+    }
+  ]
+}

@@ -31,6 +31,9 @@ describe('independently owned field artillery',()=>{
     expect(id).toBeDefined();for(let i=0;i<20000&&f.progress<1;i++)sim.step(.05);
     expect(f.progress).toBe(1);expect(f.installation?.kind).toBe('field-gun');expect(f.stock.mortarHE).toBe(0);
     expect(sim.garrisons.autoCrew(id).accepted).toBe(true);const ids=f.weaponCrewIds!.slice();expect(ids.every(id=>!s.soldiers.find(p=>p.id===id)!.equipment!.mortar)).toBe(true);
+    const stock={...f.stock},positions=s.soldiers.filter(p=>ids.includes(p.id)).map(p=>({x:p.x,z:p.z}));
+    expect(sim.garrisons.setArtilleryFacing(id,Math.PI/2).accepted).toBe(true);expect(f.facing).toBe(Math.PI/2);
+    expect(f.stock).toEqual(stock);expect(f.weaponCrewIds).toEqual(ids);expect(s.soldiers.filter(p=>ids.includes(p.id)).map(p=>({x:p.x,z:p.z}))).toEqual(positions);
     sim.garrisons.removeCrew(id);expect(f.installation?.kind).toBe('field-gun');expect(positionReadiness(s,f)).toContain('NO GUNNER');
     expect(new SaveSystem().parse(JSON.stringify(s))).toEqual(s);for(const n of Object.values(balance(s)))expect(Math.abs(n)).toBeLessThan(1e-6);
   },20000);

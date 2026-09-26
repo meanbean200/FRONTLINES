@@ -50,6 +50,7 @@ describe('general survival without losing standing orders',()=>{
   it('uses individual clearance from the real house 21 doorway instead of rejecting a safe supply route',()=>{
     const sim=new BattlefieldSimulation(createOperation('advance',1944)),b=sim.terrain.buildings[20],from=doorPoint(b,8),to={x:-1390,z:-1344.879089424514};
     expect(sim.navigation.plan(from,to)).toEqual([]);
+    expect(sim.navigation.planFormation(from,to).length).toBeGreaterThan(0);
     const route=sim.navigation.plan(from,to,undefined,true);expect(route.length).toBeGreaterThan(0);
     expect(route.every((p,i)=>sim.navigation.segmentClear(i?route[i-1]:from,p,.5))).toBe(true);
   });

@@ -9,6 +9,6 @@ scope.onmessage=event=>{
   const request=event.data;
   const state:BattlefieldState={schemaVersion:1,...request.world,soldiers:[],squads:[],elapsed:0,simSpeed:0,nextEntityId:1};
   const navigation=new SquadNavigation(new TerrainSystem(state));
-  try{scope.postMessage({id:request.id,route:navigation.plan(request.start,request.goal)});}
+  try{scope.postMessage({id:request.id,route:navigation.planFormation(request.start,request.goal)});}
   catch{scope.postMessage({id:request.id,route:[]});}
 };

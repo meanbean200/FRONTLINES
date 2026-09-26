@@ -11,6 +11,7 @@ import {
 } from '../core/types';
 import { addSquad } from './createBattlefield';
 import { SquadNavigation } from '../navigation/SquadNavigation';
+import {FormationWalker} from '../navigation/FormationWalker';
 import { TerrainSystem } from '../terrain/TerrainSystem';
 import { TrenchSystem } from '../construction/TrenchSystem';
 import {MIN_TRENCH_LENGTH} from '../construction/ConstructionReadout';
@@ -32,16 +33,19 @@ import {postureSpeed} from '../combat/Posture';
 import {initializeEquipment,squadHasEquipment} from '../combat/Equipment';
 import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
 import {resumeWorkChoices} from '../construction/ResumeWork';
-import {observeTrenches} from '../operations/TrenchIntelligence';
+import {observeTrenches,knownTrenchNetworks} from '../operations/TrenchIntelligence';
+import {prepareRaid,TrenchRaidSystem} from '../operations/TrenchRaid';
 
 export class BattlefieldSimulation {
   readonly stepCosts={actions:0,movement:0,earthworks:0,garrison:0,combat:0,terrainIntel:0,support:0,total:0};
   prepareOrder(ids:number[],intent:TacticalIntent,target:Vec2,networkId?:number):number {
     if(this.commandsLocked||![target.x,target.z].every(Number.isFinite))return 0;
-    const chosen=this.state.squads.filter(q=>ids.includes(q.id)&&q.faction!=='enemy');
+    const chosen=this.state.squads.filter(q=>ids.includes(q.id)&&q.faction!=='enemy'&&this.state.soldiers.some(s=>s.squadId===q.id&&s.needs?.life==='active'));
     this.issueHold(chosen.map(q=>q.id));
     const orders=this.state.preparedOrders??=[];
-    for(const q of chosen){const old=orders.findIndex(o=>o.squadId===q.id);if(old>=0)orders.splice(old,1);orders.push({squadId:q.id,intent,target:{...this.terrain.clampToWorld(target)},networkId,preparedAt:this.state.elapsed});q.orderNote='WAIT FOR SIGNAL';}
+    const known=intent==='assault'?knownTrenchNetworks(this.state).find(n=>n.id===networkId):undefined;
+    const reserved=orders.filter(o=>o.networkId===networkId&&o.releasedAt===undefined&&o.raid).map(o=>o.raid!.entry);
+    for(const [i,q] of chosen.entries()){const old=orders.findIndex(o=>o.squadId===q.id);if(old>=0)orders.splice(old,1);const raid=known?prepareRaid(this.state,q,known,i,chosen.length,reserved):undefined;if(raid)reserved.push(raid.entry);orders.push({squadId:q.id,intent,target:{...this.terrain.clampToWorld(target)},networkId,preparedAt:this.state.elapsed,...(raid?{raid}:{})});q.orderNote='WAIT FOR SIGNAL';}
     return chosen.length;
   }
   signalPrepared():number {if(this.commandsLocked)return 0;const orders=(this.state.preparedOrders??[]).filter(o=>o.releasedAt===undefined);for(const o of orders)o.signalAt=this.state.elapsed;return orders.length;}
@@ -51,6 +55,8 @@ export class BattlefieldSimulation {
   readonly terrain: TerrainSystem;
   readonly trenches: TrenchSystem;
   readonly navigation: SquadNavigation;
+  private readonly formationWalker:FormationWalker;
+  private readonly raids:TrenchRaidSystem;
   readonly garrisons: GarrisonSystem;
   readonly operations: OperationSystem;
   readonly engineers:EngineerSystem;
@@ -72,6 +78,8 @@ export class BattlefieldSimulation {
     this.terrain = new TerrainSystem(state);
     this.trenches = new TrenchSystem(state);
     this.navigation = new SquadNavigation(this.terrain);
+    this.formationWalker=new FormationWalker(this.terrain,this.navigation);
+    this.raids=new TrenchRaidSystem(this.navigation,this.formationWalker);
     this.garrisons = new GarrisonSystem(state,this.terrain,this.navigation,this.trenches);
     this.operations = new OperationSystem(state, this.terrain);
     this.engineers=new EngineerSystem(state,this.navigation,this.trenches);
@@ -126,7 +134,7 @@ export class BattlefieldSimulation {
     this.state.elapsed += dt;
     // Release all signalled intentions on this fixed tick; normal physical reactions still own movement.
     const released=(this.state.preparedOrders??[]).filter(o=>o.signalAt!==undefined&&o.releasedAt===undefined);
-    for(const o of released){this.issueTactical([o.squadId],o.intent,o.target);o.releasedAt=this.state.elapsed;}
+    for(const o of released){this.issueTactical([o.squadId],o.intent,o.raid?.entry??o.target,true);o.releasedAt=this.state.elapsed;if(o.raid){o.raid.phase='approach';o.raid.reason='GO · approaching assigned trench entry';}}
     if(released.length)this.state.preparedOrders=[...(this.state.preparedOrders??[]).filter(o=>!released.some(r=>r.squadId===o.squadId)),...released];
     prepareActions(this.state,this.terrain,this.navigation,dt);
     updateCasualtyCare(this.state,this.terrain,this.navigation,dt);
@@ -162,6 +170,7 @@ export class BattlefieldSimulation {
     this.operations.step(dt, (ids, target) => this.issueMove(ids, target, true), ids => this.issueHold(ids, true),(ids,trench)=>this.garrisons.assign(ids,trench));
     this.stepCosts.combat=performance.now()-phase;phase=performance.now();
     observeTrenches(this.state,this.terrain,this.garrisons.network);
+    this.raids.secure(this.state,this.garrisons);
     this.stepCosts.terrainIntel=performance.now()-phase;phase=performance.now();
     stepSupport(this.state,this.terrain);
     reconcileSupplyDemands(this.state);
@@ -196,8 +205,12 @@ export class BattlefieldSimulation {
     }
   }
 
-  issueTactical(squadIds:number[],intent:TacticalIntent,target:Vec2):void {
+  issueTactical(squadIds:number[],intent:TacticalIntent,target:Vec2,releasing=false):void {
     if(this.commandsLocked||!Number.isFinite(target.x)||!Number.isFinite(target.z))return;
+    if(intent==='assault'&&!releasing){
+      const known=knownTrenchNetworks(this.state).find(n=>n.sections.some(s=>distance(target,{x:(s.points[0].x+s.points[1].x)/2,z:(s.points[0].z+s.points[1].z)/2})<12));
+      if(known){this.prepareOrder(squadIds,intent,target,known.id);for(const o of this.state.preparedOrders??[])if(squadIds.includes(o.squadId))o.signalAt=this.state.elapsed;return;}
+    }
     if(intent==='observe'||intent==='suppress')this.issueHold(squadIds);else this.issueMove(squadIds,target);
     for(const q of this.state.squads.filter(q=>squadIds.includes(q.id)&&factionOf(q)==='player')){
       q.order.intent=intent;q.order.target={...target};
@@ -305,6 +318,7 @@ export class BattlefieldSimulation {
   }
 
   private updateOrders(dt: number): void {
+    this.formationWalker.begin(this.state);
     this.spatial.clear();
     for (const soldier of this.state.soldiers) {
       const key=`${Math.floor(soldier.x/4)},${Math.floor(soldier.z/4)}`;
@@ -329,15 +343,10 @@ export class BattlefieldSimulation {
   }
 
   private updateMovingSquad(squad: SquadState, soldiers: SoldierState[], dt: number): void {
+    if(this.raids.step(this.state,squad,soldiers,dt))return;
     if(squad.movementState==='planning'||!squad.route.length&&!squad.order.drawnPath)return;
     if(squad.order.drawnPath){this.followDrawnPath(squad,soldiers,dt);return;}
-    const waypoint = squad.route[squad.routeIndex] ?? squad.order.target;
-    if (!waypoint) return;
-    if (distance(squad, waypoint) < 9 && squad.routeIndex < squad.route.length - 1) squad.routeIndex += 1;
-    const current = squad.route[squad.routeIndex] ?? waypoint;
-    const final = squad.routeIndex >= squad.route.length - 1;
-    this.moveFormation(squad, soldiers, current, dt, 'advancing');
-    if (final && distance(squad, current) < 2.5) {
+    if (this.formationWalker.step(this.state,squad,soldiers,dt)) {
       squad.order = { type: 'hold', issuedAt: this.state.elapsed };
       squad.route = [];
       squad.routeIndex = 0;
@@ -348,21 +357,6 @@ export class BattlefieldSimulation {
   private updateEngineerSquad(squad: SquadState, soldiers: SoldierState[], dt: number): void {
     if(!this.state.trenches.some(t=>t.id===squad.order.trenchId)){this.issueHold([squad.id]);return;}
     this.engineers.step(squad,soldiers,dt,(s,target,seconds,action)=>this.moveSoldier(s,target,[],seconds,action));
-  }
-
-  private moveFormation(squad: SquadState, soldiers: SoldierState[], destination: Vec2, dt: number, action: string): void {
-    const angle = squad.formationHeading ?? Math.atan2(destination.x - squad.x, destination.z - squad.z);
-    soldiers.forEach((soldier, index) => {
-      const row = Math.floor(index / 5);
-      const column = index % 5;
-      const rowSize=Math.min(5,soldiers.length-row*5);
-      const lateral = (column - (rowSize-1)/2) * 3.3;
-      const depth = (row - (Math.ceil(soldiers.length/5)-1)/2) * 4.1;
-      const offsetX = Math.cos(angle) * lateral - Math.sin(angle) * depth;
-      const offsetZ = -Math.sin(angle) * lateral - Math.cos(angle) * depth;
-      this.moveSoldier(soldier, { x: clamp(destination.x + offsetX,-WORLD_HALF,WORLD_HALF), z: clamp(destination.z + offsetZ,-WORLD_HALF,WORLD_HALF) }, soldiers, dt, action);
-    });
-    squad.movementState = action === 'digging' ? 'digging' : 'moving';
   }
 
   private moveSoldier(soldier: SoldierState, target: Vec2, neighbors: SoldierState[], dt: number, action: string): void {
@@ -426,6 +420,7 @@ export class BattlefieldSimulation {
   private clearTrenchAssignments(squad: SquadState): void {
     this.garrisons.release(squad.id);
     for (const soldier of this.soldiersFor(squad)) {
+      delete soldier.formationTravel;
       if(soldier.combat?.careTask){delete soldier.combat.careTask;soldier.combat.nextCareReview=this.state.elapsed+15;}
       delete soldier.trenchId;
       delete soldier.trenchSlot;
@@ -523,6 +518,6 @@ export class BattlefieldSimulation {
       if(route.length)squad.movementState='moving';
       else{squad.movementState='idle';squad.orderNote='Route blocked · destination retained; draw another approach';}
     };
-    if(this.scheduleNavigation)this.scheduleNavigation(squad,destination,done);else done(this.navigation.plan(squad,destination));
+    if(this.scheduleNavigation)this.scheduleNavigation(squad,destination,done);else done(this.navigation.planFormation(squad,destination));
   }
 }

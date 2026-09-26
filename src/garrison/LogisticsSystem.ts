@@ -1,5 +1,5 @@
 import { distance, lerpVec,WORLD_VERSION,WORLD_SIZE, type BattlefieldState, type Vec2 } from '../core/types';
-import {supplyRoadZ,nearestRoad,roadRoute,convoyEntry,rearDepot} from '../terrain/WorldLayout';
+import {supplyRoadZ,nearestRoad,roadRoute,convoyEntry,rearDepot,pointOnRoad,ROADS,insideWorld} from '../terrain/WorldLayout';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import { inventory, RESOURCES, type Garrison, type Inventory, type Truck, type LogisticsConfig } from './types';
 import { total, transfer, transferBounded } from './Inventory';
@@ -34,7 +34,22 @@ export class LogisticsSystem {
   private reserved=new Set<number>();
   constructor(private state:BattlefieldState,private terrain:TerrainSystem){}
   replaceState(state:BattlefieldState):void{this.state=state;}
-  forwardPoint(entrance:Vec2):Vec2 {return nearestRoad(entrance).point;}
+  forwardPoint(entrance:Vec2,side:'player'|'enemy'='player'):Vec2 {
+    const nearest=nearestRoad(entrance);
+    if(this.clear(nearest.point,nearest.point))return nearest.point;
+    const rear=side==='enemy'?this.state.living!.enemySupply?.rear??this.state.living!.rear:this.state.living!.rear;
+    // A trench may cut the road directly under its nearest projection. Pick
+    // a real, accessible unloading apron on the depot's side of the local cut.
+    // This does not bypass a severed road elsewhere along a shipment's route.
+    for(let offset=6;offset<=42;offset+=6){
+      const points=[-1,1].map(sign=>pointOnRoad(ROADS[nearest.road],nearest.t+offset*sign)).sort((a,b)=>distance(a,rear)-distance(b,rear));
+      for(const p of points){if(!insideWorld(p,10)||!this.clear(p,p))continue;
+        const route=roadRoute(rear,p);let previous=rear;
+        if(route.every(next=>{const clear=this.clear(previous,next);previous=next;return clear;}))return p;
+      }
+    }
+    return nearest.point;
+  }
   private clear(a:Vec2,b:Vec2):boolean {
     const n=Math.max(1,Math.ceil(distance(a,b)/2));for(let i=0;i<=n;i++){const p=lerpVec(a,b,i/n);
       if(this.terrain.obstacleAt(p.x,p.z,1.6)||this.terrain.groundTypeAt(p.x,p.z)==='river'||this.terrain.deformationAt(p.x,p.z)<-.35)return false;
@@ -43,6 +58,17 @@ export class LogisticsSystem {
   private depart(t:Truck,destination:Vec2,state:'outbound'|'returning'):void{t.route=roadRoute(t,destination);t.routeIndex=0;t.state=state;delete t.resume;t.reason=state==='outbound'?'En route':'Returning to depot';}
   step(dt:number):void {
     const w=this.state.living!,config=w.logistics!;
+    for(const g of w.garrisons){
+      if(g.cutoff==='withdraw'||total(g.forwardStock)>0||this.clear(g.forward,g.forward))continue;
+      // Existing stocked depots and in-flight handovers stay at their physical
+      // location. Only an empty invalid apron with no foot/medical trip can move.
+      if(this.state.soldiers.some(s=>s.garrisonId===g.id&&s.duty?.kind==='haul'&&s.duty.stage==='pickup'&&!s.duty.crateId&&!s.duty.patientId&&!s.duty.facilityId||s.combat?.careTask&&distance(s.combat.careTask.destination,g.forward)<10))continue;
+      if(w.trucks.some(t=>t.garrisonId===g.id&&t.state==='unloading'))continue;
+      if(this.state.elapsed<(g.nextRoadheadReview??0))continue;g.nextRoadheadReview=this.state.elapsed+5;
+      const next=this.forwardPoint(g.entrance,g.faction??'player');if(distance(next,g.forward)<1||!this.clear(next,next))continue;
+      g.forward=next;
+      for(const t of w.trucks.filter(t=>t.garrisonId===g.id&&(t.state==='outbound'||t.state==='blocked'&&t.resume==='outbound'))){this.depart(t,next,'outbound');t.reason='Rerouting to accessible unloading apron · cargo retained';}
+    }
     reconcileSupplyDemands(this.state);
     this.reserved=new Set(w.trucks.filter(t=>t.garrisonId!==undefined&&t.state!=='idle').map(t=>t.garrisonId!));
     for(const t of w.trucks){

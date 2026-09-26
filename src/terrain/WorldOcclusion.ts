@@ -28,16 +28,25 @@ function sphereIntersection(a:{x:number;y:number;z:number},b:{x:number;y:number;
 
 export class WorldOcclusion {
   private chunks=new Map<string,TreeSite[]>();
+  private trunkBuckets=new Map<string,TreeSite[]>();
   private clearances=new WeakMap<TreeSite,{revision:number;cleared:boolean}>();
   private rays=new Map<string,SightRay>();
   private rayRevision=-1;
   private rayKeys:string[]=[];
   private rayCursor=0;
   constructor(private terrain:TerrainSystem){}
-  reset():void{this.chunks.clear();this.clearances=new WeakMap();this.rays.clear();this.rayKeys=[];this.rayCursor=0;this.rayRevision=-1;}
+  reset():void{this.chunks.clear();this.trunkBuckets.clear();this.clearances=new WeakMap();this.rays.clear();this.rayKeys=[];this.rayCursor=0;this.rayRevision=-1;}
+  /** Same trunks as sight/fire/rendering; foliage is not a movement wall. */
+  trunkAt(x:number,z:number,clearance:number):TreeSite|undefined{
+    for(let cx=Math.floor((x-clearance-1)/500)*500;cx<=Math.floor((x+clearance+1)/500)*500;cx+=500)
+      for(let cz=Math.floor((z-clearance-1)/500)*500;cz<=Math.floor((z+clearance+1)/500)*500;cz+=500)this.trees(cx,cz);
+    for(let bx=Math.floor((x-clearance-.34)/8);bx<=Math.floor((x+clearance+.34)/8);bx++)for(let bz=Math.floor((z-clearance-.34)/8);bz<=Math.floor((z+clearance+.34)/8);bz++)
+      for(const t of this.trunkBuckets.get(`${bx},${bz}`)??[])if(Math.abs(x-t.x)<.34+clearance&&Math.abs(z-t.z)<.34+clearance&&!this.cleared(t))return t;
+    return undefined;
+  }
   trees(x0:number,z0:number):TreeSite[]{
     if(x0< -WORLD_HALF||z0< -WORLD_HALF||x0>=WORLD_HALF||z0>=WORLD_HALF)return [];
-    const key=`${x0},${z0}`;let trees=this.chunks.get(key);if(!trees){trees=treesForChunk(this.terrain,x0,z0);this.chunks.set(key,trees);}return trees;
+    const key=`${x0},${z0}`;let trees=this.chunks.get(key);if(!trees){trees=treesForChunk(this.terrain,x0,z0);this.chunks.set(key,trees);for(const t of trees){const k=`${Math.floor(t.x/8)},${Math.floor(t.z/8)}`,row=this.trunkBuckets.get(k)??[];row.push(t);this.trunkBuckets.set(k,row);}}return trees;
   }
   private cleared(tree:TreeSite):boolean {
     const cached=this.clearances.get(tree);if(cached?.revision===this.terrain.revision)return cached.cleared;

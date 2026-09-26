@@ -200,6 +200,7 @@ export class TerrainSystem {
   obstacleAt(x: number, z: number, clearance = 1): boolean {
     return this.buildings.some(b => Math.abs(x - b.x) < b.width / 2 + clearance && Math.abs(z - b.z) < b.depth / 2 + clearance);
   }
+  walkingObstacleAt(x:number,z:number,clearance=.65):boolean{return this.obstacleAt(x,z,clearance)||this.objects.trunkAt(x,z,clearance)!==undefined;}
   navigationCostAt(x: number, z: number): number {
     if (this.obstacleAt(x, z, 3)) return 1000;
     const ground = this.groundTypeAt(x, z);

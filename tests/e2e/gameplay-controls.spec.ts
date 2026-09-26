@@ -25,7 +25,7 @@ test('Add troops is a normal sandbox action with repeatable batch placement',asy
 });
 test('finite operations explain reserves without offering sandbox spawning',async({page})=>{
   await meeting(page);const before=await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length);await page.getByRole('button',{name:'Reinforcements',exact:true}).click();
-  await expect(page.locator('.operation-topline')).toContainText('Meeting Engagement');await expect(page.locator('.operation-topline')).toContainText('NO TIME LIMIT');
+  await expect(page.locator('.operation-topline')).toContainText('Race for the Hamlet');await expect(page.locator('.operation-topline')).toContainText('PREPARATION');
   await expect(page.locator('.deployment-status')).toContainText('Finite-force');await expect(page.locator('[data-deploy="rifle"]')).toBeHidden();
   await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length)).toBe(before);
 });
@@ -52,22 +52,34 @@ async function placeMortar(page:Page,underRoof:boolean,moving=false){
   helper.duty={kind:'watch',facilityId:f.id,destination:{x:helper.x,z:helper.z},route:[],routeIndex:0,since:state.elapsed,arrivedAt:state.elapsed,until:state.elapsed+150,blockedFor:0,reason:'Synthetic mixed-formation helper'};
   q.order=moving?{type:'move',issuedAt:state.elapsed,target:{x:q.x+20,z:q.z}}:{type:'hold',issuedAt:state.elapsed};q.route=[];q.routeIndex=0;
   reconcileSupplyDemands(state);await page.evaluate(state=>window.__FRONTLINES__.restoreState(state),state);
-  return {name:q.name,id:q.id,positionId:f.id,crew:f.weaponCrewIds,point:{x:f.x,z:f.z},target:{x:f.x+75,z:f.z}};
+  return {name:q.name,id:q.id,positionId:f.id,trenchId:f.connectorId!,underRoof,crew:f.weaponCrewIds,point:{x:f.x,z:f.z},target:{x:f.x+75,z:f.z}};
 }
 async function inspectPit(page:Page,pit:Awaited<ReturnType<typeof placeMortar>>){
   await select(page,pit.name);await page.keyboard.press('f');await page.mouse.move(720,350);await page.mouse.wheel(0,650);
-  // An empty box deselects formations through normal controls.
-  await page.mouse.move(170,200);await page.mouse.down();await page.mouse.move(185,215);await page.mouse.up();await expect(page.locator('#selection-docket')).toBeHidden();
+  // Drag on empty battlefield, below/right of the mission HUD. The previous
+  // top-left coordinates now hit that panel and never reach command input.
+  expect(await page.evaluate(()=>document.elementFromPoint(460,250)?.id)).toBe('battlefield');
+  await page.mouse.move(460,250);await page.mouse.down();await page.mouse.move(480,270);await page.mouse.up();await expect(page.locator('#selection-docket')).toBeHidden();
   let last:{x:number;y:number}|undefined;
   await expect.poll(async()=>{const p=await page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.1),pit.point),settled=last&&p.visible&&Math.hypot(p.x-last.x,p.y-last.y)<.15;last=p;return Boolean(settled);}).toBe(true);
-  const point=await page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.1),pit.point);await page.mouse.click(point.x,point.y);
+  if(pit.underRoof){
+    // Roofs correctly pick the building. Inspect this intentionally invalid
+    // legacy fixture through the ordinary Positions > Weapons list instead.
+    if(!await page.locator('.hud-tools').evaluate((el:HTMLDetailsElement)=>el.open))await page.locator('.hud-tools summary').click();
+    await page.locator('#trenches-command').click();await page.locator('#trench-choice').selectOption(String(pit.trenchId));
+    await page.locator('[data-page="weapons"]').click();await page.locator(`[data-position="${pit.positionId}"]`).click();
+  }else{
+    const point=await page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.1),pit.point);await page.mouse.click(point.x,point.y);
+  }
   await expect(page.locator('#trench-panel h2')).toContainText('Mortar pit');
 }
 test('actual pit inspector rejects roofs and fires a mixed-formation outdoor mortar without a squad selected',async({page},testInfo)=>{
   await meeting(page);const roof=await placeMortar(page,true);await inspectPit(page,roof);
   await expect(page.locator('[data-fire="mortarHE"]')).toBeDisabled();await expect(page.locator('.weapon-blocker')).toContainText('roofs');
   await page.screenshot({path:testInfo.outputPath('position-roof-blocker.png')});
-  await page.keyboard.press('Escape');const pit=await placeMortar(page,false);await inspectPit(page,pit);
+  // Installation physically consumes the carried mortar. Use a fresh scenario
+  // for the separate outdoor fixture rather than assuming the kit was copied.
+  await meeting(page);const pit=await placeMortar(page,false);await inspectPit(page,pit);
   await expect(page.locator('.crew-slots>div')).toHaveCount(2);await expect(page.locator('#trench-panel')).toContainText('HE /');
   await expect(page.locator('.position-status')).toHaveText('READY');await expect(page.locator('[data-fire="mortarHE"]')).toBeEnabled();await expect(page.locator('[data-fire="mortarSmoke"]')).toBeEnabled();
   await page.screenshot({path:testInfo.outputPath('mixed-crew-pit-ready.png')});

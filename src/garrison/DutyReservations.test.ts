@@ -74,4 +74,13 @@ describe('forward truck pickup reservations',()=>{
     const hypot=vi.spyOn(Math,'hypot');
     try{expect(query()).toBeUndefined();expect(hypot.mock.calls.length).toBeLessThan(2000);}finally{hypot.mockRestore();obstacle.mockRestore();ground.mockRestore();}
   });
+  it('does not put an external truck queue inside a trench bank away from its entrance',()=>{
+    const {sim,self,query}=setup();sim.state.soldiers=[self];
+    sim.state.trenches=[{id:999,points:[{x:0,z:1},{x:0,z:12}],width:4.2,depth:1.75,progress:1,status:'complete'}];
+    sim.garrisons.network.sync(sim.state.trenches);
+    const point=query();expect(point).toBeDefined();expect(sim.garrisons.network.corridorContains(point!)).toBe(false);
+    const plan=vi.spyOn(sim.navigation,'plan');
+    const route=(sim.garrisons as unknown as {openApproach(a:Vec2,b:Vec2,e:Vec2):Vec2[]}).openApproach({x:-5,z:5},{x:0,z:5},{x:0,z:1});
+    expect(route).toEqual([]);expect(plan).not.toHaveBeenCalled();plan.mockRestore();
+  });
 });

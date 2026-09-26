@@ -24,6 +24,7 @@ import {postureSpeed} from '../combat/Posture';
 import {reconcileSupplyDemands,constructionDemand,constructionKey,claimedAt,forwardClaims,availableForPerson} from './SupplyDemand';
 import {networkCapacity,type AssignmentResult} from './NetworkCapacity';
 import {artilleryLayout} from '../construction/ArtilleryLayout';
+import {raidSearchComplete} from '../operations/TrenchRaid';
 
 const WATCH={routine:.25,alert:.5,'stand-to':.9};
 const NIGHT=(hours:number)=>hours%24>=20||hours%24<6;
@@ -55,6 +56,7 @@ export class GarrisonSystem {
     const w=this.state.living!,existing=w.garrisons.filter(g=>this.network.component(g.trenchId)===component);
     const hostile=existing.some(g=>(g.faction??'player')!==side)||!existing.length&&this.state.squads.some(q=>q.id===trench.engineerSquadId&&(q.faction??'player')!==side);
     if(hostile){
+      if(side==='player'&&!raidSearchComplete(this.state,this.network,trenchId))return reject('enemy','Position not searched · clear the connected passages before securing it.');
       // Capturing an empty position requires physical presence, not a remote
       // click. Detached defenders can keep fighting without owning an abandoned post.
       if(chosen.filter(s=>s.needs?.life==='active'&&this.network.corridorContains(s)&&this.componentAt(s)===component).length<2)return reject('enemy','Secure this position with at least two fit people physically on its floor.');
@@ -74,7 +76,7 @@ export class GarrisonSystem {
       }else if(this.network.corridorContains(s)?!this.network.route(s,entrance,component).length:!this.entryApproach(s,component,entrance))return reject('route',`Access blocked for person ${s.id} · no reachable entry into this network. Capacity is not the blocker.`,s.id);
     }
     let g=existing.find(g=>(g.faction??'player')===side)??existing[0];
-    if(!g){g={id:this.state.nextEntityId++,name:`Garrison ${w.garrisons.length+1}`,trenchId,squadIds:[],entrance:{...entrance},forward:this.logistics.forwardPoint(entrance),front:0,readiness:'routine',cache:inventory(),forwardStock:inventory(),nextDecision:0,nextSupport:0,policy:'rules',policyStatus:'Rule-based coordinator',scores:[],cutoff:'clear',watchRequired:0,watchPresent:0,capacity:this.network.capacity(component)};w.garrisons.push(g);}
+    if(!g){g={id:this.state.nextEntityId++,name:`Garrison ${w.garrisons.length+1}`,trenchId,squadIds:[],entrance:{...entrance},forward:this.logistics.forwardPoint(entrance,side),front:0,readiness:'routine',cache:inventory(),forwardStock:inventory(),nextDecision:0,nextSupport:0,policy:'rules',policyStatus:'Rule-based coordinator',scores:[],cutoff:'clear',watchRequired:0,watchPresent:0,capacity:this.network.capacity(component)};w.garrisons.push(g);}
     for(const old of existing.filter(g=>(g.faction??'player')!==side)){
       // Capture changes the post, never the allegiance or physical location of
       // its former people. Include detached personal crews, not only formations.
@@ -334,6 +336,17 @@ export class GarrisonSystem {
     g.front=front;g.nextDecision=0;
     for(const s of this.people(g))if(s.duty?.kind==='watch'){delete s.duty;delete s.aimTargetId;delete s.aimReadyAt;if(s.combat)delete s.combat.aim;}
   }
+  setArtilleryFacing(id:number,front:number):{accepted:boolean;reason:string}{
+    const f=this.state.living!.facilities.find(f=>f.id===id),g=this.state.living!.garrisons.find(g=>g.id===f?.garrisonId);
+    if(!f?.artillery||!g||g.faction==='enemy'||!Number.isFinite(front))return {accepted:false,reason:'Choose a friendly field gun.'};
+    if(this.state.operation?.supportMissions?.some(m=>m.positionId===id&&['preparing','flight'].includes(m.stage)))return {accepted:false,reason:'Finish the active fire mission before changing the gun facing.'};
+    if(Math.abs((f.facing??0)-front)<.001)return {accepted:true,reason:'Gun already faces that direction.'};
+    f.facing=front;g.nextDecision=0;
+    // Installed ownership and stock remain. The same people walk to their new
+    // handling points; ordinary crew readiness blocks fire until they arrive.
+    for(const s of this.state.soldiers.filter(s=>f.weaponCrewIds?.includes(s.id))){if(s.duty?.kind==='watch')delete s.duty;delete s.aimTargetId;delete s.aimReadyAt;if(s.combat)delete s.combat.aim;}
+    return {accepted:true,reason:'Gun facing ordered · crew repositioning.'};
+  }
   reopenEmergency(id:number):boolean {
     const w=this.state.living!,g=w.garrisons.find(g=>g.id===id);
     if(!g||this.state.operation&&this.state.operation.status!=='active'||!['hold','recover'].includes(g.cutoff))return false;
@@ -382,9 +395,20 @@ export class GarrisonSystem {
     for(const g of w.garrisons){
       if(g.underFireUntil!==undefined&&this.state.elapsed>=g.underFireUntil){delete g.underFireUntil;delete g.threatSector;g.nextDecision=0;}
       const people=this.people(g),alive=people.filter(s=>s.needs!.life!=='dead');if(!alive.length)continue;
+      // A locally confirmed intruder on this floor commits the reserve to the
+      // threatened sector. Stale reports and unseen enemy positions do not.
+      const component=this.network.component(g.trenchId);
+      const contact=g.cutoff!=='withdraw'&&this.state.elapsed>=g.nextDecision&&component!==undefined?[...new Set(people.map(s=>s.squadId))].flatMap(id=>squadContacts(this.state,id)).find(c=>c.active&&c.visible&&this.state.elapsed-c.lastSeen<2&&(this.network.nearest(c,component)?.distance??Infinity)<6):undefined;
+      if(contact){
+        const p={x:Math.round(contact.x/8)*8,z:Math.round(contact.z/8)*8};
+        if(!g.threatSector||distance(g.threatSector,p)>10||(g.underFireUntil??0)<=this.state.elapsed)g.nextDecision=0;
+        g.breachUntil=this.state.elapsed+8;g.underFireUntil=this.state.elapsed+15;g.threatSector={...p,front:Math.atan2(p.x-g.entrance.x,p.z-g.entrance.z)};
+      }
+      const breach=(g.breachUntil??0)>this.state.elapsed&&g.cutoff!=='withdraw';
       g.capacity=this.network.capacity(this.network.component(g.trenchId)??-1);
       g.watchRequired=g.cutoff==='withdraw'?0:Math.ceil(alive.length*WATCH[effectiveReadiness(g,this.state.elapsed)]);
-      g.reserveRequired=g.threatSector&&alive.length>=8?Math.max(1,Math.floor(alive.length*.15)):0;
+      g.reserveRequired=!breach&&g.threatSector&&alive.length>=8?Math.max(1,Math.floor(alive.length*.15)):0;
+      if(breach)g.watchRequired=Math.max(g.watchRequired,Math.ceil(alive.length*.7));
       g.watchPresent=alive.filter(s=>s.needs!.life==='active'&&s.combat?.owner!=='casualty'&&s.combat?.owner!=='reaction'&&s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&s.duty.rationUntil===undefined).length;
       g.lossRate=(people.length-alive.length)/Math.max(1,people.length);
       g.watchEffectiveness=alive.filter(s=>s.needs!.life==='active'&&s.combat?.owner!=='casualty'&&s.combat?.owner!=='reaction'&&s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&s.duty.rationUntil===undefined).reduce((sum,s)=>sum+.5+s.morale*.005,0);
@@ -576,6 +600,9 @@ export class GarrisonSystem {
     const key=`${from.x},${from.z}:${to.x},${to.z}:${entrance.x},${entrance.z}:${exit?.x},${exit?.z}`,cached=this.approachCache.get(key);
     if(cached)return cached.map(p=>({...p}));
     const avoid=(p:Vec2)=>this.network.corridorContains(p)&&distance(p,entrance)>3&&(!exit||distance(p,exit)>3);
+    // An external service berth inside a closed trench bank is impossible;
+    // do not exhaust an A* search trying to reach its explicitly forbidden goal.
+    if(avoid(to))return [];
     let route=this.navigation.plan(from,to,avoid);
     // Squad navigation may move a requested endpoint away from a footprint.
     // A physical delivery cannot append an unchecked hop back into that obstacle.
@@ -995,7 +1022,7 @@ export class GarrisonSystem {
     const candidates:Vec2[]=[],side=Math.sign(g.entrance.z-g.forward.z)||1;
     for(let row=0;row<4;row++)for(let column=-3;column<=3;column++)candidates.push({x:g.forward.x+column*1.4,z:g.forward.z+side*(2+row*1.4)});
     candidates.sort((a,b)=>distance(s,a)-distance(s,b));
-    const accessible=candidates.filter(p=>!this.terrain.obstacleAt(p.x,p.z,.5)&&this.terrain.groundTypeAt(p.x,p.z)!=='river');
+    const accessible=candidates.filter(p=>!this.terrain.obstacleAt(p.x,p.z,.5)&&this.terrain.groundTypeAt(p.x,p.z)!=='river'&&(!this.network.corridorContains(p)||distance(p,g.entrance)<=3));
     return firstAvailablePoint(accessible,s,this.state.soldiers,.8,1);
   }
   private localMealPoint(g:Garrison,s:SoldierState):Vec2 {

@@ -1,0 +1,162 @@
+{
+  "elapsed": 588.0500000000129,
+  "forward": {
+    "x": 693.9692221130035,
+    "z": 1007.339227705016
+  },
+  "truck": [
+    {
+      "id": 378,
+      "state": "outbound",
+      "reason": "En route",
+      "cargo": 120
+    },
+    {
+      "id": 379,
+      "state": "outbound",
+      "reason": "En route",
+      "cargo": 0
+    },
+    {
+      "id": 380,
+      "state": "idle",
+      "reason": "Awaiting assignment",
+      "cargo": 0
+    },
+    {
+      "id": 381,
+      "state": "idle",
+      "reason": "Awaiting assignment",
+      "cargo": 0
+    }
+  ],
+  "f": [
+    {
+      "id": 460,
+      "progress": 1,
+      "work": {
+        "explicit": true,
+        "workerIds": [],
+        "createdAt": 189.70000000000888,
+        "autoWorkers": true
+      },
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "crew": []
+    },
+    {
+      "id": 461,
+      "progress": 0.3312777777777773,
+      "work": {
+        "explicit": true,
+        "workerIds": [
+          298,
+          321
+        ],
+        "createdAt": 189.70000000000888,
+        "autoWorkers": true
+      },
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "crew": []
+    }
+  ],
+  "orders": [
+    {
+      "squadId": 261,
+      "intent": "assault",
+      "target": {
+        "x": 940.0203458816997,
+        "z": 905.7693432675246
+      },
+      "networkId": 251,
+      "preparedAt": 189.70000000000888,
+      "raid": {
+        "phase": "wait",
+        "entry": {
+          "x": 942.2765861512603,
+          "z": 1021.4373764098949
+        },
+        "home": {
+          "x": 719.8172593295109,
+          "z": 983.4663188397228
+        },
+        "startingAble": 7,
+        "members": [],
+        "cleared": [],
+        "nextReview": 189.70000000000888,
+        "reason": "WAIT FOR SIGNAL · staged at current position"
+      }
+    },
+    {
+      "squadId": 270,
+      "intent": "assault",
+      "target": {
+        "x": 940.0203458816997,
+        "z": 905.7693432675246
+      },
+      "networkId": 251,
+      "preparedAt": 189.70000000000888,
+      "raid": {
+        "phase": "wait",
+        "entry": {
+          "x": 940.7932526993782,
+          "z": 973.5401045386096
+        },
+        "home": {
+          "x": 742.2581993630065,
+          "z": 984.0158473525506
+        },
+        "startingAble": 6,
+        "members": [],
+        "cleared": [],
+        "nextReview": 189.70000000000888,
+        "reason": "WAIT FOR SIGNAL · staged at current position"
+      }
+    },
+    {
+      "squadId": 279,
+      "intent": "assault",
+      "target": {
+        "x": 940.0203458816997,
+        "z": 905.7693432675246
+      },
+      "networkId": 251,
+      "preparedAt": 189.70000000000888,
+      "raid": {
+        "phase": "wait",
+        "entry": {
+          "x": 942.235272248274,
+          "z": 925.6447933013233
+        },
+        "home": {
+          "x": 719.637545249382,
+          "z": 1005.8142739711855
+        },
+        "startingAble": 8,
+        "members": [],
+        "cleared": [],
+        "nextReview": 189.70000000000888,
+        "reason": "WAIT FOR SIGNAL · staged at current position"
+      }
+    }
+  ]
+}

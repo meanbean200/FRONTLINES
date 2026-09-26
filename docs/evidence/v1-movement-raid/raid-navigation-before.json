@@ -1,0 +1,66 @@
+{
+  "ms": 3740.8559,
+  "calls": 4,
+  "rows": [
+    {
+      "elapsed": 869.5499999997569,
+      "ms": 233.0947,
+      "start": {
+        "x": 701.0210159567541,
+        "z": 1012.4019879991721
+      },
+      "goal": {
+        "x": 698.1692221130036,
+        "z": 1012.139227705016
+      },
+      "avoidsGoal": true,
+      "length": 0,
+      "stack": [
+        "    at GarrisonSystem.openApproach (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:603:31)",
+        "    at GarrisonSystem.assignDuty (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:677:27)",
+        "    at GarrisonSystem.coordinate (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:561:26)",
+        "    at GarrisonSystem.step (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:416:144)"
+      ]
+    },
+    {
+      "elapsed": 869.5499999997569,
+      "ms": 171.10629999999992,
+      "start": {
+        "x": 699.9692221130035,
+        "z": 1014.8854712270972
+      },
+      "goal": {
+        "x": 698.1692221130036,
+        "z": 1009.339227705016
+      },
+      "avoidsGoal": true,
+      "length": 0,
+      "stack": [
+        "    at GarrisonSystem.openApproach (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:603:31)",
+        "    at GarrisonSystem.assignDuty (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:677:27)",
+        "    at GarrisonSystem.coordinate (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:561:26)",
+        "    at GarrisonSystem.step (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:416:144)"
+      ]
+    },
+    {
+      "elapsed": 884.6499999997432,
+      "ms": 238.4150999999997,
+      "start": {
+        "x": 699.9692221130035,
+        "z": 1014.8854712270972
+      },
+      "goal": {
+        "x": 698.1692221130036,
+        "z": 1010.739227705016
+      },
+      "avoidsGoal": true,
+      "length": 0,
+      "stack": [
+        "    at GarrisonSystem.openApproach (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:603:31)",
+        "    at GarrisonSystem.assignDuty (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:677:27)",
+        "    at GarrisonSystem.coordinate (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:561:26)",
+        "    at GarrisonSystem.step (C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\src\\garrison\\GarrisonSystem.ts:416:144)"
+      ]
+    }
+  ]
+}
