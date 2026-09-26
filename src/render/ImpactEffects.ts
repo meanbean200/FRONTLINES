@@ -5,6 +5,7 @@ import {hash2D} from '../core/random';
 import {ParticlePool} from './ParticlePool';
 import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
 import {environmentDaylight} from './EnvironmentLighting';
+import {latestGunDischarge} from './SupportAnimation';
 
 interface Impact {key:string;id:number;at:number;x:number;y:number;z:number;blast:boolean;stone:boolean;heavy?:boolean}
 export class ImpactEffects {
@@ -26,6 +27,14 @@ export class ImpactEffects {
     for(const b of op?.blastEvents??[])if(now-b.at<1&&visible(b))remember({key:`b${b.id}`,id:b.id,at:b.at,x:b.x,y:terrain.heightAt(b.x,b.z)+.15,z:b.z,blast:true,stone:false,heavy:b.radius>25});
     for(const s of op?.shotEvents??[])if(s.obstruction&&now-s.at<.25&&visible(s.to)&&(!enemies.has(s.squadId)||seen.has(s.shooterId)||friendly.some(f=>Math.hypot(f.x-s.to.x,f.z-s.to.z)<50)))remember({key:`s${s.id}`,id:s.id,at:s.at,...s.to,blast:false,stone:s.obstruction==='building'});
     this.impacts=this.impacts.filter(i=>{if(now-i.at<(i.blast?7:1.1))return true;this.remembered.delete(i.key);return false;});pool.begin();
+    // Three bounded muzzle-dust particles per actual launch, shared quality cap.
+    // Unseen enemy guns do not gain a marker or reveal their crew.
+    for(const f of state.living?.facilities??[]){
+      if(!f.artillery||state.living!.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!playerCanSeePoint(state,terrain,f))continue;
+      const shot=latestGunDischarge(state,f.id);if(!shot)continue;const age=now-shot.launchAt;if(age>2)continue;
+      const a=Math.atan2(shot.target.x-f.x,shot.target.z-f.z),x=f.x+Math.sin(a)*3.3,z=f.z+Math.cos(a)*3.3;
+      for(let i=0;i<3;i++)pool.add(x+Math.sin(a)*age*(i+1)*.5,terrain.heightAt(f.x,f.z)+2.1+age*.5,z+Math.cos(a)*age*(i+1)*.5,.4+age*1.1,.35+age*.6,0xa49d89,(1-age/2)*.38);
+    }
     // Only simulation smoke fields get a sustained smoke column. Dust below never
     // modifies concealment, collision or the serialized battlefield.
     for(const c of op?.smokeFields??[]){

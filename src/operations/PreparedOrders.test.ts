@@ -3,7 +3,26 @@ import {createOperationalBattle} from './createOperationalBattle';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {SaveSystem} from '../persistence/SaveSystem';
 import {preparedStatus,validPreparedOrders} from './PreparedOrders';
+import {raidEligibility} from './RaidEligibility';
+import {preparedPosition} from '../combat/testing/PositionFixture';
 describe('persistent signal orders',()=>{
+  it('keeps mixed formations with assigned gun crews home unless explicitly released',()=>{
+    const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),[gunSquad,rifles]=state.squads.filter(q=>q.faction==='player');
+    state.soldiers.find(s=>s.squadId===gunSquad.id)!.equipment!.mortar=true;
+    const f=preparedPosition(state,gunSquad.id,'mortar'),crew=f.weaponCrewIds!.slice(),ids=[gunSquad.id,rifles.id];
+    expect(raidEligibility(state,ids)).toMatchObject({eligible:[rifles.id],protectedIds:[gunSquad.id]});
+    expect(sim.prepareOrder(ids,'assault',{x:rifles.x+20,z:rifles.z})).toBe(1);expect(f.weaponCrewIds).toEqual(crew);
+    expect(new SaveSystem().parse(JSON.stringify(state)).living!.facilities.find(p=>p.id===f.id)!.weaponCrewIds).toEqual(crew);
+    expect(sim.prepareOrder([gunSquad.id],'assault',{x:rifles.x+20,z:rifles.z},undefined,true)).toBe(1);
+    sim.signalPrepared();sim.step(.05);expect(f.weaponCrewIds).toEqual([]);
+  });
+  it('cancels the actual released movement as well as its saved planning marker',()=>{
+    const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),q=state.squads[0];
+    sim.prepareOrder([q.id],'assault',{x:q.x+45,z:q.z+20});sim.signalPrepared();sim.step(.05);
+    expect(q.order.intent).toBe('assault');sim.cancelPrepared();
+    expect(state.preparedOrders).toEqual([]);expect(q.order.type).toBe('hold');expect(q.route).toEqual([]);
+    const loaded=new SaveSystem().parse(JSON.stringify(state));expect(loaded.preparedOrders).toEqual([]);expect(loaded.squads[0].order.type).toBe('hold');
+  });
   it('waits, saves, and releases assault and support on the same fixed tick',()=>{
     const state=createOperationalBattle('meeting'),sim=new BattlefieldSimulation(state),squads=state.squads.filter(q=>q.faction==='player').slice(0,3),ids=squads.map(q=>q.id),target={x:squads[0].x+35,z:squads[0].z+10};
     expect(sim.prepareOrder(ids.slice(0,2),'assault',target,251)).toBe(2);expect(sim.prepareOrder(ids.slice(2),'suppress',target,251)).toBe(1);

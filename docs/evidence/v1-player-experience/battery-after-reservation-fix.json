@@ -1,0 +1,829 @@
+{
+  "elapsed": 1779.9999999989288,
+  "facilities": [
+    {
+      "id": 384,
+      "x": 681.8433210936372,
+      "z": -652.243646277014,
+      "garrisonId": 373,
+      "kind": "mortar",
+      "facing": 0,
+      "connectorId": 385,
+      "includesWeapon": true,
+      "weaponCrewIds": [
+        292,
+        291
+      ],
+      "workOrder": {
+        "explicit": true,
+        "workerIds": [],
+        "createdAt": 0.2,
+        "autoWorkers": true
+      },
+      "progress": 1,
+      "capacity": 2,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 4,
+        "mortarSmoke": 4,
+        "smokeGrenades": 0
+      },
+      "materialCost": 32,
+      "artillery": {
+        "batteryId": 384,
+        "size": 4,
+        "index": 0
+      },
+      "installation": {
+        "kind": "field-gun",
+        "source": "construction"
+      }
+    },
+    {
+      "id": 386,
+      "x": 693.8433210936372,
+      "z": -652.243646277014,
+      "garrisonId": 373,
+      "kind": "mortar",
+      "facing": 0,
+      "connectorId": 387,
+      "includesWeapon": true,
+      "weaponCrewIds": [
+        265,
+        261
+      ],
+      "workOrder": {
+        "explicit": true,
+        "workerIds": [],
+        "createdAt": 0.2,
+        "autoWorkers": true
+      },
+      "progress": 1,
+      "capacity": 2,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 2,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 32,
+      "artillery": {
+        "batteryId": 384,
+        "size": 4,
+        "index": 1
+      },
+      "installation": {
+        "kind": "field-gun",
+        "source": "construction"
+      }
+    },
+    {
+      "id": 388,
+      "x": 705.8433210936372,
+      "z": -652.243646277014,
+      "garrisonId": 373,
+      "kind": "mortar",
+      "facing": 0,
+      "connectorId": 389,
+      "includesWeapon": true,
+      "weaponCrewIds": [],
+      "workOrder": {
+        "explicit": true,
+        "workerIds": [],
+        "createdAt": 0.2,
+        "autoWorkers": true
+      },
+      "progress": 1,
+      "capacity": 2,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 32,
+      "artillery": {
+        "batteryId": 384,
+        "size": 4,
+        "index": 2
+      },
+      "installation": {
+        "kind": "field-gun",
+        "source": "construction"
+      }
+    },
+    {
+      "id": 390,
+      "x": 717.8433210936372,
+      "z": -652.243646277014,
+      "garrisonId": 373,
+      "kind": "mortar",
+      "facing": 0,
+      "connectorId": 391,
+      "includesWeapon": true,
+      "weaponCrewIds": [],
+      "workOrder": {
+        "explicit": true,
+        "workerIds": [
+          288,
+          289,
+          259
+        ],
+        "createdAt": 0.2,
+        "autoWorkers": true
+      },
+      "progress": 0,
+      "capacity": 2,
+      "paid": false,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 28,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 32,
+      "artillery": {
+        "batteryId": 384,
+        "size": 4,
+        "index": 3
+      }
+    },
+    {
+      "id": 392,
+      "x": 158.55352073530256,
+      "z": 459.1023744118157,
+      "garrisonId": 377,
+      "kind": "emplacement",
+      "facing": 3.141592653589793,
+      "connectorId": 255,
+      "trenchAnchor": {
+        "trenchId": 255,
+        "along": 0.9504316453590967
+      },
+      "includesWeapon": true,
+      "weaponCrewIds": [
+        351,
+        352
+      ],
+      "workOrder": {
+        "explicit": false,
+        "workerIds": [],
+        "createdAt": 33.500000000000234
+      },
+      "progress": 1,
+      "capacity": 2,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 120,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 16,
+      "installation": {
+        "kind": "crew-mg",
+        "source": "construction",
+        "weapon": {
+          "id": "crew-mg",
+          "loaded": 60,
+          "reloadUntil": 0,
+          "setupUntil": 1778.149999998935,
+          "burstLeft": 0,
+          "position": {
+            "x": 158.59212753886277,
+            "z": 459.47424724814823
+          }
+        }
+      }
+    },
+    {
+      "id": 393,
+      "x": -443.8140532316252,
+      "z": 467.42174537134224,
+      "garrisonId": 378,
+      "kind": "mortar",
+      "facing": 3.141592653589793,
+      "connectorId": 394,
+      "includesWeapon": true,
+      "weaponCrewIds": [
+        359,
+        360
+      ],
+      "workOrder": {
+        "explicit": false,
+        "workerIds": [],
+        "createdAt": 34.000000000000206
+      },
+      "progress": 1,
+      "capacity": 2,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 8,
+        "mortarSmoke": 4,
+        "smokeGrenades": 0
+      },
+      "materialCost": 32,
+      "artillery": {
+        "batteryId": 393,
+        "index": 0,
+        "size": 1
+      },
+      "installation": {
+        "kind": "field-gun",
+        "source": "construction"
+      }
+    },
+    {
+      "id": 395,
+      "x": 148.5193877531477,
+      "z": 471.80310624741384,
+      "garrisonId": 377,
+      "kind": "aid",
+      "facing": 3.141592653589793,
+      "connectorId": 396,
+      "workOrder": {
+        "explicit": false,
+        "workerIds": [],
+        "createdAt": 181.95000000000712
+      },
+      "progress": 1,
+      "capacity": 4,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 18
+    },
+    {
+      "id": 397,
+      "x": -437.8600075200639,
+      "z": 473.69841286950725,
+      "garrisonId": 378,
+      "kind": "aid",
+      "facing": 3.141592653589793,
+      "connectorId": 398,
+      "workOrder": {
+        "explicit": false,
+        "workerIds": [],
+        "createdAt": 219.00000000001555
+      },
+      "progress": 1,
+      "capacity": 4,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 18
+    },
+    {
+      "id": 430,
+      "x": 156.51050099976194,
+      "z": 474.72129998333634,
+      "garrisonId": 377,
+      "kind": "rest",
+      "facing": 3.141592653589793,
+      "connectorId": 431,
+      "workOrder": {
+        "explicit": false,
+        "workerIds": [],
+        "createdAt": 453.50000000006884
+      },
+      "progress": 1,
+      "capacity": 8,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 12
+    },
+    {
+      "id": 432,
+      "x": -450.9631985718523,
+      "z": 471.71687063491385,
+      "garrisonId": 378,
+      "kind": "rest",
+      "facing": 3.141592653589793,
+      "connectorId": 433,
+      "workOrder": {
+        "explicit": false,
+        "workerIds": [],
+        "createdAt": 474.0000000000735
+      },
+      "progress": 1,
+      "capacity": 8,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 12
+    },
+    {
+      "id": 436,
+      "x": 137.2693877531477,
+      "z": 473.67810624741384,
+      "garrisonId": 377,
+      "kind": "meal",
+      "facing": 3.141592653589793,
+      "connectorId": 437,
+      "workOrder": {
+        "explicit": false,
+        "workerIds": [],
+        "createdAt": 713.5499999998988
+      },
+      "progress": 0.5588888888888764,
+      "capacity": 6,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 8
+    }
+  ],
+  "people": [
+    {
+      "id": 261,
+      "squadId": 257,
+      "x": 692.0972061859383,
+      "z": -652.980027358549,
+      "heading": 0,
+      "health": 100,
+      "suppression": 0,
+      "morale": 100,
+      "ammunition": 60,
+      "fatigue": 45.53666666673091,
+      "action": "watching",
+      "posture": "standing",
+      "cover": "forest",
+      "equipment": {
+        "version": 1,
+        "weapon": "m1",
+        "tools": false,
+        "mortar": false,
+        "medicalKit": false
+      },
+      "needs": {
+        "energy": 54.46333333326909,
+        "hunger": 50.37866666668614,
+        "thirst": 63.587999999986515,
+        "life": "active",
+        "hungryHours": 0,
+        "thirstyHours": 0,
+        "sleepHours": 4.0379999999996885,
+        "day": 1,
+        "watchHours": 7.096666666666018,
+        "interruptedSleep": 0,
+        "taskChanges": 68
+      },
+      "carried": {
+        "food": 2,
+        "water": 3,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 60,
+        "medical": 1,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 1
+      },
+      "nextShotAt": 4,
+      "garrisonId": 373,
+      "trenchId": 251,
+      "combat": {
+        "shotSequence": 0,
+        "reactionSince": 0.05,
+        "coverReview": 5.3,
+        "owner": "duty",
+        "nextCareReview": 1582.0499999991118,
+        "weapon": {
+          "id": "m1",
+          "loaded": 8,
+          "reloadUntil": 0,
+          "setupUntil": 1186.4499999994687,
+          "burstLeft": 0,
+          "position": {
+            "x": 692.0747651682698,
+            "z": -652.975124772191
+          }
+        }
+      },
+      "personalArea": false,
+      "duty": {
+        "kind": "watch",
+        "destination": {
+          "x": 691.9933210936372,
+          "z": -653.043646277014
+        },
+        "route": [
+          {
+            "x": 693.8828999126981,
+            "z": -651.7687004484532
+          },
+          {
+            "x": 693.8433210936372,
+            "z": -652.243646277014
+          },
+          {
+            "x": 691.9933210936372,
+            "z": -653.043646277014
+          }
+        ],
+        "routeIndex": 3,
+        "since": 1581.5499999991093,
+        "until": 1733.3999999991076,
+        "reason": "Assigned weapon crew",
+        "blockedFor": 0,
+        "networkBound": true,
+        "routeTrenches": [
+          387
+        ],
+        "facilityId": 386,
+        "watchPost": {
+          "x": 691.9933210936372,
+          "z": -653.043646277014
+        },
+        "arrivedAt": 1583.3999999991076
+      }
+    },
+    {
+      "id": 265,
+      "squadId": 257,
+      "x": 694.9877042678846,
+      "z": -650.8325718384568,
+      "heading": 1.1941698251712642,
+      "health": 100,
+      "suppression": 0,
+      "morale": 100,
+      "ammunition": 60,
+      "fatigue": 37.92866666675142,
+      "action": "sleeping",
+      "posture": "standing",
+      "cover": "forest",
+      "equipment": {
+        "version": 1,
+        "weapon": "smg",
+        "tools": false,
+        "mortar": false,
+        "medicalKit": false
+      },
+      "needs": {
+        "energy": 62.07133333324858,
+        "hunger": 37.11466666668576,
+        "thirst": 65.67199999998263,
+        "life": "active",
+        "hungryHours": 0,
+        "thirstyHours": 0,
+        "sleepHours": 3.750666666666387,
+        "day": 1,
+        "watchHours": 16.82533333334337,
+        "interruptedSleep": 0,
+        "taskChanges": 10
+      },
+      "carried": {
+        "food": 0,
+        "water": 1,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 60,
+        "medical": 1,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 1
+      },
+      "nextShotAt": 5.4,
+      "garrisonId": 373,
+      "trenchId": 251,
+      "combat": {
+        "shotSequence": 0,
+        "reactionSince": 0.05,
+        "coverReview": 6.3,
+        "owner": "duty",
+        "nextCareReview": 1780.1999999989314,
+        "weapon": {
+          "id": "smg",
+          "loaded": 30,
+          "reloadUntil": 0,
+          "setupUntil": 1220.7499999994375,
+          "burstLeft": 0,
+          "position": {
+            "x": 695.6315622169844,
+            "z": -652.9909735364502
+          }
+        }
+      },
+      "personalArea": false,
+      "duty": {
+        "kind": "sleep",
+        "destination": {
+          "x": 695.1192317737523,
+          "z": -650.7805518818035
+        },
+        "route": [
+          {
+            "x": 693.8433210936372,
+            "z": -652.243646277014
+          },
+          {
+            "x": 693.9732041517735,
+            "z": -650.6850495799376
+          },
+          {
+            "x": 695.1192317737523,
+            "z": -650.7805518818035
+          }
+        ],
+        "routeIndex": 3,
+        "since": 1496.5499999991866,
+        "until": 1796.5499999991866,
+        "reason": "Floor rest · no reachable free dugout",
+        "blockedFor": 0,
+        "networkBound": true,
+        "routeTrenches": [
+          387
+        ],
+        "arrivedAt": 1498.7499999991846
+      }
+    },
+    {
+      "id": 291,
+      "squadId": 284,
+      "x": 680.0702674069126,
+      "z": -652.9865701037435,
+      "heading": 0,
+      "health": 100,
+      "suppression": 0,
+      "morale": 100,
+      "ammunition": 60,
+      "fatigue": 39.764000000099685,
+      "action": "watching",
+      "posture": "standing",
+      "cover": "forest",
+      "equipment": {
+        "version": 1,
+        "weapon": "m1",
+        "tools": false,
+        "mortar": false,
+        "medicalKit": false
+      },
+      "needs": {
+        "energy": 60.235999999900315,
+        "hunger": 36.933333333352216,
+        "thirst": 65.39999999998231,
+        "life": "active",
+        "hungryHours": 0,
+        "thirstyHours": 0,
+        "sleepHours": 4.031333333333023,
+        "day": 1,
+        "watchHours": 12.908666666671918,
+        "interruptedSleep": 0,
+        "taskChanges": 40
+      },
+      "carried": {
+        "food": 1,
+        "water": 2,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 60,
+        "medical": 1,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 1
+      },
+      "nextShotAt": 5.05,
+      "garrisonId": 373,
+      "trenchId": 251,
+      "combat": {
+        "shotSequence": 0,
+        "reactionSince": 0.05,
+        "coverReview": 2.8,
+        "owner": "duty",
+        "nextCareReview": 1692.0499999990118,
+        "weapon": {
+          "id": "m1",
+          "loaded": 8,
+          "reloadUntil": 0,
+          "setupUntil": 1225.2499999994334,
+          "burstLeft": 0,
+          "position": {
+            "x": 680.1011501978996,
+            "z": -652.9632830240696
+          }
+        }
+      },
+      "personalArea": false,
+      "duty": {
+        "kind": "watch",
+        "destination": {
+          "x": 679.9933210936372,
+          "z": -653.043646277014
+        },
+        "route": [
+          {
+            "x": 682.0787980647818,
+            "z": -650.8307844384725
+          },
+          {
+            "x": 681.8433210936372,
+            "z": -652.243646277014
+          },
+          {
+            "x": 679.9933210936372,
+            "z": -653.043646277014
+          }
+        ],
+        "routeIndex": 3,
+        "since": 1691.5499999990093,
+        "until": 1843.7999999990072,
+        "reason": "Assigned weapon crew",
+        "blockedFor": 0,
+        "networkBound": true,
+        "routeTrenches": [
+          385
+        ],
+        "facilityId": 384,
+        "watchPost": {
+          "x": 679.9933210936372,
+          "z": -653.043646277014
+        },
+        "arrivedAt": 1693.7999999990072
+      }
+    },
+    {
+      "id": 292,
+      "squadId": 284,
+      "x": 683.6159423704817,
+      "z": -652.9807221206663,
+      "heading": 0,
+      "health": 100,
+      "suppression": 0,
+      "morale": 100,
+      "ammunition": 60,
+      "fatigue": 40.57533333343089,
+      "action": "watching",
+      "posture": "standing",
+      "cover": "forest",
+      "equipment": {
+        "version": 1,
+        "weapon": "smg",
+        "tools": false,
+        "mortar": false,
+        "medicalKit": false
+      },
+      "needs": {
+        "energy": 59.42466666656911,
+        "hunger": 37.43733333335289,
+        "thirst": 66.1559999999833,
+        "life": "active",
+        "hungryHours": 0,
+        "thirstyHours": 0,
+        "sleepHours": 4.047999999999687,
+        "day": 1,
+        "watchHours": 14.15200000000677,
+        "interruptedSleep": 0,
+        "taskChanges": 38
+      },
+      "carried": {
+        "food": 0,
+        "water": 1,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 60,
+        "medical": 1,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 1
+      },
+      "nextShotAt": 5.4,
+      "garrisonId": 373,
+      "trenchId": 251,
+      "combat": {
+        "shotSequence": 0,
+        "reactionSince": 0.05,
+        "coverReview": 3.05,
+        "owner": "duty",
+        "nextCareReview": 1673.5999999990288,
+        "weapon": {
+          "id": "smg",
+          "loaded": 30,
+          "reloadUntil": 0,
+          "setupUntil": 402.90000000005733,
+          "burstLeft": 0,
+          "position": {
+            "x": 683.581874133556,
+            "z": -652.9736950035384
+          }
+        }
+      },
+      "personalArea": false,
+      "duty": {
+        "kind": "watch",
+        "destination": {
+          "x": 683.6933210936372,
+          "z": -653.043646277014
+        },
+        "route": [
+          {
+            "x": 681.9199233808864,
+            "z": -651.784032549721
+          },
+          {
+            "x": 681.8433210936372,
+            "z": -652.243646277014
+          },
+          {
+            "x": 683.6933210936372,
+            "z": -653.043646277014
+          }
+        ],
+        "routeIndex": 3,
+        "since": 1671.5499999990275,
+        "until": 1823.149999999026,
+        "reason": "Assigned weapon crew",
+        "blockedFor": 0,
+        "networkBound": true,
+        "routeTrenches": [
+          385
+        ],
+        "facilityId": 384,
+        "watchPost": {
+          "x": 683.6933210936372,
+          "z": -653.043646277014
+        },
+        "arrivedAt": 1673.149999999026
+      }
+    }
+  ]
+}

@@ -31,7 +31,8 @@ test('finite operations explain reserves without offering sandbox spawning',asyn
 });
 test('Support routes players to physical positions rather than abstract mortar formations',async({page})=>{
   await meeting(page);await select(page,'Able');await page.locator('#support-command').click();
-  await expect(page.locator('[data-support="mortarHE"]')).toHaveCount(0);await expect(page.locator('.support-status')).toContainText('Click a weapon position');
+  await expect(page.locator('[data-support="mortarHE"]')).toHaveCount(0);await expect(page.locator('.support-status')).toContainText('Choose guns, then one target');
+  await page.locator('.support-other>summary').click();
   await expect(page.locator('[data-support="smokeGrenades"]')).toBeVisible();
 });
 test('machine-gun inspection separates crew readiness from urgent warnings',async({page})=>{

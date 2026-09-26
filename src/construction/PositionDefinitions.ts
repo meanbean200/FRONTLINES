@@ -34,5 +34,5 @@ export function weaponCrewPoint(state:BattlefieldState,f:Facility,index:number):
 export function facilityName(state:BattlefieldState,f:Facility):string{
   const names={emplacement:'MG position',mortar:'Mortar pit',aid:'Aid post',ammo:'Ammo store',store:'Supply store',rest:'Rest dugout',meal:'Meal bay'};
   const index=state.living!.facilities.filter(p=>p.kind===f.kind&&state.living!.garrisons.find(g=>g.id===p.garrisonId)?.faction!=='enemy').findIndex(p=>p.id===f.id)+1;
-  return f.artillery?f.artillery.size===4?`Battery ${f.artillery.batteryId} · Gun ${f.artillery.index+1}`:`Field gun ${String(index).padStart(2,'0')}`:`${names[f.kind]} ${String(index).padStart(2,'0')}${f.kind==='mortar'?' · legacy':''}`;
+  return f.artillery?f.artillery.size>1?`Battery ${f.artillery.batteryId} · Gun ${f.artillery.index+1}`:`Field gun ${String(index).padStart(2,'0')}`:`${names[f.kind]} ${String(index).padStart(2,'0')}${f.kind==='mortar'?' · legacy':''}`;
 }

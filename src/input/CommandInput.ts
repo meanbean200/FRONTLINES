@@ -233,8 +233,10 @@ export class CommandInput {
     const segment=(a:Vec2,b:Vec2,arrow=false)=>{const aa=this.options.camera.project(a,.35),bb=this.options.camera.project(b,.35),line=document.createElementNS('http://www.w3.org/2000/svg','line');for(const[k,v]of Object.entries({x1:aa.x,y1:aa.y,x2:bb.x,y2:bb.y,stroke:tint,'stroke-width':3,'marker-end':arrow?'url(#plot-arrow)':'none'}))line.setAttribute(k,String(v));this.plotted.append(line);};
     if(report.sites){this.routeLine.setAttribute('points','');for(const site of report.sites){const outline=document.createElementNS('http://www.w3.org/2000/svg','polygon');outline.setAttribute('points',[[-2.7,-3],[2.7,-3],[2.7,3],[-2.7,3]].map(([x,z])=>this.options.camera.project({x:site.x+x*Math.cos(angle)+z*Math.sin(angle),z:site.z-x*Math.sin(angle)+z*Math.cos(angle)},.35)).map(p=>`${p.x},${p.y}`).join(' '));outline.setAttribute('fill',tint+'30');outline.setAttribute('stroke',tint);this.plotted.append(outline);segment(site,{x:site.x+Math.sin(angle)*6,z:site.z+Math.cos(angle)*6},true);}}
     if(report.kind==='emplacement'){if(report.segment)segment(report.segment[0],report.segment[1]);segment(report.position,{x:report.position.x+Math.sin(angle)*9,z:report.position.z+Math.cos(angle)*9},true);}else if(report.origin)segment(report.origin,report.position);
+    if(report.kind==='mortar')segment(report.position,{x:report.position.x+Math.sin(angle)*15,z:report.position.z+Math.cos(angle)*15},true);
     this.draft.hidden=false;this.draft.dataset.invalid=String(!report.valid);
-    const text=`${report.name.toUpperCase()} / ${report.cost} MATERIALS\n${report.reason}\n${Math.floor(report.materials)} in trench stores · Esc / right-click cancels`;
+    const heading=report.kind==='mortar'?` · FACING ${(Math.round(angle*180/Math.PI)+360)%360}°`:'';
+    const text=`${report.name.toUpperCase()} / ${report.cost} MATERIALS${heading}\n${report.reason}\n${Math.floor(report.materials)} in trench stores · Esc / right-click cancels`;
     if(this.draft.textContent!==text)this.draft.textContent=text;
   }
 

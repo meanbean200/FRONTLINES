@@ -1,0 +1,588 @@
+{
+  "kind": "headless-diagnostic-not-browser-acceptance",
+  "startingSeed": 1944,
+  "readyAt": 172.00000000000486,
+  "simulatedSeconds": 172.00000000000486,
+  "finalBalance": {
+    "food": 0,
+    "water": 0,
+    "materials": 0,
+    "fuel": 4.575895218295045e-12,
+    "ammo": 0,
+    "medical": 0,
+    "mortarHE": 0,
+    "mortarSmoke": 0,
+    "smokeGrenades": 0
+  },
+  "samples": [
+    {
+      "at": 0.05,
+      "progress": 0,
+      "gun": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "crew": [],
+      "readiness": "POSITION NOT COMPLETE",
+      "forward": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "cache": {
+        "food": 64,
+        "water": 100,
+        "materials": 80,
+        "fuel": 0,
+        "ammo": 200,
+        "medical": 16,
+        "mortarHE": 12,
+        "mortarSmoke": 6,
+        "smokeGrenades": 8
+      },
+      "trucks": [
+        {
+          "id": 367,
+          "state": "loading",
+          "reason": "Scheduled rear manifest loading",
+          "cargo": {
+            "food": 400,
+            "water": 600,
+            "materials": 120,
+            "fuel": 180,
+            "ammo": 160,
+            "medical": 12,
+            "mortarHE": 12,
+            "mortarSmoke": 6,
+            "smokeGrenades": 10
+          }
+        },
+        {
+          "id": 368,
+          "state": "loading",
+          "reason": "Loading forward shipment",
+          "cargo": {
+            "food": 36,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 90,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 369,
+          "state": "idle",
+          "reason": "Awaiting assignment",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 370,
+          "state": "idle",
+          "reason": "Awaiting assignment",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        }
+      ],
+      "balance": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "at": 60.049999999998725,
+      "progress": 0,
+      "gun": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "crew": [],
+      "readiness": "POSITION NOT COMPLETE",
+      "forward": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "cache": {
+        "food": 64,
+        "water": 100,
+        "materials": 48,
+        "fuel": 0,
+        "ammo": 200,
+        "medical": 16,
+        "mortarHE": 12,
+        "mortarSmoke": 6,
+        "smokeGrenades": 8
+      },
+      "trucks": [
+        {
+          "id": 367,
+          "state": "returning",
+          "reason": "Returning to depot",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 368,
+          "state": "outbound",
+          "reason": "En route",
+          "cargo": {
+            "food": 36,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 90,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 369,
+          "state": "idle",
+          "reason": "Awaiting assignment",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 370,
+          "state": "idle",
+          "reason": "Awaiting assignment",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        }
+      ],
+      "balance": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 2.1600499167107046e-12,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "at": 120.04999999999532,
+      "progress": 0.4061388888888866,
+      "gun": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "crew": [],
+      "readiness": "POSITION NOT COMPLETE",
+      "forward": {
+        "food": 36,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 90,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "cache": {
+        "food": 64,
+        "water": 100,
+        "materials": 48,
+        "fuel": 0,
+        "ammo": 200,
+        "medical": 16,
+        "mortarHE": 12,
+        "mortarSmoke": 6,
+        "smokeGrenades": 8
+      },
+      "trucks": [
+        {
+          "id": 367,
+          "state": "idle",
+          "reason": "At depot",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 368,
+          "state": "returning",
+          "reason": "Returning to depot",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 369,
+          "state": "idle",
+          "reason": "Awaiting assignment",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 370,
+          "state": "idle",
+          "reason": "Awaiting assignment",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        }
+      ],
+      "balance": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 3.637978807091713e-12,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "at": 172.00000000000486,
+      "progress": 1,
+      "gun": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 4,
+        "mortarSmoke": 4,
+        "smokeGrenades": 0
+      },
+      "crew": [
+        {
+          "id": 254,
+          "action": "watching",
+          "duty": {
+            "kind": "watch",
+            "destination": {
+              "x": -525.6390531237068,
+              "z": -244.15280612342613
+            },
+            "route": [
+              {
+                "x": -524.0452084539252,
+                "z": -241.63415998217644
+              },
+              {
+                "x": -524.8390531237069,
+                "z": -242.30280612342614
+              },
+              {
+                "x": -525.6390531237068,
+                "z": -244.15280612342613
+              }
+            ],
+            "routeIndex": 3,
+            "since": 154.85000000000096,
+            "until": 306.65000000000134,
+            "reason": "Player: man weapon position",
+            "blockedFor": 0,
+            "networkBound": true,
+            "routeTrenches": [
+              381
+            ],
+            "facilityId": 380,
+            "watchPost": {
+              "x": -525.6390531237068,
+              "z": -244.15280612342613
+            },
+            "arrivedAt": 156.65000000000137
+          },
+          "carried": {
+            "food": 2,
+            "water": 3,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 60,
+            "medical": 1,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 1
+          },
+          "energy": 89.47133333331477
+        },
+        {
+          "id": 276,
+          "action": "watching",
+          "duty": {
+            "kind": "watch",
+            "destination": {
+              "x": -525.6390531237068,
+              "z": -240.45280612342614
+            },
+            "route": [
+              {
+                "x": -522.0340847450129,
+                "z": -239.94021385048578
+              },
+              {
+                "x": -524.3954989806276,
+                "z": -241.9292056226042
+              },
+              {
+                "x": -525.6390531237068,
+                "z": -240.45280612342614
+              }
+            ],
+            "routeIndex": 3,
+            "since": 169.45000000000428,
+            "until": 321.9500000000048,
+            "reason": "Assigned weapon crew",
+            "blockedFor": 0,
+            "networkBound": true,
+            "routeTrenches": [
+              381
+            ],
+            "facilityId": 380,
+            "watchPost": {
+              "x": -525.6390531237068,
+              "z": -240.45280612342614
+            },
+            "arrivedAt": 171.95000000000485
+          },
+          "carried": {
+            "food": 2,
+            "water": 2,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 60,
+            "medical": 1,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 1
+          },
+          "energy": 95.56533333332791
+        }
+      ],
+      "readiness": "",
+      "forward": {
+        "food": 36,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 90,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "cache": {
+        "food": 64,
+        "water": 100,
+        "materials": 48,
+        "fuel": 0,
+        "ammo": 200,
+        "medical": 16,
+        "mortarHE": 8,
+        "mortarSmoke": 2,
+        "smokeGrenades": 8
+      },
+      "trucks": [
+        {
+          "id": 367,
+          "state": "idle",
+          "reason": "At depot",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 368,
+          "state": "returning",
+          "reason": "Returning to depot",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 369,
+          "state": "idle",
+          "reason": "Awaiting assignment",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        },
+        {
+          "id": 370,
+          "state": "idle",
+          "reason": "Awaiting assignment",
+          "cargo": {
+            "food": 0,
+            "water": 0,
+            "materials": 0,
+            "fuel": 0,
+            "ammo": 0,
+            "medical": 0,
+            "mortarHE": 0,
+            "mortarSmoke": 0,
+            "smokeGrenades": 0
+          }
+        }
+      ],
+      "balance": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 4.575895218295045e-12,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    }
+  ]
+}

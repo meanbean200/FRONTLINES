@@ -100,9 +100,11 @@ export class UnitRenderer {
       this.displayed.set(soldier.id,position);
       rotation.setFromAxisAngle(new THREE.Vector3(0,1,0),soldier.heading);
       const lying=postureOf(soldier)==='prone';
+      const sleeping=soldier.action==='sleeping'&&soldier.needs?.life==='active',dead=soldier.needs?.life==='dead';
       const seated=postureOf(soldier)==='crouched'||['eating','resting','treating','treating at aid post'].includes(soldier.action);
       scale.setScalar(1);p.copy(position);if(seated&&!lying)p.y-=.43;
       if(lying){rotation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2));p.x-=Math.sin(soldier.heading)*.9;p.z-=Math.cos(soldier.heading)*.9;p.y+=.38;}
+      if(sleeping)rotation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),1.15));
       if(soldier.action==='being carried')p.y+=1;
       matrix.compose(p,rotation,scale);bodyMatrix.copy(matrix);
       const german=germanIds.has(soldier.squadId);
@@ -145,6 +147,8 @@ export class UnitRenderer {
         if(mount&&!moving&&!lying){elbow=[side*.27,1.24,.15];hand=[side*.10,1.44,.42];}
         else if(aiming||firing){elbow=side>0?[.32,1.22,-.02]:[-.20,1.18,.25];const grip=new THREE.Vector3(0,-.04,side>0?-.1:.22).applyQuaternion(weaponRotation).add(weaponPosition).applyMatrix4(bodyMatrix.clone().invert());hand=[grip.x,grip.y,grip.z];}
         if(lying&&!aiming&&!firing){elbow=[side*.30,1.12,.03];hand=[side*.14,1.45,.05];}
+        if(sleeping){elbow=[side*.18,1.15,.17];hand=[side*.07,1.5,.19];}
+        if(dead){elbow=[side*.40,1.02,.03];hand=[side*.52,.83,side*.12];}
         if(digging){const reach=Math.sin(this.state.elapsed*4+i)*.17;elbow=[side*.23,1.10,.18];hand=[side*.08,1.0+reach,.46];}
         if(care||soldier.action==='eating'){elbow=[side*.22,1.02,.22];hand=[side*.12,care?.89:1.40,.37];}
         const points=[[side*.23,1.33,0],elbow,hand];

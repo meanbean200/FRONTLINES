@@ -7,6 +7,7 @@ import {configuredDefinition,type ResolvedBattleSetup} from './BattleSetup';
 import {placeOperation} from './OperationPlacement';
 import {atDepth,frontDepth} from './OperationGeometry';
 import type {OperationId,OperationRuntime} from './OperationalTypes';
+import {forceSize} from './OperationDefinitions';
 
 export const MISSION_COPY={
   breakthrough:{title:'Signal at the Orchard',situation:'A trench and its overlooking farmhouse block the supply road. Reconnoitre the earthworks, stage a supporting group and several assault formations, then release a coordinated WAIT / GO attack. Secure the trench and farmhouse together.',intent:'Reconnoitre · coordinate the assault · secure the position'},
@@ -72,7 +73,11 @@ export function placeMissionOperation(id:OperationId,seed:number,setup?:Resolved
   // trench, leaving the chosen fighting line and support works to the player.
   const side=id==='breakthrough'?'enemy':id==='line-defense'?'player':undefined;
   if(side){
-    const wanted=side==='enemy'?-140:-115,length=side==='enemy'?140:90,count=setup?.size==='large'?2:1;
+    const count=setup?.size==='large'?2:1;
+    // Whole formations alternate sectors. Extra equipment personnel still need
+    // physical capacity; keep the historical default footprint when it fits.
+    const perSector=Math.ceil(Math.ceil(forceSize(configuredDefinition(id,setup).forces[side])/8)/count)*8;
+    const wanted=side==='enemy'?-140:-115,length=side==='enemy'?Math.max(140,perSector*2.5+20):90;
     for(let sector=0;sector<count;sector++){
     let path:Vec2[]|undefined;
     for(let i=0;i<320&&!path;i++){

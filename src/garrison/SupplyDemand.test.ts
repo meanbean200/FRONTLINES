@@ -20,6 +20,22 @@ function jobs(){
   expect(a).toBeDefined();expect(b).toBeDefined();return {sim,state,w,g,a:w.facilities.find(f=>f.id===a)!,b:w.facilities.find(f=>f.id===b)!};
 }
 describe('explicit supply demand and reservation accounting',()=>{
+  it('gives an empty crewed gun shells before a supplied gun reserves deeper stock',()=>{
+    const {state,w,g,a,b}=jobs();
+    for(const f of [a,b]){f.kind='mortar';f.progress=1;f.paid=true;f.weaponCrewIds=state.soldiers.filter(s=>s.garrisonId===g.id).slice(f===a?0:2,f===a?2:4).map(s=>s.id);}
+    a.stock.mortarHE=4;g.cache.mortarHE=4;for(const s of state.soldiers)s.carried!.mortarHE=0;
+    reconcileSupplyDemands(state);
+    const first=w.supplyDemands!.find(d=>d.consumerId===a.id&&d.resource==='mortarHE')!,empty=w.supplyDemands!.find(d=>d.consumerId===b.id&&d.resource==='mortarHE')!;
+    expect(empty.priority).toBeLessThan(first.priority);
+    expect(empty.claims.find(c=>c.source==='local')?.amount).toBeGreaterThanOrEqual(2);
+  });
+  it('reports the actual route length and stops promising an ETA for blocked traffic',()=>{
+    const {state,w,g}=jobs(),truck=w.trucks.find(t=>t.role==='shuttle')!;
+    Object.assign(truck,{x:0,z:0,state:'outbound',garrisonId:g.id,route:[{x:120,z:0},{x:120,z:120}],routeIndex:0,reason:'En route'});
+    expect(shipmentReadout(state,truck)).toMatchObject({source:'Rear depot',remaining:240,eta:'~0:20 at 1× · unobstructed travel'});
+    truck.state='blocked';truck.reason='Road severed';expect(shipmentReadout(state,truck).eta).toBe('Not predictable while stopped');
+    truck.state='returning';truck.resume=undefined;truck.reason='Returning to depot';expect(shipmentReadout(state,truck).destination).toBe('Rear depot');
+  });
   it('commits 16 plus 4 of the same 20 real materials, and demands the field gun remainder',()=>{
     const {state,g,a,b}=jobs(),before=balance(state);reconcileSupplyDemands(state);
     expect(g.cache.materials).toBe(20);expect(claimed(constructionDemand(state,a.id)!)).toBe(16);expect(claimed(constructionDemand(state,b.id)!)).toBe(4);expect(unfulfilled(constructionDemand(state,b.id)!)).toBe(b.materialCost-4);

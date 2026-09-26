@@ -5,13 +5,12 @@ import { blocksGameplayKey } from '../input/GameplayKeys';
 import { relocationProgress, withdrawalProgress } from './GarrisonReadout';
 import {fieldIcon} from './FieldSymbols';
 import {selectionReadout,roleName} from './FieldReadout';
-import {SUPPORT_NAMES,selectedSupportTeam,supportReadiness,supportMissionText,type SupportKind} from '../combat/SupportWeapons';
+import {SUPPORT_NAMES,selectedSupportTeam,supportReadiness,type SupportKind} from '../combat/SupportWeapons';
 import {actionableWeaponReason} from './WeaponReadout';
 import {squadHasEquipment} from '../combat/Equipment';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {initialReserveCapacity} from '../operations/Replacements';
-import {positionReadiness} from '../combat/WeaponPositions';
-import {facilityName} from '../construction/PositionDefinitions';
+import {FireSupportPanel} from './FireSupportPanel';
 
 export interface PerfSnapshot {fps:number;frameMs:number;simulationMs:number;drawCalls:number;chunks:number;p95Ms?:number}
 interface UIActions {
@@ -22,6 +21,8 @@ interface UIActions {
   resumePreview?:()=>string;
   tactical?:(mode:'observe'|'suppress'|'assault'|'fall-back')=>void;pushThrough?:()=>void;
   support?:(kind:'mortarHE'|'mortarSmoke'|'smokeGrenades')=>void;
+  fireGroup?:(ids:number[],kind:'mortarHE'|'mortarSmoke')=>void;
+  staffWeapons?:(ids:number[])=>void;
   crewWeapon?:(squadId:number,facilityId:number)=>void;
   buildWeapons?:()=>void;
   focusPosition?:(id:number)=>void;
@@ -38,6 +39,7 @@ export class BattlefieldUI {
   private toastTimer=0;
   private supportKey='';
   private selectionKey='';
+  private readonly fireSupport:FireSupportPanel;
   constructor(private state:BattlefieldState,private readonly selected:Set<number>,private readonly flags:DebugFlags,private readonly actions:UIActions,private readonly terrain:TerrainSystem){
     this.root.innerHTML=this.template();this.bind();
     const dock=this.root.querySelector('.command-dock > div')!;
@@ -60,14 +62,18 @@ export class BattlefieldUI {
     for(const [kind,label] of [['smokeGrenades','Throw smoke']] as const){const b=document.createElement('button');b.dataset.support=kind;b.textContent=label;b.addEventListener('click',()=>{if(!document.documentElement.dataset.replay&&!document.documentElement.dataset.help){this.actions.support?.(kind);support.open=false;}});support.querySelector('div')!.append(b);}
     const reviews=document.createElement('div');reviews.className='rescue-reviews';support.insertBefore(reviews,support.querySelector('div'));
     const missions=document.createElement('div');missions.className='support-status';support.append(missions);
-    const guide=document.createElement('p');guide.className='support-guide';guide.textContent='Select a weapon position to manage its crew, ammunition and fire orders.';support.insertBefore(guide,missions);
+    const other=document.createElement('details');other.className='support-other';other.innerHTML='<summary>Casualties, reserves & hand smoke</summary>';other.append(reviews,support.querySelector('[data-support="smokeGrenades"]')!);support.append(other);
+    this.fireSupport=new FireSupportPanel(missions,this.terrain,{target:(ids,kind)=>{support.open=false;this.actions.fireGroup?.(ids,kind);},staff:ids=>this.actions.staffWeapons?.(ids),inspect:id=>{support.open=false;this.actions.focusPosition?.(id);},build:()=>{support.open=false;this.actions.buildWeapons?.();}});
+    const fireButton=document.createElement('button');fireButton.id='open-fire-support';fireButton.innerHTML=fieldIcon('mortar')+'Fire support';this.root.querySelector('.hud-tools>summary')!.after(fireButton);
+    fireButton.onclick=()=>{const open=!support.open;window.dispatchEvent(new Event('frontlines-menu'));support.open=open;};
+    const guide=document.createElement('p');guide.className='support-guide';guide.textContent='Select individual guns, a battery, or all ready weapons. Issue one target below.';support.insertBefore(guide,missions);
     const supportButton=document.createElement('button');supportButton.id='support-command';supportButton.innerHTML=fieldIcon('mortar')+'Support';dock.append(supportButton);supportButton.onclick=()=>{support.open=!support.open;};
     const defend=this.root.querySelector<HTMLButtonElement>('#occupy-command')!;
     optional.prepend(defend);
     defend.innerHTML=fieldIcon('defend')+'Defend';
     defend.title='Draw a frontage near completed trenches, then choose facing in the area inspector. Click a trench label for quick assignment.';
   }
-  replaceState(state:BattlefieldState):void{this.state=state;this.rosterSize=-1;this.selectionKey='';this.supportKey='';}
+  replaceState(state:BattlefieldState):void{this.state=state;this.rosterSize=-1;this.selectionKey='';this.supportKey='';this.fireSupport.reset();}
   setQuality(level:string):void{this.root.querySelector<HTMLSelectElement>('#quality')!.value=level;}
   render(now:number,perf:PerfSnapshot,mode:InteractionMode):void{
     if(now-this.lastRender<100)return;this.lastRender=now;
@@ -102,6 +108,7 @@ export class BattlefieldUI {
     for(const b of this.root.querySelectorAll<HTMLButtonElement>('.command-dock button,[data-tactical],[data-support]'))b.setAttribute('aria-pressed',String(b.classList.contains('active')));
     const support=this.root.querySelector<HTMLDetailsElement>('.support-controls')!;support.hidden=!this.state.operation?.supportRules;
     this.root.querySelector<HTMLButtonElement>('#support-command')!.disabled=locked||!this.state.operation?.supportRules;
+    this.root.querySelector<HTMLButtonElement>('#open-fire-support')!.disabled=locked||!this.state.operation?.supportRules;
     for(const b of support.querySelectorAll<HTMLButtonElement>('[data-support]')){
       const kind=b.dataset.support as SupportKind,id=selectedSupportTeam(this.state,this.selected,kind,this.terrain),ready=id===undefined?undefined:supportReadiness(this.state,kind,id,this.terrain);
       b.disabled=locked||!ready||Boolean(ready.reason);b.textContent=SUPPORT_NAMES[kind]+(ready?` · ${ready.ammo}`:'');
@@ -111,17 +118,12 @@ export class BattlefieldUI {
     const mortar=selectedSupportTeam(this.state,this.selected,'mortarHE',this.terrain);
     const readiness='Click a weapon position to inspect its crew and ammunition.';
     const supportKey=JSON.stringify([locked,[...this.selected],mortar,readiness,this.state.operation?.supportMissions?.map(m=>[m.id,m.reason]),this.state.operation?.rescueDecisions,replacements?.reserve.player,replacements?.manifests.length,replacements?.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length,Math.floor(this.state.elapsed)]);
-    if(support.open&&supportKey!==this.supportKey){this.supportKey=supportKey;const status=support.querySelector('.support-status')!,reviews=support.querySelector('.rescue-reviews')!;status.replaceChildren();reviews.replaceChildren();
-      const build=document.createElement('button');build.textContent='Build weapon positions →';build.disabled=locked;build.onclick=()=>{support.open=false;this.actions.buildWeapons?.();};status.append(build);
-      for(const f of this.state.living!.facilities.filter(f=>['emplacement','mortar'].includes(f.kind)&&this.state.living!.garrisons.some(g=>g.id===f.garrisonId&&g.faction!=='enemy'))){
-        const b=document.createElement('button');b.dataset.supportPosition=String(f.id);b.textContent=facilityName(this.state,f)+' · '+(positionReadiness(this.state,f)||'READY');b.onclick=()=>{support.open=false;this.actions.focusPosition?.(f.id);};status.append(b);
-      }
-      if(readiness){const p=document.createElement('p');p.textContent=readiness;status.append(p);}
-      for(const mission of this.state.operation?.supportMissions?.filter(m=>this.state.squads.some(q=>q.id===m.squadId&&factionOf(q)==='player')).slice(-3)??[]){const p=document.createElement('p'),f=this.state.living!.facilities.find(f=>f.id===mission.positionId);p.textContent=`${f?facilityName(this.state,f):this.state.squads.find(q=>q.id===mission.squadId)?.name} · ${SUPPORT_NAMES[mission.kind]}: ${supportMissionText(mission,this.state.elapsed)}`;status.append(p);}
-      for(const decision of this.state.operation?.rescueDecisions?.filter(d=>d.side==='player'&&d.choice!=='approved')??[]){const row=document.createElement('div'),p=document.createElement('p'),patient=this.state.soldiers.find(s=>s.id===decision.patientId),unit=this.state.squads.find(q=>q.id===patient?.squadId)?.name;p.textContent=`${unit?unit+' · ':''}Soldier ${decision.patientId}${decision.choice==='hold'?' · On hold':''}: ${decision.reason}`;row.append(p);for(const [choice,label] of [['approved',decision.reason.includes('exposed to reported enemy fire')?'Accept rescue risk':'Retry rescue'],['hold','Leave for now']] as const){const b=document.createElement('button');b.textContent=label;b.disabled=locked||choice===decision.choice;b.onclick=()=>{if(locked)return;decision.choice=choice;decision.reviewAt=this.state.elapsed+30;};row.append(b);}reviews.append(row);}
-      if(replacements){const p=document.createElement('p');p.textContent=`Reserve ${replacements.reserve.player}/${initialReserveCapacity(this.state)} · ${replacements.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length} in transit. Request squads in Reinforcements. Automatic loss-replacement check in ${Math.max(0,replacements.nextAt.player-hours).toFixed(1)} campaign hours.`;status.append(p);}
+    if(support.open)this.fireSupport.render(this.state,locked);
+    if(support.open&&supportKey!==this.supportKey){this.supportKey=supportKey;const reviews=support.querySelector('.rescue-reviews')!;reviews.replaceChildren();
+      for(const decision of this.state.operation?.rescueDecisions?.filter(d=>d.side==='player'&&d.choice!=='approved')??[]){const row=document.createElement('div'),p=document.createElement('p'),patient=this.state.soldiers.find(s=>s.id===decision.patientId),unit=this.state.squads.find(q=>q.id===patient?.squadId)?.name;p.textContent=`${unit?unit+' · ':''}Soldier ${decision.patientId}: ${decision.reason} · ${decision.choice==='hold'?'Your hold remains in force':'Care team will reassess automatically'}`;row.append(p);const b=document.createElement('button');b.textContent=decision.choice==='hold'?'Resume automatic care':'Reassess now';b.disabled=locked;b.onclick=()=>{if(locked)return;decision.choice='pending';decision.reviewAt=0;};row.append(b);reviews.append(row);}
+      if(replacements){const p=document.createElement('p');p.textContent=`Reserve ${replacements.reserve.player}/${initialReserveCapacity(this.state)} · ${replacements.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length} in transit. Request squads in Reinforcements. Automatic loss-replacement check in ${Math.max(0,replacements.nextAt.player-hours).toFixed(1)} campaign hours.`;reviews.append(p);}
     }
-    support.querySelector('summary')!.textContent=this.state.operation?.rescueDecisions?.some(d=>d.side==='player'&&d.choice==='pending')?'Rescue decision needed':'Support & rescue';
+    support.querySelector('summary')!.textContent='Fire support';
     for(const id of ['trench-command','crater-command','stress-command'])this.root.querySelector<HTMLButtonElement>('#'+id)!.disabled=locked;
     this.root.querySelector('#trench-command')!.classList.toggle('active',mode==='trench');
     this.root.querySelector('#move-command')!.classList.toggle('active',mode==='move');
@@ -217,8 +219,6 @@ export class BattlefieldUI {
   }
   private renderAlerts():void {
     const alerts:{key:string;text:string;action:()=>void}[]=[];
-    const rescue=this.state.operation?.rescueDecisions?.find(d=>d.side==='player'&&d.choice==='pending');
-    if(rescue)alerts.push({key:'rescue',text:'Casualty rescue needs your decision',action:()=>{this.root.querySelector<HTMLDetailsElement>('.support-controls')!.open=true;}});
     const network=this.state.living?.garrisons.find(g=>g.faction!=='enemy'&&(g.cutoff==='decision'||(g.underFireUntil??0)>this.state.elapsed));
     if(network)alerts.push({key:'garrison',text:network.cutoff==='decision'?'Supply emergency · decision needed':'Defense under fire',action:()=>{if(network.cutoff==='decision')this.root.querySelector<HTMLDetailsElement>('.garrison-panel')!.open=true;else this.actions.manageNetwork?.(network.trenchId);}});
     for(const q of this.state.squads.filter(q=>factionOf(q)==='player')){
@@ -248,8 +248,8 @@ export class BattlefieldUI {
     <h3>Engineer works</h3><p>B draws a trench. Crews start near its middle or an existing junction, then dig outward. Draw connected branches to split the team; separate jobs stay queued. H or movement pauses all fronts; R resumes unfinished work within 80 m on this network; it does not override weapon crews, building orders or ordered rest. Hover Resume works to see the proposed job. Choose a distant worksite explicitly in Positions. Click a trench → Construction to order support works. Tool carriers build only the works you order, using physically delivered materials.</p>
     <h3>Defend Area [T]</h3><p>Select squads, then draw a frontage with T near completed trenches. Click a trench label for quick assignment. They enter by the nearest reachable point, then rotate guarding, rest, meals and carrying supplies. Nearby shots raise a combat alarm and wake fit troops. Hold [H], Observe and Suppress keep this assignment and any weapon crew. Move, Withdraw, entering a building or starting new excavation leaves the area. Resting or delivering supplies does not unassign anyone.</p>
     <p>Click a trench or position to set readiness and facing, inspect personnel, manage work orders, and locate supplies. Food and water are finite. Trucks use the southern road; foot carriers finish deliveries. Supply emergencies pause for your decision. A campaign day lasts 30 minutes at 1×. Unassigned troops have no automatic supply organization.</p>
-    <h3>Operations and rifle combat</h3><p>Use Menu to choose Quick Battle, Operations, an open-ended front, or peaceful sandbox. Eight-person rifle squads are understrength scenario forces, not exact wartime establishment tables. Each operation has its own primary objective. Open Mission details or the operational map for its intent. Pause or open the menu whenever you need thinking time.</p><p>The terrain map is known, but enemies must be spotted. Night, woods, facing, exhaustion and suppression limit sight. Once recognized, exposed troops can stay tracked through brief visibility dips for up to six simulation seconds, provided the observer still has a clear view. Walls, banks, dense foliage and smoke can break that view. Small red diamonds group nearby enemy sightings; a hollow dashed diamond marks a last-known area for up to 18 seconds, never hidden movement. Hover for status. Each rifleman still needs their own clear view, time to aim and ammunition. Solid hits are lethal; misses visibly scatter. Trenches reduce exposure, not damage from a direct hit. Pinned people cannot advance until they recover; Push through cannot override physical pinning. Stop within 12 metres of an owned flag to draw finite supplies. Rifles, automatic weapons and crew guns consume ammunition and need time to reload and set up. Use Support & rescue for smoke, mortar missions and risky rescues. Click a building with a Move order to enter through its doors; choose floors in the squad inspector. Wounds require medical supplies and serious casualties need an aid post and evacuation.</p>
-    <h3>Casualty triage</h3><p>Not every casualty can be saved. Helpers prioritize critical wounds they can reach and treat in time, while most riflemen keep their duties. First aid can stabilize someone locally even when evacuation is impossible. Automatic carrying is limited to a reachable aid post within 120 metres of walking, then a truck pickup within 60 metres. Carriers return to duty at the pickup; the casualty boards only when a real truck arrives. Exposed or blocked rescues need review in Support & rescue. Leave for now stays in force until you choose Retry rescue or Accept rescue risk; it does not stop bleeding.</p>
+    <h3>Operations and rifle combat</h3><p>Use Menu to choose Quick Battle, Operations, an open-ended front, or peaceful sandbox. Eight-person rifle squads are understrength scenario forces, not exact wartime establishment tables. Each operation has its own primary objective. Open Mission details or the operational map for its intent. Pause or open the menu whenever you need thinking time.</p><p>The terrain map is known, but enemies must be spotted. Night, woods, facing, exhaustion and suppression limit sight. Once recognized, exposed troops can stay tracked through brief visibility dips for up to six simulation seconds, provided the observer still has a clear view. Walls, banks, dense foliage and smoke can break that view. Small red diamonds group nearby enemy sightings; a hollow dashed diamond marks a last-known area for up to 18 seconds, never hidden movement. Hover for status. Each rifleman still needs their own clear view, time to aim and ammunition. Solid hits are lethal; misses visibly scatter. Trenches reduce exposure, not damage from a direct hit. Pinned people cannot advance until they recover; Push through cannot override physical pinning. Stop within 12 metres of an owned flag to draw finite supplies. Rifles, automatic weapons and crew guns consume ammunition and need time to reload and set up. Use Fire support to select guns or a battery and give them one ground target. Nearby equipped personnel provide casualty care automatically when safe; blocked rescue attempts are shown in Casualties, reserves & hand smoke. Click a building with a Move order to enter through its doors; choose floors in the squad inspector. Wounds require medical supplies and serious casualties need an aid post and evacuation.</p>
+    <h3>Casualty triage</h3><p>Helpers automatically prioritize critical wounds they can reach and treat in time, while most riflemen keep their duties. First aid can stabilize someone locally even when evacuation is impossible. Carrying is limited to a reachable aid post within 120 metres of walking, then a truck pickup within 60 metres. Carriers return to duty at pickup; the casualty boards only when a real truck arrives. Unsafe or blocked rescues are reassessed every 30 simulation seconds, with a passive reason in Fire support. Reassess now requests another safety check, not a suicidal rescue. An explicit Hold retained from an older save stays in force until Resume automatic care. Not everyone can be saved.</p>
 
     <p class="muted">Version-3 saves preserve the operation, needs, inventories, travel, work orders, weapon positions and shipments. Legacy saves are preserved during migration. Starting a fresh operation never overwrites your saved campaign.</p></section>
     <div class="toast" id="toast"></div>

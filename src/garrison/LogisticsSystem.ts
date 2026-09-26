@@ -138,11 +138,12 @@ export class LogisticsSystem {
           if(t.state!=='blocked')t.resume=t.state as 'outbound'|'returning';
           t.state='blocked';t.reason=t.fuel<=0?'Out of fuel; cargo retained':'Road severed or obstructed; cargo retained';continue;
         }
-        if(t.state==='blocked')t.state=t.resume??'outbound';
+        if(t.state==='blocked'){t.state=t.resume??'outbound';delete t.resume;}
         // Queue behind a truck on the same lane; opposing traffic uses the other lane visually.
         const dx=target.x-t.x,dz=target.z-t.z;
         const queued=w.trucks.some(o=>{const aim=o.route[o.routeIndex];return o!==t&&aim&&distance(t,o)<7&&(aim.x-o.x)*dx+(aim.z-o.z)*dz>0&&(o.x-t.x)*dx+(o.z-t.z)*dz>0;});
         if(queued){t.reason='Road queue';continue;}
+        if(['Road queue','Out of fuel; cargo retained','Road severed or obstructed; cargo retained'].includes(t.reason))t.reason=t.state==='returning'?'Returning to depot':'En route';
         const d=distance(t,target),step=Math.min(d,dt*12),fuel=Math.min(t.fuel,step*.0006);
         t.fuel-=fuel;w.ledger.consumed.fuel+=fuel;
         if(d>0){t.x+=(target.x-t.x)*step/d;t.z+=(target.z-t.z)*step/d;}

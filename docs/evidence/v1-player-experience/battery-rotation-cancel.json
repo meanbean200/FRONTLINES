@@ -1,0 +1,34 @@
+{
+  "rotations": [
+    {
+      "name": "north",
+      "text": "FOUR-GUN BATTERY / 128 MATERIALS · FACING 185°\nPoint firing direction · click to confirm facing.\n0 in trench stores · Esc / right-click cancels"
+    },
+    {
+      "name": "east",
+      "text": "FOUR-GUN BATTERY / 128 MATERIALS · FACING 90°\nPlace the field gun 4–40 m from excavated trench.\n0 in trench stores · Esc / right-click cancels"
+    },
+    {
+      "name": "south",
+      "text": "FOUR-GUN BATTERY / 128 MATERIALS · FACING 0°\nPoint firing direction · click to confirm facing.\n0 in trench stores · Esc / right-click cancels"
+    },
+    {
+      "name": "west",
+      "text": "FOUR-GUN BATTERY / 128 MATERIALS · FACING 270°\nPlace the field gun 4–40 m from excavated trench.\n0 in trench stores · Esc / right-click cancels"
+    },
+    {
+      "name": "diagonal",
+      "text": "FOUR-GUN BATTERY / 128 MATERIALS · FACING 48°\nPlace the field gun 4–40 m from excavated trench.\n0 in trench stores · Esc / right-click cancels"
+    }
+  ],
+  "before": {
+    "facilities": 11,
+    "trenches": 16
+  },
+  "after": {
+    "facilities": 11,
+    "trenches": 16
+  },
+  "mode": "select",
+  "previewVisible": false
+}

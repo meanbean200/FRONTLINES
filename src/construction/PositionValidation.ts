@@ -12,7 +12,7 @@ export function validPositionState(state:BattlefieldState):boolean {
     const installed=f.installation;
     if(f.artillery){const b=f.artillery;
       if(state.living!.facilities.filter(p=>p.artillery?.batteryId===b.batteryId).length!==b.size)return false;
-      if(f.kind!=='mortar'||!f.includesWeapon||![1,4].includes(b.size)||!Number.isInteger(b.index)||b.index<0||b.index>=b.size||!Number.isInteger(b.batteryId)||b.batteryId<1||!state.living!.facilities.some(p=>p.id===b.batteryId&&p.artillery?.batteryId===b.batteryId&&p.artillery.index===0)||state.living!.facilities.some(p=>p!==f&&p.artillery?.batteryId===b.batteryId&&(p.artillery.index===b.index||p.artillery.size!==b.size||p.garrisonId!==f.garrisonId)))return false;
+      if(f.kind!=='mortar'||!f.includesWeapon||![1,2,3,4].includes(b.size)||!Number.isInteger(b.index)||b.index<0||b.index>=b.size||!Number.isInteger(b.batteryId)||b.batteryId<1||!state.living!.facilities.some(p=>p.id===b.batteryId&&p.artillery?.batteryId===b.batteryId&&p.artillery.index===0)||state.living!.facilities.some(p=>p!==f&&p.artillery?.batteryId===b.batteryId&&(p.artillery.index===b.index||p.artillery.size!==b.size||p.garrisonId!==f.garrisonId)))return false;
     }
     if(installed){
       if(!f.paid||f.progress!==1||!['construction','legacy-kit'].includes(installed.source)||!['emplacement','mortar'].includes(f.kind)||!(f.kind==='mortar'?installed.kind===(f.artillery?'field-gun':'mortar'):['crew-mg','mg42'].includes(installed.kind)))return false;

@@ -1,0 +1,21 @@
+{
+  "folder": "C:\\Users\\Will\\OneDrive\\Documents\\ChatGPT\\FRONTLINES\\output\\playwright\\player-experience-chromium-1790390211018",
+  "errors": [],
+  "browser": "153.0.8010.12",
+  "checks": {
+    "nightApplied": true,
+    "nativeSupportSelect": true,
+    "map": true,
+    "simulationAdvances": true
+  },
+  "viewport": {
+    "width": 1280,
+    "height": 720,
+    "dpr": 1.25,
+    "canvas": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "passed": true
+}

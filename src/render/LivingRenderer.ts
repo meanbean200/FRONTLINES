@@ -9,6 +9,8 @@ import {mortarGeometry} from './WeaponPositionVisual';
 import {weaponCrewPoint} from '../construction/PositionDefinitions';
 import {mountedGeometry} from '../combat/MountedGeometry';
 import {fieldGunGeometry} from './FieldGunVisual';
+import {gunRecoil,latestGunDischarge} from './SupportAnimation';
+import {playerCanSeeObject} from '../operations/ObjectSight';
 export class LivingRenderer {
   readonly group=new THREE.Group();
   private readonly boxes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({roughness:1}),8192);
@@ -30,7 +32,7 @@ export class LivingRenderer {
     const hidden=(s:BattlefieldState['soldiers'][number])=>Boolean(state.operation&&enemies.has(s.squadId)&&!visible.has(s.id));
     const seen=(p:Vec2)=>playerCanSeePoint(state,this.terrain,p);
     const garrisons=w.garrisons.filter(g=>g.faction!=='enemy'||seen(g.entrance));
-    const trucks=w.trucks.filter(t=>t.faction!=='enemy'||seen(t));
+    const trucks=w.trucks.filter(t=>t.faction!=='enemy'||playerCanSeeObject(state,this.terrain,t,'truck'));
     const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),color=new THREE.Color(),position=new THREE.Vector3(),scale=new THREE.Vector3();let count=0;
     const box=(x:number,y:number,z:number,sx:number,sy:number,sz:number,tint:number,angle=0,pitch=0)=>{if(count>=8192)return;position.set(x,y,z);scale.set(sx,sy,sz);q.setFromEuler(new THREE.Euler(pitch,angle,0,'YXZ'));matrix.compose(position,q,scale);this.boxes.setMatrixAt(count,matrix);this.boxes.setColorAt(count++,color.setHex(tint));};
     let vehicleCount=0,wheelCount=0;const axis=new THREE.Vector3(0,1,0),wheelAxis=new THREE.Vector3(1,0,0),wheelRotation=new THREE.Quaternion();
@@ -48,7 +50,7 @@ export class LivingRenderer {
     for(const {point:p,stock} of piles){const crates=Math.min(12,Math.ceil((stock.food+stock.water+stock.materials)/20));for(let i=0;i<crates;i++){const x=p.x+2+(i%4)*1.15,z=p.z+Math.floor(i/4)*1.1;box(x,this.terrain.heightAt(x,z)+.35,z,.9,.65,.8,i%2?0x80734c:0x686e49);}}
     let mortarCount=0,gunCount=0;
     for(const f of w.facilities){
-      if(w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!seen(f))continue;
+      if(w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!playerCanSeeObject(state,this.terrain,f,f.artillery&&f.progress===1?'field-gun':'position'))continue;
       const h=this.terrain.heightAt(f.x,f.z);
       const detail=!view||Math.hypot(f.x-view.x,f.z-view.z,view.zoom*.6)<230;
       for(const p of supportAppearance(f,state.trenches.find(t=>t.id===f.connectorId),(x,z)=>this.terrain.heightAt(x,z),detail))box(p.x,p.y,p.z,p.sx,p.sy,p.sz,p.color,p.angle,p.pitch??0);
@@ -61,7 +63,7 @@ export class LivingRenderer {
           const x=at.x+Math.sin(angle)*.55,z=at.z+Math.cos(angle)*.55;
           if(f.artillery){
             const mission=state.operation?.supportMissions?.find(m=>m.positionId===f.id&&['preparing','flight'].includes(m.stage)),aim=mission?Math.atan2(mission.target.x-f.x,mission.target.z-f.z):f.facing??0;
-            if(gunCount<256){q.setFromAxisAngle(axis,f.facing??0);matrix.compose(position.set(f.x,h,f.z),q,scale.setScalar(1));this.fieldGuns.setMatrixAt(gunCount,matrix);q.setFromAxisAngle(axis,aim);matrix.compose(position,q,scale);this.fieldTubes.setMatrixAt(gunCount++,matrix);}
+            if(gunCount<256){q.setFromAxisAngle(axis,f.facing??0);matrix.compose(position.set(f.x,h,f.z),q,scale.setScalar(1));this.fieldGuns.setMatrixAt(gunCount,matrix);q.setFromAxisAngle(axis,aim);const shot=latestGunDischarge(state,f.id),recoil=shot?gunRecoil(state.elapsed-shot.launchAt):0;position.x-=Math.sin(aim)*recoil;position.z-=Math.cos(aim)*recoil;matrix.compose(position,q,scale);this.fieldTubes.setMatrixAt(gunCount++,matrix);}
             if(f.stock.mortarHE>0)box(f.x+2,h+.24,f.z-.8,.65,.45,1.4,0x756b4b,f.facing??0);
           }else if(f.kind==='mortar'){
             if(mortarCount<128){q.setFromAxisAngle(axis,angle);matrix.compose(position.set(x,this.terrain.heightAt(x,z)+.02,z),q,scale.setScalar(1));this.mortars.setMatrixAt(mortarCount++,matrix);}

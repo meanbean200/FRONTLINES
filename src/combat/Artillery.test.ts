@@ -14,6 +14,20 @@ import {TerrainSystem} from '../terrain/TerrainSystem';
 import {distance} from '../core/types';
 
 describe('independently owned field artillery',()=>{
+  it.each([0,Math.PI/2,Math.PI,Math.PI*1.5,Math.PI/4])('rotates the complete four-gun footprint with spacing intact (%s)',facing=>{
+    const sim=createStudyScenario(),g=sim.state.living!.garrisons[0],center={x:0,z:0},layout=artilleryLayout(center,facing,sim.garrisons.network,sim.garrisons.network.component(g.trenchId),4);
+    expect(layout.reduce((n,p)=>n+p.position.x,0)/4).toBeCloseTo(center.x);expect(layout.reduce((n,p)=>n+p.position.z,0)/4).toBeCloseTo(center.z);
+    for(let i=1;i<4;i++)expect(distance(layout[i-1].position,layout[i].position)).toBeCloseTo(12);
+    for(const p of layout)expect((p.position.x-center.x)*Math.sin(facing)+(p.position.z-center.z)*Math.cos(facing)).toBeCloseTo(0);
+  });
+  it('cancels a battery blueprint member without corrupting surviving gun identity on save',()=>{
+    const sim=createStudyScenario(),s=sim.state,g=s.living!.garrisons[0],t=s.trenches[0],center={x:t.points[0].x+65,z:t.points[0].z-14};
+    const layout=artilleryLayout(center,0,sim.garrisons.network,sim.garrisons.network.component(g.trenchId),4);
+    const id=sim.requestConstruction({kind:'facility',facilityKind:'mortar',garrisonId:g.id,position:center,origin:layout[0].origin!,guns:4,facing:0})!;
+    const before=balance(s);expect(sim.garrisons.cancelWork(id).accepted).toBe(true);
+    const left=s.living!.facilities.filter(f=>f.artillery);expect(left).toHaveLength(3);expect(left.every(f=>f.artillery!.size===3&&f.artillery!.batteryId===left[0].id)).toBe(true);
+    expect(new SaveSystem().parse(JSON.stringify(s))).toEqual(s);expect(balance(s)).toEqual(before);
+  });
   it('places four physical work orders transactionally, with delivered cost and persistent group identity',()=>{
     const sim=createStudyScenario(),s=sim.state,g=s.living!.garrisons[0],root=s.trenches[0],center={x:root.points[0].x+65,z:root.points[0].z-14};
     const layout=artilleryLayout(center,0,sim.garrisons.network,sim.garrisons.network.component(g.trenchId),4);

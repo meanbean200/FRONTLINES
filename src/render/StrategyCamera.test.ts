@@ -12,6 +12,20 @@ function setup(){
 afterEach(()=>vi.unstubAllGlobals());
 
 describe('strategy camera overlay projection',()=>{
+  it('responds to a held pan in the first frame and reverses without a long catch-up tail',()=>{
+    const camera=setup(),handler=(name:string)=>vi.mocked(window.addEventListener).mock.calls.find(([n])=>n===name)![1] as (e:KeyboardEvent)=>void;
+    const down=handler('keydown'),up=handler('keyup'),start=camera.target.clone();
+    down({code:'KeyD',target:null} as KeyboardEvent);camera.update(1/60);
+    const first=camera.target.distanceTo(start),intended=(12+camera.zoomDistance*.5)/60;
+    expect(first/intended).toBeGreaterThan(.4);expect(first/intended).toBeLessThan(1);
+    for(let i=0;i<30;i++)camera.update(1/60);
+    up({code:'KeyD'} as KeyboardEvent);down({code:'KeyA',target:null} as KeyboardEvent);
+    const turning=camera.target.clone();for(let i=0;i<3;i++)camera.update(1/60);
+    expect(camera.target.x).toBeLessThan(turning.x);
+    up({code:'KeyA'} as KeyboardEvent);for(let i=0;i<10;i++)camera.update(1/60);
+    const stopped=camera.target.clone();for(let i=0;i<30;i++)camera.update(1/60);
+    expect(camera.target.distanceTo(stopped)).toBeLessThan(.02);
+  });
   it('cannot reverse damping or fly outside the world after a stale RAF timestamp on load',()=>{
     const camera=setup(),before=camera.target.clone(),zoom=camera.zoomDistance;
     camera.focus({x:600,z:500},300);

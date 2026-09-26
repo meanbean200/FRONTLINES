@@ -2,6 +2,26 @@ import {distance,type BattlefieldState,type SquadState} from '../core/types';
 import {WEAPONS} from '../combat/Weapons';
 import {equipmentOf} from '../combat/Equipment';
 import {isMountedGun,positionReadiness,crewAt,crewOperator,weaponStock} from '../combat/WeaponPositions';
+import {supportMissionText} from '../combat/SupportWeapons';
+import type {Facility} from '../garrison/types';
+
+/** A manned gun is not available for another order while its round is in flight. */
+export function activeSupportMission(state:BattlefieldState,f:Facility){
+  return state.operation?.supportMissions?.find(m=>m.positionId===f.id&&(m.stage==='preparing'||m.stage==='flight'));
+}
+export function supportPositionStatus(state:BattlefieldState,f:Facility,reason:string):string {
+  const mission=activeSupportMission(state,f);if(mission)return supportMissionText(mission,state.elapsed);
+  if(reason.startsWith('Need 2 ready crew')){
+    const people=crewAt(state,f);
+    if(people.filter(p=>p.needs?.life==='active').length<2)return 'Assistant out of action · replacement needed';
+    if(people.some(p=>p.suppression>=70||['pinned','broken'].includes(p.combat?.reaction??'')))return 'Crew under heavy suppression · waiting for recovery';
+    if(people.some(p=>p.action==='sleeping'||p.duty?.kind==='sleep'))return 'Crew resting · returns automatically';
+    if(people.some(p=>p.duty?.kind==='meal'))return people.some(p=>p.duty?.reason==='Reload weapon ammunition from local stores')?'Assistant collecting ammunition':'Crew eating / drinking · returns automatically';
+    if(people.some(p=>p.combat?.careTask))return 'Crew assisting a casualty';
+    return 'Crew returning to the gun';
+  }
+  return reason.replace('No indirect he ammunition','No HE shells').replace('No indirect smoke ammunition','No smoke shells');
+}
 
 /** Presentation only: the gun never gains crew, targets or readiness from this readout. */
 export function crewWeaponReadout(state:BattlefieldState,q:SquadState):string|undefined{

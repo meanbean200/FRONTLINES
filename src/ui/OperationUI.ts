@@ -1,6 +1,6 @@
 import type { BattlefieldState, Vec2 } from '../core/types';
 import { MODE_INFO, factionOf, type GameMode } from '../operations/types';
-import {defaultBattleSetup,resolveBattleSetup,validBattleSetup,applyPreset,type BattleSetup,type ResolvedBattleSetup} from '../operations/BattleSetup';
+import {defaultBattleSetup,resolveBattleSetup,validBattleSetup,applyPreset,battlePopulation,type BattleSetup,type ResolvedBattleSetup} from '../operations/BattleSetup';
 import {OPERATION_IDS,OPERATION_DEFINITIONS} from '../operations/OperationDefinitions';
 import {MISSION_COPY} from '../operations/MissionContent';
 import {readSetupPresets,saveSetupPreset,type SavedSetup} from '../persistence/SetupPresets';
@@ -113,7 +113,13 @@ export class OperationUI {
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-operation]').forEach(b=>b.onclick=()=>{this.setup=defaultBattleSetup();this.setup.operation=b.dataset.operation as BattleSetup['operation'];this.open('quick');});
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-mode-choice]').forEach(b=>b.onclick=()=>{if(this.captureSetup()){this.setup.operation=b.dataset.modeChoice as BattleSetup['operation'];this.renderMenu();this.dialog.querySelector<HTMLButtonElement>(`[data-mode-choice="${this.setup.operation}"]`)?.focus();}});
     this.dialog.querySelector('.advanced-setup')?.addEventListener('toggle',e=>{this.advancedOpen=(e.target as HTMLDetailsElement).open;});
-    this.dialog.querySelector('#quick-battle-form')?.addEventListener('change',e=>{const id=(e.target as HTMLElement).id;if(['setup-preset','local-preset','preset-name'].includes(id))return;if(this.captureSetup()){this.renderMenu();this.dialog.querySelector<HTMLElement>('#'+id)?.focus();}});
+    this.dialog.querySelector('#quick-battle-form')?.addEventListener('change',e=>{
+      const id=(e.target as HTMLElement).id;if(['setup-preset','local-preset','preset-name'].includes(id))return;
+      const seeded=this.dialog.querySelector<HTMLSelectElement>('#battle-map')!.value==='seed';
+      this.dialog.querySelector<HTMLElement>('.setup-seed')!.hidden=!seeded;
+      this.dialog.querySelector<HTMLInputElement>('#sector-seed')!.disabled=!seeded;
+      if(this.captureSetup())this.dialog.querySelector('.setup-estimate')!.textContent=`${battlePopulation(this.setup)} · 4 × 4 km${this.setup.size==='large'?' · 1× speed recommended':''}`;
+    });
     this.dialog.querySelector('#quick-battle-form')?.addEventListener('submit',e=>{e.preventDefault();if(this.captureSetup())this.prepare(resolveBattleSetup(this.setup,crypto.getRandomValues(new Uint32Array(1))[0]%2147483647+1));});
     this.dialog.querySelector('#setup-preset')?.addEventListener('change',e=>{const id=(e.target as HTMLSelectElement).value;if(id!=='custom'&&this.captureSetup()){this.setup=applyPreset(this.setup,id);this.renderMenu();}});
     this.dialog.querySelector('#local-preset')?.addEventListener('change',e=>{const v=(e.target as HTMLSelectElement).value,row=v===''?undefined:presets[Number(v)];if(row){this.setup=structuredClone(row.setup);this.renderMenu();this.status('Loaded settings: '+row.name);}});

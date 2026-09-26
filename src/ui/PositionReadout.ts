@@ -40,7 +40,11 @@ export function shipmentReadout(state:BattlefieldState,t:Truck){
   const demands=(state.living!.supplyDemands??[]).filter(d=>d.claims.some(c=>c.source==='truck'&&c.id===t.id));
   const jobs=demands.filter(d=>d.consumer==='construction').map(d=>({name:facilityName(state,state.living!.facilities.find(f=>f.id===d.consumerId)!),amount:d.claims.filter(c=>c.source==='truck'&&c.id===t.id).reduce((n,c)=>n+c.amount,0)}));
   const note=['En route','Delivering physical cargo','Returning to depot','At depot','Awaiting assignment'].includes(t.reason)?'':t.reason;
-  return {destination,jobs,note,cargo:RESOURCES.filter(k=>t.cargo[k]>.00001).map(k=>`${SUPPLY_LABELS[k]} ${Math.floor(t.cargo[k])}`),status:t.role==='convoy'&&t.state==='idle'?'At map edge':({idle:'At depot',loading:'Loading',outbound:'En route',unloading:'Unloading',returning:'Returning',blocked:'Blocked'}[t.state])};
+  const source=t.role==='convoy'?(returning?'Rear depot':'Map-edge supply point'):returning?(g?networkName(state,g.id):'Former delivery point'):'Rear depot';
+  let remaining=0,previous={x:t.x,z:t.z};for(const point of t.route.slice(t.routeIndex)){remaining+=distance(previous,point);previous=point;}
+  const seconds=['outbound','returning'].includes(t.state)&&t.reason!=='Road queue'?remaining/12:undefined;
+  const rounded=Math.ceil(seconds??0),eta=seconds===undefined?'Not predictable while stopped':`~${Math.floor(rounded/60)}:${String(rounded%60).padStart(2,'0')} at 1× · unobstructed travel`;
+  return {destination,source,eta,remaining,jobs,note,cargo:RESOURCES.filter(k=>t.cargo[k]>.00001).map(k=>`${SUPPLY_LABELS[k]} ${Math.floor(t.cargo[k])}`),status:t.role==='convoy'&&t.state==='idle'?'At map edge':({idle:'At depot',loading:'Loading',outbound:'En route',unloading:'Unloading',returning:'Returning',blocked:'Blocked'}[t.state])};
 }
 export function networkSupply(state:BattlefieldState,groups:Garrison[]){
   const ids=new Set(groups.map(g=>g.id)),people=state.soldiers.filter(s=>ids.has(s.garrisonId!)&&s.needs?.life!=='dead'),local=inventory(),inbound=inventory(),carried=inventory();

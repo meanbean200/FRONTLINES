@@ -41,7 +41,7 @@ export interface Facility extends Vec2 {
   installation?: {kind:'crew-mg'|'mg42'|'mortar'|'field-gun'; source:'construction'|'legacy-kit'; personId?:number; weapon?:import('../combat/Weapons').WeaponState};
   /** Explicit new field-gun identity. Older indirect posts remain legacy mortars.
    * The internal mortar category/resource keys are retained for save compatibility. */
-  artillery?:{batteryId:number;index:number;size:1|4};
+  artillery?:{batteryId:number;index:number;size:1|2|3|4};
   /** New work orders include the installation in their delivered material budget. */
   includesWeapon?:boolean;
   autoReplaceCrew?:boolean;

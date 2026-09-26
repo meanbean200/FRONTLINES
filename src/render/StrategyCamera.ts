@@ -15,6 +15,7 @@ export class StrategyCamera {
   private desiredDistance = this.distance;
   private readonly keys = new Set<string>();
   private rotating = false;
+  private panSettling=0;
   private previousPointer = { x: 0, y: 0 };
   private viewport={left:0,top:0,width:1,height:1};
 
@@ -35,6 +36,7 @@ export class StrategyCamera {
     const forward = Number(this.keys.has('KeyW') || this.keys.has('ArrowUp')) - Number(this.keys.has('KeyS') || this.keys.has('ArrowDown'));
     const strafe = Number(this.keys.has('KeyD') || this.keys.has('ArrowRight')) - Number(this.keys.has('KeyA') || this.keys.has('ArrowLeft'));
     if (forward !== 0 || strafe !== 0) {
+      this.panSettling=.16;
       const sprint = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') ? 2.8 : 1;
       const speed = (12 + this.distance * 0.5) * sprint * dt;
       const sin = Math.sin(this.azimuth);
@@ -45,11 +47,13 @@ export class StrategyCamera {
     this.desiredTarget.x = clamp(this.desiredTarget.x, -WORLD_HALF+20, WORLD_HALF-20);
     this.desiredTarget.z = clamp(this.desiredTarget.z, -WORLD_HALF+20, WORLD_HALF-20);
     this.desiredTarget.y = this.terrain.heightAt(this.desiredTarget.x, this.desiredTarget.z);
-    const damping = 1 - Math.exp(-dt * 9);
-    this.target.lerp(this.desiredTarget, damping);
-    this.azimuth += shortestAngle(this.azimuth, this.desiredAzimuth) * damping;
-    this.polar += (this.desiredPolar - this.polar) * damping;
-    this.distance += (this.desiredDistance - this.distance) * damping;
+    // Input is responsive without snapping. Slow cinematic easing belongs to a
+    // deliberate Focus command, not every held-key or reversed pan frame.
+    this.target.lerp(this.desiredTarget,1-Math.exp(-dt*(this.panSettling>0?38:9)));
+    this.panSettling=Math.max(0,this.panSettling-dt);
+    this.azimuth += shortestAngle(this.azimuth, this.desiredAzimuth) * (1-Math.exp(-dt*30));
+    this.polar += (this.desiredPolar - this.polar) * (1-Math.exp(-dt*30));
+    this.distance += (this.desiredDistance - this.distance) * (1-Math.exp(-dt*24));
     const horizontal = Math.sin(this.polar) * this.distance;
     this.camera.position.set(
       this.target.x + Math.sin(this.azimuth) * horizontal,
@@ -69,6 +73,7 @@ export class StrategyCamera {
   }
 
   focus(point: Vec2, distance = this.desiredDistance): void {
+    this.panSettling=0;
     const x=clamp(point.x,-WORLD_HALF+20,WORLD_HALF-20),z=clamp(point.z,-WORLD_HALF+20,WORLD_HALF-20);
     this.desiredTarget.set(x, this.terrain.heightAt(x,z),z);
     this.desiredDistance = clamp(distance, 25, WORLD_SIZE*1.15);

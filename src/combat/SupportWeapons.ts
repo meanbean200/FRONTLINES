@@ -68,13 +68,25 @@ export function requestPositionSupport(state:BattlefieldState,kind:'mortarHE'|'m
 export function requestBatterySupport(state:BattlefieldState,kind:'mortarHE'|'mortarSmoke',positionId:number,target:Vec2,confirmedRisk=false,terrain?:TerrainSystem){
   const f=state.living?.facilities.find(f=>f.id===positionId),guns=state.living?.facilities.filter(p=>f?.artillery&&p.artillery?.batteryId===f.artillery.batteryId)??[];
   if(!guns.length)return {accepted:false,reason:'Battery unavailable'};
+  return requestSupportGroup(state,kind,guns.map(g=>g.id),target,confirmedRisk,terrain);
+}
+/** One player intention, separately validated physical weapons. */
+export function requestSupportGroup(state:BattlefieldState,kind:'mortarHE'|'mortarSmoke',ids:number[],target:Vec2,confirmedRisk=false,terrain?:TerrainSystem){
+  const guns=[...new Set(ids)].flatMap(id=>state.living?.facilities.find(f=>f.id===id&&f.kind==='mortar')??[]);
+  if(!guns.length)return {accepted:false,reason:'Select at least one indirect weapon'};
   // Preflight against a copy so a risk confirmation never leaves half a salvo
   // committed. Actual requests still use each physical gun, crew and inventory.
   const probe=structuredClone(state),checks=guns.map(g=>requestPositionSupport(probe,kind,g.id,target,confirmedRisk,terrain));
   const warning=checks.find(c=>c.warning);if(warning)return warning;
   let fired=0;const reasons:string[]=[];
   for(const gun of guns){const r=requestPositionSupport(state,kind,gun.id,target,confirmedRisk,terrain);if(r.accepted)fired++;else reasons.push(r.reason);}
-  return {accepted:fired>0,reason:`Battery: ${fired}/${guns.length} guns preparing${reasons.length?' · '+[...new Set(reasons)].join('; '):''}`};
+  return {accepted:fired>0,reason:`Fire support: ${fired}/${guns.length} guns preparing${reasons.length?' · '+[...new Set(reasons)].join('; '):''}`};
+}
+export function cancelSupportMission(state:BattlefieldState,id:number):boolean {
+  const mission=state.operation?.supportMissions?.find(m=>m.id===id);
+  if(!mission||mission.stage!=='preparing'||state.squads.find(q=>q.id===mission.squadId)?.faction==='enemy'||state.operation?.status!=='active')return false;
+  mission.stage='cancelled';mission.reason='Cancelled by commander · no round fired';
+  return true;
 }
 export function requestSupport(state:BattlefieldState,kind:SupportKind,squadId:number,target:Vec2,confirmedRisk=false,terrain?:TerrainSystem,source:SupportSource='PLAYER',positionId?:number):{accepted:boolean;warning?:boolean;reason:string} {
   if(kind!=='smokeGrenades'&&positionId===undefined){

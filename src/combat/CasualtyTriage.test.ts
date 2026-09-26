@@ -19,6 +19,24 @@ function setup(){
 }
 
 describe('bounded casualty triage',()=>{
+  it('reassesses a blocked rescue automatically when a nearby aid post becomes available',()=>{
+    const {state,patient,helper,post,tick}=setup();tick(25);
+    expect(patient.combat!.wound!.stabilized).toBe(true);expect(helper.combat!.careTask).toBeUndefined();
+    expect(state.operation!.rescueDecisions![0].choice).toBe('pending');
+    const saved=new SaveSystem().parse(JSON.stringify(state));expect(saved.operation!.rescueDecisions![0].reviewAt).toBeGreaterThan(state.elapsed);
+    post(60);tick(32);
+    expect(helper.combat!.careTask?.stage).toBe('carry');expect(state.operation!.rescueDecisions).toEqual([]);
+  });
+  it('automatic retry keeps checking exposure rather than granting a risk override',()=>{
+    const {state,sim,patient,helper,post,tick}=setup();post();
+    vi.spyOn(sim.terrain.objects,'trace').mockReturnValue({clear:true,transmission:1});
+    for(let i=0;i<3;i++){
+      state.operation!.contacts={player:[{soldierId:999,squadId:998,x:10,z:0,lastSeen:state.elapsed,visible:false,active:true}],enemy:[]};
+      tick(2);expect(helper.combat!.careTask).toBeUndefined();expect(patient.combat!.wound!.stabilized).toBe(false);
+      state.elapsed+=30;
+    }
+    state.operation!.contacts={player:[],enemy:[]};tick(5);expect(helper.combat!.careTask?.patientId).toBe(patient.id);
+  });
   it('stabilizes locally instead of assigning a kilometre-long carry',()=>{
     const {state,patient,helper,post,tick}=setup();post(1000);const initial=helper.carried!.medical;
     tick(60);expect(patient.combat!.wound!.stabilized).toBe(true);expect(helper.combat!.careTask).toBeUndefined();expect(helper.x).toBeLessThan(2);expect(patient.x).toBe(0);

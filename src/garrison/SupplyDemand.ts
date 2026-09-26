@@ -29,7 +29,11 @@ export function reconcileSupplyDemands(state:BattlefieldState):SupplyDemand[]{
         const crew=active.filter(s=>f.weaponCrewIds?.includes(s.id));
         for(const resource of (f.kind==='mortar'?['mortarHE','mortarSmoke']:['ammo']) as Resource[]){
           const usable=f.stock[resource]+crew.reduce((n,s)=>n+(s.carried?.[resource]??0),0),urgent=crew.length>=2&&(g.underFireUntil??0)>state.elapsed&&f.stock[resource]<(resource==='ammo'?12:1);
-          add(g.id,'weapon',f.id,resource,resource==='ammo'?120:resource==='mortarHE'?8:4,usable,urgent?0:2);
+          // Ready ammunition comes before deeper reserve stock. Otherwise an
+          // older gun with four shells locks the last cache rounds indefinitely
+          // while an empty neighbour's assistant repeats a fruitless pickup.
+          const minimum=resource==='ammo'?30:resource==='mortarHE'?2:1,empty=crew.length>=2&&usable<minimum;
+          add(g.id,'weapon',f.id,resource,empty?minimum:resource==='ammo'?120:resource==='mortarHE'?8:4,usable,urgent?0:empty?2:4);
         }
       }
     }

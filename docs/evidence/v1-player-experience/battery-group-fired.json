@@ -1,0 +1,283 @@
+{
+  "elapsed": 1933.699999998789,
+  "missions": [
+    {
+      "id": 439,
+      "squadId": 257,
+      "positionId": 386,
+      "weapon": "field-gun",
+      "kind": "mortarHE",
+      "target": {
+        "x": 700.0000151021169,
+        "z": -449.99999498146644
+      },
+      "impact": {
+        "x": 697.5764944773088,
+        "z": -458.5860190356104
+      },
+      "requestedAt": 1913.6499999988073,
+      "launchAt": 1933.6499999988073,
+      "impactAt": 1938.2119032635246,
+      "stage": "flight",
+      "reason": "Round in flight",
+      "dangerRadius": 65,
+      "confirmedRisk": false,
+      "source": "PLAYER",
+      "side": "player",
+      "ammoConsumed": 1,
+      "crewIds": [
+        265,
+        261
+      ]
+    },
+    {
+      "id": 440,
+      "squadId": 257,
+      "positionId": 388,
+      "weapon": "field-gun",
+      "kind": "mortarHE",
+      "target": {
+        "x": 700.0000151021169,
+        "z": -449.99999498146644
+      },
+      "impact": {
+        "x": 714.2156709455618,
+        "z": -445.9071520303545
+      },
+      "requestedAt": 1913.6499999988073,
+      "launchAt": 1933.6499999988073,
+      "impactAt": 1938.2124285882753,
+      "stage": "flight",
+      "reason": "Round in flight",
+      "dangerRadius": 65,
+      "confirmedRisk": false,
+      "source": "PLAYER",
+      "side": "player",
+      "ammoConsumed": 1,
+      "crewIds": [
+        264,
+        287
+      ]
+    }
+  ],
+  "guns": [
+    {
+      "id": 384,
+      "x": 681.8433210936372,
+      "z": -652.243646277014,
+      "garrisonId": 373,
+      "kind": "mortar",
+      "facing": 0,
+      "connectorId": 385,
+      "includesWeapon": true,
+      "weaponCrewIds": [
+        292,
+        291
+      ],
+      "workOrder": {
+        "explicit": true,
+        "workerIds": [],
+        "createdAt": 0.2,
+        "autoWorkers": true
+      },
+      "progress": 1,
+      "capacity": 2,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 4,
+        "mortarSmoke": 4,
+        "smokeGrenades": 0
+      },
+      "materialCost": 32,
+      "artillery": {
+        "batteryId": 384,
+        "size": 4,
+        "index": 0
+      },
+      "installation": {
+        "kind": "field-gun",
+        "source": "construction"
+      }
+    },
+    {
+      "id": 386,
+      "x": 693.8433210936372,
+      "z": -652.243646277014,
+      "garrisonId": 373,
+      "kind": "mortar",
+      "facing": 0,
+      "connectorId": 387,
+      "includesWeapon": true,
+      "weaponCrewIds": [
+        265,
+        261
+      ],
+      "workOrder": {
+        "explicit": true,
+        "workerIds": [],
+        "createdAt": 0.2,
+        "autoWorkers": true
+      },
+      "progress": 1,
+      "capacity": 2,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 3,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 32,
+      "artillery": {
+        "batteryId": 384,
+        "size": 4,
+        "index": 1
+      },
+      "installation": {
+        "kind": "field-gun",
+        "source": "construction"
+      }
+    },
+    {
+      "id": 388,
+      "x": 705.8433210936372,
+      "z": -652.243646277014,
+      "garrisonId": 373,
+      "kind": "mortar",
+      "facing": 0,
+      "connectorId": 389,
+      "includesWeapon": true,
+      "weaponCrewIds": [
+        264,
+        287
+      ],
+      "workOrder": {
+        "explicit": true,
+        "workerIds": [],
+        "createdAt": 0.2,
+        "autoWorkers": true
+      },
+      "progress": 1,
+      "capacity": 2,
+      "paid": true,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 1,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 32,
+      "artillery": {
+        "batteryId": 384,
+        "size": 4,
+        "index": 2
+      },
+      "installation": {
+        "kind": "field-gun",
+        "source": "construction"
+      }
+    },
+    {
+      "id": 390,
+      "x": 717.8433210936372,
+      "z": -652.243646277014,
+      "garrisonId": 373,
+      "kind": "mortar",
+      "facing": 0,
+      "connectorId": 391,
+      "includesWeapon": true,
+      "weaponCrewIds": [],
+      "workOrder": {
+        "explicit": true,
+        "workerIds": [
+          288,
+          289,
+          259
+        ],
+        "createdAt": 0.2,
+        "autoWorkers": true
+      },
+      "progress": 0,
+      "capacity": 2,
+      "paid": false,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 28,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "materialCost": 32,
+      "artillery": {
+        "batteryId": 384,
+        "size": 4,
+        "index": 3
+      }
+    }
+  ],
+  "contacts": {
+    "player": [
+      {
+        "soldierId": 313,
+        "squadId": 311,
+        "x": 124.03538343989506,
+        "z": -112.83054516387666,
+        "lastSeen": 1919.1499999988023,
+        "visible": false,
+        "active": true,
+        "status": "last-reported",
+        "uncertainty": 28.999999999973625,
+        "observerId": 270,
+        "trackedUntil": 1925.1499999988023
+      },
+      {
+        "soldierId": 314,
+        "squadId": 311,
+        "x": 110.67641729475335,
+        "z": -80.81360063769961,
+        "lastSeen": 1919.6999999988018,
+        "visible": false,
+        "active": true,
+        "status": "last-reported",
+        "uncertainty": 27.999999999974534,
+        "observerId": 268,
+        "trackedUntil": 1919.6999999988072
+      },
+      {
+        "soldierId": 318,
+        "squadId": 311,
+        "x": 108.41929565271006,
+        "z": -80.53880395533884,
+        "lastSeen": 1923.3999999987984,
+        "visible": false,
+        "active": true,
+        "status": "last-reported",
+        "uncertainty": 19.99999999998181,
+        "observerId": 268,
+        "trackedUntil": 1923.3999999988039
+      }
+    ],
+    "enemy": []
+  },
+  "errors": []
+}

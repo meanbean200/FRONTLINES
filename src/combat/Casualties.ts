@@ -32,8 +32,9 @@ export function updateCasualtyCare(state:BattlefieldState,terrain:TerrainSystem,
   const op=state.operation;if(!op?.casualtyRules)return;
   const byId=new Map(state.soldiers.map(s=>[s.id,s])),squads=new Map(state.squads.map(q=>[q.id,q])),w=state.living!;
   op.rescueDecisions??=[];
-  // A player's Hold means leave the rescue suspended until an explicit retry.
-  const blockedRescues=new Set(op.rescueDecisions.filter(d=>d.choice!=='approved'&&(d.side==='player'||state.elapsed<d.reviewAt)).map(d=>d.patientId));
+  // Routine failures are passive status, not requests for permission. Recheck
+  // both factions on the same bounded cadence. An explicit legacy Hold persists.
+  const blockedRescues=new Set(op.rescueDecisions.filter(d=>d.choice!=='approved'&&(d.choice==='hold'&&d.side==='player'||state.elapsed<d.reviewAt)).map(d=>d.patientId));
   const reportBlocked=(patientId:number,side:'player'|'enemy',reason:string)=>{
     let decision=op.rescueDecisions!.find(d=>d.patientId===patientId);
     if(!decision){decision={patientId,side,reason,choice:side==='player'?'pending':'hold',reviewAt:state.elapsed+30};op.rescueDecisions!.push(decision);}
@@ -90,7 +91,7 @@ export function updateCasualtyCare(state:BattlefieldState,terrain:TerrainSystem,
       for(const patient of patients){
         const wound=patient.combat!.wound!,decision=op.rescueDecisions.find(d=>d.patientId===patient.id);
         if(!wound.stabilized&&(helper.carried?.medical??0)<1)continue;
-        if(wound.stabilized&&!nearbyAidPost(state,navigation,patient,patient,side)){if(decision?.choice==='approved')reportBlocked(patient.id,side,'Casualty route blocked: build an available aid post within 120 m walking, then retry');continue;}
+        if(wound.stabilized&&!nearbyAidPost(state,navigation,patient,patient,side)){reportBlocked(patient.id,side,'Stabilized locally · waiting for an available aid post within 120 m walking');continue;}
         const route=navigation.plan(helper,patient);
         if(!route.length){reportBlocked(patient.id,side,'Casualty route blocked');continue;}
         const length=careRouteLength(helper,route),stairs=patient.building?.floor===1?16:0;
@@ -98,6 +99,7 @@ export function updateCasualtyCare(state:BattlefieldState,terrain:TerrainSystem,
         if(wound.bleedUntil!==undefined&&!wound.stabilized&&state.elapsed+length/1.7+stairs+treatmentSeconds(medic)>=wound.bleedUntil){patient.combat!.pauseReason='Critical · waiting for aid that can arrive in time';continue;}
         if(rescueExposed(state,terrain,helper,route)&&decision?.choice!=='approved'){reportBlocked(patient.id,side,'Rescue exposed to reported enemy fire');continue;}
         task=c.careTask={patientId:patient.id,stage:'approach',route,index:0,progress:0,destination:{x:patient.x,z:patient.z},blockedFor:0,reviewAt:state.elapsed,legStartedAt:state.elapsed};
+        if(decision?.choice!=='approved')op.rescueDecisions=op.rescueDecisions.filter(d=>d.patientId!==patient.id);
         delete patient.combat!.pauseReason;break;
       }
     }
@@ -140,11 +142,11 @@ export function updateCasualtyCare(state:BattlefieldState,terrain:TerrainSystem,
     if(task.stage==='approach'){if(distance(helper,patient)>1.5){task.route=navigation.plan(helper,patient);task.index=0;continue;}task.stage='treat';task.progress=0;task.legStartedAt=state.elapsed;}
     if(task.stage==='treat'){
       helper.action='treating';task.progress+=dt;
-      if(wound.care!=='aid-post'&&task.progress<treatmentSeconds(medic))continue;
+      if(!wound.stabilized&&task.progress<treatmentSeconds(medic))continue;
       if(!wound.stabilized){if(consume(state,helper.carried!,'medical',1)<1){release(helper);continue;}wound.stabilized=true;wound.care='stabilized';delete wound.bleedUntil;}
       if(!serious(wound)){patient.health=Math.max(patient.health,90);delete patient.combat!.wound;release(helper);continue;}
       const choice=nearbyAidPost(state,navigation,patient,helper,side);
-      if(!choice){patient.combat!.pauseReason='Stabilized · nearby aid post needed';reportBlocked(patient.id,side,'Casualty route blocked: build an available aid post within 120 m walking, then retry');release(helper);continue;}
+      if(!choice){patient.combat!.pauseReason='Stabilized · nearby aid post needed';reportBlocked(patient.id,side,'Stabilized locally · waiting for an available aid post within 120 m walking');release(helper);continue;}
       delete patient.combat!.pauseReason;
       task.stage='carry';task.progress=wound.care==='aid-post'?24:0;task.facilityId=choice.post.id;task.destination={x:choice.post.x,z:choice.post.z};task.route=choice.route;task.index=0;task.legStartedAt=state.elapsed;task.reviewAt=0;
     }else if(task.stage==='carry'){

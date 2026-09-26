@@ -35,7 +35,7 @@ test('contextual commands, drawer escape and direct trench entry remain accessib
   await expect(page.locator('.command-dock')).toBeVisible();await expect(page.locator('.command-dock button')).toHaveCount(4);await expect(page.locator('#hold-command')).toBeVisible();
   await expect(page.locator('[data-tactical="assault"]')).toBeHidden();await page.locator('#selection-orders').click();
   await expect(page.locator('[data-tactical="assault"]')).toBeVisible();await expect(page.locator('.advanced-orders')).toContainText('Move and Hold already');
-  await page.keyboard.press('Escape');await page.locator('#support-command').click();await expect(page.locator('.support-status')).toContainText('Click a weapon position');await page.locator('.support-controls summary').click();
+  await page.keyboard.press('Escape');await page.locator('#support-command').click();await expect(page.locator('.support-status')).toContainText('Choose guns, then one target');await page.locator('.support-controls>summary').click();
   await page.locator('#selection-docket [data-hud-panel]').click();await expect(page.locator('#selection-card')).toBeVisible();
   await page.keyboard.press('Escape');await expect(page.locator('#selection-card')).toBeHidden();await expect(page.locator('.operation-menu')).toBeHidden();
   await page.locator('#build-command').click();await page.locator('#trench-command').click();

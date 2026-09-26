@@ -18,6 +18,17 @@ function post(){const f=fixture(),id=f.sim.requestConstruction({kind:'facility',
 function fund(f:ReturnType<typeof post>){const n=f.p.materialCost;transfer(f.g.cache,f.p.stock,'materials',n);consume(f.state,f.p.stock,'materials',n);f.p.paid=true;}
 
 describe('V1 position management command boundary',()=>{
+  it('removes an untouched cancelled blueprint and its unexcavated connector without losing cargo',()=>{
+    const {sim,state,g,origin,t}=fixture();
+    const id=sim.requestConstruction({kind:'facility',garrisonId:g.id,facilityKind:'mortar',origin,position:{x:origin.x,z:origin.z+7}})!,f=state.living!.facilities.find(f=>f.id===id)!;
+    const connector=f.connectorId,carrier=state.soldiers.find(s=>s.id===f.workOrder!.workerIds[0])!;
+    transfer(g.cache,carrier.carried!,'materials',6);
+    carrier.duty={kind:'haul',stage:'deliver',facilityId:id,destination:origin,route:[origin],routeIndex:0,since:0,until:100,blockedFor:0,reason:'Materials in transit'};
+    const stock=balance(state);expect(sim.garrisons.cancelWork(id).accepted).toBe(true);
+    expect(state.living!.facilities.some(f=>f.id===id)).toBe(false);expect(state.trenches.some(t=>t.id===connector)).toBe(false);expect(state.trenches.some(p=>p.id===t.id)).toBe(true);
+    expect(carrier.carried!.materials).toBe(6);expect(carrier.duty?.facilityId).toBeUndefined();expect(carrier.duty?.stage).toBe('deliver');expect(balance(state)).toEqual(stock);
+    expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);
+  });
   it('labels sleeping support workers as recovering, not approaching or stuck',()=>{
     const f=post();fund(f);const workers=f.state.soldiers.filter(s=>s.equipment?.tools).slice(0,2);
     f.p.workOrder!.workerIds=workers.map(s=>s.id);workers.forEach(s=>{s.action='sleeping';});
