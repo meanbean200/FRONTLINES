@@ -562,3 +562,98 @@ overhaul was started.
 - **E/F focused handoff: IMPLEMENTED / AUTOMATED VERIFIED / BROWSER VERIFIED.**
   Native OS folder-picker interaction and subjective presentation/believability
   remain for user acceptance; broader release status remains **PARTIAL**.
+
+## 2026-09-26 — Current playtest delta: continuity, recovery and compact controls
+
+Immutable starting commit: `e41c9795346bc6dad396ec8587ac2e70384eba07`, verified
+local/remote master. The pasted `20404c4` is superseded; separate DEV and the
+authored living menu are already delivered and were preserved. This milestone
+implements a scoped first portion of the new delta. **Overall: PARTIAL.**
+
+### Issue status
+
+- **USER-REPORTED:** rapid-fire users sometimes fail to fire; people appear to
+  keep targeting bodies; grouped destination orders spread too far from the
+  click; the interface exposes too much unrelated state. Original unexplained
+  long-journey deaths remain **not causally reproduced**.
+- **REPRODUCED / ROOT CAUSE:** crossing targets continually changed nearest
+  priority and restarted aim; invalid target caches survived cooldown early-outs;
+  legacy volley damage was deferred until after later shooters acquired targets.
+  Six focused continuity regressions failed before repair. Actual hit geometry,
+  observation rules, ammunition use and deterministic shot provenance remain
+  authoritative; no accuracy/visibility cheat was added.
+- **REPRODUCED / ROOT CAUSE:** 24-metre multi-squad grid spacing, incomplete rows
+  and large free-destination snaps caused oversized/displaced destinations.
+  Four failing fixtures cover different selections/distances and true blockage.
+- **IMPLEMENTED:** stable valid target acquisition, immediate invalidation and
+  stable shot-order damage; person-weighted compact destination footprint and
+  bounded obstacle adjustment with truthful blocked-route explanation.
+- **REPRODUCED / IMPLEMENTED:** explicit old `lethalNeeds=true` caused health
+  damage. The latest user override removes hunger/thirst injury/death, hunger/
+  thirst staffing vetoes, inaccessible-water watch churn and indefinite waits.
+  The legacy setting remains readable but inert. This is an intentional new
+  gameplay rule, not retrospective proof of the original death report.
+- **IMPLEMENTED:** real ration consumption, modest food-assisted recovery,
+  short `field-rest`, 25-to-45 recovery nominally 45 seconds, local protection,
+  retained orders/route progress/cargo and save continuation. Field rest does
+  not credit sleep. Rolling sleep credit no longer clears each calendar midnight.
+  Existing timing/map defaults are not changed in this milestone.
+- **REPRODUCED / IMPLEMENTED:** a new threat-rest regression found critical
+  recovery repeatedly interrupted at energy 10 and overlapping reaction movement.
+  In-place recovery now retains action ownership until finished, without clearing
+  pinning or overriding casualty care. Old mobile sleep/wait saves migrate as
+  copies; old injuries, deaths, armies and stocks are not healed/refilled.
+- **IMPLEMENTED:** one compact formation docket with identity, able strength,
+  actual readiness, order and at most one relevant issue; Move/Hold/Manage.
+  Contextual actions and Overview/People/Weapons/Supply tabs replace stacked
+  selection blocks. No redundant Observe/Withdraw buttons, no empty Resume works,
+  no normal lethal-needs switch. Reinforcements foreground reserve, incoming,
+  destination, request and locate; transport internals are optional details.
+- **BROWSER VERIFIED:** headed Edge selection/management, real six-formation
+  right-click movement, compact desktop/landscape/portrait layouts, opaque panels
+  and actual Request 8 / Locate / Transport details. Reserve 48 becomes 40 with
+  eight physical pending passengers, not destination spawns. The six-squad
+  destination centroid was within 0.073 metres of the actual ground click.
+  These are normal-control checks, not injected completed runtime states.
+
+### Evidence and remaining acceptance
+
+See `docs/evidence/current-delta/README.md` for failed runs, reproduction details,
+test-scope distinctions and player screenshots. The maintained synthetic
+restoration regressions are labeled separately from actual-control playthroughs.
+The game-foundations/Three.js guidance preserved deterministic simulation versus
+presentation boundaries; UI/playtest guidance drove contextual density, input
+isolation, 44-pixel controls and visual verification rather than screenshot-only
+or unit-only acceptance.
+
+**REMAINING:** real squad rapid-fire/death/save-load acceptance; full protected
+occupancy and cross-role survival/calendar matrix; per-gun reload, local rounds,
+artillery classes/damage/repair; construction calibration; selectable loose/town
+stock, multiple hubs, capture/recovery/interdiction/night deliveries; mission and
+AI quality; 3-km/512-person standard, 96–128-person assault with reserves; integrated
+72-hour combat/shortage soak, desktop/physical-phone performance and subjective
+presentation. Existing smaller-map, supplied-soak or emulation results are not
+substitutes. No training, automation restart or platform publication occurred.
+
+### Frozen milestone verification
+
+- **865/865 tests, 127 files, 388.83 seconds.** Existing 846-test baseline plus
+  19 focused checks; no failing or skipped cases in the final unit report.
+  Long finite-ration marches at 1x/5x, save continuation, reactions, assault,
+  physical crew relief, construction and living-menu regression coverage pass.
+- **27/27 maintained Edge checks, 258.15 seconds**, no flaky, skipped or
+  unexpected results. Includes the explicitly synthetic fixture tests described
+  in the evidence README; those are not relabeled as full player playthroughs.
+- Current production/standalone and strict-TypeScript DEV builds pass;
+  packaging **5/5**. Existing large-chunk warnings remain. Portable output:
+  **1,409,988 bytes / 1377 KiB**, two embedded workers. SHA-256:
+  `f179cc5b2bfb2bf0eb69b660a0c2229a63bf9f14cbe2ebf7cd76f5a3c57bde38`.
+- Network-disabled isolated Edge file launch: real attract world, actual
+  movement, both workers, exact paused save/Continue, six refresh sizes and
+  no console/page errors pass. The 96-person previous-rules migration probe
+  preserves the original input, identities, locations, orders, stocks, wound
+  and manual pause while adapting mobile rest and obsolete supply waits.
+- Failed evidence is retained separately. **This repair milestone: IMPLEMENTED /
+  AUTOMATED VERIFIED / UI BROWSER VERIFIED.** Integrated new combat, wider
+  logistics/artillery, physical phone and subjective acceptance remain open;
+  this does not clear the overall **PARTIAL** release status.

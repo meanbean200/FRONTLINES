@@ -14,14 +14,14 @@ export class HudLayout {
     this.garrison=root.querySelector<HTMLDetailsElement>('.garrison-panel')!;
     const support=root.querySelector<HTMLDetailsElement>('.support-controls');
     for(const selector of ['.force-roster','.selection-card']){const panel=root.querySelector(selector)!,button=document.createElement('button');button.className='drawer-close';button.textContent='×';button.setAttribute('aria-label','Close '+(selector==='.force-roster'?'forces':'unit details'));button.onclick=()=>this.setPanel(undefined);panel.prepend(button);}
-    support?.addEventListener('toggle',()=>{if(support.open){this.garrison.open=false;if(this.compact.matches)this.setPanel(undefined);}});
+    support?.addEventListener('toggle',()=>{if(support.open){this.garrison.open=false;this.setPanel(undefined);}});
     root.querySelectorAll<HTMLButtonElement>('[data-hud-panel]').forEach(button=>button.addEventListener('click',()=>{
       const panel=button.dataset.hudPanel as HudPanel;
       this.setPanel(root.dataset.hudPanel===panel?undefined:panel);
       this.garrison.open=false;
       if(support)support.open=false;
     }));
-    this.garrison.addEventListener('toggle',()=>{if(this.garrison.open){if(support)support.open=false;if(this.compact.matches)this.setPanel(undefined);}});
+    this.garrison.addEventListener('toggle',()=>{if(this.garrison.open){if(support)support.open=false;this.setPanel(undefined);}});
     // Retire drawer state when entering the spacious layout; do not close a
     // player's open trench inspector merely because the window was resized.
     this.compact.addEventListener('change',()=>{this.setPanel(undefined);this.schedule();});
@@ -35,6 +35,8 @@ export class HudLayout {
     observer.observe(root);this.schedule();
   }
   private setPanel(panel?:HudPanel):void {
+    // Use the same exclusive-inspector boundary on desktop and narrow screens.
+    if(panel)window.dispatchEvent(new Event('frontlines-menu'));
     if(panel)this.root.dataset.hudPanel=panel;else delete this.root.dataset.hudPanel;
     for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-hud-panel]')){
       const open=button.dataset.hudPanel===panel;button.setAttribute('aria-expanded',String(open));button.classList.toggle('active',open);

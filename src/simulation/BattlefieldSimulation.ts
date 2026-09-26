@@ -11,6 +11,7 @@ import { addSquad } from './createBattlefield';
 import { SquadNavigation } from '../navigation/SquadNavigation';
 import {FormationWalker} from '../navigation/FormationWalker';
 import {routeJoin} from '../navigation/RouteJoin';
+import {moveFootprint} from '../navigation/MoveFootprint';
 import { TerrainSystem } from '../terrain/TerrainSystem';
 import { TrenchSystem } from '../construction/TrenchSystem';
 import {MIN_TRENCH_LENGTH} from '../construction/ConstructionReadout';
@@ -226,10 +227,10 @@ export class BattlefieldSimulation {
     if(building!==undefined){this.issueBuilding(squadIds,building,0,enemyOrder);return;}
     const clamped = this.terrain.clampToWorld(target);
     const selected = this.state.squads.filter(squad => squad.soldierIds.length>0&&squadIds.includes(squad.id) && (enemyOrder || factionOf(squad) === 'player'));
-    const columns = Math.ceil(Math.sqrt(selected.length));
+    const footprint = moveFootprint(selected,clamped);
     for (const [index, squad] of selected.entries()) {
       this.pauseConstruction(squad);
-      const destination = this.navigation.freeDestination({x:clamped.x + (index % columns - (columns-1)/2)*24,z:clamped.z + (Math.floor(index/columns)-(Math.ceil(selected.length/columns)-1)/2)*24});
+      const destination = this.navigation.freeDestination(footprint[index],8,12);
       squad.order = { type: 'move', target: destination, issuedAt: this.state.elapsed };
       squad.formationHeading = Math.atan2(destination.x-squad.x,destination.z-squad.z);
       this.planSquadRoute(squad,destination);
@@ -525,6 +526,9 @@ export class BattlefieldSimulation {
     const order=squad.order,worldRevision=this.worldRevision;squad.orderNote=undefined;
     const revision=(this.routeRevision.get(squad.id)??0)+1;this.routeRevision.set(squad.id,revision);
     squad.route=[];squad.routeIndex=0;squad.movementState='planning';
+    if(this.terrain.obstacleAt(destination.x,destination.z,8)){
+      squad.movementState='idle';squad.orderNote='Route blocked · no local formation space at destination';return;
+    }
     const done=(route:Vec2[])=>{
       if(this.commandsLocked||worldRevision!==this.worldRevision||this.routeRevision.get(squad.id)!==revision||!this.state.squads.includes(squad)||squad.order!==order)return;
       squad.route=route.map(p=>this.terrain.clampToWorld(p));squad.routeIndex=0;

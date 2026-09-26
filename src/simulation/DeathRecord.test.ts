@@ -15,12 +15,12 @@ describe('persistent, abstract death provenance',()=>{
     expect(state).toEqual(saved);expect(state.living!.metrics.deaths).toBe(deaths+1);expect(balance(state)).toEqual(before);
     expect(deathDescription(p)).toBe('Died from artillery wounds');expect(new SaveSystem().parse(JSON.stringify(state))).toEqual(state);
   });
-  it('distinguishes fatigue collapse from lethal thirst and preserves originating wounds',()=>{
+  it('distinguishes fatigue collapse from combat death; obsolete lethal thirst cannot kill',()=>{
     const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),p=state.soldiers[0];
     p.needs!.energy=0;p.needs!.hunger=p.needs!.thirst=10;delete p.duty;p.action='walking';updateNeeds(state,p,.05);
     expect(p.needs!.life).toBe('incapacitated');expect(p.death).toBeUndefined();
     state.living!.lethalNeeds=true;p.needs!.thirst=100;p.needs!.thirstyHours=7;p.needs!.thirstySeconds=7/(24/1800);p.health=.001;state.elapsed=100;
-    updateNeeds(state,p,.05);expect(p.death?.cause).toBe('deprivation');expect(p.death?.deprivation).toBe('thirst');
+    updateNeeds(state,p,.05);expect(p.death).toBeUndefined();expect(p.needs!.life).toBe('incapacitated');expect(p.health).toBeGreaterThanOrEqual(.001);
     const patient=state.soldiers[1];patient.needs!.life='incapacitated';patient.combat={shotSequence:0,wound:{severity:'critical',at:0,bleedUntil:100,stabilized:false,care:'untreated',origin:{cause:'artillery',at:0,eventId:123}}};
     updateCasualtyCare(state,sim.terrain,sim.navigation,.05);expect(patient.death).toMatchObject({cause:'artillery',eventId:123,at:0,occurredAt:100});
   });

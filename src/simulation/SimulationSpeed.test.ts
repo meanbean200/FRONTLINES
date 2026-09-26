@@ -25,12 +25,12 @@ describe('simulation speed preserves tick history',()=>{
     }
     expect(canonical(fast)).toEqual(canonical(slow));
   },45000);
-  it('does not run the rest of a fast batch after an emergency pause',()=>{
+  it('does not turn inaccessible water into a fast-forward emergency pause',()=>{
     const sim=new BattlefieldSimulation(createPlayableSandbox());sim.assignGarrison(sim.state.squads.map(q=>q.id),sim.state.trenches[0].id);
     const g=sim.state.living!.garrisons[0];g.nextDecision=1000;g.nextSupport=1000;
     sim.state.soldiers[0].needs!.thirst=100;sim.state.soldiers[0].needs!.thirstyHours=4;sim.setSpeed(5);
-    sim.step(.05);expect(g.cutoff).toBe('decision');expect(sim.state.simSpeed).toBe(0);expect(sim.state.elapsed).toBe(.05);expect(sim.state.living!.emergencyResumeSpeed).toBe(5);
-    const snapshot=structuredClone(sim.state);sim.step(.05);expect(sim.state).toEqual(snapshot);
+    sim.step(.05);expect(g.cutoff).not.toBe('decision');expect(sim.state.simSpeed).toBe(5);expect(sim.state.elapsed).toBe(.25);expect(sim.state.living!.emergencyResumeSpeed).toBe(1);
+    sim.step(.05);expect(sim.state.elapsed).toBeCloseTo(.5);
   });
   it('does not run more ticks after an operation ends inside a fast batch',()=>{
     const sim=new BattlefieldSimulation(createOperation('defense'));sim.setSpeed(5);sim.state.operation!.duration=.05;

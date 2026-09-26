@@ -20,7 +20,7 @@ describe('recovery target selection',()=>{
     const {sim,g,blocked}=createDisconnectedRecoveryScenario(true);
     sim.garrisons.resolveEmergency(g.id,'recover');advance(sim,1);
     expect(sim.state.soldiers.some(s=>s.duty?.crateId===blocked.id)).toBe(false);
-    expect(sim.state.soldiers.every(s=>s.duty?.kind==='rest'||s.duty?.kind==='patrol')).toBe(true);
+    expect(sim.state.soldiers.every(s=>['rest','patrol','watch'].includes(s.duty?.kind??''))).toBe(true);
   });
   it('reconsiders a blocked target after a connector completes, including after save/load',()=>{
     const {sim,g,blocked}=createDisconnectedRecoveryScenario(true);

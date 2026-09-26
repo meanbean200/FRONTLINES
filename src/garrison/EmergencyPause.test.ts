@@ -4,7 +4,7 @@ import { BattlefieldSimulation } from '../simulation/BattlefieldSimulation';
 import { SaveSystem } from '../persistence/SaveSystem';
 import { balance } from './Inventory';
 
-function simultaneousShortages() {
+function simultaneousLegacyDecisions() {
   const sim=createStudyScenario(),state=sim.state,w=state.living!,first=w.garrisons[0];
   const squad=state.squads.at(-1)!,id=state.nextEntityId++;
   const entrance={x:first.entrance.x,z:first.entrance.z-100};
@@ -13,18 +13,19 @@ function simultaneousShortages() {
   expect(sim.assignGarrison([squad.id],id)).toBe(true);
   for(const g of w.garrisons){
     g.nextDecision=1000;g.nextSupport=1000;
-    const person=state.soldiers.find(s=>s.garrisonId===g.id)!;
-    person.needs!.thirst=100;person.needs!.thirstyHours=4;
+    // Retained explicit legacy decisions, not newly generated thirst emergencies.
+    g.cutoff='decision';
   }
   state.simSpeed=5;
+  w.emergencyResumeSpeed=5; // Same persisted resume choice as a pre-existing decision save.
   sim.step(.05);
   expect(w.garrisons.every(g=>g.cutoff==='decision')).toBe(true);
   return sim;
 }
 
-describe('supply-emergency authority pause',()=>{
+describe('legacy explicit decision authority pause',()=>{
   it('preserves the original speed across simultaneous emergencies and save/load',()=>{
-    const sim=simultaneousShortages(),state=sim.state,w=state.living!;
+    const sim=simultaneousLegacyDecisions(),state=sim.state,w=state.living!;
     expect(state.simSpeed).toBe(0);
     expect(w.emergencyResumeSpeed).toBe(5);
     sim.garrisons.resolveEmergency(w.garrisons[0].id,'hold');
@@ -36,7 +37,7 @@ describe('supply-emergency authority pause',()=>{
     for(const n of Object.values(balance(resumed.state)))expect(Math.abs(n)).toBeLessThan(1e-6);
   });
   it('does not allow a speed change to bypass unresolved player decisions',()=>{
-    const sim=simultaneousShortages(),at=sim.state.elapsed,people=structuredClone(sim.state.soldiers);
+    const sim=simultaneousLegacyDecisions(),at=sim.state.elapsed,people=structuredClone(sim.state.soldiers);
     sim.setSpeed(5);expect(sim.state.simSpeed).toBe(0);
     sim.state.simSpeed=5;
     sim.step(.05);
@@ -46,7 +47,7 @@ describe('supply-emergency authority pause',()=>{
     expect(sim.state.living!.emergencyResumeSpeed).toBe(5);
   });
   it('accepts only supported speeds after the decision is resolved',()=>{
-    const sim=simultaneousShortages();
+    const sim=simultaneousLegacyDecisions();
     for(const g of sim.state.living!.garrisons)sim.garrisons.resolveEmergency(g.id,'hold');
     sim.setSpeed(2);expect(sim.state.simSpeed).toBe(2);
     sim.setSpeed(100);expect(sim.state.simSpeed).toBe(2);

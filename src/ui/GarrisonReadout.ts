@@ -20,8 +20,8 @@ export function trenchPresence(state:BattlefieldState,network:TrenchNetwork):Map
 export function garrisonSupplyReadout(state:BattlefieldState,g:Garrison){
   const withdrawn=g.cutoff==='withdraw',people=state.soldiers.filter(s=>s.garrisonId===g.id&&s.needs?.life!=='dead');
   const stock=withdrawn?{...g.forwardStock}:localInventory(state,g);
-  const issue=!withdrawn?g.supplyIssue:stock.food<1||stock.water<1?'Withdrawal point: food or water exhausted':people.some(s=>s.needs!.hungryHours>8||s.needs!.thirstyHours>3)?'Supplies await at the withdrawal point; critical personnel still need access':undefined;
-  return {stock,issue,label:withdrawn?'Withdrawal point':'Trench stores',endurance:Math.min(stock.food/Math.max(1,people.length)*10,stock.water/Math.max(1,people.length)*8.3)};
+  const issue=!withdrawn?g.supplyIssue:stock.food<1?'Withdrawal point: food exhausted · recovery slightly slower':people.some(s=>s.needs!.hunger>80)?'Food awaits at the withdrawal point; personnel still need access':undefined;
+  return {stock,issue,label:withdrawn?'Withdrawal point':'Trench stores',endurance:stock.food/Math.max(1,people.length)*10};
 }
 
 export function withdrawalProgress(g:Garrison,people:SoldierState[]):string {

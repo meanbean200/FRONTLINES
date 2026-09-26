@@ -3,7 +3,7 @@ import {equipmentOf} from '../combat/Equipment';
 import {positionReadiness} from '../combat/WeaponPositions';
 
 /** Shared by scheduling readouts and assault queries. Waiting is not sleeping. */
-export const needsRecovery=(s:SoldierState)=>s.needs?.life!=='active'||s.health<25||(s.needs?.energy??100)<25||Math.max(s.needs?.hunger??0,s.needs?.thirst??0)>=85||Boolean(s.selfCare)||
+export const needsRecovery=(s:SoldierState)=>s.needs?.life!=='active'||s.health<25||(s.needs?.energy??100)<25||Boolean(s.selfCare)||
   s.suppression>=70||['pinned','broken'].includes(s.combat?.reaction??'')||
   ['sleep','meal'].includes(s.duty?.kind??'')||s.duty?.rationUntil!==undefined||['sleeping','eating','incapacitated','evacuated'].includes(s.action)||
   ['disabling','critical','fatal'].includes(s.combat?.wound?.severity??'');

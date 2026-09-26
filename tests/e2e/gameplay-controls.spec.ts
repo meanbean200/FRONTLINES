@@ -33,14 +33,14 @@ test('finite operations explain reserves without offering sandbox spawning',asyn
   await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length)).toBe(before);
 });
 test('Support routes players to physical positions rather than abstract mortar formations',async({page})=>{
-  await meeting(page);await select(page,'Able');await page.locator('#support-command').click();
+  await meeting(page);await select(page,'Able');await page.locator('.hud-tools>summary').click();await page.locator('#open-fire-support').click();
   await expect(page.locator('[data-support="mortarHE"]')).toHaveCount(0);await expect(page.locator('.support-status')).toContainText('Choose guns, then one target');
   await page.locator('.support-other>summary').click();
   await expect(page.locator('[data-support="smokeGrenades"]')).toBeVisible();
 });
 test('machine-gun inspection separates crew readiness from urgent warnings',async({page})=>{
-  await meeting(page);await select(page,'Easy');await expect(page.locator('.crew-readiness')).toBeVisible();await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');
-  await page.locator('[data-speed="1"]').click();await expect(page.locator('.crew-readiness')).toContainText('MG position',{timeout:12000});await page.locator('[data-speed="0"]').click();
+  await meeting(page);await select(page,'Easy');await page.getByRole('button',{name:'Manage',exact:true}).click();await page.getByRole('tab',{name:'Weapons',exact:true}).click();await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');
+  await page.locator('[data-speed="1"]').click();await expect(page.locator('#selection-detail')).toContainText('MG position',{timeout:12000});await page.locator('[data-speed="0"]').click();
 });
 
 // Synthetic saved-world fixtures isolate readiness, not building navigation.
@@ -118,7 +118,7 @@ test('grouped contact symbols stay quiet and allow tactical orders through them'
   const contact=page.locator('.contact-marker');await contact.hover();
   await expect(contact.locator('.marker-tip')).toContainText('Enemy contact area');
   await page.mouse.move(700,700);await expect(contact.locator('.marker-tip')).toBeHidden();
-  await page.getByRole('button',{name:'Options',exact:true}).click();
+  await page.getByRole('button',{name:'Manage',exact:true}).click();
   await page.getByRole('button',{name:'Suppress',exact:true}).click();
   const point=await contact.evaluate(e=>({x:Number((e as HTMLElement).dataset.x),z:Number((e as HTMLElement).dataset.z)}));
   await contact.click();

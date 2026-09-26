@@ -65,3 +65,54 @@ html[data-menu] .camera-compass,html[data-field-map] .camera-compass{visibility:
 .transport-stages{display:flex;gap:3px;padding:0;list-style:none;margin:10px 0;color:var(--muted);font:11px var(--mono)}.transport-stages li{flex:1;border-top:2px solid var(--rule);padding-top:6px}.transport-stages [data-done]{border-color:#82938b;color:#adbbb6}.transport-stages [aria-current]{border-color:#d5c18d;color:#e5d7b0}.passenger-row[data-blocked=true]{border-left:3px solid #bd985f;padding-left:9px}
 .position-manpower{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--ui-border,#7b806c)}.position-manpower strong{font-size:26px}.position-manpower small,.position-manpower span{font:11px var(--font-mono,monospace);letter-spacing:.04em}
 @media(max-width:800px){.camera-compass{left:46%;top:68px;transform:scale(.82);transform-origin:top center}}
+/* One formation intent surface, with optional management rather than a second toolbar. */
+.selection-docket{width:320px;bottom:var(--edge);padding:14px 16px 8px}
+.selection-docket .selection-identity strong{font-size:23px}
+.selection-docket p{margin:7px 0;color:var(--muted);line-height:1.4}
+.selection-docket .formation-warning{margin:7px 0;font-size:13px;line-height:1.4}
+.selection-docket .command-dock{position:static;inset:auto;transform:none;width:100%;max-width:none;background:none;border:0;border-top:1px solid var(--rule);padding:6px 0 0;margin-top:10px}
+.selection-docket .command-dock>div{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.selection-docket .command-dock button{flex-direction:row;min-width:0;min-height:44px;padding:8px 5px;gap:7px;font:15px var(--heading)}
+.selection-docket .command-dock button>.field-icon{width:19px;height:19px}
+.selection-docket .command-dock button[data-hud-panel]{border-left:1px solid var(--rule);color:var(--accent)}
+.selection-card{width:350px;padding:16px;background:var(--ink-deep)}
+.selection-card header{position:sticky;top:-16px;background:var(--ink-deep);z-index:2;padding:8px 80px 8px 0}
+.selection-card header small{font:11px var(--mono);color:var(--muted);letter-spacing:.1em}
+.selection-card h2{font-size:25px;margin:6px 0}
+.selection-context{display:flex;gap:5px;flex-wrap:wrap;padding:8px 0;border-block:1px solid var(--rule)}
+.selection-context button{min-height:44px;font-size:13px;padding:8px 10px}
+.selection-context button>.field-icon{width:18px;height:18px;margin-right:6px}
+.selection-tabs{display:flex;position:sticky;top:64px;background:var(--ink-deep);z-index:1;margin:8px 0 12px;border-bottom:1px solid var(--rule)}
+.selection-tabs button{flex:1;min-width:0;min-height:44px;padding:8px 6px;border:0;border-radius:0;background:none;font:14px var(--heading)}
+.selection-tabs button[aria-selected=true]{border-bottom:2px solid var(--accent);color:var(--accent)}
+.selection-card .unit-ledger dd{overflow-wrap:anywhere}
+.selection-card .selection-state{color:var(--text);font-size:15px}
+.selection-card .drawer-close,.selection-card>#focus-command{z-index:3;min-height:44px;min-width:44px;top:16px}
+.selection-card>#focus-command{right:56px}
+.selection-card .drawer-close{right:8px}
+.position-hover{z-index:9}
+.trench-panel,.build-panel,.deployment-panel,.support-controls,.garrison-panel,.force-roster{background:var(--ink-deep)}
+html[data-position-open] .selection-docket{visibility:hidden}
+.deployment-panel header{position:sticky;top:-20px;background:var(--ink-deep);padding-block:12px;z-index:1}
+.deployment-panel button,.deployment-panel select,.selection-card button{min-height:44px}
+.reinforcement-totals{display:flex;justify-content:space-between;gap:16px;margin:14px 0;font:12px var(--mono);color:var(--muted)}
+.reinforcement-totals b{display:block;font:28px var(--heading);color:var(--text);margin-bottom:3px}
+.passenger-row details{margin-top:8px;color:var(--muted);font-size:12px}
+.passenger-row details summary{min-height:44px}
+.passenger-row .arrival-eta{font:12px var(--mono);color:var(--accent)}
+@media(max-width:600px){.selection-docket{width:min(320px,calc(100% - 32px));bottom:76px}.selection-card{width:calc(100% - 32px)}.mode-label{bottom:248px}.toast{left:var(--edge);right:auto;bottom:248px;max-width:calc(100% - 32px)}}
+@media(max-height:560px){.selection-docket{width:286px;bottom:var(--edge);padding:10px 12px 6px}.selection-docket .selection-identity strong{font-size:20px}.selection-docket .command-dock{margin-top:6px}.selection-card{top:60px;max-height:calc(100dvh - 130px)}.selection-card header{padding-block:4px}.selection-tabs{top:56px}.selection-context{gap:3px}.selection-context button{padding:6px 8px}.mode-label{left:320px;bottom:76px;max-width:calc(100% - 340px)}}
+@media(max-width:600px){.brand{display:none}.camera-compass{left:auto;right:4px;top:78px;transform:scale(.7);transform-origin:top right}.session-controls button{min-height:44px;min-width:44px;padding:6px}.session-controls{right:96px;gap:3px;padding:0}.operation-menu-button{min-height:44px}.selection-card{max-height:calc(100dvh - var(--hud-rail-top) - 84px)}}
+@media(pointer:coarse){.session-controls button,.battle-tools>button,.hud-tools>summary,.position-tabs button,.position-actions button,.trench-actions button,.person-orders button{min-height:44px}}
+/* Inspector actions stay in view; only the requested detail page scrolls. */
+#ui-root[data-hud-panel=selection] .selection-card{display:flex;flex-direction:column;overflow:hidden}
+.selection-card header,.selection-context,.selection-tabs{flex:none;position:static}
+#selection-detail{overflow:auto;overscroll-behavior:contain;min-height:0}
+@media(max-height:560px){
+  .selection-card{padding:12px;max-height:calc(100dvh - 124px)}
+  .selection-card header{min-height:44px;display:flex;align-items:center;padding:0 90px 0 0}
+  .selection-card header small{display:none}.selection-card h2{font-size:21px;margin:0;line-height:1.2}
+  .selection-card .drawer-close,.selection-card>#focus-command{top:12px}
+  .selection-context{flex-wrap:nowrap;overflow-x:auto;padding:6px 0}.selection-context button{flex:none}
+  .selection-tabs{margin:4px 0 6px}
+}

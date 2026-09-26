@@ -41,9 +41,12 @@ describe('validated return approaches',()=>{
     expect(s.duty?.stage).toBe('pickup');expect(total(s.carried!)).toBeGreaterThan(0);expect(plan).toHaveBeenCalled();plan.mockRestore();
   });
   it('continues the actual pickup and laden return identically through save/load',()=>{
-    const {sim,s}=arrivedPickup(),other=new BattlefieldSimulation(new SaveSystem().parse(JSON.stringify(sim.state)));
-    advance(sim,80);advance(other,80);expect(other.state).toEqual(sim.state);
-    expect(s.duty?.stage).not.toBe('pickup');
+    const {sim,s,g,crate}=arrivedPickup(),other=new BattlefieldSimulation(new SaveSystem().parse(JSON.stringify(sim.state)));
+    let returned=false;
+    for(let i=0;i<1600;i++){sim.step(.05);other.step(.05);if(s.duty?.stage==='deliver'&&distance(s,g.entrance)<4)returned=true;}
+    expect(other.state).toEqual(sim.state);expect(returned).toBe(true);
+    // A later replenishment pickup is a new job, not a failed crate return.
+    expect(s.duty?.crateId).not.toBe(crate.id);
     for(const n of Object.values(balance(sim.state)))expect(Math.abs(n)).toBeLessThan(1e-6);
   });
 });

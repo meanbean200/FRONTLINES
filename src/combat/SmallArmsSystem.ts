@@ -18,12 +18,23 @@ export const RIFLE_RULES=Object.freeze({range:360,shotInterval:3.8,damage:60});
 
 /** No renderer dependencies. Shots resolve in stable simulation order. */
 export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,active:SoldierState[],factions:Map<number,Faction>,alarm:(shooter:SoldierState,event:ShotEvent)=>void):void {
-  const op=state.operation!,damage=new Map<SoldierState,{amount:number;event:ShotEvent}>();
+  const op=state.operation!;
+  const able=(s:SoldierState)=>s.health>0&&s.needs?.life==='active';
+  const byId=new Map(state.soldiers.map(s=>[s.id,s]));
+  const forgetTarget=(s:SoldierState)=>{
+    delete s.aimTargetId;delete s.aimReadyAt;if(s.combat)delete s.combat.aim;
+    const weapon=operatedPosition(state,s,'emplacement')?.installation?.weapon??s.combat?.weapon;
+    if(weapon)weapon.burstLeft=0;
+  };
   op.shotEvents=(op.shotEvents??[]).filter(e=>state.elapsed-e.at<.25);
   const buckets=new Map<string,SoldierState[]>(),cell=500;
-  for(const s of active){const key=`${Math.floor(s.x/cell)},${Math.floor(s.z/cell)}`;const row=buckets.get(key)??[];row.push(s);buckets.set(key,row);}
+  for(const s of active){if(!able(s))continue;const key=`${Math.floor(s.x/cell)},${Math.floor(s.z/cell)}`;const row=buckets.get(key)??[];row.push(s);buckets.set(key,row);}
   for(const shooter of active){
-    if(shooter.needs?.life!=='active')continue;
+    // Death/incapacity invalidates tracking before cooldown, reload or duty
+    // early-outs. The caller's active array can also change during this volley.
+    const tracked=shooter.aimTargetId??shooter.combat?.aim?.targetId;
+    if(tracked!==undefined&&(!byId.has(tracked)||!able(byId.get(tracked)!)))forgetTarget(shooter);
+    if(!able(shooter)){forgetTarget(shooter);continue;}
     if(shooter.building?.recovering&&shooter.action==='sleeping')continue;
     if(['pinned','broken'].includes(shooter.combat?.reaction??'')||['casualty','support','self-care'].includes(shooter.combat?.owner??''))continue;
     if((weaponStock(state,shooter)?.ammo??0)<1||shooter.suppression>=90)continue;
@@ -38,8 +49,11 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     const faction=factions.get(shooter.squadId)!,candidates:SoldierState[]=[];
     const cx=Math.floor(shooter.x/cell),cz=Math.floor(shooter.z/cell);
     for(let x=cx-1;x<=cx+1;x++)for(let z=cz-1;z<=cz+1;z++)for(const s of buckets.get(`${x},${z}`)??[])
-      if(factions.get(s.squadId)!==faction&&distance(shooter,s)<definition.range)candidates.push(s);
-    candidates.sort((a,b)=>distance(shooter,a)-distance(shooter,b)||a.id-b.id);
+      if(able(s)&&factions.get(s.squadId)!==faction&&distance(shooter,s)<definition.range)candidates.push(s);
+    // Hold a valid firing solution. A few centimetres of crossing movement
+    // must not keep restarting acquisition (especially automatic weapons).
+    // Visibility, range, sector and cover are still checked below every shot.
+    candidates.sort((a,b)=>Number(b.id===shooter.aimTargetId)-Number(a.id===shooter.aimTargetId)||distance(shooter,a)-distance(shooter,b)||a.id-b.id);
     const mount=operatedPosition(state,shooter,'emplacement');
     const inSector=(p:{x:number;z:number})=>!mount||mount.facing===undefined||Math.cos(Math.atan2(p.x-shooter.x,p.z-shooter.z)-mount.facing)>=.34;
     // Candidates are already in deterministic priority order. Do not trace
@@ -51,7 +65,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
       observed++;
       if(inSector(candidate)){observedInSector=true;solution=clearAimPoint(terrain,shooter,candidate,state);if(solution){target=candidate;break;}}
     }
-    if(!target&&!area){combat.pauseReason=observedInSector?'Firing edge obstructed · cannot clear cover':observed?'Outside mounted gun firing sector':'No observed target in weapon range';delete shooter.aimTargetId;delete shooter.aimReadyAt;delete combat.aim;continue;}
+    if(!target&&!area){combat.pauseReason=observedInSector?'Firing edge obstructed · cannot clear cover':observed?'Outside mounted gun firing sector':'No observed target in weapon range';forgetTarget(shooter);continue;}
     const point=area?{...area,y:terrain.heightAt(area.x,area.z)+.8}:solution!;
     const muzzle=muzzlePoint(terrain,{...shooter,heading:Math.atan2(point.x-shooter.x,point.z-shooter.z)},state);
     if(area){
@@ -70,6 +84,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     if(!area&&definition.burst===1&&.8/(2*Math.PI*envelope**2)<.003&&!squad.order.pushThrough){combat.pauseReason='Holding ammunition · aimed hit implausible';continue;}
     const aimId=area?undefined:target?.id;
     if(shooter.aimTargetId!==aimId||!combat.aim||area&&distance(combat.aim.point,point)>2){
+      weapon.burstLeft=0;
       shooter.heading=heading;shooter.aimTargetId=aimId;
       shooter.aimReadyAt=op.elapsed+.4+hash2D(shooter.id,aimId??0,state.seed)*1.1+(100-(shooter.needs?.energy??100))*.012;
       combat.aim={targetId:aimId,since:state.elapsed,lastSeen:state.elapsed,point,lastHeading:heading,lastPosition:{x:shooter.x,z:shooter.z},settlingUntil:state.elapsed+.5};
@@ -99,13 +114,18 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
       weapon.effectiveUntil=state.elapsed+3;
       weapon.effectivePoint={x:event.to.x,z:event.to.z};
     }
-    if(event.hitId!==undefined){const hit=candidates.find(s=>s.id===event.hitId)!;if(op.casualtyRules)combatWound(state,hit,event);else damage.set(hit,{amount:(damage.get(hit)?.amount??0)+RIFLE_RULES.damage,event});op.hits++;}
-  }
-  for(const [soldier,{amount,event}] of damage){
-    const fatal=soldier.health<=amount;if(!fatal)soldier.health-=amount;
-    soldier.morale=Math.max(0,soldier.morale-amount*.3);soldier.lastHitAt=state.elapsed;
-    if(fatal)recordDeath(state,soldier,{cause:'combat-fire',at:state.elapsed,eventId:event.id,shooterId:event.shooterId,squadId:event.squadId});
-    else if(soldier.health<15){soldier.needs!.life='incapacitated';soldier.action='incapacitated';dropCargo(state,soldier);}
-    if(soldier.needs!.life!=='active')delete soldier.duty;
+    if(event.hitId!==undefined){
+      const hit=candidates.find(s=>s.id===event.hitId)!;
+      if(op.casualtyRules)combatWound(state,hit,event);
+      else if(able(hit)){
+        // Legacy injury rules also resolve in shot order, not at the end of
+        // the volley; later shooters must not acquire an already dead person.
+        const fatal=hit.health<=RIFLE_RULES.damage;if(!fatal)hit.health-=RIFLE_RULES.damage;
+        hit.morale=Math.max(0,hit.morale-RIFLE_RULES.damage*.3);hit.lastHitAt=state.elapsed;
+        if(fatal)recordDeath(state,hit,{cause:'combat-fire',at:state.elapsed,eventId:event.id,shooterId:event.shooterId,squadId:event.squadId});
+        else if(hit.health<15){hit.needs!.life='incapacitated';hit.action='incapacitated';dropCargo(state,hit);delete hit.duty;}
+      }
+      op.hits++;
+    }
   }
 }

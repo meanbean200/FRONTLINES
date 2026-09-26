@@ -12,7 +12,7 @@ test('NORMAL and ALL IN review actual individuals, release on GO and restore det
   for(const s of people){s.needs!.energy=90;s.needs!.hunger=s.needs!.thirst=10;s.suppression=0;s.combat={shotSequence:0};if(!crew.includes(s.id))delete s.duty;}
   await page.evaluate(state=>window.__FRONTLINES__.restoreState(state),state);
   await page.getByRole('button',{name:'Select Able',exact:true}).click();await page.keyboard.press('f');
-  await page.getByRole('button',{name:'Options',exact:true}).click();await page.getByRole('button',{name:'Assault',exact:true}).click();
+  await page.getByRole('button',{name:'Manage',exact:true}).click();await page.getByRole('button',{name:'Assault',exact:true}).click();
   const target=await page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.1),{x:q.x+35,z:q.z+15});await page.mouse.click(target.x,target.y);
   const panel=page.getByRole('region',{name:'Assault preparation'});
   await expect(panel).toBeVisible();await expect(page.getByRole('button',{name:'Close unit details',exact:true})).toBeHidden();await expect(page.locator('#signal-orders')).toBeHidden();
@@ -24,7 +24,7 @@ test('NORMAL and ALL IN review actual individuals, release on GO and restore det
   await page.screenshot({path:info.outputPath('all-in-review.png')});
   await panel.getByRole('button',{name:'Cancel preview',exact:true}).click();await expect(panel).toBeHidden();
   expect(await page.evaluate(id=>window.__FRONTLINES__.getState().living!.facilities.find(p=>p.id===id)!.weaponCrewIds,f.id)).toEqual(crew);
-  await page.getByRole('button',{name:'Options',exact:true}).click();await page.getByRole('button',{name:'Assault',exact:true}).click();await page.mouse.click(target.x,target.y);
+  await page.getByRole('button',{name:'Manage',exact:true}).click();await page.getByRole('button',{name:'Assault',exact:true}).click();await page.mouse.click(target.x,target.y);
   await panel.getByRole('button',{name:'ALL IN',exact:true}).click();await panel.getByRole('button',{name:'Confirm ALL IN · GO',exact:true}).click();
   expect(await page.evaluate(()=>window.__FRONTLINES__.getState().preparedOrders![0].releasedAt)).toBeUndefined();
   await page.locator('[data-speed="1"]').click();await expect(panel).toBeHidden();await page.locator('[data-speed="0"]').click();

@@ -146,7 +146,7 @@ export class CommandInput {
       else if(mode==='move'||mode==='assault'||mode==='fall-back'){
         const r=marchPreview(this.options.getState(),this.options.selectedSquads,this.trenchPoints);
         this.draft.hidden=false;this.draft.dataset.invalid=String(r.atRisk>0);
-        this.draft.innerHTML=`<strong>ROUTE ESTIMATE / ${Math.round(r.length)} METRES</strong><br>~${marchMinutes(r.travelSeconds)} travel + ~${marchMinutes(r.restSeconds)} recovery at 1×<br>Carried food/water: ~${marchMinutes(r.enduranceSeconds)} to critical need${r.atRisk?`<br>LOW SUPPLIES · ${r.atRisk} people may exceed carried endurance`:''}<br>Terrain, danger and detours may add time. Resupply is not assumed.`;
+        this.draft.innerHTML=`<strong>ROUTE / ${Math.round(r.length)} METRES</strong><br>~${marchMinutes(r.travelSeconds)} travel + ~${marchMinutes(r.restSeconds)} rest at 1×${r.atRisk?'<br>Food may run short · slower recovery, never starvation':''}`;
       }
     }
   };

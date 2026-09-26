@@ -1,0 +1,37 @@
+### Result
+{"browserMove":{"count":6,"target":{"x":958.7932526993782,"z":1003.2822779222117},"centroid":{"x":958.8122389190069,"z":1003.2121902110972},"orders":[{"id":252,"target":{"x":948.8122389190069,"z":998.2121902110973},"n":8},{"id":261,"target":{"x":958.8122389190069,"z":998.2121902110973},"n":8},{"id":270,"target":{"x":968.8122389190069,"z":998.2121902110973},"n":8},{"id":279,"target":{"x":948.8122389190069,"z":1008.2121902110973},"n":8},{"id":288,"target":{"x":958.8122389190069,"z":1008.2121902110973},"n":8},{"id":297,"target":{"x":968.8122389190069,"z":1008.2121902110973},"n":8}]}}
+### Ran Playwright code
+```js
+await (async page => {
+ await page.setViewportSize({width:1920,height:1080});
+ await page.getByRole('button',{name:'Quick Battle',exact:true}).click();
+ await page.locator('[data-mode-choice="line-defense"]').click();
+ await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');
+ await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();
+ await page.locator('[data-speed="0"]').click();
+ await page.locator('.hud-tools>summary').click();await page.locator('#roster-toggle').click();
+ await page.locator('.roster-row').first().click();await page.getByRole('button',{name:'Close forces',exact:true}).click();
+ await page.screenshot({path:'output/playwright/current-delta-after-desktop.png'});
+ await page.getByRole('button',{name:'Manage',exact:true}).click();
+ await page.getByRole('tab',{name:'People',exact:true}).click();
+ await page.screenshot({path:'output/playwright/current-delta-manage-desktop.png'});
+ await page.keyboard.press('Escape');await page.setViewportSize({width:844,height:390});
+ await page.screenshot({path:'output/playwright/current-delta-landscape.png'});
+ await page.getByRole('button',{name:'Manage',exact:true}).click();
+ await page.screenshot({path:'output/playwright/current-delta-manage-landscape.png'});
+ await page.keyboard.press('Escape');await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:'output/playwright/current-delta-portrait.png'});
+ await page.setViewportSize({width:1920,height:1080});
+ await page.locator('.hud-tools>summary').click();await page.locator('#roster-toggle').click();await page.locator('#rifle-select').click();await page.getByRole('button',{name:'Close forces',exact:true}).click();
+ const before=await page.evaluate(()=>{const s=window.__FRONTLINES__.getState(),q=s.squads.find(q=>q.faction==='player');const world={x:q.x+75,z:q.z+10};return {world,screen:window.__FRONTLINES__.projectWorld(world.x,world.z,.1)};});
+ await page.mouse.click(before.screen.x,before.screen.y,{button:'right'});
+ const result=await page.evaluate(()=>window.__FRONTLINES__.getState().squads.filter(q=>q.faction==='player'&&q.order.type==='move').map(q=>({id:q.id,target:q.order.target,n:q.soldierIds.length})));
+ if(result.length<2)throw Error('Expected a real multi-formation move');
+ const n=result.reduce((a,q)=>a+q.n,0),centroid=result.reduce((a,q)=>({x:a.x+q.target.x*q.n/n,z:a.z+q.target.z*q.n/n}),{x:0,z:0});
+ if(Math.hypot(centroid.x-before.world.x,centroid.z-before.world.z)>12.1)throw Error('Destination centre drift');
+ console.log(JSON.stringify({browserMove:{count:result.length,target:before.world,centroid,orders:result}}));
+ await page.screenshot({path:'output/playwright/current-delta-multi-move.png'});
+ return {browserMove:{count:result.length,target:before.world,centroid,orders:result}};
+}
+)(page);
+```

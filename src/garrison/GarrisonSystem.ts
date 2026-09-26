@@ -161,10 +161,10 @@ export class GarrisonSystem {
     return {accepted:true,reason};
   }
   private personalDuty(s:SoldierState):boolean {
-    return Boolean(s.duty?.playerOrdered&&this.state.elapsed<s.duty.until&&s.needs!.energy>10&&s.needs!.hunger<85&&s.needs!.thirst<85)||this.weaponDuty(s)||this.explicitWorker(s);
+    return Boolean(s.duty?.playerOrdered&&this.state.elapsed<s.duty.until&&s.needs!.energy>10)||this.weaponDuty(s)||this.explicitWorker(s);
   }
   private weaponDuty(s:SoldierState):boolean {
-    return Boolean(s.duty?.kind==='watch'&&this.state.living!.facilities.some(f=>f.id===s.duty!.facilityId&&(f.weaponCrewIds?.includes(s.id)||f.crewRelief?.incomingId===s.id))&&s.needs!.energy>25&&s.needs!.hunger<70&&s.needs!.thirst<70);
+    return Boolean(s.duty?.kind==='watch'&&this.state.living!.facilities.some(f=>f.id===s.duty!.facilityId&&(f.weaponCrewIds?.includes(s.id)||f.crewRelief?.incomingId===s.id))&&s.needs!.energy>25);
   }
   /** Compatibility command: choose two people, never assign or move their formation. */
   assignWeapon(squadId:number,facilityId:number):{accepted:boolean;reason:string}{
@@ -185,7 +185,7 @@ export class GarrisonSystem {
     if(this.state.operation&&this.state.operation.status!=='active')return 'Operation ended.';
     if((this.state.squads.find(q=>q.id===s.squadId)?.faction??'player')!==(g.faction??'player'))return 'Choose friendly personnel.';
     if(s.needs?.life!=='active'||s.health<=0)return 'PERSON CURRENTLY INCAPACITATED';
-    if(!allowRecovery&&(s.health<25||['disabling','critical','fatal'].includes(s.combat?.wound?.severity??'')||s.needs.energy<25||Math.max(s.needs.hunger,s.needs.thirst)>=85))return 'Critical recovery needed · cannot assign work or weapon duty';
+    if(!allowRecovery&&(s.health<25||['disabling','critical','fatal'].includes(s.combat?.wound?.severity??'')||s.needs.energy<25))return 'Critical recovery needed · cannot assign work or weapon duty';
     if(g.cutoff==='withdraw')return 'Area withdrawal takes priority.';
     if(s.building||this.state.squads.find(q=>q.id===s.squadId)?.order.building)return 'Leave the building order before assigning this person.';
     if(s.selfCare)return 'Survival break in progress · let this person return first.';
@@ -254,9 +254,8 @@ export class GarrisonSystem {
         if(s.duty?.playerOrdered&&s.duty.kind!=='watch'&&this.state.elapsed<s.duty.until)continue;
         if(active.includes(s)&&!this.personBlock(s,g,false,true)&&s.duty?.kind==='watch'){
           if(s.needs!.energy<25){this.assignRest(s,g,active,300);continue;}
-          if(s.needs!.hunger>70||s.needs!.thirst>70)delete s.duty;
         }
-        if(!active.includes(s)||this.personBlock(s,g)||s.needs!.energy<25||s.needs!.hunger>70||s.needs!.thirst>70||s.duty?.kind==='haul'||s.duty?.kind==='meal'||s.duty?.kind==='sleep'&&s.needs!.energy<65)continue;
+        if(!active.includes(s)||this.personBlock(s,g)||s.needs!.energy<25||s.duty?.kind==='haul'||s.duty?.kind==='meal'||s.duty?.kind==='sleep'&&s.needs!.energy<65)continue;
         const resource:Resource=f.kind==='mortar'?(f.stock.mortarHE<1?'mortarHE':'mortarSmoke'):'ammo',low=s!==operator&&f.stock[resource]<(f.kind==='mortar'?2:30)&&s.carried![resource]<(f.kind==='mortar'?1:8),source=this.supplySource(g,resource);
         const stock=source.storeId?this.state.living!.facilities.find(p=>p.id===source.storeId)!.stock:g.cache;
         if(low&&availableForPerson(this.state,s.id,source.storeId?'store':'local',source.storeId??g.id,resource,stock[resource])>0){if(this.assignDuty(s,g,'meal',this.supplyPoint(g,s,source.storeId),'Reload weapon ammunition from local stores',30)){s.duty!.stage='pickup';s.duty!.pickupStoreId=source.storeId;}continue;}
@@ -283,11 +282,12 @@ export class GarrisonSystem {
       return;
     }
     if((f.weaponCrewIds?.length??0)<WEAPON_POSITIONS[f.kind as WeaponPositionKind].crew)return;
-    const outgoing=crewAt(this.state,f).filter(s=>s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&!s.duty.playerOrdered&&!s.combat?.careTask&&s.combat?.owner!=='support'&&(s.needs!.energy<45||s.needs!.hunger>=55||s.needs!.thirst>=50))
+    const food=localInventory(this.state,g).food;
+    const outgoing=crewAt(this.state,f).filter(s=>s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&!s.duty.playerOrdered&&!s.combat?.careTask&&s.combat?.owner!=='support'&&(s.needs!.energy<45||s.needs!.hunger>=55&&(food>0||(s.carried?.food??0)>0)||s.needs!.thirst>=50&&(s.carried?.water??0)>0))
       .sort((a,b)=>a.needs!.energy-b.needs!.energy||a.id-b.id)[0];
     if(!outgoing)return;
     const busy=new Set(this.state.living!.facilities.flatMap(p=>[...(p.weaponCrewIds??[]),...(p.crewRelief?[p.crewRelief.incomingId]:[])]));
-    const candidates=active.filter(s=>!busy.has(s.id)&&!this.personBlock(s,g)&&!s.duty?.playerOrdered&&!s.combat?.careTask&&!hasEquipment(this.state,s,'medicalKit')&&s.needs!.energy>=65&&s.needs!.hunger<45&&s.needs!.thirst<40&&(!s.duty||['rest','patrol'].includes(s.duty.kind)||(effectiveReadiness(g,this.state.elapsed)==='stand-to'&&s.duty.kind==='construct')))
+    const candidates=active.filter(s=>!busy.has(s.id)&&!this.personBlock(s,g)&&!s.duty?.playerOrdered&&!s.combat?.careTask&&!hasEquipment(this.state,s,'medicalKit')&&s.needs!.energy>=65&&(!s.duty||['rest','patrol'].includes(s.duty.kind)||(effectiveReadiness(g,this.state.elapsed)==='stand-to'&&s.duty.kind==='construct')))
       .sort((a,b)=>distance(a,f)-distance(b,f)||a.id-b.id);
     for(const incoming of candidates){
       const point=weaponCrewPoint(this.state,f,f.weaponCrewIds!.indexOf(outgoing.id));
@@ -327,7 +327,7 @@ export class GarrisonSystem {
     const released=this.state.soldiers.filter(s=>f.workOrder!.workerIds.includes(s.id)&&(s.building||buildingOrders.has(s.squadId)));
     for(const s of released){f.workOrder.workerIds=f.workOrder.workerIds.filter(id=>id!==s.id);if(s.personalArea){delete s.garrisonId;delete s.personalArea;delete s.duty;delete s.trenchId;}}
     const g=this.state.living!.garrisons.find(g=>g.id===f.garrisonId)!;
-    const people=this.state.soldiers.filter(s=>s.needs?.life==='active'&&!s.selfCare&&s.needs.energy>25&&s.needs.hunger<70&&s.needs.thirst<70&&!(s.duty?.kind==='watch'&&(g.underFireUntil??0)>this.state.elapsed)&&['hold','occupy-trench'].includes(this.state.squads.find(q=>q.id===s.squadId)?.order.type??'')&&!s.duty?.playerOrdered&&!this.state.living!.facilities.some(o=>o!==f&&(o.weaponCrewIds?.includes(s.id)||o.progress<1&&o.workOrder?.workerIds.includes(s.id))));
+    const people=this.state.soldiers.filter(s=>s.needs?.life==='active'&&!s.selfCare&&s.needs.energy>25&&!(s.duty?.kind==='watch'&&(g.underFireUntil??0)>this.state.elapsed)&&['hold','occupy-trench'].includes(this.state.squads.find(q=>q.id===s.squadId)?.order.type??'')&&!s.duty?.playerOrdered&&!this.state.living!.facilities.some(o=>o!==f&&(o.weaponCrewIds?.includes(s.id)||o.progress<1&&o.workOrder?.workerIds.includes(s.id))));
     const crew=()=>this.state.soldiers.filter(s=>f.workOrder!.workerIds.includes(s.id)&&s.needs?.life==='active');
     // One skilled worker before helpers; don't exhaust all available tool sets
     // on the first two placements. A full labor-only legacy crew may gain a
@@ -341,7 +341,7 @@ export class GarrisonSystem {
     const n=crew().length,skilled=crew().some(s=>hasEquipment(this.state,s,'tools'));return {accepted:n>0&&skilled,reason:skilled?`${n} workers assigned. Free workers will continue queued work.`:n?'Waiting for a free local tool carrier; assigned laborers retained.':'Waiting for available local workers; move a free crew closer.'};
   }
   private explicitWorker(s:SoldierState):boolean {
-    return this.state.living!.facilities.some(f=>f.progress<1&&f.workOrder?.explicit&&f.workOrder.workerIds.includes(s.id))&&s.needs!.energy>15&&s.needs!.hunger<80&&s.needs!.thirst<80;
+    return this.state.living!.facilities.some(f=>f.progress<1&&f.workOrder?.explicit&&f.workOrder.workerIds.includes(s.id))&&s.needs!.energy>15;
   }
   private coordinateWork(g:Garrison,active:SoldierState[]):void {
     reconcileSupplyDemands(this.state);
@@ -485,22 +485,18 @@ export class GarrisonSystem {
       w.metrics.watchGapHours+=Math.max(0,g.watchRequired-g.watchPresent)*dt*CAMPAIGN_HOURS_PER_SECOND;
       if(this.state.elapsed>=g.nextDecision){const phase=(g.id%10)*.5;g.nextDecision=(Math.floor((this.state.elapsed-phase)/5)+1)*5+phase;this.coordinate(g,people);this.coordinateFiringEdges(g,people);}
       for(const s of people)this.execute(s,g,dt);
-      const local=localInventory(this.state,g),noSupply=local.food<1||local.water<1;
-      const criticalAccess=alive.some(s=>s.needs!.hungryHours>8||s.needs!.thirstyHours>3);
-      g.supplyIssue=noSupply?'Local food or water exhausted':criticalAccess?'Stocks exist, but supplies are not reaching critical personnel':undefined;
-      if((criticalAccess||noSupply&&alive.some(s=>s.needs!.hunger>65||s.needs!.thirst>65))&&g.cutoff==='clear')g.cutoff='warning';
+      const local=localInventory(this.state,g),noSupply=local.food<1;
+      const missingMeals=alive.some(s=>s.needs!.hunger>80);
+      g.supplyIssue=noSupply?'Food unavailable locally · recovery slightly slower':missingMeals?'Food awaits delivery to personnel':undefined;
+      if(noSupply&&missingMeals&&g.cutoff==='clear')g.cutoff='warning';
+      // Older lethal-needs incidents remain readable, but cannot lock the
+      // simulation behind an obsolete life-or-death food/water decision.
+      if(g.cutoff==='decision')g.cutoff='warning';
       // A token delivery must not reset an acknowledged incident and pause again.
-      if(!criticalAccess&&local.food>=alive.length*.5&&local.water>=alive.length*.5){
+      if(!missingMeals&&local.food>=alive.length*.5){
         g.recoveredSince??=this.state.elapsed;
         if(this.state.elapsed-g.recoveredSince>=75&&['warning','hold','recover'].includes(g.cutoff))g.cutoff='clear';
       }else delete g.recoveredSince;
-      if(criticalAccess&&g.cutoff==='warning'){
-        if(g.faction==='enemy'){g.cutoff='hold';g.nextDecision=0;continue;}
-        // Several networks can raise an incident in this fixed step. Only the first
-        // owns the resume speed; later incidents must not replace it with zero.
-        if(!w.garrisons.some(other=>other.cutoff==='decision'))w.emergencyResumeSpeed=this.state.simSpeed;
-        g.cutoff='decision';this.state.simSpeed=0;
-      }
     }
     for(const s of this.state.soldiers){const before=s.needs!.life;updateNeeds(this.state,s,dt);if(before==='active'&&s.needs!.life!=='active'){dropCargo(this.state,s);delete s.duty;}}
     reconcileSupplyDemands(this.state);
@@ -536,10 +532,10 @@ export class GarrisonSystem {
     }
     const watch=active.filter(s=>s.duty?.kind==='watch'),reservedReliefs=new Set(watch.map(s=>s.duty?.relieving));
     let needed=Math.max(0,g.watchRequired-watch.length);
-    const urgency=(s:SoldierState)=>Math.max(s.needs!.hunger,s.needs!.thirst,100-s.needs!.energy)+(this.state.elapsed-s.duty!.until)/75;
-    const overdue=watch.filter(s=>!this.weaponDuty(s)&&s.duty!.relieving===undefined&&s.duty!.arrivedAt!==undefined&&(this.state.elapsed>=s.duty!.until-45||s.needs!.hunger>65||s.needs!.thirst>65||this.state.operation&&(s.carried?.ammo??0)<8)&&!reservedReliefs.has(s.id)).sort((a,b)=>urgency(b)-urgency(a)||a.id-b.id);
+    const urgency=(s:SoldierState)=>100-s.needs!.energy+(this.state.elapsed-s.duty!.until)/75;
+    const overdue=watch.filter(s=>!this.weaponDuty(s)&&s.duty!.relieving===undefined&&s.duty!.arrivedAt!==undefined&&(this.state.elapsed>=s.duty!.until-45||s.needs!.energy<35||s.needs!.hunger>65&&local.food>0||this.state.operation&&(s.carried?.ammo??0)<8)&&!reservedReliefs.has(s.id)).sort((a,b)=>urgency(b)-urgency(a)||a.id-b.id);
     const assignedCrew=new Set(w.facilities.flatMap(f=>[...(f.weaponCrewIds??[]),...(f.crewRelief?[f.crewRelief.incomingId]:[])]));
-    const recruits=active.filter(s=>!assignedCrew.has(s.id)&&!hasEquipment(this.state,s,'medicalKit')&&!hasEquipment(this.state,s,'mortar')&&s.duty?.kind!=='watch'&&s.needs!.energy>45&&s.needs!.hunger<55&&s.needs!.thirst<55&&(!s.duty||['rest','patrol'].includes(s.duty.kind)||(readiness!=='routine'&&needed>0&&s.duty.patientId===undefined&&s.duty.kind!=='haul'&&s.duty.kind!=='meal')||(needed>0||overdue.length>0)&&s.duty.kind==='sleep'&&s.needs!.energy>75&&(needed>0||s.duty.arrivedAt!==undefined&&this.state.elapsed-s.duty.arrivedAt>=75)))
+    const recruits=active.filter(s=>!assignedCrew.has(s.id)&&!hasEquipment(this.state,s,'medicalKit')&&!hasEquipment(this.state,s,'mortar')&&s.duty?.kind!=='watch'&&s.needs!.energy>45&&(!s.duty||['rest','patrol'].includes(s.duty.kind)||(readiness!=='routine'&&needed>0&&s.duty.patientId===undefined&&s.duty.kind!=='haul'&&s.duty.kind!=='meal')||(needed>0||overdue.length>0)&&s.duty.kind==='sleep'&&s.needs!.energy>75&&(needed>0||s.duty.arrivedAt!==undefined&&this.state.elapsed-s.duty.arrivedAt>=75)))
       .sort((a,b)=>{const score=(s:SoldierState)=>s.needs!.energy-s.needs!.watchHours*3-(s.duty?.kind==='sleep'?80:0)-(this.isEngineer(s)?15:0);return score(b)-score(a)||a.id-b.id;});
     for(const s of recruits){
       if(this.personalDuty(s))continue;
@@ -578,20 +574,20 @@ export class GarrisonSystem {
         }
         continue;
       }
-      if(d&&this.state.elapsed<d.until&&!(Math.max(n.hunger,n.thirst)>85&&d.kind!=='meal')&&!(n.energy<10&&d.kind!=='sleep'&&d.kind!=='meal'))continue;
+      if(d&&this.state.elapsed<d.until&&!(n.energy<10&&d.kind!=='sleep'&&d.kind!=='meal'))continue;
       if(d?.kind==='haul'&&total(s.carried??inventory())>0)continue;
       const patient=people.filter(p=>p.needs!.life==='incapacitated'&&(p.needs!.hunger>45||p.needs!.thirst>40)||p.needs!.life==='active'&&p.duty?.kind==='watch'&&p.duty.arrivedAt!==undefined&&(p.needs!.hunger>70&&(p.carried?.food??0)<1||p.needs!.thirst>70&&(p.carried?.water??0)<1||this.state.operation&&(p.carried?.ammo??0)<8)).filter(p=>!people.some(c=>c.duty?.patientId===p.id)).sort((a,b)=>(a.needs!.life==='incapacitated'?-1:0)-(b.needs!.life==='incapacitated'?-1:0)||Math.max(b.needs!.hunger,b.needs!.thirst)-Math.max(a.needs!.hunger,a.needs!.thirst))[0];
       const aidKey=patient&&this.state.operation&&patient.needs!.life==='active'&&(patient.carried?.ammo??0)<8?'ammo':patient&&patient.needs!.thirst>=patient.needs!.hunger?'water':'food',aidPacked=(s.carried?.[aidKey]??0)>=(aidKey==='ammo'?8:1);
-      if(patient&&n.energy>45&&n.hunger<55&&n.thirst<55&&people.filter(p=>p.duty?.patientId!==undefined).length<2&&(aidPacked||local[aidKey]>=1)){
+      if(patient&&n.energy>45&&people.filter(p=>p.duty?.patientId!==undefined).length<2&&(aidPacked||local[aidKey]>=1)){
         const source=this.supplySource(g,aidKey);
         const destination=aidPacked?patient:this.supplyPoint(g,s,source.storeId);
         const reason=patient.needs!.life==='incapacitated'?'Deliver aid to incapacitated comrade':'Replenish occupied watch post';
         if(this.assignDuty(s,g,'haul',destination,reason,120,aidPacked&&!this.network.corridorContains(patient))){s.duty!.stage=aidPacked?'deliver':'pickup';s.duty!.patientId=patient.id;s.duty!.pickupStoreId=source.storeId;}continue;
       }
-      const rationed=['warning','hold','recover','decision'].includes(g.cutoff),threshold=rationed?55:35,portion=rationed?.5:1;
+      const rationed=['warning','hold','recover','decision'].includes(g.cutoff),threshold=55,portion=rationed?.5:1;
       const rearm=Boolean(this.state.operation&&(s.carried?.ammo??0)<12&&local.ammo>0);
-      if(rearm||(n.hunger>threshold||n.thirst>threshold)&&(local.food>=portion||local.water>=portion||(s.carried?.food??0)>0||(s.carried?.water??0)>0)&&(g.scores[3]>.35||n.hunger>65||n.thirst>65)){
-        const meal=this.facility(g,'meal',people),packed=(s.carried?.food??0)>=portion&&(s.carried?.water??0)>=portion,source=this.supplySource(g,n.thirst>=n.hunger?'water':'food');
+      if(rearm||n.hunger>threshold&&(local.food>=portion||(s.carried?.food??0)>0)||n.thirst>threshold&&(s.carried?.water??0)>0){
+        const meal=this.facility(g,'meal',people),packed=n.hunger>threshold?(s.carried?.food??0)>=portion:(s.carried?.water??0)>=portion,source=this.supplySource(g,'food');
         const refill=rearm?this.supplySource(g,'ammo'):source,usePack=packed&&!rearm;
         if(this.assignDuty(s,g,'meal',usePack?this.localMealPoint(g,s):this.supplyPoint(g,s,refill.storeId),rearm?'Rearm at a physical supply point':rationed?'Reduced ration during shortage':packed?'Eat carried rations':'Collect meal and water',15)){s.duty!.stage=usePack?'deliver':'pickup';s.duty!.pickupStoreId=refill.storeId;if(meal&&!usePack)s.duty!.facilityId=meal.id;continue;}
       }

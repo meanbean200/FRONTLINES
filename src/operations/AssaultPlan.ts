@@ -41,7 +41,7 @@ export function previewAssault(state:BattlefieldState,squadIds:readonly number[]
     else if(['disabling','critical','fatal'].includes(s.combat?.wound?.severity??'')||s.health<25)reason='Serious wound';
     else if(s.combat?.careTask)reason='Casualty care · safe handover required';
     else if(s.suppression>=70||['pinned','broken'].includes(s.combat?.reaction??''))reason='Physically pinned or broken';
-    else if((n?.energy??100)<25||Math.max(n?.hunger??0,n?.thirst??0)>=85||s.selfCare&&s.selfCare.kind!=='sleep')reason='Critical self-care';
+    else if((n?.energy??100)<25||s.selfCare&&s.selfCare.kind!=='sleep')reason='Critical self-care';
     else if(committedToAssault(state,s))reason='Already committed to an assault';
     else if(staffing==='normal'&&crew)reason='Protected station crew';
     else if(staffing==='normal'&&resting)reason='Protected recovery';

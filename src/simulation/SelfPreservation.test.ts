@@ -34,10 +34,10 @@ describe('general survival without losing standing orders',()=>{
     expect(p.needs!.hunger).toBeLessThan(55);expect(p.needs!.thirst).toBeLessThan(50);
     for(const k of Object.keys(before) as (keyof typeof before)[])expect(balance(s)[k]).toBeCloseTo(before[k],7);
   },20000);
-  it('sleeps outside a trench and resumes a prepared standing intention without healing wounds',()=>{
+  it('takes field rest outside a trench and resumes a standing intention without healing wounds',()=>{
     const {sim,s,q,p}=fixture();delete p.building;delete q.order.building;p.x=s.living!.rear.x;p.z=s.living!.rear.z-5;p.needs!.energy=12;p.needs!.hunger=10;p.needs!.thirst=10;
     (p.combat??={shotSequence:0}).wound={severity:'legacy',at:0,stabilized:true,care:'stabilized'};p.health=60;const order=structuredClone(q.order);
-    tick(sim);expect(p.action).toBe('sleeping');const at={x:p.x,z:p.z};
+    tick(sim);expect(p.action).toBe('resting');const at={x:p.x,z:p.z};
     for(let i=0;i<5200&&p.selfCare;i++)tick(sim);
     expect(p.selfCare).toBeUndefined();expect(p.needs!.energy).toBeGreaterThan(44.99);expect({x:p.x,z:p.z}).toEqual(at);expect(p.health).toBe(60);expect(q.order).toEqual(order);
   });
@@ -54,19 +54,19 @@ describe('general survival without losing standing orders',()=>{
     const route=sim.navigation.plan(from,to,undefined,true);expect(route.length).toBeGreaterThan(0);
     expect(route.every((p,i)=>sim.navigation.segmentClear(i?route[i-1]:from,p,.5))).toBe(true);
   });
-  it('staggers ordinary rest and gives severe thirst priority while physically resting on a long supply journey',()=>{
+  it('staggers field rest and recovers before a local food trip, without a water emergency',()=>{
     const {sim,s,q,p}=fixture();
     for(const other of s.soldiers.filter(o=>o.squadId===q.id)){other.needs!.life='active';other.needs!.energy=16;other.needs!.hunger=10;other.needs!.thirst=10;other.x=p.x+30+other.id;other.z=p.z;delete other.garrisonId;delete other.duty;}
     delete q.order.building;delete p.building;q.order.type='hold';
     stepSelfPreservation(s,sim.terrain,sim.navigation,.05);
-    expect(s.soldiers.filter(o=>o.squadId===q.id&&o.selfCare?.kind==='sleep').length).toBe(Math.ceil(q.soldierIds.length/4));
-    delete p.selfCare;p.nextSelfCareReview=0;p.needs!.thirst=85;p.needs!.energy=16;p.carried!.water=0;
+    expect(s.soldiers.filter(o=>o.squadId===q.id&&o.selfCare?.kind==='field-rest').length).toBe(Math.ceil(q.soldierIds.length/4));
+    delete p.selfCare;p.nextSelfCareReview=0;p.needs!.thirst=85;p.needs!.hunger=65;p.needs!.energy=90;p.carried!.water=p.carried!.food=0;
     // Personal errands are now bounded to 120m; this is a reachable local trip,
     // not permission to dispatch an exhausted person across half the map.
     s.living!.rear=sim.navigation.freeDestination({x:p.x+25,z:p.z+15});
     stepSelfPreservation(s,sim.terrain,sim.navigation,.05);expect(s.soldiers.find(o=>o.id===p.id)!.selfCare?.kind).toBe('resupply');
     p.needs!.energy=11;p.selfCare!.stage='outbound';const before={x:p.x,z:p.z};
     for(let i=0;i<100;i++)tick(sim);
-    expect(s.soldiers.find(o=>o.id===p.id)!.selfCare?.recovering).toBe(true);expect(p.action).toBe('sleeping');expect(p.needs!.energy).toBeGreaterThan(11);expect({x:p.x,z:p.z}).toEqual(before);
+    expect(s.soldiers.find(o=>o.id===p.id)!.selfCare?.recovering).toBe(true);expect(p.action).toBe('resting');expect(p.needs!.energy).toBeGreaterThan(11);expect({x:p.x,z:p.z}).toEqual(before);
   });
 });

@@ -1,0 +1,28 @@
+### Result
+{"before":"48\nRESERVE\n0\nINCOMING","after":"40\nRESERVE\n8\nINCOMING","compact":"Reserve 1 · 8 personnel\n\nNetwork 251 · Awaiting transport\n\nETA pending truck assignment\n\nLocate\nTransport details","manifests":[{"id":385,"stage":"edge"},{"id":387,"stage":"edge"},{"id":389,"stage":"edge"},{"id":391,"stage":"edge"},{"id":393,"stage":"edge"},{"id":395,"stage":"edge"},{"id":397,"stage":"edge"},{"id":399,"stage":"edge"}],"elapsed":0,"simSpeed":0}
+### Ran Playwright code
+```js
+await (async page => {
+ await page.goto('http://127.0.0.1:4173/');
+ await page.setViewportSize({width:1440,height:900});
+ await page.getByRole('button',{name:'Quick Battle',exact:true}).click();
+ await page.locator('[data-mode-choice="open-front"]').click();
+ await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');
+ await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
+ await page.locator('#deployment-command').click();
+ const before=await page.locator('.reinforcement-totals').innerText();
+ await page.locator('[data-request-reserves]').click();
+ await page.locator('.passenger-row').first().waitFor();
+ const after=await page.locator('.reinforcement-totals').innerText();
+ await page.locator('.passenger-row').first().getByRole('button',{name:/Locate/}).click();
+ await page.screenshot({path:'output/playwright/current-delta-reinforcements.png'});
+ const compact=await page.locator('.passenger-row').first().innerText();
+ await page.locator('.passenger-row').first().locator('summary').click();
+ await page.screenshot({path:'output/playwright/current-delta-transport-details.png'});
+ const state=await page.evaluate(()=>window.__FRONTLINES__.getState());
+ const manifests=state.operation.campaign.replacements.manifests.filter(m=>m.side==='player');
+ if(manifests.length!==8||manifests.some(m=>m.stage==='arrived'))throw Error('Request did not retain physical waiting passengers');
+ return {before,after,compact,manifests:manifests.map(m=>({id:m.id,stage:m.stage,garrisonId:m.garrisonId})),elapsed:state.elapsed,simSpeed:state.simSpeed};
+}
+)(page);
+```

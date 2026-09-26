@@ -103,6 +103,7 @@ export interface LogisticsConfig {
 export interface LivingWorld {
   entry?:Vec2;
   enemySupply?:{rear:Vec2;entry?:Vec2;stock:Inventory;nextDelivery:number};
+  /** lethalNeeds is a deprecated save field. Sustenance damage is never enabled. */
   version: 1; campaignHours: number; lethalNeeds: boolean; garrisons: Garrison[]; facilities: Facility[];
   trucks: Truck[]; crates: Crate[]; rear: Vec2; rearStock: Inventory; nextDelivery: number;
   ledger: { initial: Inventory; imported: Inventory; consumed: Inventory; lost: Inventory };

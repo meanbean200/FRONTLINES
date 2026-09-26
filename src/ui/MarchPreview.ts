@@ -13,10 +13,9 @@ export function marchPreview(state:BattlefieldState,ids:ReadonlySet<number>,rout
     const travel=metres/1.8,n=s.needs!,loss=NEED_RULES.travelLossPerHour*CAMPAIGN_HOURS_PER_SECOND;
     const initial=n.energy<=25?45-n.energy:0;
     const breaks=Math.ceil(Math.max(0,travel*loss-Math.max(0,n.energy+initial-25))/20);
-    const recovery=(breaks*20+initial)/(NEED_RULES.floorSleepRecoveryPerHour*CAMPAIGN_HOURS_PER_SECOND);
+    const recovery=(breaks*20+initial)/(NEED_RULES.fieldRestRecoveryPerSecond*(n.hunger>=80?.9:1));
     const food=Math.max(0,85-n.hunger+(s.carried?.food??0)*40)/(NEED_RULES.hungerPerHour*CAMPAIGN_HOURS_PER_SECOND);
-    const water=Math.max(0,85-n.thirst+(s.carried?.water??0)*50)/(NEED_RULES.thirstPerHour*CAMPAIGN_HOURS_PER_SECOND);
-    const endurance=Math.min(food,water);
+    const endurance=food;
     if(travel+recovery>endurance)atRisk++;
     travelSeconds=Math.max(travelSeconds,travel);restSeconds=Math.max(restSeconds,recovery);enduranceSeconds=Math.min(enduranceSeconds,endurance);
   }

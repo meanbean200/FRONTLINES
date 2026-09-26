@@ -24,11 +24,12 @@ describe('garrison supply presentation',()=>{
     const view=garrisonSupplyReadout(state,g);expect(view.stock.food).toBe(g.forwardStock.food);expect(view.label).toBe('Withdrawal point');expect(view.issue).toBeUndefined();expect(view.endurance).toBeGreaterThan(0);expect(state).toEqual(before);
     g.cutoff='clear';expect(garrisonSupplyReadout(state,g).stock.food).toBe(0);expect(garrisonSupplyReadout(state,g).issue).toBe(g.supplyIssue);
   });
-  it('keeps real withdrawal shortages and critical access warnings visible',()=>{
+  it('keeps real food shortages local without turning missing water into a crisis',()=>{
     const {state}=createStudyScenario(),g=state.living!.garrisons[0];g.cutoff='withdraw';
     expect(garrisonSupplyReadout(state,g).issue).toContain('exhausted');
-    transfer(g.cache,g.forwardStock,'food',10);transfer(g.cache,g.forwardStock,'water',10);state.soldiers[0].needs!.hungryHours=9;
-    expect(garrisonSupplyReadout(state,g).issue).toContain('critical personnel');
+    transfer(g.cache,g.forwardStock,'food',10);state.soldiers[0].needs!.hunger=90;
+    expect(garrisonSupplyReadout(state,g).issue).toContain('personnel still need access');
+    state.soldiers[0].needs!.hunger=0;expect(garrisonSupplyReadout(state,g).issue).toBeUndefined();expect(garrisonSupplyReadout(state,g).endurance).toBeGreaterThan(0);
   });
   it('counts physical completed arrivals, not assignments or dead soldiers',()=>{
     const sim=createStudyScenario(),g=sim.state.living!.garrisons[0];sim.garrisons.resolveEmergency(g.id,'withdraw');

@@ -39,6 +39,6 @@ it('does not suppress critical rest to satisfy 90% readiness when no relief is f
   outgoing.needs!.energy=20;
   for(let i=0;i<200;i++)sim.step(.05);
   expect(g.readiness).toBe('stand-to');expect(f.crewRelief).toBeUndefined();
-  expect(outgoing.selfCare?.kind==='sleep'||outgoing.duty?.kind==='sleep').toBe(true);
+  expect(outgoing.selfCare?.kind==='field-rest'||outgoing.duty?.kind==='sleep').toBe(true);
   expect(positionReadiness(state,f)).toMatch(/RESTING/);expect(g.watchPresent).toBeLessThan(g.watchRequired);
 });

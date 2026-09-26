@@ -48,7 +48,7 @@ describe('living-trench transition contracts',()=>{
     s.x=g.forward.x+8;s.z=g.forward.z+8;s.needs!.energy=7;
     s.duty={kind:'haul',stage:'pickup',destination:{...g.forward},route:[{...g.forward}],routeIndex:0,since:0,until:300,reason:'Exhausted carrier',blockedFor:0};
     const stopped={x:s.x,z:s.z},duty=structuredClone(s.duty);
-    sim.step(.05);expect(s.selfCare?.kind).toBe('sleep');expect(s.duty).toEqual(duty);expect({x:s.x,z:s.z}).toEqual(stopped);
+    sim.step(.05);expect(s.selfCare?.kind).toBe('field-rest');expect(s.duty).toEqual(duty);expect({x:s.x,z:s.z}).toEqual(stopped);
   });
   it('keeps temporary watch posts anchored across repeated physical reliefs',()=>{
     const sim=createStudyScenario(9919,1),g=sim.state.living!.garrisons[0];advance(sim,90);
@@ -86,7 +86,7 @@ describe('living-trench transition contracts',()=>{
     helper.x=g.entrance.x+15;helper.z=g.entrance.z+1;helper.needs!.energy=7;helper.needs!.thirst=90;
     helper.duty={kind:'sleep',destination:{x:helper.x,z:helper.z},route:[],routeIndex:0,since:0,arrivedAt:0,until:150,reason:'Recovery',blockedFor:0};
     patient.needs!.life='incapacitated';patient.health=14;patient.needs!.hunger=80;patient.needs!.thirst=80;
-    sim.step(.05);expect(helper.duty?.patientId).toBeUndefined();expect(helper.action).toBe('eating');expect(helper.selfCare?.kind).toBe('sleep');
+    sim.step(.05);expect(helper.duty?.patientId).toBeUndefined();expect(helper.action).toBe('resting');expect(helper.selfCare?.kind).toBe('field-rest');
   });
   it('keeps readiness targets explicit even when too few soldiers are fit',()=>{
     const sim=createStudyScenario(),g=sim.state.living!.garrisons[0];
@@ -131,17 +131,17 @@ describe('living-trench transition contracts',()=>{
     expect(s.carried!.food).toBe(before.food-1);expect(s.carried!.water).toBe(before.water-1);expect(g.cache).toEqual(cache);
   });
 
-  it('uses gradual deprivation, recoverable cargo and non-instant recovery',()=>{
+  it('keeps sustenance nonlethal, cargo recoverable and injury recovery non-instant',()=>{
     const sim=createStudyScenario(),w=sim.state.living!,s=sim.state.soldiers[0];
     w.lethalNeeds=true;s.needs!.energy=50;s.needs!.hunger=100;s.needs!.thirst=100;s.needs!.thirstyHours=6.1;
-    updateNeeds(sim.state,s,75);expect(s.health).toBeCloseTo(88);expect(s.needs!.life).toBe('active');
+    updateNeeds(sim.state,s,75);expect(s.health).toBe(100);expect(s.needs!.life).toBe('active');
     s.health=14;updateNeeds(sim.state,s,.05);expect(s.needs!.life).toBe('incapacitated');
     const before=balance(sim.state);dropCargo(sim.state,s);expect(w.crates.length).toBe(1);expect(balance(sim.state)).toEqual(before);
     s.needs!.hunger=10;s.needs!.thirst=10;s.needs!.thirstyHours=0;s.needs!.energy=10;
     for(let i=0;i<4;i++)updateNeeds(sim.state,s,75);
     expect(s.needs!.life).toBe('active');expect(s.health).toBeGreaterThanOrEqual(25);
     s.needs!.thirst=100;s.needs!.thirstyHours=7;s.needs!.thirstySeconds=525;s.health=5;updateNeeds(sim.state,s,75);
-    expect(s.needs!.life).toBe('dead');expect(w.metrics.deaths).toBe(1);
+    expect(s.needs!.life).not.toBe('dead');expect(w.metrics.deaths).toBe(0);
   });
 
   it('retains cargo in a blocked truck without transferring it remotely',()=>{
@@ -154,13 +154,13 @@ describe('living-trench transition contracts',()=>{
     for(const n of Object.values(balance(sim.state)))expect(Math.abs(n)).toBeLessThan(1e-6);
   });
 
-  it('pauses for player authority before an emergency recovery or withdrawal',()=>{
+  it('reports missing food without an obsolete lethal-needs pause or automatic withdrawal',()=>{
     const sim=createStudyScenario(),w=sim.state.living!,g=w.garrisons[0];
     transfer(g.cache,w.rearStock,'food',g.cache.food);transfer(g.cache,w.rearStock,'water',g.cache.water);
     const s=sim.state.soldiers[0];s.needs!.hunger=100;s.needs!.thirst=100;s.needs!.thirstyHours=4;
-    sim.step(.05);expect(g.cutoff).toBe('decision');expect(sim.state.simSpeed).toBe(0);
-    const time=sim.state.elapsed;sim.step(.05);expect(sim.state.elapsed).toBe(time);
-    sim.garrisons.resolveEmergency(g.id,'hold');expect(sim.state.simSpeed).toBe(1);
+    sim.step(.05);expect(g.cutoff).toBe('warning');expect(sim.state.simSpeed).toBe(1);
+    const time=sim.state.elapsed;sim.step(.05);expect(sim.state.elapsed).toBeGreaterThan(time);
+    expect(s.health).toBe(100);expect(g.cutoff).not.toBe('withdraw');
   });
 
   it('continues travel, work, sleep and shipments identically after a v2 save',()=>{

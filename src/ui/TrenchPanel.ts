@@ -68,7 +68,6 @@ export class TrenchPanel {
         if(select.id==='garrison-readiness')this.sim.garrisons.setReadiness(g.id,select.value as Readiness);
         if(select.id==='garrison-front')this.sim.garrisons.setFront(g.id,Number(select.value));
       }
-      if(select.id==='lethal-deprivation')this.sim.state.living!.lethalNeeds=(select as unknown as HTMLInputElement).checked;
     });
     this.labels.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('button');if(b?.dataset.trench)this.open(Number(b.dataset.trench));if(b?.dataset.facility)this.chooseFacility(Number(b.dataset.facility));});
     window.addEventListener('pointermove',e=>{this.pointer=e.target instanceof HTMLCanvasElement?{x:e.clientX,y:e.clientY}:undefined;});
@@ -238,7 +237,6 @@ export class TrenchPanel {
         const mixedReadiness=groups.some(area=>area.readiness!==g.readiness),mixedFront=groups.some(area=>area.front!==g.front);
         html+='<h3>Defense orders</h3><p>'+groups.reduce((n,g)=>n+g.watchPresent,0)+' / '+groups.reduce((n,g)=>n+g.watchRequired,0)+' watching · '+people.filter(s=>s.action==='sleeping').length+' resting</p><label>Readiness<select id="garrison-readiness" data-network="'+g.id+'">'+(mixedReadiness?'<option disabled selected>Mixed · choose network readiness</option>':'')+(['routine','alert','stand-to'] as const).map(v=>'<option '+(!mixedReadiness&&g.readiness===v?'selected':'')+' value="'+v+'">'+({routine:'Routine · 25% watch',alert:'Alert · 50% watch','stand-to':'Stand-to · 90% watch'}[v])+'</option>').join('')+'</select></label><label>Front<select id="garrison-front" data-network="'+g.id+'">'+(mixedFront?'<option disabled selected>Mixed · choose network facing</option>':'')+[[0,'South'],[Math.PI/2,'East'],[Math.PI,'North'],[-Math.PI/2,'West']].map(([v,n])=>'<option '+(!mixedFront&&g.front===v?'selected':'')+' value="'+v+'">'+n+'</option>').join('')+'</select></label><p>Squads rotate watch, rest and supplies. Move or Withdraw leaves this network.</p>'+(['hold','recover'].includes(g.cutoff)?'<p>'+ (g.cutoff==='hold'?'Holding and rationing.':'Recovery parties authorized.')+'</p>'+btn('data-review-supply="'+g.id+'"','Review supply response'):'');
       }
-      html+='<details><summary>Campaign rules</summary><label><input type="checkbox" id="lethal-deprivation" '+(state.living!.lethalNeeds?'checked':'')+'> Allow deprivation deaths</label><p>Opt-in: prolonged hunger and thirst can kill. Existing supplies are unchanged.</p></details>';
     }
     if(this.page==='personnel'){
       const pools=manpowerPools(state,people);

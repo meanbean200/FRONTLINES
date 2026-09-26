@@ -107,6 +107,16 @@ export class SaveSystem {
       for(const s of state.soldiers)if(s.needs?.life==='dead'&&!s.death)s.death={cause:'legacy-unknown',at:state.elapsed,occurredAt:state.elapsed,condition:{healthBefore:s.health,energy:s.needs.energy,hunger:s.needs.hunger,thirst:s.needs.thirst}};
       state.living!.migrationNote='Copy migrated to v4. People, coordinates, stock and existing timing preserved. Historical death causes are unknown; no retrospective deprivation. Original saves remain untouched.';
     }
+    if(state.combatRules!==RULES_VERSION){
+      for(const g of state.living!.garrisons)if(g.cutoff==='decision')g.cutoff='warning';
+      for(const s of state.soldiers){
+        if(s.selfCare?.kind==='supply-wait'){delete s.selfCare;delete s.survivalReason;}
+        // Preserve route, cargo and elapsed recovery work. Legacy mobile naps
+        // now finish as field rest; proper stationary sleep remains sleep.
+        if(s.selfCare?.kind==='sleep'&&s.selfCare.mobile){s.selfCare.kind='field-rest';s.selfCare.until=Math.min(s.selfCare.until,state.elapsed+45);if(s.action==='sleeping')s.action='resting';}
+      }
+      state.living!.migrationNote=(state.living!.migrationNote??'')+' Food and water no longer cause injury or death. Historical injuries and cause records are preserved; no supplies were added.';
+    }
     state.schemaVersion=4;state.combatRules=RULES_VERSION;
     return state;
   }
@@ -314,7 +324,7 @@ function validLiving(state:BattlefieldState):boolean {
       if(care.rationUntil!==undefined&&!nonnegative(care.rationUntil))return false;
       if(care.retryAt!==undefined&&!nonnegative(care.retryAt))return false;
       if(care.recovering!==undefined&&typeof care.recovering!=='boolean')return false;
-      if(!['sleep','meal','resupply','supply-wait'].includes(care.kind)||!['exit','outbound','use','return'].includes(care.stage)||![care.orderAt,care.since,care.until,care.blockedFor].every(nonnegative)||!point(care.home)||!Array.isArray(care.route)||care.route.length>4096||!care.route.every(point)||!Number.isInteger(care.index)||care.index<0||care.index>care.route.length)return false;
+      if(!['sleep','field-rest','meal','resupply','supply-wait'].includes(care.kind)||!['exit','outbound','use','return'].includes(care.stage)||![care.orderAt,care.since,care.until,care.blockedFor].every(nonnegative)||!point(care.home)||!Array.isArray(care.route)||care.route.length>4096||!care.route.every(point)||!Number.isInteger(care.index)||care.index<0||care.index>care.route.length)return false;
       if(care.home.building&&(!Number.isSafeInteger(care.home.building.id)||care.home.building.id<0||![0,1].includes(care.home.building.floor)||!point(care.home.building.target)))return false;
       if(care.source&&(!['cache','forward','facility','rear','crate'].includes(care.source.kind)||!Number.isSafeInteger(care.source.id)||care.source.id<0))return false;
     }

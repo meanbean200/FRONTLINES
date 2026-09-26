@@ -15,10 +15,10 @@ class MinHeap {
 export class SquadNavigation {
   constructor(private readonly terrain:TerrainSystem){}
   planFormation(start:Vec2,goal:Vec2):Vec2[]{const wide=this.plan(start,goal);return wide.length?wide:this.plan(start,goal,undefined,true,5000);}
-  freeDestination(point:Vec2,clearance=8):Vec2 {
+  freeDestination(point:Vec2,clearance=8,maxAdjustment=60):Vec2 {
     const target=this.terrain.clampToWorld(point);
     if(!this.terrain.obstacleAt(target.x,target.z,clearance))return target;
-    for(let radius=8;radius<=60;radius+=4)for(let i=0;i<16;i++){
+    for(let radius=4;radius<=maxAdjustment;radius+=4)for(let i=0;i<16;i++){
       const p={x:target.x+Math.cos(i*Math.PI/8)*radius,z:target.z+Math.sin(i*Math.PI/8)*radius};
       if(insideWorld(p,10)&&!this.terrain.obstacleAt(p.x,p.z,clearance))return p;
     }

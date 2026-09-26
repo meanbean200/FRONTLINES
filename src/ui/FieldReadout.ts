@@ -7,6 +7,9 @@ import {hasEquipment,squadHasEquipment} from '../combat/Equipment';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {assignedWeaponPosition} from '../combat/WeaponPositions';
 import {preparedStatus} from '../operations/PreparedOrders';
+import {needsRecovery,readyDefender} from '../garrison/PersonnelRoles';
+import {equipmentOf} from '../combat/Equipment';
+import {isWalkingAction} from '../core/SoldierActions';
 
 export const roleName:Record<SquadKind,string>={rifle:'Rifle squad',engineer:'Engineer team',machinegun:'Machine-gun team',mortar:'Mortar team',medical:'Medical team'};
 const mean=(people:SoldierState[],read:(s:SoldierState)=>number)=>Math.round(people.reduce((sum,s)=>sum+read(s),0)/Math.max(1,people.length));
@@ -27,15 +30,16 @@ export function selectionReadout(state:BattlefieldState,ids:ReadonlySet<number>,
   if(mission&&(['preparing','flight'].includes(mission.stage)||state.elapsed-mission.requestedAt<30))order=SUPPORT_NAMES[mission.kind]+' · '+supportMissionText(mission,state.elapsed);
   const activities=new Map<string,number>();for(const s of able)activities.set(s.action,(activities.get(s.action)??0)+1);
   const activity=[...activities].sort((a,b)=>b[1]-a[1])[0]?.[0]??'Out of action';
+  const ready=able.filter(s=>s.garrisonId!==undefined?readyDefender(state,s):!needsRecovery(s)&&!s.combat?.careTask&&!isWalkingAction(s.action)&&
+    equipmentOf(state,s).weapon!=='unarmed'&&(s.carried?.ammo??s.ammunition)>0).length;
   const warning=able.length&&able.filter(s=>s.combat?.reaction==='pinned').length>=Math.ceil(able.length/2)?'PINNED':
-    living.some(s=>s.needs&&(s.needs.thirst>=80||(s.carried?.water??0)<1&&s.needs.thirst>=50))?'LOW WATER':
-    living.some(s=>s.needs&&(s.needs.hunger>=80||(s.carried?.food??0)<1&&s.needs.hunger>=55))?'LOW FOOD':
     living.some(s=>s.needs&&s.needs.energy<=15)?'EXHAUSTED':
     living.some(s=>s.needs&&s.needs.energy<=25)?'NEEDS REST':
+    living.some(s=>s.selfCare?.kind==='field-rest')?'RESTING':
     state.operation&&able.length&&able.reduce((n,s)=>n+(s.carried?.ammo??s.ammunition),0)<able.length*10?'LOW AMMO':
     state.living?.garrisons.some(g=>g.squadIds.some(id=>selected.has(id))&&['decision','hold','recover'].includes(g.cutoff))?'SUPPLY SHORTAGE':'';
   return {name:squads.length===1?first.name:`${squads.length} squads`,role:squads.length===1?roleName[first.kind]:'Selected formation',kind:first.kind,
-    able:able.length,total:people.length,order,activity,warning,ammo:Math.floor(able.reduce((n,s)=>n+(s.carried?.ammo??s.ammunition),0)),
+    able:able.length,ready,total:people.length,order,activity,warning,ammo:Math.floor(able.reduce((n,s)=>n+(s.carried?.ammo??s.ammunition),0)),
     morale:mean(able,s=>s.morale),suppression:mean(able,s=>s.suppression),fatigue:mean(able,s=>s.fatigue),
     covered:living.filter(s=>s.cover==='trench'||s.building?.stage==='station'||s.building?.stage==='inside').length,living:living.length,
     down:people.filter(s=>s.needs?.life==='incapacitated').length,dead:people.filter(s=>s.needs?.life==='dead').length,

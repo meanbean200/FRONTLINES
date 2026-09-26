@@ -146,6 +146,7 @@ export class FrontlinesApp {
       mute:muted=>{this.audio.muted=muted;},
       resume:()=>{const count=this.simulation.resumeConstruction([...this.selectedSquads]);this.ui.notify(this.simulation.lastResumeReason,count?'normal':'warn');},
       resumePreview:()=>{const rows=[...this.selectedSquads].map(id=>this.simulation.previewResume(id)),job=rows.flatMap(r=>r.candidates)[0];return job?`Resume local trench ${job.trench.id} [R] · ${Math.round(job.point.x)}, ${Math.round(job.point.z)}`:rows[0]?.reason??'Select a formation with tools';},
+      canResume:()=>[...this.selectedSquads].some(id=>this.simulation.previewResume(id).candidates.length>0),
       quality:level=>this.setQuality(level),
       craterMode: () => this.setMode('crater'),
       save: () => this.save(),
@@ -420,7 +421,6 @@ export class FrontlinesApp {
     if(!this.battlePreview){this.startGame(setup.operation,setup.seed,setup);return;}
     this.battlePreview=undefined;this.selectSquads([]);this.setMode('select');
     const target=restoredViewTarget(this.state);if(target)this.camera.focus(target,520);
-    this.ui.notify('Select a formation to issue orders. M opens the operational map.');
   }
   private startHome():void {
     this.battlePreview=undefined;this.attractCycle.reset();

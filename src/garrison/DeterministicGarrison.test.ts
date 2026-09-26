@@ -69,7 +69,7 @@ describe('deterministic garrison acceptance contracts',()=>{
   });
   it('does not reserve an entrance loading berth during a distant meal approach',()=>{
     const sim=createStudyScenario(1944,2),g=sim.state.living!.garrisons[0],s=sim.state.soldiers.at(-1)!;
-    s.x=g.entrance.x+125;s.z=g.entrance.z;s.needs!.thirst=90;transfer(s.carried!,g.cache,'food',s.carried!.food);transfer(s.carried!,g.cache,'water',s.carried!.water);
+    s.x=g.entrance.x+125;s.z=g.entrance.z;s.needs!.hunger=90;transfer(s.carried!,g.cache,'food',s.carried!.food);transfer(s.carried!,g.cache,'water',s.carried!.water);
     sim.step(.05);expect(s.duty?.kind).toBe('meal');expect(s.duty?.pickupQueued).toBe(true);
     expect(Math.hypot(s.duty!.destination.x-g.entrance.x,s.duty!.destination.z-g.entrance.z)).toBeGreaterThan(12);
   });

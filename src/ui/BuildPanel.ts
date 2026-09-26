@@ -6,6 +6,7 @@ import {fieldIcon} from './FieldSymbols';
 import {connectedName,networkRepresentatives} from './TrenchReadout';
 import {friendlyTrenches} from './TrenchReadout';
 import type {TrenchNetwork} from '../garrison/TrenchNetwork';
+import {squadHasEquipment} from '../combat/Equipment';
 
 interface BuildActions {manage:(id?:number)=>void;place:(id:number,kind:Facility['kind'],guns?:1|4)=>void;assign:(id?:number)=>void;focus:(point:Vec2)=>void}
 /** Contextual construction choices. Opening never changes orders or inventories. */
@@ -17,7 +18,7 @@ export class BuildPanel {
   constructor(private getState:()=>BattlefieldState,private actions:BuildActions,private selected:()=>ReadonlySet<number>=()=>new Set(),private trenchNetwork?:TrenchNetwork){
     const root=document.querySelector<HTMLElement>('#ui-root')!;
     this.button.id='build-command';this.button.innerHTML=fieldIcon('engineer')+'Build';this.button.setAttribute('aria-controls','build-panel');this.button.setAttribute('aria-expanded','false');
-    root.querySelector('.command-dock>div')!.append(this.button);
+    root.querySelector('.selection-context')!.append(this.button);
     this.element.id='build-panel';this.element.className='build-panel';this.element.hidden=true;this.element.setAttribute('aria-label','Engineer construction');
     this.element.innerHTML=`<header><div><small>ENGINEERING</small><h2>Build</h2></div><button data-build-close aria-label="Close construction">×</button></header><div class="build-categories"><div class="build-trench"></div><button data-build-category="support">${fieldIcon('force')}<span><strong>Support structures</strong><small>Supply, shelter and casualty care</small></span></button><button data-build-category="jobs">${fieldIcon('resume')}<span><strong>Worksites</strong><small>Inspect queued and active construction</small></span></button></div><section class="build-context" data-build-page="support" hidden><button data-build-back>← Construction</button><h3>Support structures</h3><label>Trench network<select id="build-network" aria-label="Construction network"></select></label><p class="build-workforce"></p><button id="assign-builders">Assign builders to this network</button><div class="build-catalog">${Object.entries(SUPPORT_WORKS).map(([kind,work])=>`<button data-build-kind="${kind}"><strong>${work.name}</strong><small>${work.cost} materials · ${work.description}</small></button>`).join('')}</div><p class="build-supply"></p></section>`;
     root.append(this.element);this.element.querySelector('.build-trench')!.append(root.querySelector('#trench-command')!);
@@ -52,6 +53,7 @@ export class BuildPanel {
   update(force=false):void{
     const state=this.getState(),locked=Boolean(document.documentElement.dataset.replay||document.documentElement.dataset.menu||document.documentElement.dataset.help||state.operation&&state.operation.status!=='active');
     this.button.disabled=locked;
+    this.button.hidden=!state.squads.some(q=>this.selected().has(q.id)&&squadHasEquipment(state,q,'tools'));
     if(this.element.hidden||!force&&performance.now()-this.last<250)return;this.last=performance.now();
     const networks=this.trenchNetwork?networkRepresentatives(friendlyTrenches(state,this.trenchNetwork).filter(t=>this.trenchNetwork!.component(t.id)!==undefined),this.trenchNetwork).map(t=>{const g=state.living!.garrisons.find(g=>this.trenchNetwork!.component(g.trenchId)===this.trenchNetwork!.component(t.id));return {id:g?.id??-t.id,trenchId:t.id,name:connectedName(state,this.trenchNetwork!,t.id)};}):state.living!.garrisons.filter(g=>g.faction!=='enemy'),select=this.element.querySelector<HTMLSelectElement>('#build-network')!;
     if(!networks.some(g=>g.id===this.networkId))this.networkId=networks[0]?.id??0;

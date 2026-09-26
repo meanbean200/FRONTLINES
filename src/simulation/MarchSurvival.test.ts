@@ -37,7 +37,7 @@ describe('P0 march survival',()=>{
   it('recovers before collapse while retaining a travelling work assignment',()=>{
     const f=fixture(),{p}=f;p.needs!.energy=24;p.needs!.hunger=p.needs!.thirst=10;
     const duty=structuredClone(p.duty);tick(f);
-    expect(p.selfCare?.kind).toBe('sleep');expect(p.combat?.owner).toBe('self-care');
+    expect(p.selfCare?.kind).toBe('field-rest');expect(p.combat?.owner).toBe('self-care');
     for(let i=0;i<4000&&p.selfCare;i++)tick(f);
     expect(p.needs!.energy).toBeGreaterThan(44.99);expect(p.needs!.life).toBe('active');expect(p.duty).toEqual(duty);
   });
@@ -56,7 +56,7 @@ describe('P0 march survival',()=>{
     const before=balance(state),target={x:-1510,z:-1700};sim.issueMove([q.id],target);
     let meal=false,rest=false,resumed=false;
     for(let i=0;i<12000/speed&&q.order.type==='move';i++){
-      sim.step(.05);meal ||=state.soldiers.some(s=>s.action==='eating');rest ||=state.soldiers.some(s=>s.action==='sleeping');
+      sim.step(.05);meal ||=state.soldiers.some(s=>s.action==='eating');rest ||=state.soldiers.some(s=>s.action==='resting'&&s.selfCare?.kind==='field-rest');
       resumed ||=rest&&state.soldiers.some(s=>s.needs!.energy>44&&s.action==='advancing');
     }
     expect({meal,rest,resumed}).toEqual({meal:true,rest:true,resumed:true});
@@ -72,21 +72,21 @@ describe('P0 march survival',()=>{
     if(speed===5)q.faction='enemy'; // Same survival path for either faction.
     sim.issueMove([q.id],target,true);const before=balance(state);let rest=false;
     for(let i=0;i<65000/speed&&q.order.type==='move';i++){
-      sim.step(.05);rest ||=state.soldiers.some(s=>s.action==='sleeping');
+      sim.step(.05);rest ||=state.soldiers.some(s=>s.action==='resting'&&s.selfCare?.kind==='field-rest');
     }
     expect(q.order.type,JSON.stringify(state.soldiers.map(s=>({id:s.id,x:s.x,z:s.z,action:s.action,needs:s.needs,care:s.selfCare})))).toBe('hold');
     expect(rest).toBe(true);expect(state.soldiers.every(s=>s.needs!.life==='active'&&distance(s,target)<18)).toBe(true);
     expect(state.living!.metrics.deaths).toBe(0);expect(state.living!.ledger.consumed.water).toBeGreaterThan(0);
     for(const key of Object.keys(before) as (keyof typeof before)[])expect(balance(state)[key]).toBeCloseTo(before[key],7);
   },30000);
-  it('stops critically dry travel at a blocked supply route and resumes after physical delivery',()=>{
+  it('keeps dry travel orders and consumes a subsequently delivered ration without a lethal-needs halt',()=>{
     const f=fixture(),{p,sim,state}=f;p.needs!.thirst=90;p.needs!.hunger=10;
     const water=p.carried!.water;p.carried!.water=0;state.living!.rearStock.water+=water;
     for(const g of state.living!.garrisons)for(const stock of [g.cache,g.forwardStock]){state.living!.rearStock.water+=stock.water;stock.water=0;}
     for(const f of state.living!.facilities){state.living!.rearStock.water+=f.stock.water;f.stock.water=0;}
     p.duty!.networkBound=true;const duty=structuredClone(p.duty),point={x:p.x,z:p.z};
     for(let i=0;i<200;i++)tick(f);
-    expect(p.selfCare?.kind).toBe('supply-wait');expect(p.survivalReason).toContain('SUPPLY ROUTE BLOCKED');
+    expect(p.selfCare).toBeUndefined();expect(p.survivalReason??'').not.toContain('WATER');
     expect({x:p.x,z:p.z}).toEqual(point);expect(p.duty).toEqual(duty);expect(p.needs!.thirst).toBeGreaterThan(90);
     const copy=new BattlefieldSimulation(new SaveSystem().parse(JSON.stringify(state)));
     expect(copy.state.soldiers.find(s=>s.id===p.id)!.selfCare).toEqual(p.selfCare);
