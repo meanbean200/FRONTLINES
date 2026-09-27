@@ -1,0 +1,44 @@
+{
+  "source": "road-cut-redoubts",
+  "dirty": false,
+  "elapsed": 20.00000000000015,
+  "shots": 78,
+  "fronts": [
+    {
+      "name": "West redoubt",
+      "front": 1.5707963267948966,
+      "readiness": "stand-to"
+    },
+    {
+      "name": "East redoubt",
+      "front": 4.71238898038469,
+      "readiness": "stand-to"
+    }
+  ],
+  "guns": [
+    {
+      "kind": "crew-mg",
+      "loaded": 99,
+      "stock": 1199
+    },
+    {
+      "kind": "mortar",
+      "stock": 0
+    },
+    {
+      "kind": "crew-mg",
+      "loaded": 96,
+      "stock": 1196
+    },
+    {
+      "kind": "mortar",
+      "stock": 0
+    }
+  ],
+  "ownership": {
+    "created": 1,
+    "disposed": 0,
+    "active": 1,
+    "planners": 1
+  }
+}

@@ -19,6 +19,7 @@ function inspectGeometry(p:ScenarioPreset):AuthoringIssue[]{
  const add=(entityId:string,message:string,severity:'error'|'warning'='error')=>issues.push({entityId,message:`${p.entities.find(e=>e.id===entityId)?.name??entityId}: ${message}`,severity});
  const blocked=(v:{x:number;z:number})=>world.terrain.groundTypeAt(v.x,v.z)==='river'||Boolean(world.terrain.obstacleAt(v.x,v.z,.3));
  const componentSide=new Map<number,string>(),assigned=new Map<number,Set<string>>();
+ const fronts=new Map<number,number>(),readiness=new Map<number,string>();
  for(const e of p.entities){
   if(e.type==='trench'){
    const t=world.state.trenches.find(t=>t.id===world.ids.get(e.id))!;
@@ -27,6 +28,8 @@ function inspectGeometry(p:ScenarioPreset):AuthoringIssue[]{
    const component=world.network.component(t.id);
    if(e.completed&&component===undefined)add(e.id,'No usable completed floor. Extend the trench.');
    if(component!==undefined){if(componentSide.has(component)&&componentSide.get(component)!==e.side)add(e.id,'Connected trenches have opposing owners. Separate them or change faction.');componentSide.set(component,e.side);}
+   if(component!==undefined&&e.front!==undefined){const front=((e.front%360)+360)%360;if(fronts.has(component)&&Math.abs(fronts.get(component)!-front)>.0001)add(e.id,'Connected trenches need the same front direction.');fronts.set(component,front);}
+   if(component!==undefined&&e.readiness!==undefined){if(readiness.has(component)&&readiness.get(component)!==e.readiness)add(e.id,'Connected trenches need the same readiness.');readiness.set(component,e.readiness);}
   }else if(e.type==='formation'){
    const state=emptyScenarioWorld(p.seed);addSquad(state,e.kind,e.count,e.x,e.z,e.name);
    if(state.soldiers.some(blocked))add(e.id,'Formation footprint overlaps water or a solid obstacle. Move the formation onto clear ground.');

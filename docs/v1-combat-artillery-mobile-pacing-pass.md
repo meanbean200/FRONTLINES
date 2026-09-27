@@ -877,3 +877,33 @@ rigid-body physics, platform submission or unrelated gameplay rewrite occurred.
   VERIFIED within the stated scope. USER ACCEPTED remains pending.** The reported
   black strip is still NOT REPRODUCED here, not a closed/fixed defect. Overall
   project and remaining A–G/Endless gates remain **PARTIAL**.
+
+## 2026-09-26 — ready-made Road Cut battle, not another DEV expansion
+
+- **USER-REPORTED:** front cannot be changed; screenshot setup does not shoot.
+  Original draft not causally replayed. Both shown trench names were friendly;
+  this is evidence to check faction ownership, not proof of a particular runtime.
+- **ROOT CAUSE / IMPLEMENTED:** authored trench front/readiness were absent;
+  garrisons always started front zero/routine. Optional persisted fields now use
+  production garrison settings, with compatible old defaults and connected-front
+  validation. Existing inspector exposes the front and a selected arrow.
+- **IMPLEMENTED:** hand-built **The Road Cut**, active snapshot
+  `road-cut-redoubts-a7f1c15a2458`: two opposing loop redoubts, 64 personnel, real
+  MG/mortar crews, finite stores and a road objective. Old publications and
+  campaign saves preserved. Editable draft supplied; further DEV expansion deferred.
+- **VERIFIED:** 34/34 focused tests, including ten complete attract cycles;
+  production/offline/DEV builds and 5/5 packaging. Real Edge control-driven tests
+  show both MGs consuming stock and 78 shots at 20 seconds, front edit/undo,
+  camera/save/publication, home refresh sizes and return-to-home isolation.
+  Isolated network-disabled standalone launch, movement, workers, six refresh
+  sizes and exact save/Continue passed. This is not a full baseline rerun or
+  physical-device performance acceptance.
+- **PRESERVED FAILURES / REMAINING:** initial off-floor facility placements,
+  throttled headed QA and premature terrain-loading captures retained. Final
+  screenshots require actual detailed floors, not coarse chunk counts. User scene
+  acceptance and the larger A–G/Endless gates remain **PARTIAL**.
+
+Evidence and exact limits: `docs/evidence/road-cut/README.md`. Tweak instructions:
+`docs/road-cut-battle.md`. Game-architecture/playtest guidance kept the battle in
+the real deterministic simulation and required actual controls/screenshots;
+no scripted contact or fake combat was substituted.

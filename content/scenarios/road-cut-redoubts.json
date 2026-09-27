@@ -1,0 +1,537 @@
+{
+  "version": 1,
+  "id": "road-cut-redoubts",
+  "name": "The Road Cut",
+  "seed": 1944,
+  "generatorVersion": 2,
+  "worldSize": 4000,
+  "hour": 10,
+  "controllers": {
+    "player": "ai",
+    "enemy": "ai"
+  },
+  "camera": {
+    "x": -1577.6145080908577,
+    "z": -1500,
+    "zoom": 213.29616181708104,
+    "azimuth": 0,
+    "polar": 0.95
+  },
+  "entities": [
+    {
+      "id": "west",
+      "name": "West redoubt",
+      "type": "trench",
+      "side": "player",
+      "points": [
+        {
+          "x": -1565,
+          "z": -1550
+        },
+        {
+          "x": -1565,
+          "z": -1450
+        },
+        {
+          "x": -1600,
+          "z": -1450
+        },
+        {
+          "x": -1600,
+          "z": -1550
+        },
+        {
+          "x": -1565,
+          "z": -1550
+        }
+      ],
+      "completed": true,
+      "width": 4.2,
+      "depth": 1.75,
+      "front": 90,
+      "readiness": "stand-to"
+    },
+    {
+      "id": "west-rifles",
+      "name": "West rifles",
+      "type": "formation",
+      "side": "player",
+      "kind": "rifle",
+      "count": 8,
+      "x": -1565,
+      "z": -1530,
+      "intent": "hold",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "west"
+    },
+    {
+      "id": "west-reserve",
+      "name": "West reserve",
+      "type": "formation",
+      "side": "player",
+      "kind": "rifle",
+      "count": 8,
+      "x": -1565,
+      "z": -1470,
+      "intent": "hold",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "west"
+    },
+    {
+      "id": "west-patrol",
+      "name": "West patrol",
+      "type": "formation",
+      "side": "player",
+      "kind": "rifle",
+      "count": 8,
+      "x": -1582.5,
+      "z": -1440,
+      "intent": "attack",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road"
+    },
+    {
+      "id": "west-mg-crew",
+      "name": "West mg-crew",
+      "type": "formation",
+      "side": "player",
+      "kind": "machinegun",
+      "count": 2,
+      "x": -1565,
+      "z": -1500,
+      "intent": "defend",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "west"
+    },
+    {
+      "id": "west-mortar-crew",
+      "name": "West mortar-crew",
+      "type": "formation",
+      "side": "player",
+      "kind": "mortar",
+      "count": 2,
+      "x": -1600,
+      "z": -1490,
+      "intent": "defend",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "west"
+    },
+    {
+      "id": "west-pioneers",
+      "name": "West pioneers",
+      "type": "formation",
+      "side": "player",
+      "kind": "engineer",
+      "count": 2,
+      "x": -1600,
+      "z": -1535,
+      "intent": "hold",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "west"
+    },
+    {
+      "id": "west-aid-team",
+      "name": "West aid-team",
+      "type": "formation",
+      "side": "player",
+      "kind": "medical",
+      "count": 2,
+      "x": -1600,
+      "z": -1465,
+      "intent": "hold",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "west"
+    },
+    {
+      "id": "west-mg",
+      "name": "West mg",
+      "type": "facility",
+      "kind": "emplacement",
+      "x": -1565,
+      "z": -1500,
+      "trenchId": "west",
+      "facing": 90,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 1200,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "weapon": "crew-mg",
+      "crewId": "west-mg-crew"
+    },
+    {
+      "id": "west-mortar",
+      "name": "West mortar",
+      "type": "facility",
+      "kind": "mortar",
+      "x": -1600,
+      "z": -1490,
+      "trenchId": "west",
+      "facing": 90,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 8,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "weapon": "mortar",
+      "crewId": "west-mortar-crew"
+    },
+    {
+      "id": "west-store",
+      "name": "West store",
+      "type": "facility",
+      "kind": "store",
+      "x": -1600,
+      "z": -1520,
+      "trenchId": "west",
+      "facing": 90,
+      "stock": {
+        "food": 40,
+        "water": 64,
+        "materials": 40,
+        "fuel": 0,
+        "ammo": 640,
+        "medical": 16,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "id": "west-rest",
+      "name": "West rest",
+      "type": "facility",
+      "kind": "rest",
+      "x": -1596.882,
+      "z": -1466.091,
+      "trenchId": "west",
+      "facing": 90,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "id": "west-aid",
+      "name": "West aid",
+      "type": "facility",
+      "kind": "aid",
+      "x": -1595.323,
+      "z": -1538.363,
+      "trenchId": "west",
+      "facing": 90,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 12,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "id": "east",
+      "name": "East redoubt",
+      "type": "trench",
+      "side": "enemy",
+      "points": [
+        {
+          "x": -1490,
+          "z": -1550
+        },
+        {
+          "x": -1490,
+          "z": -1450
+        },
+        {
+          "x": -1455,
+          "z": -1450
+        },
+        {
+          "x": -1455,
+          "z": -1550
+        },
+        {
+          "x": -1490,
+          "z": -1550
+        }
+      ],
+      "completed": true,
+      "width": 4.2,
+      "depth": 1.75,
+      "front": -90,
+      "readiness": "stand-to"
+    },
+    {
+      "id": "east-rifles",
+      "name": "East rifles",
+      "type": "formation",
+      "side": "enemy",
+      "kind": "rifle",
+      "count": 8,
+      "x": -1490,
+      "z": -1530,
+      "intent": "hold",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "east"
+    },
+    {
+      "id": "east-reserve",
+      "name": "East reserve",
+      "type": "formation",
+      "side": "enemy",
+      "kind": "rifle",
+      "count": 8,
+      "x": -1490,
+      "z": -1470,
+      "intent": "hold",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "east"
+    },
+    {
+      "id": "east-patrol",
+      "name": "East patrol",
+      "type": "formation",
+      "side": "enemy",
+      "kind": "rifle",
+      "count": 8,
+      "x": -1472.5,
+      "z": -1440,
+      "intent": "attack",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road"
+    },
+    {
+      "id": "east-mg-crew",
+      "name": "East mg-crew",
+      "type": "formation",
+      "side": "enemy",
+      "kind": "machinegun",
+      "count": 2,
+      "x": -1490,
+      "z": -1500,
+      "intent": "defend",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "east"
+    },
+    {
+      "id": "east-mortar-crew",
+      "name": "East mortar-crew",
+      "type": "formation",
+      "side": "enemy",
+      "kind": "mortar",
+      "count": 2,
+      "x": -1455,
+      "z": -1490,
+      "intent": "defend",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "east"
+    },
+    {
+      "id": "east-pioneers",
+      "name": "East pioneers",
+      "type": "formation",
+      "side": "enemy",
+      "kind": "engineer",
+      "count": 2,
+      "x": -1455,
+      "z": -1535,
+      "intent": "hold",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "east"
+    },
+    {
+      "id": "east-aid-team",
+      "name": "East aid-team",
+      "type": "formation",
+      "side": "enemy",
+      "kind": "medical",
+      "count": 2,
+      "x": -1455,
+      "z": -1465,
+      "intent": "hold",
+      "ammo": 80,
+      "food": 2,
+      "water": 3,
+      "targetId": "road",
+      "trenchId": "east"
+    },
+    {
+      "id": "east-mg",
+      "name": "East mg",
+      "type": "facility",
+      "kind": "emplacement",
+      "x": -1490,
+      "z": -1500,
+      "trenchId": "east",
+      "facing": -90,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 1200,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "weapon": "crew-mg",
+      "crewId": "east-mg-crew"
+    },
+    {
+      "id": "east-mortar",
+      "name": "East mortar",
+      "type": "facility",
+      "kind": "mortar",
+      "x": -1455,
+      "z": -1490,
+      "trenchId": "east",
+      "facing": -90,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 8,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      },
+      "weapon": "mortar",
+      "crewId": "east-mortar-crew"
+    },
+    {
+      "id": "east-store",
+      "name": "East store",
+      "type": "facility",
+      "kind": "store",
+      "x": -1455,
+      "z": -1520,
+      "trenchId": "east",
+      "facing": -90,
+      "stock": {
+        "food": 40,
+        "water": 64,
+        "materials": 40,
+        "fuel": 0,
+        "ammo": 640,
+        "medical": 16,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "id": "east-rest",
+      "name": "East rest",
+      "type": "facility",
+      "kind": "rest",
+      "x": -1458.118,
+      "z": -1466.091,
+      "trenchId": "east",
+      "facing": -90,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 0,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "id": "east-aid",
+      "name": "East aid",
+      "type": "facility",
+      "kind": "aid",
+      "x": -1459.677,
+      "z": -1538.363,
+      "trenchId": "east",
+      "facing": -90,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "materials": 0,
+        "fuel": 0,
+        "ammo": 0,
+        "medical": 12,
+        "mortarHE": 0,
+        "mortarSmoke": 0,
+        "smokeGrenades": 0
+      }
+    },
+    {
+      "id": "road",
+      "name": "Road crossing",
+      "type": "objective",
+      "owner": "neutral",
+      "x": -1528,
+      "z": -1442,
+      "radius": 14
+    }
+  ]
+}

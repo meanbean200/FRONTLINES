@@ -37,6 +37,7 @@ export class EditorInk {
    const active=e.id===selected,color=this.invalid.has(e.id)?'#e17c62':e.type==='facility'?'#c8b984':('side'in e?e.side:e.type==='objective'?e.owner:'neutral')==='enemy'?'#cb8c7c':'#a3c0c5';
    if(e.type==='trench'){
     let path=this.paths.get(e);if(!path){path=productionTrenchPath(e.points);this.paths.set(e,path);}
+    if(active){const centre={x:e.points.reduce((n,p)=>n+p.x,0)/e.points.length,z:e.points.reduce((n,p)=>n+p.z,0)/e.points.length},a=(e.front??0)*Math.PI/180,tip={x:centre.x+Math.sin(a)*18,z:centre.z+Math.cos(a)*18},left={x:tip.x-Math.sin(a-.5)*5,z:tip.z-Math.cos(a-.5)*5},right={x:tip.x-Math.sin(a+.5)*5,z:tip.z-Math.cos(a+.5)*5};put('$front',`<path d="M ${point(centre)} L ${point(tip)} M ${point(left)} L ${point(tip)} L ${point(right)}" fill="none" stroke="#efdaa0" stroke-width="2.5"/><text x="${point(tip).split(',')[0]}" y="${Number(point(tip).split(',')[1])-9}" fill="#efdaa0">FRONT</text>`);}
     put(e.id,`<polyline points="${path.map(point).join(' ')}" fill="none" stroke="${active?'#f1dfaa':color}" stroke-width="${active?3:1.5}" ${e.completed?'':'stroke-dasharray="5 5"'}/>${active?e.points.map((v,i)=>{const [x,y]=point(v).split(',');return `<circle cx="${x}" cy="${y}" r="6" fill="#16211c" stroke="#efdaa0"/><text x="${x}" y="${Number(y)-10}" fill="#efdaa0">${i+1}</text>`;}).join(''):''}`);
    }else{
     const s=camera.project(e,1);if(!s.visible)continue;

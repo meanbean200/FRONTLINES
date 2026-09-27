@@ -89,3 +89,13 @@ DEV does **not yet author Endless initial conditions**. Its strict loader reject
 unsupported mode/economy fields; never paste a running Endless save into a preset.
 Future authoring must describe initial ownership, rear sources and policies
 without importing control history, casualties, spent stock or active manifests.
+
+## Ready-made replacement home battle
+
+At the user's request, further editor expansion is deferred. **The Road Cut** is
+now the active hand-built 64-person battle, based on two opposing trench loops.
+The old Orchard publications remain available. Load `road-cut-redoubts` to tweak
+the supplied draft rather than starting empty. Trench **Defensive front** and
+**Initial readiness** now map to the real connected garrison, with a selected
+FRONT arrow; weapon facing remains a separate post setting. See
+[the battle guide](road-cut-battle.md) for controls and verification boundaries.

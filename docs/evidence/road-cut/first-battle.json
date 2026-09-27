@@ -1,0 +1,24 @@
+{
+  "issues": [
+    {
+      "entityId": "west-rest",
+      "message": "West rest: Off the parent trench floor. Use Snap to trench or move it explicitly.",
+      "severity": "error"
+    },
+    {
+      "entityId": "west-aid",
+      "message": "West aid: Off the parent trench floor. Use Snap to trench or move it explicitly.",
+      "severity": "error"
+    },
+    {
+      "entityId": "east-rest",
+      "message": "East rest: Off the parent trench floor. Use Snap to trench or move it explicitly.",
+      "severity": "error"
+    },
+    {
+      "entityId": "east-aid",
+      "message": "East aid: Off the parent trench floor. Use Snap to trench or move it explicitly.",
+      "severity": "error"
+    }
+  ]
+}

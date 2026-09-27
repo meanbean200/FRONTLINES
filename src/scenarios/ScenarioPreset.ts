@@ -1,5 +1,5 @@
 import {WORLD_SIZE,WORLD_VERSION,type Vec2,type SquadKind} from '../core/types';
-import {RESOURCES,type Inventory,type Facility} from '../garrison/types';
+import {RESOURCES,type Inventory,type Facility,type Readiness} from '../garrison/types';
 import type {Faction} from '../operations/types';
 
 export const SCENARIO_VERSION=1;
@@ -7,7 +7,7 @@ export const INTENTIONS=['attack','defend','hold','reserve','probe','support'] a
 export type ScenarioIntent=typeof INTENTIONS[number];
 type Base={id:string;name:string};
 export type ScenarioEntity=
- | Base&{type:'trench';side:Faction;points:Vec2[];completed:boolean;width:number;depth:number}
+ | Base&{type:'trench';side:Faction;points:Vec2[];completed:boolean;width:number;depth:number;front?:number;readiness?:Readiness}
  | Base&Vec2&{type:'formation';side:Faction;kind:SquadKind;count:number;intent:ScenarioIntent;targetId?:string;trenchId?:string;ammo:number;food:number;water:number}
  | Base&Vec2&{type:'facility';kind:Facility['kind'];trenchId:string;crewId?:string;weapon?:'crew-mg'|'mortar'|'field-gun';facing:number;stock:Inventory}
  | Base&Vec2&{type:'stock';stock:Inventory}
@@ -41,9 +41,10 @@ export function validateScenario(value:unknown):asserts value is ScenarioPreset 
  const stock=(s:unknown,label:string)=>{const o=object(s,label);keys(o,[...RESOURCES],label);for(const r of RESOURCES)number(o[r],0,100000,label+' '+r);};
  for(const raw of p.entities as unknown[]){const e=object(raw,'entity');text(e.id,'entity identity');if(!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/.test(e.id as string))fail('entity identity must contain only letters, numbers, hyphens and underscores');text(e.name,'entity name');if(ids.has(e.id as string))fail('duplicate identity '+e.id);ids.set(e.id as string,e);
   const type=e.type;choice(type,['trench','formation','facility','stock','objective','staging'],'entity type');
-  const fields=type==='trench'?['side','points','completed','width','depth']:type==='formation'?['x','z','side','kind','count','intent','targetId','trenchId','ammo','food','water']:type==='facility'?['x','z','kind','trenchId','crewId','weapon','facing','stock']:type==='stock'?['x','z','stock']:type==='objective'?['x','z','owner','radius']:['x','z','side','radius'];
+  const fields=type==='trench'?['side','points','completed','width','depth','front','readiness']:type==='formation'?['x','z','side','kind','count','intent','targetId','trenchId','ammo','food','water']:type==='facility'?['x','z','kind','trenchId','crewId','weapon','facing','stock']:type==='stock'?['x','z','stock']:type==='objective'?['x','z','owner','radius']:['x','z','side','radius'];
   keys(e,['id','name','type',...fields],String(e.name));if(type!=='trench')point(e,String(e.name));
   if(['trench','formation','staging'].includes(type as string))choice(e.side,['player','enemy'],'faction');
+  if(type==='trench'){if(e.front!==undefined)number(e.front,-360,360,'trench front');if(e.readiness!==undefined)choice(e.readiness,['routine','alert','stand-to'],'trench readiness');}
   if(type==='trench'){number(e.width,3,8,'trench width');number(e.depth,.4,2.5,'trench depth');if(typeof e.completed!=='boolean')fail('trench completion is required');if(!Array.isArray(e.points)||e.points.length<2||e.points.length>128)fail('trench needs 2–128 control points');for(const v of e.points as unknown[]){const pt=object(v,'control point');keys(pt,['x','z'],'control point');point(pt,'control point');}}
   if(type==='formation'){choice(e.kind,['rifle','engineer','machinegun','mortar','medical'],'formation equipment');choice(e.intent,INTENTIONS,'intention');number(e.count,1,32,'personnel');if(!Number.isInteger(e.count))fail('personnel must be whole people');population+=e.count as number;number(e.ammo,0,600,'rounds per person');number(e.food,0,10,'food per person');number(e.water,0,10,'water per person');}
   if(type==='facility'){choice(e.kind,['rest','meal','store','ammo','aid','emplacement','mortar'],'facility kind');number(e.facing,-360,360,'facing');if(e.weapon!==undefined)choice(e.weapon,['crew-mg','mortar','field-gun'],'installed weapon');stock(e.stock,'facility stock');if((e.kind==='emplacement')!==(e.weapon==='crew-mg')||(e.kind==='mortar')!==(['mortar','field-gun'].includes(e.weapon as string)))fail('installed weapon must match the position type');}

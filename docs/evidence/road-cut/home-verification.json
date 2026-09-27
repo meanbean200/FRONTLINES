@@ -1,0 +1,440 @@
+{
+  "before": {
+    "shots": 78,
+    "time": 20.00000000000015,
+    "session": {
+      "kind": "attract",
+      "generation": 2,
+      "resets": 0,
+      "created": 2,
+      "disposed": 1,
+      "active": 1,
+      "planners": 1,
+      "gpu": {
+        "geometries": 38,
+        "textures": 4
+      },
+      "entities": 64,
+      "renderHosts": 1,
+      "terrainWorkers": 1
+    }
+  },
+  "sizes": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "viewport": {
+        "inner": {
+          "width": 1920,
+          "height": 1080
+        },
+        "outer": {
+          "width": 1920,
+          "height": 1080
+        },
+        "client": {
+          "width": 1920,
+          "height": 1080
+        },
+        "rendererSize": [
+          1920,
+          1080
+        ],
+        "cssGame": {
+          "--game-width": "1920px",
+          "--game-height": "1080px",
+          "--game-left": "0px",
+          "--game-top": "0px"
+        },
+        "constraints": [
+          {
+            "element": "battlefield",
+            "width": "1920px",
+            "height": "1080px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "clip"
+          },
+          {
+            "element": "app",
+            "width": "1920px",
+            "height": "1080px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "hidden"
+          },
+          {
+            "element": "BODY",
+            "width": "1920px",
+            "height": "1080px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "hidden"
+          },
+          {
+            "element": "HTML",
+            "width": "1920px",
+            "height": "1080px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "hidden"
+          }
+        ],
+        "visual": {
+          "width": 1920,
+          "height": 1080,
+          "scale": 1,
+          "offsetLeft": 0,
+          "offsetTop": 0
+        },
+        "document": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "body": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "app": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "ui": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "menu": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "overlay": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "backing": {
+          "width": 1920,
+          "height": 1080
+        },
+        "devicePixelRatio": 1,
+        "rendererPixelRatio": 1,
+        "cameraAspect": 1.7777777777777777,
+        "fullscreen": {
+          "active": false,
+          "element": null
+        },
+        "iframe": false,
+        "overflow": false
+      }
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "viewport": {
+        "inner": {
+          "width": 1366,
+          "height": 768
+        },
+        "outer": {
+          "width": 1366,
+          "height": 768
+        },
+        "client": {
+          "width": 1366,
+          "height": 768
+        },
+        "rendererSize": [
+          1366,
+          768
+        ],
+        "cssGame": {
+          "--game-width": "1366px",
+          "--game-height": "768px",
+          "--game-left": "0px",
+          "--game-top": "0px"
+        },
+        "constraints": [
+          {
+            "element": "battlefield",
+            "width": "1366px",
+            "height": "768px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "clip"
+          },
+          {
+            "element": "app",
+            "width": "1366px",
+            "height": "768px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "hidden"
+          },
+          {
+            "element": "BODY",
+            "width": "1366px",
+            "height": "768px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "hidden"
+          },
+          {
+            "element": "HTML",
+            "width": "1366px",
+            "height": "768px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "hidden"
+          }
+        ],
+        "visual": {
+          "width": 1366,
+          "height": 768,
+          "scale": 1,
+          "offsetLeft": 0,
+          "offsetTop": 0
+        },
+        "document": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768
+        },
+        "body": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768
+        },
+        "app": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768
+        },
+        "ui": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768
+        },
+        "menu": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768
+        },
+        "overlay": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768
+        },
+        "backing": {
+          "width": 1366,
+          "height": 768
+        },
+        "devicePixelRatio": 1,
+        "rendererPixelRatio": 1,
+        "cameraAspect": 1.7786458333333333,
+        "fullscreen": {
+          "active": false,
+          "element": null
+        },
+        "iframe": false,
+        "overflow": false
+      }
+    },
+    {
+      "width": 900,
+      "height": 600,
+      "viewport": {
+        "inner": {
+          "width": 900,
+          "height": 600
+        },
+        "outer": {
+          "width": 900,
+          "height": 600
+        },
+        "client": {
+          "width": 900,
+          "height": 600
+        },
+        "rendererSize": [
+          900,
+          600
+        ],
+        "cssGame": {
+          "--game-width": "900px",
+          "--game-height": "600px",
+          "--game-left": "0px",
+          "--game-top": "0px"
+        },
+        "constraints": [
+          {
+            "element": "battlefield",
+            "width": "900px",
+            "height": "600px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "clip"
+          },
+          {
+            "element": "app",
+            "width": "900px",
+            "height": "600px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "hidden"
+          },
+          {
+            "element": "BODY",
+            "width": "900px",
+            "height": "600px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "hidden"
+          },
+          {
+            "element": "HTML",
+            "width": "900px",
+            "height": "600px",
+            "maxWidth": "none",
+            "maxHeight": "none",
+            "transform": "none",
+            "zoom": "1",
+            "overflow": "hidden"
+          }
+        ],
+        "visual": {
+          "width": 900,
+          "height": 600,
+          "scale": 1,
+          "offsetLeft": 0,
+          "offsetTop": 0
+        },
+        "document": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 600
+        },
+        "body": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 600
+        },
+        "app": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 600
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 600
+        },
+        "ui": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 600
+        },
+        "menu": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 600
+        },
+        "overlay": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 600
+        },
+        "backing": {
+          "width": 900,
+          "height": 600
+        },
+        "devicePixelRatio": 1,
+        "rendererPixelRatio": 1,
+        "cameraAspect": 1.5,
+        "fullscreen": {
+          "active": false,
+          "element": null
+        },
+        "iframe": false,
+        "overflow": false
+      }
+    }
+  ],
+  "after": {
+    "session": {
+      "kind": "attract",
+      "generation": 4,
+      "resets": 0,
+      "created": 4,
+      "disposed": 3,
+      "active": 1,
+      "planners": 1,
+      "gpu": {
+        "geometries": 41,
+        "textures": 4
+      },
+      "entities": 64,
+      "renderHosts": 1,
+      "terrainWorkers": 1
+    },
+    "time": 0.15000000000000002,
+    "preset": "road-cut-redoubts"
+  }
+}

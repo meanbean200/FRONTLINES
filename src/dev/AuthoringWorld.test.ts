@@ -9,6 +9,7 @@ import {intentKind} from '../scenarios/ScenarioIntent';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 
 describe('lightweight authoring',()=>{
+ it('reports incompatible connected fronts before Play without instantiating a world',()=>{const p=blankScenario();p.entities=[{id:'a',name:'A',type:'trench',side:'player',points:[{x:-1400,z:-1500},{x:-1370,z:-1500}],completed:true,width:4.2,depth:1.75,front:90,readiness:'alert'},{id:'b',name:'B',type:'trench',side:'player',points:[{x:-1370,z:-1500},{x:-1340,z:-1500}],completed:true,width:4.2,depth:1.75,front:-90,readiness:'stand-to'}];const before=scenarioDiagnostics.instantiations;expect(preflight(p).filter(i=>i.entityId==='b').map(i=>i.message)).toEqual(expect.arrayContaining(['B: Connected trenches need the same front direction.','B: Connected trenches need the same readiness.']));expect(scenarioDiagnostics.instantiations).toBe(before);});
  it('edits geometry without production worlds, sessions, or people; retains terrain and unaffected IDs',()=>{
   const world=new AuthoringWorld(),p=blankScenario(),before=structuredClone(WorldSession.ownership),count=scenarioDiagnostics.instantiations,terrain=world.terrain;
   p.entities=[{id:'a',name:'A',type:'trench',side:'player',points:[{x:-1400,z:-1500},{x:-1370,z:-1500}],width:4.2,depth:1.75,completed:true}];

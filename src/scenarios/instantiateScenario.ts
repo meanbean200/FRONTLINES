@@ -36,10 +36,15 @@ export function instantiateScenario(input:ScenarioPreset):BattlefieldState{
  state.operation={version:1,mode:'advance',status:'active',elapsed:0,duration:0,score:0,targetScore:90,nextCombat:0,nextOrders:1,objectives,initialPlayer:state.soldiers.filter(s=>state.squads.find(q=>q.id===s.squadId)?.faction==='player').length,initialEnemy:state.soldiers.filter(s=>state.squads.find(q=>q.id===s.squadId)?.faction==='enemy').length,shots:0,hits:0,reason:'',casualtyRules:true,supportRules:true,
   authored:{presetId:preset.id,controllers:{...preset.controllers},intentions:preset.entities.filter(e=>e.type==='formation').map(e=>({squadId:ids.get(e.id)!,intent:e.intent,targetId:e.targetId,home:{x:e.x,z:e.z}})),targets:preset.entities.filter(e=>e.type==='staging'||e.type==='objective').map(e=>({id:e.id,x:e.x,z:e.z,radius:e.radius})),memories:{},hold:{player:0,enemy:0}}};
  const simulation=new BattlefieldSimulation(state);
+ const authoredFronts=new Map<number,number>(),authoredReadiness=new Map<number,string>();
  // Initial position ownership is authored, not inferred from invisible opposing units.
  for(const e of preset.entities)if(e.type==='trench'&&e.completed){const t=state.trenches.find(t=>t.id===ids.get(e.id))!,component=simulation.garrisons.network.component(t.id);let g=w.garrisons.find(g=>simulation.garrisons.network.component(g.trenchId)===component);
   if(g&&(g.faction??'player')!==e.side)throw new Error(`${e.name}: connected trenches cannot start owned by opposing factions`);
   if(!g){g=simulation.garrisons.ensureArea(t.id);if(!g)throw new Error(e.name+': no usable completed floor');g.faction=e.side;g.name=e.name;g.nextSupport=Number.MAX_SAFE_INTEGER;}
+  // Facing belongs to the connected defensive area, not to the order in which
+  // its branches were authored. Older presets keep their original defaults.
+  if(e.front!==undefined){const front=((e.front%360)+360)%360,previous=authoredFronts.get(g.id);if(previous!==undefined&&Math.abs(previous-front)>.0001)throw new Error(`${e.name}: connected trenches need the same front direction`);authoredFronts.set(g.id,front);simulation.garrisons.setFront(g.id,front*Math.PI/180);}
+  if(e.readiness!==undefined){const previous=authoredReadiness.get(g.id);if(previous!==undefined&&previous!==e.readiness)throw new Error(`${e.name}: connected trenches need the same readiness`);authoredReadiness.set(g.id,e.readiness);simulation.garrisons.setReadiness(g.id,e.readiness);}
  }
  for(const e of preset.entities)if(e.type==='formation'&&e.trenchId){if(!simulation.garrisons.assign([ids.get(e.id)!],ids.get(e.trenchId)!))throw new Error(`${e.name}: ${simulation.garrisons.lastAssignment.reason}`);}
  for(const e of preset.entities){
