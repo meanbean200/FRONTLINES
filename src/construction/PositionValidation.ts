@@ -7,6 +7,7 @@ export function validPositionState(state:BattlefieldState):boolean {
   for(const f of state.living?.facilities??[]){
     const g=state.living!.garrisons.find(g=>g.id===f.garrisonId)!;
     if(f.facing!==undefined&&!Number.isFinite(f.facing))return false;
+    if(f.traverse&&(f.kind!=='emplacement'||![f.traverse.yaw,f.traverse.at].every(Number.isFinite)||f.traverse.at<0||f.traverse.at>state.elapsed+.001))return false;
     if(f.includesWeapon!==undefined&&(typeof f.includesWeapon!=='boolean'||!['emplacement','mortar'].includes(f.kind)))return false;
     if(f.autoReplaceCrew!==undefined&&typeof f.autoReplaceCrew!=='boolean')return false;
     const installed=f.installation;

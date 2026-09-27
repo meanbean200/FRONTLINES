@@ -1,4 +1,5 @@
-import { clamp, distance, type BattlefieldState, type SoldierState, type Vec2 } from '../core/types';
+import { distance, type BattlefieldState, type SoldierState, type Vec2 } from '../core/types';
+import {advanceControl,insideObjective} from './ObjectiveControl';
 import { transfer } from '../garrison/Inventory';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import { factionOf, type Faction } from './types';
@@ -116,16 +117,8 @@ export class OperationSystem {
   private updateObjectives(active: SoldierState[], factions: Map<number, Faction>, dt: number): void {
     const op = this.state.operation!;
     for (const objective of op.objectives) {
-      const nearby = active.filter(s => distance(s, objective) <= objective.radius && s.suppression < 75);
-      const player = nearby.filter(s => factions.get(s.squadId) === 'player').length, enemy = nearby.length - player;
-      const mixed = player > 0 && enemy > 0;
-      objective.contested = mixed || objective.owner === 'player' && enemy > 0 || objective.owner === 'enemy' && player > 0;
-      if (!mixed && Math.max(player, enemy) >= COMBAT_RULES.captureTroops) {
-        objective.control = clamp(objective.control + (player ? 1 : -1) * dt / COMBAT_RULES.captureSeconds, -1, 1);
-        if (objective.control >= 1) objective.owner = 'player';
-        else if (objective.control <= -1) objective.owner = 'enemy';
-        else if (objective.owner === 'player' && objective.control <= 0 || objective.owner === 'enemy' && objective.control >= 0) objective.owner = 'neutral';
-      }
+      const nearby=active.filter(s=>insideObjective(this.state,objective,s)&&s.suppression<75);
+      advanceControl(this.state,objective,dt,active);
       // Physical arrival at a finite cache, never a capture-triggered or proximity-wide refill.
       const crate = this.state.living!.crates.find(c => c.id === objective.cacheId);
       if (crate && !objective.contested) for (const soldier of nearby) {

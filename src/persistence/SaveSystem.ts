@@ -108,7 +108,7 @@ export class SaveSystem {
       for(const s of state.soldiers)if(s.needs?.life==='dead'&&!s.death)s.death={cause:'legacy-unknown',at:state.elapsed,occurredAt:state.elapsed,condition:{healthBefore:s.health,energy:s.needs.energy,hunger:s.needs.hunger,thirst:s.needs.thirst}};
       state.living!.migrationNote='Copy migrated to v4. People, coordinates, stock and existing timing preserved. Historical death causes are unknown; no retrospective deprivation. Original saves remain untouched.';
     }
-    if(state.combatRules!==RULES_VERSION){
+    if(state.combatRules!==RULES_VERSION&&state.combatRules!=='combat-44-endless-controller-world2'){
       for(const g of state.living!.garrisons)if(g.cutoff==='decision')g.cutoff='warning';
       for(const s of state.soldiers){
         if(s.selfCare?.kind==='supply-wait'){delete s.selfCare;delete s.survivalReason;}
@@ -315,6 +315,12 @@ function validLiving(state:BattlefieldState):boolean {
   if(w.trucks.some(t=>t.faction!==undefined&&!['player','enemy'].includes(t.faction)||t.faction==='enemy'&&!w.enemySupply))return false;
   for(const t of w.trucks)if(!point(t)||!stock(t.cargo)||!nonnegative(t.fuel)||!finite(t.timer)||!['convoy','shuttle'].includes(t.role)||!['idle','loading','outbound','unloading','returning','blocked'].includes(t.state)||!Array.isArray(t.route)||!t.route.every(point)||!Number.isInteger(t.routeIndex)||t.routeIndex<0||t.routeIndex>t.route.length||(t.garrisonId!==undefined&&!gIds.has(t.garrisonId)))return false;
   for(const c of w.crates)if(!point(c)||!stock(c.stock)||c.droppedBy!==undefined&&!sIds.has(c.droppedBy))return false;
+  for(const t of w.trucks){
+    if(t.destination!==undefined&&!point(t.destination)||[t.blockedSince,t.nextRepath,t.interdictedSince].some(n=>n!==undefined&&!nonnegative(n)))return false;
+    if(t.abandoned!==undefined&&typeof t.abandoned!=='boolean'||t.abandoned&&(t.state!=='blocked'||Object.values(t.cargo).some(n=>n!==0)||!w.crates.some(c=>c.id===t.salvageId&&c.truckId===t.id)))return false;
+    if(t.salvageId!==undefined&&!crateIds.has(t.salvageId))return false;
+  }
+  for(const c of w.crates)if(c.faction!==undefined&&!['player','enemy'].includes(c.faction)||c.truckId!==undefined&&!w.trucks.some(t=>t.id===c.truckId))return false;
   for(const s of state.soldiers){
     const n=s.needs;if(!n||!['active','incapacitated','dead'].includes(n.life)||!['energy','hunger','thirst','hungryHours','thirstyHours','sleepHours','day','watchHours','interruptedSleep','taskChanges'].every(k=>nonnegative(n[k as keyof typeof n]))||n.energy>100||n.hunger>100||n.thirst>100||!stock(s.carried))return false;
     if([n.hungrySeconds,n.thirstySeconds].some(v=>v!==undefined&&!nonnegative(v)))return false;
@@ -335,7 +341,8 @@ function validLiving(state:BattlefieldState):boolean {
     if(s.garrisonId!==undefined){const g=w.garrisons.find(g=>g.id===s.garrisonId),q=state.squads.find(q=>q.id===s.squadId);if(!g||!q||(g.faction??'player')!==(q.faction??'player')||!s.personalArea&&!g.squadIds.includes(s.squadId))return false;}
     const d=s.duty;if(d&&(!['watch','patrol','sleep','rest','meal','haul','construct'].includes(d.kind)||!point(d.destination)||!Array.isArray(d.route)||!d.route.every(point)||!Number.isInteger(d.routeIndex)||d.routeIndex<0||d.routeIndex>d.route.length||!nonnegative(d.since)||!nonnegative(d.until)||!nonnegative(d.blockedFor)||(d.arrivedAt!==undefined&&!nonnegative(d.arrivedAt))||(d.patientId!==undefined&&!sIds.has(d.patientId))))return false;
     if(d){
-      if(d.playerOrdered!==undefined&&(typeof d.playerOrdered!=='boolean'||d.playerOrdered&&(!['watch','sleep','rest','meal'].includes(d.kind)||state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')))return false;
+      if(d.playerOrdered!==undefined&&(typeof d.playerOrdered!=='boolean'||d.playerOrdered&&(!['watch','sleep','rest','meal','haul'].includes(d.kind)||state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')))return false;
+      if(d.recoveryLoad!==undefined&&(!stock(d.recoveryLoad)||d.kind!=='haul'||!['pickup','deliver'].includes(d.stage??'')))return false;
       if(d.watchPost!==undefined&&!point(d.watchPost))return false;
       if(d.entryPoint!==undefined&&!point(d.entryPoint))return false;
       if(d.relocationExit!==undefined&&!point(d.relocationExit))return false;

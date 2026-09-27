@@ -6,6 +6,7 @@ import type {StrategyCamera} from '../render/StrategyCamera';
 import {factionOf} from '../operations/types';
 import {contactGroups} from './ContactReadout';
 import {SETTLEMENTS} from '../terrain/WorldFeatures';
+import {controlBoundary,controlZone} from '../operations/ObjectiveControl';
 import {excavatedPoints} from '../core/TrenchGeometry';
 import {blocksGameplayKey} from '../input/GameplayKeys';
 import {drawOperationPlan} from './OperationalMap';
@@ -132,7 +133,9 @@ export class FieldMap {
     for(const o of state.preparedOrders??[]){if(o.releasedAt!==undefined&&!o.raid||o.raid&&['secured','failed'].includes(o.raid.phase))continue;const q=state.squads.find(q=>q.id===o.squadId);if(!q||q.faction==='enemy')continue;const target=o.raid?.phase==='regrouping'?o.raid.home:o.raid?.entry??o.target;line([q,target],'#d9c18b',2,[9,6]);const p=screen(target);ctx.font=`bold ${13*textScale}px Bahnschrift`;ctx.fillStyle='#e2c994';ctx.textAlign='left';label((o.releasedAt===undefined?'WAIT':o.raid?.phase.toUpperCase()??'GO')+' · '+q.name,p.x+14,p.y+18,6);}
     for(const place of SETTLEMENTS){const p=screen(place);ctx.font=`600 ${14*textScale}px Bahnschrift`;ctx.fillStyle='#e0e7d2';ctx.textAlign='center';label(place.name,p.x,p.y-18,2);}
     for(const [i,o] of (state.operation?.objectives??[]).entries()){
-      const p=screen(o),color=operation&&!state.operation?.endless?'#ded1a3':o.contested?'#c5a568':o.owner==='player'?'#bacfd9':o.owner==='enemy'?'#d49889':'#ded1a3';ctx.fillStyle='#1c2b26';ctx.fillRect(p.x-10,p.y-11,20,22);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.strokeRect(p.x-10,p.y-11,20,22);ctx.fillStyle=color;ctx.textAlign='center';ctx.font=`600 ${16*textScale}px Bahnschrift`;ctx.fillText(operation?'◇':String.fromCharCode(65+i),p.x,p.y+5);
+      const p=screen(controlZone(state,o)?.center??o),color=o.contested?'#c5a568':o.owner==='player'?'#bacfd9':o.owner==='enemy'?'#d49889':'#ded1a3';
+      const boundary=controlBoundary(state,o);line([...boundary,boundary[0]],color,1,[3,3]);
+      ctx.fillStyle='#1c2b26';ctx.fillRect(p.x-10,p.y-11,20,22);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.strokeRect(p.x-10,p.y-11,20,22);ctx.fillStyle=color;ctx.textAlign='center';ctx.font=`600 ${16*textScale}px Bahnschrift`;ctx.fillText(operation?'◇':String.fromCharCode(65+i),p.x,p.y+5);
       if(operation&&o.id.endsWith('-rear')){ctx.font=`${12*textScale}px Bahnschrift`;label(o.name,p.x,p.y+25,2);}
     }
     for(const q of mapClusters(mapUnits(state),screen)){

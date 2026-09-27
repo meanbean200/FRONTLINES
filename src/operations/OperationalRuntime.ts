@@ -1,4 +1,4 @@
-import {clamp,distance,type BattlefieldState,type SoldierState} from '../core/types';
+import {distance,type BattlefieldState,type SoldierState} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {transfer} from '../garrison/Inventory';
 import {factionOf,type Faction} from './types';
@@ -6,6 +6,7 @@ import {type ObjectiveSpec,type OperationRuntime,type OperationalPhase,type Oper
 import {corridorDistance,frontDepth,inZone} from './OperationGeometry';
 import {configuredDefinition} from './BattleSetup';
 import {stepPhysicalMission} from './MissionRuntime';
+import {advanceControl,insideObjective} from './ObjectiveControl';
 
 export function operationalForces(state:BattlefieldState):Record<Faction,SoldierState[]>{
   const squads=new Map(state.squads.map(q=>[q.id,q]));
@@ -100,13 +101,10 @@ export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSys
 
 /** Cache control is a supporting tactical effect, not the operation's score. */
 export function updateOperationalCaches(state:BattlefieldState,active:SoldierState[],factions:Map<number,Faction>,dt:number):void {
-  const op=state.operation!,r=op.runtime!;
+  const op=state.operation!;
   for(const objective of op.objectives){
-    const location=r.locations.find(l=>l.id===objective.id)!,zone=r.zones.find(z=>z.id===location.zoneId)!;
-    const people=active.filter(s=>inZone(s,zone)&&s.suppression<75);
-    const player=people.filter(s=>factions.get(s.squadId)==='player').length,enemy=people.length-player;
-    objective.contested=player>0&&enemy>0||objective.owner==='player'&&enemy>0||objective.owner==='enemy'&&player>0;
-    if(!(player&&enemy)&&Math.max(player,enemy)>=5){objective.control=clamp(objective.control+(player?1:-1)*dt/45,-1,1);if(Math.abs(objective.control)===1)objective.owner=objective.control>0?'player':'enemy';else if(objective.owner==='player'&&objective.control<=0||objective.owner==='enemy'&&objective.control>=0)objective.owner='neutral';}
+    advanceControl(state,objective,dt,active);
+    const people=active.filter(s=>insideObjective(state,objective,s)&&s.suppression<75);
     const crate=state.living!.crates.find(c=>c.id===objective.cacheId);
     if(crate&&!objective.contested)for(const s of people){if(factions.get(s.squadId)!==objective.owner||distance(s,crate)>12||s.duty||s.action!=='holding')continue;
       for(const [key,cap,rate] of [['ammo',60,4],['food',2,.25],['water',3,.25]] as const)transfer(crate.stock,s.carried!,key,Math.min(dt*rate,cap-s.carried![key]));s.ammunition=s.carried!.ammo;}

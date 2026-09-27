@@ -907,3 +907,119 @@ Evidence and exact limits: `docs/evidence/road-cut/README.md`. Tweak instruction
 `docs/road-cut-battle.md`. Game-architecture/playtest guidance kept the battle in
 the real deterministic simulation and required actual controls/screenshots;
 no scripted contact or fake combat was substituted.
+
+## 2026-09-26 — post-fd1d269 player-playtest delta
+
+Baseline: clean local/remote `fd1d26939fb51e71462247510297f620a015bd77`.
+Overall **PARTIAL**, including this pass's end-to-end acceptance. Prior Road Cut,
+DEV, Endless, saves and failed evidence remain intact. No neural training,
+automation, general physics or new editor expansion.
+
+### Issue status
+
+- **Aim — USER-REPORTED / IMPLEMENTED / MEASURED; USER ACCEPTED pending.**
+  Calm, settled, rested M1/Kar98k dispersion gets a bounded 6% improvement;
+  movement, poor light, fatigue and suppression penalties remain. Paired seeded
+  physical-shot measurements (20,000 per distance) and 48 production 8v8 encounters
+  record rounds, hits, meaningful-effect times and casualties. No guaranteed hits
+  or renderer-only accuracy. At 100 m: 12.07% before, 13.51% after. Full table,
+  intervals, encounter caveats and the independent 200 m result slightly over the
+  old nominal band are in `docs/evidence/player-delta/README.md`.
+- **MG reaction/traverse — USER-REPORTED / source defects REPRODUCED /
+  IMPLEMENTED; partial BROWSER VERIFIED; USER ACCEPTED pending.** The ordinary
+  rifle's long-range between-burst penalty also delayed automatic weapons by up
+  to 13.5 seconds at 450 m. MG acquisition/traverse was gated behind shot cooldown,
+  and the renderer read the operator heading that duties can overwrite. Automatic
+  weapons now have a separate bounded distance delay. Persisted mount yaw turns
+  at 60 degrees/sec without banking absent ticks; authoritative fire waits for
+  alignment and uses the same muzzle/facing. Automated left/right/arc and 1x/5x
+  checks pass. Actual Road Cut menu combat used both finite-stock MGs and changing
+  yaw (100 total shots at 22.6 s); full interactive arc acceptance remains open.
+- **Truck — USER-REPORTED; original ROOT CAUSE UNKNOWN.** A distinct mutual
+  queue at a converging waypoint was reproduced and repaired with deterministic
+  right of way. Invalid/incomplete routes now retain cargo and use bounded road
+  alternatives; moved unloading destinations require travel. The original
+  screenshot/save state and repeated normal-play trip matrix remain unverified.
+- **Saint-Martin — USER-REPORTED; exact mode/root cause still unknown.** A
+  separate legacy Trench War defect was **REPRODUCED / IMPLEMENTED**: the old
+  43 m capture circle was 108 m south of the actual town centre. Legacy named-town
+  control now covers the settlement without moving its stock or saved objects.
+  Shared control geometry/readouts drive capture, map outline and inspector.
+  **BROWSER VERIFIED:** actual Endless seed-1944 normal controls captured the
+  town, displayed finite stock, saved/refreshed/continued, and later observed
+  enemy recapture. This does not close the unidentified original scenario or
+  change missions that do not have Saint-Martin as an objective. USER ACCEPTED
+  pending.
+- **Supply selection/recovery — missing input route REPRODUCED / IMPLEMENTED;
+  partial BROWSER VERIFIED.** Screen-space clicks use the actual rendered boxes,
+  packs, trucks, town piles, depots and roadheads. The compact inspector shows
+  exact owned/recoverable contents, current blockers, destination, Recover and
+  Locate; hidden enemy cargo stays unknown. A recovery click requests one carrier
+  load, not instant/bulk transfer. Source access, return routes, full stores,
+  carried ammunition provenance and save/load are covered by regressions.
+  Browser play exposed a genuine long-route search-budget failure; bounded coarse
+  fallback now validates every edge against terrain and trench banks. A carrier
+  then walked to Saint-Martin but correctly refused pickup after enemy recapture.
+  Depot/truck clicks and narrow/short desktop layouts pass. Successful normal-play
+  pickup through delivery is still open; USER ACCEPTED pending.
+- **Enemy interception — missing authoritative loop REPRODUCED / IMPLEMENTED;
+  automated verified, BROWSER acceptance pending.** Physically unopposed armed
+  road occupation stops a cargo truck; after eight seconds it abandons exactly
+  its remaining load into selectable recoverable stock. Passenger transports stay
+  blocked. Neither side remotely receives/replaces the intercepted load; both
+  factions use the same local physical checks. This is deliberately a road-blockade
+  abstraction, not simulated bullet damage. Automated conservation, visibility,
+  repeat-tick and save tests do not substitute for the mandatory player chain.
+  Normal scouting play did not discover a live enemy shipment; hidden truck
+  coordinates were not used to issue player orders. USER ACCEPTED pending.
+
+### Evidence and limits
+
+`docs/evidence/player-delta/` contains reviewed screenshots and paired combat data;
+raw observed states, unsuccessful playthroughs and failed runs are preserved under
+`output/playwright/delta/`. Browser controls used isolated Edge profiles, not the
+player's storage. No solved runtime state was injected for player-facing claims.
+The game-foundations/Three.js guidance kept physical state authoritative; UI and
+playtest guidance required shared rendered/pickable objects and actual controls.
+
+Version-4 optional fields preserve mount yaw, truck recovery/interdiction and
+tracked return cargo. Rules identity is `combat-44-supply-interception-world2`;
+the prior rules migrate without replaying earlier needs conversions, refilling
+stock or inventing deaths. Incompatible learned policies visibly fall back.
+
+**REMAINING:** the complete discovered enemy convoy -> interruption -> clicked
+cargo -> secured carrier pickup -> friendly delivery normal-control playthrough;
+all specified in-transit/blocked/ground/recovery save checkpoints in that chain;
+full interactive MG arc acceptance; original Saint-Martin/truck failing states;
+repeated road/control-change trips; physical phones; 512-person/performance/soak
+and broader A–G gates; player judgment. Road Cut title combat is not interception
+acceptance. Final frozen verification results follow below.
+
+### Frozen player-delta verification
+
+- **912/912 tests, 134 files, 399.48 seconds** on the frozen serial run
+  (`output/playwright/delta/tests-release-frozen.json`). Existing return-approach
+  assertions and timeout limits remain unchanged. Earlier 901/902, 904/905,
+  906/908 and 907/912 runs are retained. The last exposed actual cargo/return
+  regressions, fixed by retaining physical loads during retries and subtracting
+  consumed supplies from outstanding delivery, not by changing those assertions.
+- Production/standalone and strict separate DEV builds pass; packaging **5/5**.
+  Existing large-bundle warnings remain. The rebuilt portable HTML is 1,448,892
+  bytes with two embedded workers; SHA-256
+  `e1c63ac8d74bca830f5d69bed65d183a12dae0a7f0507e658bc9d32d88229e01`.
+  Final Edge/offline results are recorded after completion below.
+- **27/27 maintained Edge regressions, 4.1 minutes**, one worker. Includes
+  controls, physical support positions, occupied-trench counterflow, manual
+  pause/save continuation and eight desktop viewport sizes. Synthetic fixture
+  rows remain regression coverage, not normal-player interception acceptance.
+- **Network-disabled isolated standalone launch passed:** real control-driven
+  movement, terrain/navigation worker responses, exact paused save/Continue
+  (identical state hashes), and six cold-refresh sizes from 390×844 to 2560×1440.
+  No page errors or network dependencies. Reviewed boot/gameplay screenshots and
+  raw result: `output/playwright/delta-release-offline-1790476276991/`; result copy
+  in `docs/evidence/player-delta/offline-launch.json`. Desktop emulation is not
+  physical-phone acceptance.
+- **Delivery status: validated implementation milestone; overall PARTIAL.**
+  The mandatory normal-play convoy-to-recovered-delivery chain, full interactive
+  MG arc demonstration, unidentified original failing saves, and user acceptance
+  remain open. No passing synthetic or menu-combat result closes them.

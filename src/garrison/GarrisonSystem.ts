@@ -3,6 +3,7 @@ import type { TerrainSystem } from '../terrain/TerrainSystem';
 import type { SquadNavigation } from '../navigation/SquadNavigation';
 import type { TrenchSystem } from '../construction/TrenchSystem';
 import { TrenchNetwork } from './TrenchNetwork';
+import {crateAccess} from './SupplyAccess';
 import { initializeLiving, LogisticsSystem } from './LogisticsSystem';
 import { CAMPAIGN_HOURS_PER_SECOND, dropCargo, freshNeeds, updateNeeds } from './NeedsSystem';
 import {calendarHoursPerSecond} from '../simulation/Calendar';
@@ -119,6 +120,18 @@ export class GarrisonSystem {
     }
   }
   setReadiness(id:number,readiness:Readiness):void{const g=this.state.living!.garrisons.find(g=>g.id===id);if(g){g.readiness=readiness;g.nextDecision=0;}}
+  recoverSupplies(crateId:number,garrisonId:number):{accepted:boolean;reason:string}{
+    const w=this.state.living!,g=w.garrisons.find(g=>g.id===garrisonId&&g.faction!=='enemy'),c=w.crates.find(c=>c.id===crateId);
+    const reject=(reason:string)=>({accepted:false,reason});
+    if(!g||!c||this.state.operation&&this.state.operation.status!=='active')return reject('Choose an active friendly supply destination');
+    const reason=crateAccess(this.state,this.terrain,c,'player');if(reason)return reject(reason);
+    if(total(g.cache)>=w.logistics!.cacheCapacity)return reject('STORAGE FULL');
+    if(this.state.soldiers.some(s=>s.duty?.crateId===c.id))return reject('RESERVED · recovery carrier already assigned');
+    const candidates=this.people(g).filter(s=>s.needs?.life==='active'&&s.needs.energy>35&&!s.selfCare&&!s.combat?.careTask&&s.suppression<60&&!this.personalDuty(s)&&!w.facilities.some(f=>f.weaponCrewIds?.includes(s.id))&&(!s.duty||['rest','patrol'].includes(s.duty.kind))).sort((a,b)=>distance(a,c)-distance(b,c)||a.id-b.id);
+    if(!candidates.length)return reject('NO CARRIER · free a fit person at this destination');
+    for(const s of candidates)if(this.assignDuty(s,g,'haul',c,'Player: recover supplies',180,!this.network.corridorContains(c))){s.duty!.stage='pickup';s.duty!.crateId=c.id;s.duty!.playerOrdered=true;return {accepted:true,reason:'Recovery carrier dispatched · stock transfers only on arrival'};}
+    return reject('NO ROUTE · recovery point cannot be reached');
+  }
   orderPerson(id:number,order:PersonalOrder,point?:Vec2):{accepted:boolean;reason:string}{
     const reject=(reason:string)=>({accepted:false,reason});
     const s=this.state.soldiers.find(s=>s.id===id);if(!s||this.state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')return reject('Choose a friendly person.');
@@ -618,7 +631,7 @@ export class GarrisonSystem {
         if(loading&&this.assignDuty(s,g,'haul',loading,'Collect physical forward shipment',180,true))s.duty!.stage='pickup';continue;
       }
       if(haulers<2){
-        const crates=w.crates.filter(c=>total(c.stock)>0&&(g.cutoff==='clear'&&distance(c,g.entrance)<80||g.cutoff==='recover')&&!active.some(p=>p.duty?.crateId===c.id))
+        const crates=w.crates.filter(c=>total(c.stock)>0&&(g.cutoff==='clear'&&distance(c,g.entrance)<80||g.cutoff==='recover')&&!this.state.soldiers.some(p=>p.duty?.crateId===c.id)&&!crateAccess(this.state,this.terrain,c,g.faction??'player'))
           .sort((a,b)=>distance(a,g.entrance)-distance(b,g.entrance)||a.id-b.id);
         // A failed candidate must not monopolize this person's decision. Try
         // reachable alternatives, then allow normal duties if none can be used.
@@ -669,11 +682,15 @@ export class GarrisonSystem {
     if(revision!==this.approachRevision){this.approachRevision=revision;this.approachCache.clear();}
     const key=`${from.x},${from.z}:${to.x},${to.z}:${entrance.x},${entrance.z}:${exit?.x},${exit?.z}`,cached=this.approachCache.get(key);
     if(cached)return cached.map(p=>({...p}));
-    const avoid=(p:Vec2)=>this.network.corridorContains(p)&&distance(p,entrance)>3&&(!exit||distance(p,exit)>3);
+    const avoid=(p:Vec2)=>this.network.corridorContains(p)&&distance(p,entrance)>this.passageRadius(entrance)&&(!exit||distance(p,exit)>this.passageRadius(exit));
     // An external service berth inside a closed trench bank is impossible;
     // do not exhaust an A* search trying to reach its explicitly forbidden goal.
     if(avoid(to))return [];
     let route=this.navigation.plan(from,to,avoid);
+    // Long external errands can exhaust the local grid on costly ground. A
+    // bounded coarse fallback still checks every metre of each edge against
+    // terrain AND trench walls; it never grants passage through a closed bank.
+    if(!route.length&&distance(from,to)>400)route=this.navigation.plan(from,to,avoid,false,8000,32);
     // Squad navigation may move a requested endpoint away from a footprint.
     // A physical delivery cannot append an unchecked hop back into that obstacle.
     if(route.length&&!this.navigation.segmentClear(route.at(-1)!,to,.4,avoid))route=[];
@@ -686,7 +703,7 @@ export class GarrisonSystem {
     let index=d.route.length-1;while(index>=0&&distance(d.route[index],entrance)>.15)index--;
     if(index<0)return [];
     const route=d.route.slice(index).reverse().map(p=>({x:p.x,z:p.z}));route[route.length-1]={...entrance};
-    const avoid=(p:Vec2)=>this.network.corridorContains(p)&&distance(p,entrance)>3;
+    const avoid=(p:Vec2)=>this.network.corridorContains(p)&&distance(p,entrance)>this.passageRadius(entrance);
     // The outward route is serialized, but may no longer be clear after new
     // excavation. Revalidate every return segment, including the current position.
     if(!route.every((p,i)=>this.navigation.segmentClear(i?route[i-1]:s,p,2,avoid)))return [];
@@ -704,6 +721,7 @@ export class GarrisonSystem {
     if(!this.network.corridorContains(p))return;
     const near=this.network.nearest(p);return near?this.network.nodes[this.network.edges[near.edge].a].component:undefined;
   }
+  private passageRadius(p:Vec2):number{const hit=this.network.nearest(p);return Math.max(3,hit?this.network.edges[hit.edge].width/2+.5:3);}
   private relocationRoute(s:SoldierState,component:number,entrance:Vec2):{route:Vec2[];exit:Vec2;entry:Vec2;inside:boolean}|undefined {
     const source=this.componentAt(s);
     if(source===undefined){
@@ -792,7 +810,7 @@ export class GarrisonSystem {
     if(!ownsAction(s,'duty'))return;
     const w=this.state.living!;if(s.needs!.life!=='active'){s.action=s.needs!.life;return;}
     const d=s.duty;if(!d){s.action='waiting for duty';return;}
-    const passageRadius=(p:Vec2)=>{const hit=this.network.nearest(p);return Math.max(3,hit?this.network.edges[hit.edge].width/2+.5:3);};
+    const passageRadius=(p:Vec2)=>this.passageRadius(p);
     // Arrival in the destination network releases the temporary travel duty.
     // Routine scheduling must not recruit a traveller back to its old trench.
     if(d.relocationExit&&this.componentAt(s)===this.network.component(g.trenchId)){delete s.duty;g.nextDecision=0;return;}
@@ -886,7 +904,7 @@ export class GarrisonSystem {
       }
       const point=this.supplyPoint(g,s,d.stage==='deliver'?d.dropStoreId:d.pickupStoreId,true);
       if(point&&this.assignDuty(s,g,d.kind,point,'Supply queue called forward',30)){
-        s.duty!.stage=d.stage;s.duty!.facilityId=d.facilityId;s.duty!.patientId=d.patientId;s.duty!.pickupStoreId=d.pickupStoreId;s.duty!.dropStoreId=d.dropStoreId;
+        s.duty!.stage=d.stage;s.duty!.facilityId=d.facilityId;s.duty!.patientId=d.patientId;s.duty!.pickupStoreId=d.pickupStoreId;s.duty!.dropStoreId=d.dropStoreId;s.duty!.crateId=d.crateId;s.duty!.recoveryLoad=d.recoveryLoad;s.duty!.playerOrdered=d.playerOrdered;
       }return;
     }
     if(g.cutoff==='withdraw'){
@@ -937,6 +955,9 @@ export class GarrisonSystem {
     }else if(d.kind==='haul'&&this.state.elapsed-d.arrivedAt>=3){
       const carried=s.carried??=inventory();
       if(d.stage==='pickup'){
+        const crate=d.crateId?w.crates.find(c=>c.id===d.crateId):undefined;
+        if(crate&&!d.recoveryLoad){const blocked=crateAccess(this.state,this.terrain,crate,g.faction??'player');if(blocked){d.reason=blocked;return;}}
+        const before={...carried};
         const source=d.patientId||d.facilityId?(d.pickupStoreId?w.facilities.find(f=>f.id===d.pickupStoreId)?.stock:g.cache):d.crateId?w.crates.find(c=>c.id===d.crateId)?.stock:g.forwardStock;
         const construction=w.facilities.find(f=>f.id===d.facilityId);
         if(construction?.paid||construction?.workOrder?.cancelledAt!==undefined){
@@ -947,7 +968,7 @@ export class GarrisonSystem {
           return;
         }
         if(construction&&source){reconcileSupplyDemands(this.state);const reserved=claimedAt(this.state,constructionKey(construction.id),d.pickupStoreId?'store':'local',d.pickupStoreId??g.id);transfer(source,carried,'materials',Math.min(8-carried.materials,reserved));}
-        else if(source){let space=Math.max(0,carrierCapacity(carried,w.logistics!.carrierCapacity)-total(carried));const local=localInventory(this.state,g),count=this.people(g).filter(p=>p.needs!.life!=='dead').length;
+        else if(source&&!d.recoveryLoad){let space=Math.max(0,carrierCapacity(carried,w.logistics!.carrierCapacity)-total(carried));const local=localInventory(this.state,g),count=this.people(g).filter(p=>p.needs!.life!=='dead').length;
           if(!d.patientId&&!d.crateId){reconcileSupplyDemands(this.state);for(const demand of forwardClaims(this.state,g.id)){
             const key=demand.resource,localTarget=key==='materials'?32:key==='ammo'?(this.state.operation?Math.min(300,count*6):5):key==='food'||key==='water'?count*2:6;
             // Fallback reserve depth may stay at the forward point. Explicit
@@ -958,11 +979,17 @@ export class GarrisonSystem {
           if(d.crateId)for(const key of ['medical','mortarHE','mortarSmoke','smokeGrenades'] as const)space-=transfer(source,carried,key,Math.min(space,Math.max(0,6-local[key])));
           const resources=this.state.operation&&local.ammo<count*2?['ammo','water','food','materials','fuel'] as const:local.food<local.water?['food','water','materials','ammo','fuel'] as const:['water','food','materials','ammo','fuel'] as const;
           if(d.patientId||d.crateId)for(const key of resources){const wanted=d.patientId?key==='food'||key==='water'?1:key==='ammo'&&this.state.operation?30:0:6;const amount=Math.min(space,wanted,key==='materials'?8:key==='ammo'?30:6);space-=transfer(source,carried,key,amount);}}
+        if(crate&&!d.recoveryLoad){d.recoveryLoad=inventory();for(const key of RESOURCES)d.recoveryLoad[key]=Math.max(0,carried[key]-before[key]);}
         if(construction&&carried.materials<=0){delete s.duty;g.nextDecision=0;return;}
         const stores=w.facilities.filter(f=>f.garrisonId===g.id&&(f.kind==='store'||f.kind==='ammo')&&f.progress===1&&total(f.stock)<w.logistics!.storeCapacity);
         const store=stores.find(f=>f.kind==='ammo'&&carried.ammo>60)??stores.find(f=>f.kind==='store');
         const patient=this.state.soldiers.find(p=>p.id===d.patientId),destination=patient??(construction?(construction.trenchAnchor?weaponCrewPoint(this.state,construction,0):this.state.trenches.find(t=>t.id===construction.connectorId)!.points[0]):this.supplyPoint(g,s,store?.id));
-        if(this.assignDuty(s,g,'haul',destination,patient?'Delivering aid':construction?'Delivering construction materials':'Returning with supplies',180,Boolean(patient&&!this.network.corridorContains(patient)))){s.duty!.stage='deliver';s.duty!.patientId=d.patientId;s.duty!.facilityId=construction?.id;s.duty!.dropStoreId=store?.id;}
+        if(this.assignDuty(s,g,'haul',destination,patient?'Delivering aid':construction?'Delivering construction materials':'Returning with supplies',180,Boolean(patient&&!this.network.corridorContains(patient)))){s.duty!.stage='deliver';s.duty!.patientId=d.patientId;s.duty!.facilityId=construction?.id;s.duty!.dropStoreId=store?.id;s.duty!.playerOrdered=d.playerOrdered;if(crate){s.duty!.crateId=crate.id;s.duty!.recoveryLoad=d.recoveryLoad;}}
+        else if(crate){
+          // Retain the real load and its identity while retrying, never picking
+          // it up twice or silently turning recovered ammunition into personal kit.
+          d.reason='RETURN ROUTE BLOCKED · cargo retained by carrier';
+        }
       }else{
         const patient=this.state.soldiers.find(p=>p.id===d.patientId);
         const construction=w.facilities.find(f=>f.id===d.facilityId);
@@ -992,13 +1019,20 @@ export class GarrisonSystem {
           }
         }else {const store=d.dropStoreId?w.facilities.find(f=>f.id===d.dropStoreId):undefined,stock=store?.stock??g.cache,capacity=store?w.logistics!.storeCapacity:w.logistics!.cacheCapacity;
           const personalAmmo=this.state.operation?Math.min(60,carried.ammo):0;
-          for(const key of RESOURCES)transferBounded(carried,stock,key,carried[key]-(key==='ammo'?personalAmmo:0),capacity);
+          for(const key of RESOURCES){
+            // Self-care/fire may consume part of this physical load in transit.
+            // Consumption is already in the ledger, not promised stock to invent
+            // or wait forever to deliver. Use personal stock first when possible.
+            if(d.recoveryLoad)d.recoveryLoad[key]=Math.min(d.recoveryLoad[key],carried[key]);
+            const moved=transferBounded(carried,stock,key,d.recoveryLoad?.[key]??carried[key]-(key==='ammo'?personalAmmo:0),capacity);
+            if(d.recoveryLoad)d.recoveryLoad[key]=Math.max(0,d.recoveryLoad[key]-moved);
+          }
           s.ammunition=carried.ammo;
-          if(total(carried)-personalAmmo>.000001){
+          if((d.recoveryLoad?total(d.recoveryLoad):total(carried)-personalAmmo)>.000001){
             // A full store must not let inbound haulers monopolize every loading
             // berth: consumers need those same berths to create storage space.
             const waiting=this.localMealPoint(g,s);
-            if(this.assignDuty(s,g,'haul',{...waiting,pickupQueued:true},'Storage full; waiting aside with cargo',180)){s.duty!.stage='deliver';s.duty!.dropStoreId=d.dropStoreId;}
+            if(this.assignDuty(s,g,'haul',{...waiting,pickupQueued:true},'Storage full; waiting aside with cargo',180)){s.duty!.stage='deliver';s.duty!.dropStoreId=d.dropStoreId;s.duty!.recoveryLoad=d.recoveryLoad;s.duty!.crateId=d.crateId;s.duty!.playerOrdered=d.playerOrdered;}
             return;
           }
         }

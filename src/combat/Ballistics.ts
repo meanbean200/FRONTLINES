@@ -54,7 +54,11 @@ export function dispersionMultiplier(state:BattlefieldState,s:SoldierState,targe
   const walking=isWalkingAction(s.action)||s.action==='following drawn path';
   const movingTarget=target&&(isWalkingAction(target.action)||target.action==='following drawn path');
   const hour=(state.living?.campaignHours??12)%24;
-  return (walking?3.2:1)*(movingTarget?1.8:1)*(1+s.suppression/35)*
+  // A small, bounded benefit for calm rifle fire, not a global accuracy boost.
+  const rifle=['m1','kar98k'].includes(s.equipment?.weapon??s.combat?.weapon?.id??'');
+  const steady=rifle&&!walking&&!movingTarget&&hour>=6&&hour<20&&(!s.combat?.aim||state.elapsed>=s.combat.aim.settlingUntil)
+    ?1-.06*clamp(1-s.suppression/15,0,1)*clamp(((s.needs?.energy??100)-60)/40,0,1):1;
+  return steady*(walking?3.2:1)*(movingTarget?1.8:1)*(1+s.suppression/35)*
     (1+(100-(s.needs?.energy??100))/100)*(1+(100-s.morale)/200)*
     (hour<6||hour>=20?1.6:1)*(s.combat?.aim&&state.elapsed<s.combat.aim.settlingUntil?1.8:1);
 }

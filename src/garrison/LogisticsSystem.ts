@@ -6,8 +6,10 @@ import { total, transfer, transferBounded } from './Inventory';
 import {reconcileSupplyDemands,unfulfilled} from './SupplyDemand';
 import { freshNeeds } from './NeedsSystem';
 import {RULES_VERSION} from './GarrisonPolicy';
-import {initializeEquipment} from '../combat/Equipment';
+import {initializeEquipment,equipmentOf} from '../combat/Equipment';
 import {loadEndlessManifest,stepEndlessAvailability} from '../operations/EndlessEconomy';
+import {eyeHeight} from '../operations/Visibility';
+import {smokeTransmission} from '../combat/SupportWeapons';
 
 export function roadPoint(x:number):Vec2{return {x,z:supplyRoadZ(x)};}
 export const defaultLogistics=():LogisticsConfig=>({deliveryInterval:450,manifest:inventory({food:400,water:600,materials:120,fuel:180,ammo:160,medical:12,mortarHE:12,mortarSmoke:6,smokeGrenades:10}),rearCapacity:12000,forwardCapacity:400,cacheCapacity:600,storeCapacity:600,convoyCapacity:1500,shuttleCapacity:140,carrierCapacity:16});
@@ -56,7 +58,39 @@ export class LogisticsSystem {
       if(this.terrain.obstacleAt(p.x,p.z,1.6)||this.terrain.groundTypeAt(p.x,p.z)==='river'||this.terrain.deformationAt(p.x,p.z)<-.35)return false;
     }return true;
   }
-  private depart(t:Truck,destination:Vec2,state:'outbound'|'returning'):void{t.route=roadRoute(t,destination);t.routeIndex=0;t.state=state;delete t.resume;t.reason=state==='outbound'?'En route':'Returning to depot';}
+  private depart(t:Truck,destination:Vec2,state:'outbound'|'returning'):void{t.destination={...destination};t.route=roadRoute(t,destination);t.routeIndex=0;t.state=state;delete t.resume;delete t.blockedSince;t.reason=state==='outbound'?'En route':'Returning to depot';}
+  private recoverRoute(t:Truck):void {
+    const now=this.state.elapsed;t.blockedSince??=now;
+    if(now-t.blockedSince<2||now<(t.nextRepath??0))return;
+    t.nextRepath=now+10;
+    const destination=t.destination??t.route.at(-1);if(!destination)return;
+    const route=roadRoute(t,destination,(a,b)=>this.clear(a,b));
+    if(!route.length){t.reason='ROUTE BLOCKED · no usable road alternative · cargo retained';return;}
+    t.route=route;t.routeIndex=0;t.state=t.resume??'outbound';delete t.resume;delete t.blockedSince;t.reason='Road alternative found · cargo retained';
+  }
+  /** Physical road occupation, not remote commander knowledge or vehicle hit points. */
+  private blockade(t:Truck):boolean {
+    if(!this.state.operation)return false;
+    const side=t.faction??'player';
+    const nearby=this.state.soldiers.filter(s=>s.needs?.life==='active'&&s.health>=25&&s.suppression<70&&(s.carried?.ammo??0)>0&&equipmentOf(this.state,s).weapon!=='unarmed'&&distance(s,t)<24&&this.terrain.objects.trace(t,s,this.terrain.heightAt(t.x,t.z)+2,eyeHeight(this.terrain,s),false).clear&&smokeTransmission(this.state,t,s)>.4);
+    const hostile=nearby.filter(s=>(this.state.squads.find(q=>q.id===s.squadId)?.faction??'player')!==side).length;
+    const escort=nearby.length-hostile;
+    if(hostile<2||hostile<=escort){delete t.interdictedSince;return false;}
+    t.interdictedSince??=this.state.elapsed;
+    if(t.state!=='blocked')t.resume=t.state==='returning'?'returning':'outbound';
+    t.state='blocked';t.reason='ROAD INTERDICTED · opposing troops control this stretch · cargo aboard';
+    const passengers=this.state.operation.campaign?.replacements?.manifests.some(m=>m.truckId===t.id&&m.stage!=='arrived')||t.passengers?.length;
+    if(this.state.elapsed-t.interdictedSince>=8&&!passengers){
+      // This is an abandoned load, not destroyed stock. A carrier must still
+      // reach it and physically return it before any friendly store benefits.
+      // Choose nearby usable ground, not an arbitrary offset inside a wall.
+      // If the roadside is boxed in, cargo remains recoverable at the vehicle.
+      const spot=Array.from({length:8},(_,i)=>({x:t.x+Math.cos(i*Math.PI/4)*3,z:t.z+Math.sin(i*Math.PI/4)*3})).find(p=>insideWorld(p,1)&&this.clear(t,p))??t;
+      const c={id:this.state.nextEntityId++,x:spot.x,z:spot.z,stock:t.cargo,faction:side,truckId:t.id};
+      this.state.living!.crates.push(c);t.cargo=inventory();t.salvageId=c.id;t.abandoned=true;t.reason='ABANDONED · surviving cargo unloaded beside vehicle';
+    }
+    return true;
+  }
   step(dt:number):void {
     const w=this.state.living!,config=w.logistics!;
     stepEndlessAvailability(this.state);
@@ -69,11 +103,12 @@ export class LogisticsSystem {
       if(this.state.elapsed<(g.nextRoadheadReview??0))continue;g.nextRoadheadReview=this.state.elapsed+5;
       const next=this.forwardPoint(g.entrance,g.faction??'player');if(distance(next,g.forward)<1||!this.clear(next,next))continue;
       g.forward=next;
-      for(const t of w.trucks.filter(t=>t.garrisonId===g.id&&(t.state==='outbound'||t.state==='blocked'&&t.resume==='outbound'))){this.depart(t,next,'outbound');t.reason='Rerouting to accessible unloading apron · cargo retained';}
+      for(const t of w.trucks.filter(t=>!t.abandoned&&t.garrisonId===g.id&&(t.state==='outbound'||t.state==='blocked'&&t.resume==='outbound'))){this.depart(t,next,'outbound');t.reason='Rerouting to accessible unloading apron · cargo retained';}
     }
     reconcileSupplyDemands(this.state);
-    this.reserved=new Set(w.trucks.filter(t=>t.garrisonId!==undefined&&t.state!=='idle').map(t=>t.garrisonId!));
+    this.reserved=new Set(w.trucks.filter(t=>!t.abandoned&&t.garrisonId!==undefined&&t.state!=='idle').map(t=>t.garrisonId!));
     for(const t of w.trucks){
+      if(t.abandoned)continue;
       const side=t.faction??'player',enemy=side==='enemy'?w.enemySupply:undefined;
       if(side==='enemy'&&!enemy){t.reason='No friendly rear depot';continue;}
       const rear=enemy?.rear??w.rear,rearStock=enemy?.stock??w.rearStock,edge=(side==='enemy'?enemy?.entry:w.entry)??convoyEntry(side==='enemy',rear);
@@ -122,6 +157,9 @@ export class LogisticsSystem {
         t.timer-=dt;if(t.timer>0)continue;
         this.depart(t,t.role==='convoy'?rear:assigned?.forward??rear,'outbound');
       }else if(t.state==='unloading'){
+        if(this.blockade(t))continue;
+        const destination=t.role==='convoy'?rear:assigned?.forward??rear;
+        if(distance(t,nearestRoad(destination).point)>5){this.depart(t,destination,'outbound');t.reason='Destination moved · travelling with cargo';continue;}
         t.timer-=dt;if(t.timer>0)continue;
         const stock=t.role==='convoy'?rearStock:assigned?.forwardStock??rearStock;
         const capacity=t.role==='convoy'?config.rearCapacity:config.forwardCapacity;
@@ -134,20 +172,33 @@ export class LogisticsSystem {
         }
         this.depart(t,t.role==='convoy'?edge:rear,'returning');
       }else{
+        if(this.blockade(t))continue;
         const target=t.route[t.routeIndex];
         if(!target){
-          if(t.state==='returning'){t.state='idle';delete t.garrisonId;t.reason='At depot';}
+          const returning=t.state==='returning'||t.resume==='returning',destination=t.destination??(returning?t.role==='convoy'?edge:rear:t.role==='convoy'?rear:assigned?.forward??rear);
+          t.destination??={...destination};
+          if(distance(t,nearestRoad(destination).point)>3){t.resume=returning?'returning':'outbound';t.state='blocked';t.reason='ROUTE BLOCKED · route incomplete · cargo retained';this.recoverRoute(t);continue;}
+          if(returning){t.state='idle';delete t.resume;delete t.garrisonId;t.reason='At depot';}
           else {t.state='unloading';t.timer=6;t.reason='Unloading at destination';}
           continue;
         }
         if(t.fuel<=0||!this.clear(t,target)){
           if(t.state!=='blocked')t.resume=t.state as 'outbound'|'returning';
-          t.state='blocked';t.reason=t.fuel<=0?'Out of fuel; cargo retained':'Road severed or obstructed; cargo retained';continue;
+          t.state='blocked';t.reason=t.fuel<=0?'Out of fuel; cargo retained':'Road severed or obstructed; cargo retained';if(t.fuel>0)this.recoverRoute(t);continue;
         }
-        if(t.state==='blocked'){t.state=t.resume??'outbound';delete t.resume;}
+        if(t.state==='blocked'){t.state=t.resume??'outbound';delete t.resume;delete t.blockedSince;t.reason='Road reopened · cargo retained';}
         // Queue behind a truck on the same lane; opposing traffic uses the other lane visually.
         const dx=target.x-t.x,dz=target.z-t.z;
-        const queued=w.trucks.some(o=>{const aim=o.route[o.routeIndex];return o!==t&&aim&&distance(t,o)<7&&(aim.x-o.x)*dx+(aim.z-o.z)*dz>0&&(o.x-t.x)*dx+(o.z-t.z)*dz>0;});
+        const queued=w.trucks.some(o=>{
+          const aim=o.route[o.routeIndex];if(o===t||o.abandoned||!aim||distance(t,o)>=7)return false;
+          const ox=aim.x-o.x,oz=aim.z-o.z;
+          if(ox*dx+oz*dz<=0||(o.x-t.x)*dx+(o.z-t.z)*dz<=.1)return false;
+          // Two lanes converging toward one waypoint can each classify the
+          // other as ahead. Stable right of way breaks that mutual wait; normal
+          // same-lane followers still queue behind their physical leader.
+          const mutual=(t.x-o.x)*ox+(t.z-o.z)*oz>.1;
+          return !mutual||o.id<t.id;
+        });
         if(queued){t.reason='Road queue';continue;}
         if(['Road queue','Out of fuel; cargo retained','Road severed or obstructed; cargo retained'].includes(t.reason))t.reason=t.state==='returning'?'Returning to depot':'En route';
         const d=distance(t,target),step=Math.min(d,dt*12),fuel=Math.min(t.fuel,step*.0006);

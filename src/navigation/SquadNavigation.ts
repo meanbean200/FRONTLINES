@@ -24,7 +24,7 @@ export class SquadNavigation {
     }
     return target;
   }
-  plan(start:Vec2,requestedGoal:Vec2,avoid?: (point:Vec2)=>boolean,person=false,budget?:number):Vec2[] {
+  plan(start:Vec2,requestedGoal:Vec2,avoid?: (point:Vec2)=>boolean,person=false,budget?:number,gridSize?:number):Vec2[] {
     const interior=this.terrain.buildingAt(start);
     if(interior!==undefined){const b=this.terrain.buildings[interior],out=doorPoint(b,8),rest=this.plan(out,requestedGoal,avoid,person,budget);return rest.length?[{x:b.x,z:b.z},doorPoint(b,-1),out,...rest]:[];}
     const goal=this.freeDestination(requestedGoal,person?.55:8),range=distance(start,goal);
@@ -34,7 +34,7 @@ export class SquadNavigation {
     if((person||avoid||range<200)&&clear(start,goal,person?.55:4))return [goal];
     // Individual errands fit through streets a formation cannot. Anchor this
     // grid on the actual doorway so rounding cannot start inside its wall.
-    const cell=person?4:avoid?8:range<700?8:60,ox=avoid||person?start.x:0,oz=avoid||person?start.z:0;
+    const cell=gridSize??(person?4:avoid?8:range<700?8:60),ox=avoid||person?start.x:0,oz=avoid||person?start.z:0;
     const sx=Math.round((start.x-ox)/cell),sz=Math.round((start.z-oz)/cell),gx=Math.round((goal.x-ox)/cell),gz=Math.round((goal.z-oz)/cell);
     const key=(x:number,z:number)=>`${x},${z}`;
     const open=new MinHeap(),best=new Map<string,number>(),costs=new Map<string,number>();

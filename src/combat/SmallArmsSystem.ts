@@ -13,6 +13,7 @@ import {equipWeapon,weaponReady,WEAPONS} from './Weapons';
 import {combatWound} from './Casualties';
 import {operatedPosition,weaponStock} from './WeaponPositions';
 import {effectiveSquad} from '../operations/AssaultPlan';
+import {traverseMount} from './MountTraverse';
 
 export const RIFLE_RULES=Object.freeze({range:360,shotInterval:3.8,damage:60});
 
@@ -42,7 +43,8 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     const weapon=equipWeapon(state,shooter),definition=WEAPONS[weapon.id];
     // Handling starts when the crew stops or empties the weapon, not only
     // when the next firing opportunity arrives. Cadence still gates the shot.
-    if(!weaponReady(state,shooter,active)||op.elapsed<(shooter.nextShotAt??0))continue;
+    if(!weaponReady(state,shooter,active))continue;
+    if(!operatedPosition(state,shooter,'emplacement')&&op.elapsed<(shooter.nextShotAt??0))continue;
     const combat=shooter.combat??={shotSequence:0};
     const squad=effectiveSquad(state,shooter,state.squads.find(q=>q.id===shooter.squadId)!),area=squad.order.intent==='suppress'?squad.order.target:undefined;
     const known=new Set(squadContacts(state,shooter.squadId).filter(c=>c.visible).map(c=>c.soldierId));
@@ -85,21 +87,22 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     const aimId=area?undefined:target?.id;
     if(shooter.aimTargetId!==aimId||!combat.aim||area&&distance(combat.aim.point,point)>2){
       weapon.burstLeft=0;
-      shooter.heading=heading;shooter.aimTargetId=aimId;
-      shooter.aimReadyAt=op.elapsed+.4+hash2D(shooter.id,aimId??0,state.seed)*1.1+(100-(shooter.needs?.energy??100))*.012;
+      if(!mount)shooter.heading=heading;shooter.aimTargetId=aimId;
+      shooter.aimReadyAt=op.elapsed+(mount?.25:.4)+hash2D(shooter.id,aimId??0,state.seed)*(mount?.25:1.1)+(100-(shooter.needs?.energy??100))*.012;
       combat.aim={targetId:aimId,since:state.elapsed,lastSeen:state.elapsed,point,lastHeading:heading,lastPosition:{x:shooter.x,z:shooter.z},settlingUntil:state.elapsed+.5};
-      continue;
     }
+    if(mount){const aligned=traverseMount(mount,heading,state.elapsed);shooter.heading=mount.traverse!.yaw;if(!aligned){combat.pauseReason='Traversing mounted gun';continue;}}
     const aim=combat.aim,turn=Math.abs(Math.atan2(Math.sin(heading-aim.lastHeading),Math.cos(heading-aim.lastHeading)));
     if(distance(shooter,aim.lastPosition)>.3||turn>.2)aim.settlingUntil=state.elapsed+1.5;
     aim.point=point;aim.lastSeen=state.elapsed;aim.lastPosition={x:shooter.x,z:shooter.z};aim.lastHeading=heading;
-    if(op.elapsed<(shooter.aimReadyAt??0))continue;
+    if(op.elapsed<(shooter.aimReadyAt??0)){combat.pauseReason='Acquiring observed target';continue;}
+    if(op.elapsed<(shooter.nextShotAt??0)){combat.pauseReason='Between bursts / shots';continue;}
     // Distant shots are deliberate, not an endless full-cadence volley.
     if(weapon.burstLeft<=0)weapon.burstLeft=definition.burst;
     weapon.burstLeft--;weapon.loaded--;
-    shooter.nextShotAt=op.elapsed+(weapon.burstLeft>0?definition.interval:definition.burstGap+shooter.id%5*.25+shooter.suppression*.025+Math.max(0,range-150)*.045);
+    shooter.nextShotAt=op.elapsed+(weapon.burstLeft>0?definition.interval:definition.burstGap+shooter.id%5*.25+shooter.suppression*.025+Math.max(0,range-150)*(definition.burst===1?.045:.004));
     consume(state,weaponStock(state,shooter)!,'ammo',1);shooter.ammunition=shooter.carried!.ammo;
-    shooter.lastShotAt=state.elapsed;shooter.heading=heading;op.shots++;
+    shooter.lastShotAt=state.elapsed;shooter.heading=mount?.traverse?.yaw??heading;delete combat.pauseReason;op.shots++;
     const event=resolveShot(state,terrain,shooter,point,candidates,spread,definition.range+20);alarm(shooter,event);
     op.shotEvents.push(event);if(op.shotEvents.length>256)op.shotEvents.shift();
     shooter.lastTarget={x:event.to.x,z:event.to.z};

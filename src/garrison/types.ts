@@ -22,6 +22,8 @@ export interface Duty {
   arrivedAt?: number; until: number; reason: string; facilityId?: number; relieving?: number;
   stage?: 'pickup' | 'deliver'; blockedFor: number;
   patientId?: number; crateId?: number;
+  /** A subset of carried stock, not a second inventory. */
+  recoveryLoad?:Inventory;
   pickupStoreId?: number; dropStoreId?: number;
   watchPost?: Vec2;
   rationUntil?: number;
@@ -58,6 +60,8 @@ export interface Facility extends Vec2 {
   connectorId: number; progress: number; capacity: number; paid: boolean;
   stock: Inventory; materialCost: number;
   facing?:number;
+  /** Physical mounted-gun bearing, shared by firing and presentation. */
+  traverse?:{yaw:number;at:number};
 }
 export interface Garrison {
   faction?:'player'|'enemy';
@@ -87,8 +91,10 @@ export interface Truck extends Vec2 {
   id: number; role: 'convoy' | 'shuttle'; state: 'idle' | 'loading' | 'outbound' | 'unloading' | 'returning' | 'blocked';
   route: Vec2[]; routeIndex: number; cargo: Inventory; fuel: number; timer: number;
   garrisonId?: number; reason: string; resume?: 'outbound' | 'returning';
+  destination?:Vec2;blockedSince?:number;nextRepath?:number;
+  abandoned?:boolean;interdictedSince?:number;salvageId?:number;
 }
-export interface Crate extends Vec2 { id: number; stock: Inventory; droppedBy?:number }
+export interface Crate extends Vec2 { id: number; stock: Inventory; droppedBy?:number; faction?:'player'|'enemy'; truckId?:number }
 /** Accounting claims, never another inventory. Sources refer to physical holders. */
 export interface SupplyClaim { source:'local'|'store'|'forward'|'truck'|'carrier'; id:number; amount:number }
 export interface SupplyDemand {

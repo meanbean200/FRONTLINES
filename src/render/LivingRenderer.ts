@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type {BattlefieldState,Vec2} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
-import {playerVisibleEnemies,playerCanSeePoint} from '../operations/Visibility';
+import {playerVisibleEnemies} from '../operations/Visibility';
 import {supportAppearance} from './SupportAppearance';
 import {truckGeometry,truckWheelGeometry} from './VehicleVisual';
 import {crewOperator} from '../combat/WeaponPositions';
@@ -11,6 +11,7 @@ import {mountedGeometry} from '../combat/MountedGeometry';
 import {fieldGunGeometry} from './FieldGunVisual';
 import {gunRecoil,latestGunDischarge} from './SupportAnimation';
 import {playerCanSeeObject} from '../operations/ObjectSight';
+import {crateVisible,stockPiles,stockPileAnchors} from '../garrison/SupplyAccess';
 export class LivingRenderer {
   spectator=false;
   readonly group=new THREE.Group();
@@ -31,8 +32,6 @@ export class LivingRenderer {
     if(this.identity!==w){this.identity=w;this.lastTrucks.clear();}
     const visible=playerVisibleEnemies(state),enemies=new Set(state.squads.filter(q=>q.faction==='enemy').map(q=>q.id));
     const hidden=(s:BattlefieldState['soldiers'][number])=>Boolean(!this.spectator&&state.operation&&enemies.has(s.squadId)&&!visible.has(s.id));
-    const seen=(p:Vec2)=>this.spectator||playerCanSeePoint(state,this.terrain,p);
-    const garrisons=w.garrisons.filter(g=>g.faction!=='enemy'||seen(g.entrance));
     const trucks=w.trucks.filter(t=>this.spectator||t.faction!=='enemy'||playerCanSeeObject(state,this.terrain,t,'truck'));
     const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),color=new THREE.Color(),position=new THREE.Vector3(),scale=new THREE.Vector3();let count=0;
     const box=(x:number,y:number,z:number,sx:number,sy:number,sz:number,tint:number,angle=0,pitch=0)=>{if(count>=8192)return;position.set(x,y,z);scale.set(sx,sy,sz);q.setFromEuler(new THREE.Euler(pitch,angle,0,'YXZ'));matrix.compose(position,q,scale);this.boxes.setMatrixAt(count,matrix);this.boxes.setColorAt(count++,color.setHex(tint));};
@@ -47,8 +46,7 @@ export class LivingRenderer {
       for(let i=0;i<passengers;i++){const x=(i%2?1:-1)*.72,z=-.6-Math.floor(i/2)*.52,px=t.x+x*Math.cos(angle)+z*Math.sin(angle),pz=t.z-x*Math.sin(angle)+z*Math.cos(angle);box(px,h+1.85,pz,.4,.65,.4,0x616744,angle);box(px,h+2.27,pz,.3,.19,.3,0x4c543b,angle);}
     }
     this.vehicles.count=vehicleCount;this.wheels.count=wheelCount;this.vehicles.instanceMatrix.needsUpdate=this.wheels.instanceMatrix.needsUpdate=true;
-    const piles=[{point:w.rear,stock:w.rearStock},...garrisons.flatMap(g=>[{point:g.entrance,stock:g.cache},...(g.faction!=='enemy'||seen(g.forward)?[{point:g.forward,stock:g.forwardStock}]:[])]),...(w.enemySupply&&seen(w.enemySupply.rear)?[{point:w.enemySupply.rear,stock:w.enemySupply.stock}]:[])];
-    for(const {point:p,stock} of piles){const crates=Math.min(12,Math.ceil((stock.food+stock.water+stock.materials)/20));for(let i=0;i<crates;i++){const x=p.x+2+(i%4)*1.15,z=p.z+Math.floor(i/4)*1.1;box(x,this.terrain.heightAt(x,z)+.35,z,.9,.65,.8,i%2?0x80734c:0x686e49);}}
+    for(const pile of stockPiles(state,this.terrain,this.spectator))for(const [i,p] of stockPileAnchors(pile).entries())box(p.x,this.terrain.heightAt(p.x,p.z)+.35,p.z,.9,.65,.8,i%2?0x80734c:0x686e49);
     let mortarCount=0,gunCount=0;
     for(const f of w.facilities){
       if(!this.spectator&&w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!playerCanSeeObject(state,this.terrain,f,f.artillery&&f.progress===1?'field-gun':'position'))continue;
@@ -60,7 +58,7 @@ export class LivingRenderer {
         // Empty ammunition or a reload must not make the physical weapon vanish.
         if(f.installation){
           const present=operator&&Math.hypot(operator.x-f.x,operator.z-f.z)<4&&operator.duty?.facilityId===f.id&&operator.duty.arrivedAt!==undefined;
-          const angle=present?operator.heading:f.facing??0,at=present?operator:weaponCrewPoint(state,f,0);
+          const angle=f.kind==='emplacement'?(f.traverse?.yaw??f.facing??0):present?operator.heading:f.facing??0,at=present?operator:weaponCrewPoint(state,f,0);
           const x=at.x+Math.sin(angle)*.55,z=at.z+Math.cos(angle)*.55;
           if(f.artillery){
             const mission=state.operation?.supportMissions?.find(m=>m.positionId===f.id&&['preparing','flight'].includes(m.stage)),aim=mission?Math.atan2(mission.target.x-f.x,mission.target.z-f.z):f.facing??0;
@@ -83,12 +81,12 @@ export class LivingRenderer {
     this.fieldGuns.count=this.fieldTubes.count=gunCount;this.fieldGuns.instanceMatrix.needsUpdate=this.fieldTubes.instanceMatrix.needsUpdate=true;
     for(const s of state.soldiers){if(hidden(s)||s.needs?.life!=='active'||s.duty?.kind!=='haul')continue;const n=Object.values(s.carried??{}).reduce((a,b)=>a+b,0);if(n>0)box(s.x+Math.sin(s.heading)*.45,this.terrain.heightAt(s.x,s.z)+1,s.z+Math.cos(s.heading)*.45,.5,.42,.42,0xa18b5b,s.heading);}
     for(const c of w.crates)if(Object.values(c.stock).some(n=>n>0)){
+      if(!this.spectator&&!crateVisible(state,this.terrain,c))continue;
       const supplyPoint=this.getState().operation?.objectives.some(o=>o.cacheId===c.id);
       // Older saves did not record the dropper; an exact casualty-position match
       // gives those packs the same visibility treatment without rewriting saves.
       const owner=state.soldiers.find(s=>c.droppedBy!==undefined?s.id===c.droppedBy:!supplyPoint&&s.needs?.life!=='active'&&Math.hypot(s.x-c.x,s.z-c.z)<.05);
       if(owner){
-        if(hidden(owner))continue;
         const x=c.x+Math.cos(owner.heading)*.65,z=c.z-Math.sin(owner.heading)*.65;
         box(x,this.terrain.heightAt(x,z)+.14,z,.4,.28,.45,0x756c46,owner.heading);continue;
       }

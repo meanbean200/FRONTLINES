@@ -193,6 +193,7 @@ export class FrontlinesApp {
       onSelectionChanged: () => this.trenchPanel.clearPerson(),
       onInspectPerson:id=>this.trenchPanel.inspectPerson(id),
       onInspectTrench:point=>this.trenchPanel.inspectAt(point),
+      onInspectSupply:(x,y)=>this.trenchPanel.inspectSupplyScreen(x,y),
       onPersonMove:point=>this.trenchPanel.movePerson(point),
       previewDeployment:point=>deploymentPreview(this.state,this.simulation.terrain,this.pendingDeployment.kind,this.pendingDeployment.count,point),
       onDeploy:point=>{if(this.simulation.commandsLocked||document.documentElement.dataset.replay)return;const result=deploySandbox(this.state,this.simulation.terrain,this.pendingDeployment.kind,this.pendingDeployment.count,point);if(result.ids.length)this.selectSquads(result.ids);this.ui.notify(result.reason,result.ids.length?'normal':'warn');},

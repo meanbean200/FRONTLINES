@@ -37,10 +37,13 @@ export function mapUnproject(x:number,y:number,center:Vec2,span=WORLD_SIZE,verti
 const junctions:{point:Vec2;roads:number[]}[]=[];
 ROADS.forEach((a,i)=>ROADS.forEach((b,j)=>{if(j<=i||a.axis===b.axis)return;const h=a.axis==='x'?a:b,v=a.axis==='z'?a:b;let x=v.center(0),z=h.center(x);for(let n=0;n<20;n++){x=v.center(z);z=h.center(x);}junctions.push({point:{x,z},roads:[i,j]});}));
 /** A tiny road graph, sampled only when a shipment departs; never teleport cargo. */
-export function roadRoute(from:Vec2,to:Vec2):Vec2[]{
+export function roadRoute(from:Vec2,to:Vec2,canTravel?:(a:Vec2,b:Vec2)=>boolean):Vec2[]{
  const a=nearestRoad(from),b=nearestRoad(to),nodes=[...junctions,{point:a.point,roads:[a.road]},{point:b.point,roads:[b.road]}],start=nodes.length-2,goal=nodes.length-1;
  const edges=nodes.map(()=>[] as {to:number;road:number;cost:number}[]);
- ROADS.forEach((road,r)=>{const row=nodes.map((n,i)=>({n,i})).filter(v=>v.n.roads.includes(r)).sort((a,b)=>a.n.point[road.axis]-b.n.point[road.axis]);for(let i=1;i<row.length;i++){const a=row[i-1],b=row[i],cost=distance(a.n.point,b.n.point);edges[a.i].push({to:b.i,road:r,cost});edges[b.i].push({to:a.i,road:r,cost});}});
+ if(canTravel&&!canTravel(from,a.point))return [];
+ ROADS.forEach((road,r)=>{const row=nodes.map((n,i)=>({n,i})).filter(v=>v.n.roads.includes(r)).sort((a,b)=>a.n.point[road.axis]-b.n.point[road.axis]);for(let i=1;i<row.length;i++){const a=row[i-1],b=row[i],cost=distance(a.n.point,b.n.point);
+   if(canTravel){const start=a.n.point[road.axis],end=b.n.point[road.axis],steps=Math.max(1,Math.ceil(Math.abs(end-start)/20));let previous=a.n.point,clear=true;for(let j=1;j<=steps;j++){const next=pointOnRoad(road,start+(end-start)*j/steps);if(!canTravel(previous,next)){clear=false;break;}previous=next;}if(!clear)continue;}
+   edges[a.i].push({to:b.i,road:r,cost});edges[b.i].push({to:a.i,road:r,cost});}});
  const costs=nodes.map(()=>Infinity),parents=new Map<number,{from:number;road:number}>(),done=new Set<number>();costs[start]=0;
  while(done.size<nodes.length){let current=-1;for(let i=0;i<nodes.length;i++)if(!done.has(i)&&(current<0||costs[i]<costs[current]))current=i;if(current<0||!Number.isFinite(costs[current]))return [];if(current===goal)break;done.add(current);for(const e of edges[current])if(costs[current]+e.cost<costs[e.to]){costs[e.to]=costs[current]+e.cost;parents.set(e.to,{from:current,road:e.road});}}
  const legs:{from:number;to:number;road:number}[]=[];let cursor=goal;while(cursor!==start){const p=parents.get(cursor);if(!p)return [];legs.unshift({from:p.from,to:cursor,road:p.road});cursor=p.from;}

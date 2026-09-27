@@ -26,6 +26,7 @@ interface CommandInputOptions {
   onSelectionChanged: () => void;
   onInspectPerson?:(id:number)=>boolean;
   onInspectTrench?:(point:Vec2)=>boolean;
+  onInspectSupply?:(x:number,y:number)=>boolean;
   onPersonMove?:(point:Vec2)=>boolean;
   onMove: (point: Vec2) => void;
   onDrawPath: (points:Vec2[],append:boolean,intent?:'assault'|'fall-back')=>void;
@@ -253,6 +254,7 @@ export class CommandInput {
       if(people[0]&&this.options.onInspectPerson?.(people[0].s.id))return;
       this.options.notify?.('Alt-click a friendly person at closer zoom.');return;
     }
+    if(this.options.onInspectSupply?.(x,y))return;
     const ground=this.options.camera.groundPoint(x,y);if(ground&&this.options.onInspectTrench?.(ground))return;
     let bestId: number | undefined;
     let bestDistance = 32;

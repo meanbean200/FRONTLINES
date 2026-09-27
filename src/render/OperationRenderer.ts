@@ -4,6 +4,7 @@ import type { TerrainSystem } from '../terrain/TerrainSystem';
 import {playerVisibleEnemies} from '../operations/Visibility';
 import {ImpactEffects} from './ImpactEffects';
 import type {VisualQuality} from './VisualQuality';
+import {controlBoundary,controlZone} from '../operations/ObjectiveControl';
 
 /** Small reusable meshes, no per-frame text textures, lights, or allocations per shot. */
 export class OperationRenderer {
@@ -29,21 +30,22 @@ export class OperationRenderer {
       for (const child of [...this.group.children]) if (![this.traces,this.effects.particles.mesh,this.danger].some(o=>o===child)) child.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (o.material as THREE.Material).dispose(); } });
       this.group.clear(); this.markers = []; this.identity = op; this.group.add(this.traces,this.effects.particles.mesh,this.danger);
       for (const objective of op?.objectives ?? []) {
-        const marker = new THREE.Group(), ground = this.terrain.baseHeightAt(objective.x, objective.z);
-        const ring = new THREE.Mesh(new THREE.RingGeometry(objective.radius - .45, objective.radius, 80).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xe6c784, transparent: true, opacity: .45, depthWrite: false, side: THREE.DoubleSide }));
-        // Drape objective boundary over terrain rather than hiding half the circle in hills.
-        const a = ring.geometry.attributes.position;
-        for (let i = 0; i < a.count; i++) a.setY(i, this.terrain.heightAt(objective.x + a.getX(i), objective.z + a.getZ(i)) - ground + .18);
+        const center=controlZone(state,objective)?.center??objective;
+        const marker = new THREE.Group(), ground = this.terrain.baseHeightAt(center.x, center.z),boundary=controlBoundary(state,objective),vertices:number[]=[];
+        for(let i=0;i<boundary.length;i++){const a=boundary[i],b=boundary[(i+1)%boundary.length],d=Math.hypot(b.x-a.x,b.z-a.z)||1,nx=(b.z-a.z)/d*.45,nz=-(b.x-a.x)/d*.45;
+          for(const p of [a,b,{x:a.x+nx,z:a.z+nz},b,{x:b.x+nx,z:b.z+nz},{x:a.x+nx,z:a.z+nz}])vertices.push(p.x-center.x,this.terrain.heightAt(p.x,p.z)-ground+.18,p.z-center.z);}
+        const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+        const ring = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xe6c784, transparent: true, opacity: .3, depthWrite: false, side: THREE.DoubleSide }));
         marker.add(ring);
-        ring.visible=!op?.runtime;
+        ring.visible=!this.cinematic;
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(.12, .16, 8, 6), new THREE.MeshStandardMaterial({ color: 0x4d4840, roughness: .8 })); pole.position.y = 4; pole.castShadow = true;
         const flag = new THREE.Mesh(new THREE.BoxGeometry(4, 2.1, .08), new THREE.MeshStandardMaterial({ color: 0xe6c784, roughness: .9 })); flag.position.set(2, 6.5, 0); flag.castShadow = true;
-        marker.add(pole, flag); marker.position.set(objective.x, ground, objective.z); this.group.add(marker); this.markers.push({ ring, flag });
+        marker.add(pole, flag); marker.position.set(center.x, ground, center.z); this.group.add(marker); this.markers.push({ ring, flag });
       }
     }
     op?.objectives.forEach((o, i) => {
-      this.markers[i].ring.visible=!this.cinematic&&!op.runtime;
-      const color = op.runtime&&!op.endless?0xdbca96:o.contested ? 0xc5a568 : o.owner === 'player' ? 0x9bacb2 : o.owner === 'enemy' ? 0xb8796b : 0xdbca96;
+      this.markers[i].ring.visible=!this.cinematic;
+      const color = o.contested ? 0xc5a568 : o.owner === 'player' ? 0x9bacb2 : o.owner === 'enemy' ? 0xb8796b : 0xdbca96;
       for (const mesh of [this.markers[i].ring, this.markers[i].flag]) (mesh.material as THREE.MeshBasicMaterial).color.setHex(color);
     });
     let count = 0;

@@ -24,9 +24,13 @@ import {deathDescription} from '../simulation/DeathRecord';
 import {manpowerPools} from '../garrison/Manpower';
 import {readyDefender} from '../garrison/PersonnelRoles';
 import {activeSupportMission,supportPositionStatus} from './WeaponReadout';
+import {crateVisible,crateAccess,crateAnchors,factionSeesStock,stockPiles,stockPileAnchors} from '../garrison/SupplyAccess';
+import {controlReadout,controlZone} from '../operations/ObjectiveControl';
+import {RESOURCES} from '../garrison/types';
 
 interface Actions {defend:(id:number)=>void;resume:(id:number)=>void;area:(id:number)=>void;move:(watch?:boolean)=>void;cancel:()=>void;notify:(text:string)=>void;place:(id:number,kind:Facility['kind'])=>void;fire:(id:number,kind:'mortarHE'|'mortarSmoke',battery?:boolean)=>void;person:()=>void}
 type Page='overview'|'personnel'|'weapons'|'construction'|'supplies';
+type StockSelection={kind:'crate'|'truck'|'town'|'rear'|'cache'|'forward';id:number|string};
 const esc=(v:unknown)=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 /** One contextual inspector. Inventory is read-only; explicit buttons call simulation commands. */
 export class TrenchPanel {
@@ -44,6 +48,8 @@ export class TrenchPanel {
   private workParty?:{ids:number[];name:string};
   private partyTarget=false;
   private projectedPerson?:SoldierState;
+  private stockSelection?:StockSelection;
+  private recoveryDestination=0;
   private hoverFacility?:Facility;
   private lines:TrenchState[]=[];
   private entries:{id:number;type:string;point:Vec2;name:string}[]=[];
@@ -71,7 +77,7 @@ export class TrenchPanel {
     });
     this.labels.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('button');if(b?.dataset.trench)this.open(Number(b.dataset.trench));if(b?.dataset.facility)this.chooseFacility(Number(b.dataset.facility));});
     window.addEventListener('pointermove',e=>{this.pointer=e.target instanceof HTMLCanvasElement?{x:e.clientX,y:e.clientY}:undefined;});
-    window.addEventListener('frontlines-menu',()=>this.close());
+    window.addEventListener('frontlines-menu',()=>{this.stockSelection=undefined;this.close();});
     root.addEventListener('click',e=>{if((e.target as Element).closest('#build-command,#support-command,[data-hud-panel]'))this.close();});
     window.addEventListener('keydown',e=>{if(e.code==='Escape'&&!this.element.hidden){this.close();e.preventDefault();e.stopImmediatePropagation();}},true);
   }
@@ -94,6 +100,45 @@ export class TrenchPanel {
     const t=this.cachedTrenches.find(t=>distanceToPolyline(point,t.points).distance<Math.max(3,t.width/2));if(t){this.open(t.id);return true;}
     const known=knownTrenchNetworks(this.sim.state).find(n=>n.sections.some(s=>distanceToPolyline(point,s.points).distance<s.width/2+1));if(!known)return false;this.open(known.id);return true;
   }
+  inspectSupplyScreen(x:number,y:number):boolean {
+    const state=this.sim.state,w=state.living!,hits:(StockSelection&{distance:number})[]=[];
+    const add=(kind:StockSelection['kind'],id:number|string,p:Vec2,height:number)=>{const at=this.camera.project(p,height),d=Math.hypot(x-at.x,y-at.y);if(at.visible&&d<20)hits.push({kind,id,distance:d});};
+    for(const p of stockPiles(state,this.sim.terrain))for(const anchor of stockPileAnchors(p))add(p.kind,p.id,anchor,.35);
+    for(const c of w.crates)if(RESOURCES.some(k=>c.stock[k]>0)&&crateVisible(state,this.sim.terrain,c))for(const p of crateAnchors(state,c))add('crate',c.id,p,.5);
+    for(const t of w.trucks)if(t.faction!=='enemy'||factionSeesStock(state,this.sim.terrain,t,'player',true))add('truck',t.id,t,1.2);
+    for(const o of state.operation?.objectives??[])add('town',o.id,controlZone(state,o)?.center??o,7);
+    hits.sort((a,b)=>a.distance-b.distance);if(!hits[0])return false;
+    this.open();this.stockSelection={kind:hits[0].kind,id:hits[0].id};this.update(true);return true;
+  }
+  private renderSupply():void {
+    const state=this.sim.state,w=state.living!,selection=this.stockSelection!;
+    const pile=stockPiles(state,this.sim.terrain).find(p=>p.kind===selection.kind&&p.id===selection.id);
+    const truck=selection.kind==='truck'?w.trucks.find(t=>t.id===selection.id):undefined;
+    const objective=selection.kind==='town'?state.operation?.objectives.find(o=>o.id===selection.id):undefined;
+    const crate=w.crates.find(c=>c.id===(objective?.cacheId??truck?.salvageId??selection.id));
+    const visible=Boolean(pile)||(truck?(truck.faction!=='enemy'||factionSeesStock(state,this.sim.terrain,truck,'player',true)):crate?crateVisible(state,this.sim.terrain,crate):false);
+    this.element.querySelector('header small')!.textContent=objective?'TOWN / CONTROL & SUPPLY':'PHYSICAL LOGISTICS';
+    this.element.querySelector('h2')!.textContent=pile?.name??objective?.name??(truck?`Supply truck ${truck.id}`:`Supply pile ${selection.id}`);
+    for(const e of this.element.querySelectorAll<HTMLElement>('.position-picker,.position-tabs'))e.hidden=true;
+    const control=objective?controlReadout(state,objective):undefined;
+    let html=control?`<strong class="position-status">${control.status}</strong><p>${esc(control.reason)}</p><p>Occupy the outlined control area. Ownership also controls access to this town’s surviving supplies.</p>`:'';
+    const destinations=w.garrisons.filter(g=>g.faction!=='enemy'&&g.cutoff!=='withdraw');
+    const select=this.element.querySelector<HTMLSelectElement>('[data-recovery-destination]');if(select)this.recoveryDestination=Number(select.value);
+    if(!destinations.some(g=>g.id===this.recoveryDestination))this.recoveryDestination=destinations[0]?.id??0;
+    if(!visible)html+='<p>NO CURRENT OBSERVATION · move personnel closer to inspect stock. Hidden vehicles are not tracked.</p>';
+    else {
+      if(truck)html+=`<strong>${esc(truck.faction==='enemy'&&!truck.abandoned?'OBSERVED ENEMY TRANSPORT':truck.reason)}</strong><p>${truck.abandoned?'Cargo remains beside this vehicle.':truck.faction==='enemy'?'Cargo and orders unknown. Occupy its route to intercept.':esc(shipmentReadout(state,truck).destination)}</p>`;
+      if(pile)html+=`<p>${pile.side==='enemy'?'ENEMY STORE · contents unknown; not loose salvage':pile.kind==='rear'?'ASSIGNED DEPOT · finite trucks deliver this stock':pile.kind==='forward'?'ASSIGNED ROADHEAD · local carriers collect deliveries':'POSITION STORE · already available to assigned personnel'}</p>`;
+      const stock=(pile?.side==='player'?pile.stock:undefined)??crate?.stock??(truck?.faction!=='enemy'?truck?.cargo:undefined);
+      if(stock)html+='<dl>'+RESOURCES.filter(k=>stock[k]>0).map(k=>`<dt>${esc(SUPPLY_LABELS[k])}</dt><dd>${Math.floor(stock[k]*10)/10}</dd>`).join('')+'</dl>';
+      if(crate){const blocked=crateAccess(state,this.sim.terrain,crate,'player');html+=`<p>${esc(blocked||'Stock secured · recover by foot carrier')}</p><label>Destination<select data-recovery-destination>${destinations.map(g=>`<option value="${g.id}" ${g.id===this.recoveryDestination?'selected':''}>${esc(g.name)}</option>`).join('')}</select></label><div class="position-actions"><button data-recover-crate="${crate.id}" ${blocked||!destinations.length||this.locked()?'disabled':''}>Recover supplies</button></div>`;
+        const carriers=state.soldiers.filter(s=>s.duty?.crateId===crate.id);if(carriers.length)html+=`<p>${carriers.filter(s=>s.duty?.stage==='pickup').length} approaching · ${carriers.filter(s=>s.duty?.stage==='deliver').length} returning with cargo</p>`;
+        html+='<p>One carrier load per order. Stores receive stock only on physical arrival.</p>';
+      }
+    }
+    if(visible||objective)html+='<div class="position-actions"><button data-stock-locate>Locate</button></div>';
+    if(html!==this.key){this.key=html;updateLiveContent(this.element.querySelector('.position-content')!,html);}
+  }
   private chooseFacility(id:number):boolean{
     const f=this.cachedFacilities.find(f=>f.id===id);
     if(this.personId&&f&&['emplacement','mortar'].includes(f.kind)){
@@ -115,6 +160,8 @@ export class TrenchPanel {
   private click(e:Event):void{
     const b=(e.target as Element).closest<HTMLButtonElement>('button');if(!b)return;
     if(b.hasAttribute('data-close')){this.close();return;}if(b.dataset.page){this.page=b.dataset.page as Page;this.assign=undefined;this.update(true);return;}
+    if(b.dataset.recoverCrate){if(!this.locked()){const id=Number(this.element.querySelector<HTMLSelectElement>('[data-recovery-destination]')?.value);this.actions.notify(this.sim.garrisons.recoverSupplies(Number(b.dataset.recoverCrate),id).reason);this.update(true);}return;}
+    if(b.hasAttribute('data-stock-locate')&&this.stockSelection){const s=this.stockSelection,state=this.sim.state,o=state.operation?.objectives.find(o=>s.kind==='town'&&o.id===s.id),p=stockPiles(state,this.sim.terrain).find(p=>p.kind===s.kind&&p.id===s.id)?.point??(o?(controlZone(state,o)?.center??o):s.kind==='truck'?state.living!.trucks.find(t=>t.id===s.id&&(t.faction!=='enemy'||factionSeesStock(state,this.sim.terrain,t,'player',true))):state.living!.crates.find(c=>c.id===s.id&&crateVisible(state,this.sim.terrain,c)));if(p)this.camera.focus(p,95);return;}
     if(b.dataset.person){this.inspectPerson(Number(b.dataset.person));return;}if(b.dataset.position){this.inspectFacility(Number(b.dataset.position));return;}
     if(b.dataset.locate){const truck=this.sim.state.living!.trucks.find(t=>t.id===Number(b.dataset.locate));if(truck)this.camera.focus(truck,80);return;}
     if(b.hasAttribute('data-focus')){this.focus();return;}
@@ -191,6 +238,7 @@ export class TrenchPanel {
   }
   private renderContent():void{
     const state=this.sim.state,network=this.sim.garrisons.network;
+    if(this.stockSelection){this.renderSupply();return;}
     if(this.enemy){const current=knownTrenchNetworks(state).find(n=>n.id===this.enemy!.id);if(current)this.enemy=current;else if(friendlyTrenches(state,network).some(t=>t.id===this.enemy!.id))this.enemy=undefined;}
     if(this.enemy){
       this.element.querySelector('header small')!.textContent='OBSERVED TERRAIN / NOT LIVE INTELLIGENCE';this.element.querySelector('h2')!.textContent=this.enemy.name;

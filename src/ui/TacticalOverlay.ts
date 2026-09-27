@@ -2,6 +2,7 @@ import type { BattlefieldState, Vec2 } from '../core/types';
 import { SETTLEMENTS } from '../terrain/WorldFeatures';
 import type { StrategyCamera } from '../render/StrategyCamera';
 import {CameraCompass} from './CameraCompass';
+import {controlReadout,controlZone} from '../operations/ObjectiveControl';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {pointAlongPolyline,polylineLength} from '../core/types';
@@ -107,8 +108,7 @@ export class TacticalOverlay {
     for(const[id,marker]of this.objectiveMarkers)if(!objectiveIds.has(id)){marker.remove();this.objectiveMarkers.delete(id);}
     for(const[i,o]of (state.operation?.objectives??[]).entries()){
       let marker=this.objectiveMarkers.get(o.id);if(!marker){marker=document.createElement('div');this.objectiveMarkers.set(o.id,marker);this.layer.append(marker);}
-      const landmark=state.operation?.runtime&&!state.operation?.endless;
-      marker.className=`objective-world-label ${landmark?'neutral':o.owner}`;marker.textContent=landmark?o.name:`${String.fromCharCode(65+i)} · ${o.name}${o.contested?' · CONTESTED':''}`;
+      marker.className=`objective-world-label ${o.owner}`;marker.textContent=`${String.fromCharCode(65+i)} · ${o.name} · ${controlReadout(state,o).status}`;
     }
   }
   private positionMarkers():void {
@@ -134,7 +134,7 @@ export class TacticalOverlay {
     for(const label of this.labels){const p=this.camera.project(label.point,25);label.element.style.display=p.visible&&this.camera.zoomDistance>200?'':'none';label.element.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`;}
     for(const objective of state.operation?.objectives??[]){
       const marker=this.objectiveMarkers.get(objective.id);if(!marker)continue;
-      const p=this.camera.project(objective,9);marker.style.display=p.visible?'':'none';
+      const p=this.camera.project(controlZone(state,objective)?.center??objective,9);marker.style.display=p.visible?'':'none';
       marker.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`;
     }
   }

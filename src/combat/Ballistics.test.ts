@@ -38,7 +38,7 @@ describe('physical rifle shots',()=>{
     expect(hits).toBeGreaterThan(10);
   });
   it('applies actual movement, darkness, fatigue and suppression without changing world positions',()=>{
-    const {state,shooter,target}=fixture();expect(dispersionMultiplier(state,shooter,target)).toBe(1);
+    const {state,shooter,target}=fixture();expect(dispersionMultiplier(state,shooter,target)).toBe(.94);
     target.action='advancing';expect(dispersionMultiplier(state,shooter,target)).toBe(1.8);
     shooter.suppression=70;expect(dispersionMultiplier(state,shooter,target)).toBeGreaterThan(5);
     expect(segmentDistance({x:5,y:1,z:2},{x:0,y:1,z:0},{x:10,y:1,z:0})).toBe(2);
