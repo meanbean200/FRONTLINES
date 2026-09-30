@@ -78,18 +78,22 @@ describe('physical rifle shots',()=>{
   });
   it('keeps close misses on the same physical ray used by impacts, damage and the rendered tracer',()=>{
     const {state,terrain,shooter,target}=fixture();target.x=1.524;
-    const aim=aimPoint(terrain,shooter,target),from=muzzlePoint(terrain,shooter),render=new OperationRenderer(()=>state,terrain);
+    const aim=aimPoint(terrain,shooter,target),from=muzzlePoint(terrain,shooter),render=new OperationRenderer(()=>state,terrain);state.simSpeed=1;
     for(let i=0;i<50;i++){
+      state.elapsed=i;state.operation!.shots++;
       const range=Math.hypot(aim.x-from.x,aim.z-from.z),expected=dispersedEndpoint(from,aim,rifleSpread(range)*20,shotError(state.seed,shooter.id,i),range+15);
       const intersection=boxIntersection(from,expected,bodyVolume(terrain,target));
       const event=resolveShot(state,terrain,shooter,aim,[target],20);
       expect(event.hitId!==undefined).toBe(Boolean(intersection));
       expect(segmentDistance(event.to,from,expected)).toBeLessThan(1e-8);
       expect(event.to.y).toBeLessThan(1.5);
-      state.operation!.shotEvents=[event];render.update();
+      state.operation!.shotEvents=[event];render.update(i);
       const trace=render.group.children.find(o=>o instanceof THREE.LineSegments) as THREE.LineSegments;
       const p=trace.geometry.attributes.position;
       for(const n of [0,1])expect(segmentDistance({x:p.getX(n),y:p.getY(n),z:p.getZ(n)},event.from,event.to)).toBeLessThan(1e-5);
+      // The short cue reaches the real impact after travelling; it no longer
+      // paints a full muzzle-to-impact line in its first rendered frame.
+      render.update(i+.06);
       expect(p.getX(1)).toBeCloseTo(event.to.x,5);expect(p.getY(1)).toBeCloseTo(event.to.y,5);expect(p.getZ(1)).toBeCloseTo(event.to.z,5);
     }
   });

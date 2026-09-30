@@ -17,6 +17,7 @@ export function registerIncoming(s:SoldierState,at:number,heading:number):void {
 export function prepareActions(state:BattlefieldState,terrain:TerrainSystem,navigation:SquadNavigation,dt:number):void {
   const squads=new Map(state.squads.map(q=>[q.id,q]));
   const space=new CoverSpace(state);
+  const mounted=new Map((state.living?.facilities??[]).filter(f=>f.progress===1&&f.installation&&['emplacement','mortar'].includes(f.kind)).flatMap(f=>(f.weaponCrewIds??[]).map(id=>[id,f] as const)));
   for(const s of state.soldiers){
     if(!state.operation&&!s.combat)continue;
     const c=s.combat??={shotSequence:0},q=effectiveSquad(state,s,squads.get(s.squadId)!);
@@ -51,6 +52,16 @@ export function prepareActions(state:BattlefieldState,terrain:TerrainSystem,navi
       followReaction(s,terrain,dt,'falling back');continue;
     }
     if(reaction!=='pinned'&&(q.order.pushThrough||q.order.intent==='fall-back'))continue;
+    const post=mounted.get(s.id);
+    if(reaction!=='pinned'&&post&&s.duty?.kind==='watch'&&s.duty.facilityId===post.id&&s.duty.arrivedAt!==undefined&&distance(s,s.duty.destination)<1.5){
+      // The crew already has a protected assigned workspace. A generic cover
+      // search used to drag the gunner into the deep floor and repeatedly reset
+      // the mount. Hold/duck here; pinning, wounds, breakage and survival still
+      // use their normal higher-priority authorities and physical relief.
+      delete c.reactionRoute;delete c.reactionIndex;c.owner='duty';
+      s.posture=reaction!=='steady'&&now-(c.reactionSince??now)<1.5?'crouched':'standing';
+      continue;
+    }
     // Building entry and routine work keep their own authority when not pinned.
     if(reaction==='steady'&&(s.duty||s.building||q.order.type!=='hold'||q.order.building))continue;
     if(s.duty?.kind==='sleep'&&s.duty.arrivedAt!==undefined){s.needs!.interruptedSleep++;delete s.duty.arrivedAt;}

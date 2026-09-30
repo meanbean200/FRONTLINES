@@ -47,7 +47,7 @@ export function selectedConstructionNetwork(state:BattlefieldState,selected:Read
 /** The preview and construction command use precisely the same site checks. */
 export function facilitySiteReason(state:BattlefieldState,g:Garrison,from:Vec2,to:Vec2,terrain:TerrainSystem,navigation:SquadNavigation,network:TrenchNetwork,kind:Facility['kind']='rest'):string|undefined{
   if(!Number.isFinite(to.x)||!Number.isFinite(to.z))return 'Choose a point on the battlefield.';
-  if(!insideWorld(to,8)||!insideWorld(from,5))return 'Worksite crosses the battlefield edge · leave 8 m clearance.';
+  if(!insideWorld(to,8,state.worldSize)||!insideWorld(from,5,state.worldSize))return 'Worksite crosses the battlefield edge · leave 8 m clearance.';
   const length=distance(from,to);
   const category=placementCategory(kind);
   if((network.nearest(from,network.component(g.trenchId))?.distance??Infinity)>=.3)return 'Connect to excavated trench floor.';

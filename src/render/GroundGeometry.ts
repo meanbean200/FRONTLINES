@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { hash2D } from '../core/random';
-import { CHUNK_SIZE } from '../core/types';
+import { CHUNK_SIZE,clamp } from '../core/types';
 import { TerrainSystem, smoothStep } from '../terrain/TerrainSystem';
 import {intersectsCrossing,nearestRoad} from '../terrain/WorldLayout';
 import {doorPoint} from '../terrain/BuildingGeometry';
@@ -19,6 +19,8 @@ export function createGroundGeometry(terrain: TerrainSystem, x0: number, z0: num
   const yards=terrain.buildings.filter(b=>b.x+b.width/2+60>=x0&&b.x-b.width/2-60<=x0+CHUNK_SIZE&&b.z+b.depth/2+60>=z0&&b.z-b.depth/2-60<=z0+CHUNK_SIZE).map(b=>{const door=doorPoint(b,1),road=nearestRoad(door).point;return {b,door,road};});
   const detailed=(x:number,z:number,size:number)=>terrain.intersectsModification(x,x+size,z,z+size)||intersectsCrossing(x,x+size,z,z+size);
   function vertex(x: number, z: number, override?:number): void {
+    const half=terrain.worldHalf;
+    if(Math.abs(x)>half||Math.abs(z)>half){x=clamp(x,-half,half);z=clamp(z,-half,half);override=undefined;}
     let h = override??terrain.heightAt(x, z);
     // Adjacent chunk LODs share the same border elevations.
     if(!detailed(x-.1,z-.1,.2)) {
@@ -52,6 +54,7 @@ export function createGroundGeometry(terrain: TerrainSystem, x0: number, z0: num
   for (let iz = 0; iz < divisions; iz++) {
     for (let ix = 0; ix < divisions; ix++) {
       const x = x0 + ix * size, z = z0 + iz * size;
+      if(x>=terrain.worldHalf||z>=terrain.worldHalf||x+size<=-terrain.worldHalf||z+size<=-terrain.worldHalf)continue;
       const fine = refine&&detailed(x,z,size);
       const n = fine ? Math.round(size / (CHUNK_SIZE/512)) : 1;
       const start = vertices.length / 3;

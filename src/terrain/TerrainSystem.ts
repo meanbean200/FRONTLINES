@@ -1,4 +1,4 @@
-import { type BattlefieldState, type CoverType, type TrenchState, type Vec2, WORLD_HALF, clamp, distance, distanceToSegment } from '../core/types';
+import { type BattlefieldState, type CoverType, type TrenchState, type Vec2, WORLD_SIZE, clamp, distance, distanceToSegment } from '../core/types';
 import { smoothNoise } from '../core/random';
 import { buildingsForSeed, SETTLEMENTS, type BuildingSite } from './WorldFeatures';
 import {excavatedPoints,excavatedSpan,excavationKey} from '../core/TrenchGeometry';
@@ -64,6 +64,8 @@ export class TerrainSystem {
     this.syncModifications();
   }
   get seed(): number { return this.state.seed; }
+  get worldSize():number{return this.state.worldSize??WORLD_SIZE;}
+  get worldHalf():number{return this.worldSize/2;}
   /** Bounded local physical anchors. No troops or remote world-state lookup. */
   localCoverAnchors(p:Vec2,radius:number):Vec2[]{
     const points:Vec2[]=[],seen=new Set<ExcavationSegment>();
@@ -78,7 +80,7 @@ export class TerrainSystem {
     for(const id of buildings){const b=this.buildings[id];for(const dx of [-1,1])for(const dz of [-1,1]){const v={x:b.x+dx*(b.width/2+.9),z:b.z+dz*(b.depth/2+.9)};if(distance(p,v)<=radius)points.push(v);if(points.length>=16)return points;}}
     return points;
   }
-  get snapshot():Pick<BattlefieldState,'seed'|'trenches'|'craters'|'buildingChanges'> {return {seed:this.seed,trenches:this.state.trenches,craters:this.state.craters,buildingChanges:this.state.buildingChanges};}
+  get snapshot():Pick<BattlefieldState,'seed'|'trenches'|'craters'|'buildingChanges'|'worldSize'> {return {seed:this.seed,trenches:this.state.trenches,craters:this.state.craters,buildingChanges:this.state.buildingChanges,worldSize:this.worldSize};}
   setState(state: BattlefieldState): void {
     this.epoch++;
     this.state = state;
@@ -201,6 +203,9 @@ export class TerrainSystem {
     return Math.hypot(this.baseHeightAt(x + 4, z) - this.baseHeightAt(x - 4, z), this.baseHeightAt(x, z + 4) - this.baseHeightAt(x, z - 4)) / 8;
   }
   obstacleAt(x: number, z: number, clearance = 1): boolean {
+    // Old worlds admitted edge-spawned actors; preserve their ability to walk
+    // inward. New compact worlds enforce their actual physical boundary.
+    if(this.worldSize<WORLD_SIZE&&(Math.abs(x)>this.worldHalf-clearance||Math.abs(z)>this.worldHalf-clearance))return true;
     return this.buildings.some(b => Math.abs(x - b.x) < b.width / 2 + clearance && Math.abs(z - b.z) < b.depth / 2 + clearance);
   }
   walkingObstacleAt(x:number,z:number,clearance=.65):boolean{return this.obstacleAt(x,z,clearance)||this.objects.trunkAt(x,z,clearance)!==undefined;}
@@ -219,7 +224,7 @@ export class TerrainSystem {
   isPointInConstructedTrench(point: Vec2, trench: TrenchState, maxDistance: number): boolean {
     return this.segments.some(s => s.trenchId === trench.id && distanceToSegment(point, s.a, s.b).distance <= maxDistance);
   }
-  clampToWorld(point: Vec2): Vec2 { return { x: clamp(point.x, -WORLD_HALF + 10, WORLD_HALF - 10), z: clamp(point.z, -WORLD_HALF + 10, WORLD_HALF - 10) }; }
+  clampToWorld(point: Vec2): Vec2 { return { x: clamp(point.x, -this.worldHalf + 10, this.worldHalf - 10), z: clamp(point.z, -this.worldHalf + 10, this.worldHalf - 10) }; }
 }
 export function smoothStep(min: number, max: number, value: number): number {
   const t = clamp((value - min) / (max - min), 0, 1);

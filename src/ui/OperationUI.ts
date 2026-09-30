@@ -1,6 +1,6 @@
 import type { BattlefieldState, Vec2 } from '../core/types';
 import { MODE_INFO, factionOf, type GameMode } from '../operations/types';
-import {defaultBattleSetup,resolveBattleSetup,validBattleSetup,applyPreset,battlePopulation,type BattleSetup,type ResolvedBattleSetup} from '../operations/BattleSetup';
+import {defaultBattleSetup,defaultOpenFrontSetup,resolveBattleSetup,validBattleSetup,applyPreset,battlePopulation,setupWorldSize,configuredDefinition,type BattleSetup,type ResolvedBattleSetup} from '../operations/BattleSetup';
 import {OPERATION_IDS,OPERATION_DEFINITIONS} from '../operations/OperationDefinitions';
 import {MISSION_COPY} from '../operations/MissionContent';
 import {readSetupPresets,saveSetupPreset,type SavedSetup} from '../persistence/SetupPresets';
@@ -30,7 +30,7 @@ export class OperationUI {
   private screen:MenuScreen='main';
   private settingsReturn:MenuScreen='main';
   private settingTab='graphics';
-  private setup:BattleSetup=defaultBattleSetup();
+  private setup:BattleSetup=defaultOpenFrontSetup();
   private pending?:ResolvedBattleSetup;
   private advancedOpen=false;
   private resultShown=false;
@@ -109,7 +109,7 @@ export class OperationUI {
     const outcome=result?outcomeText(this.getState()):undefined,personnel=op?personnelReadout(this.getState()):undefined;
     this.dialog.dataset.screen=this.screen;
     let content='';
-    if(this.screen==='main')content=`<div class="main-title"><span class="eyebrow">FIELD COMMAND</span><h1>FRONTLINES</h1><p>Every position has a purpose.<br>Every soldier has a life.</p></div><nav class="main-actions" aria-label="Main menu"><button id="main-continue" ${!this.actions.hasSave()?'disabled':''}>Continue <span>→</span></button><button id="choose-operation">Quick Battle</button><button id="operations-menu">Operations</button><button id="sandbox-session">Sandbox</button><button data-settings>Settings</button></nav><p class="menu-caption">A living battlefield under your command</p><p class="attract-status">${escape(this.attractStatus)}</p>`;
+    if(this.screen==='main')content=`<div class="main-title"><span class="eyebrow">FIELD COMMAND</span><h1>FRONTLINES</h1><p>Every position has a purpose.<br>Every soldier has a life.</p></div><nav class="main-actions" aria-label="Main menu"><button id="main-continue" ${!this.actions.hasSave()?'disabled':''}>Continue <span>→</span></button><button id="choose-operation">New Battle <small>Open Front</small></button><button id="endless-menu">Endless</button><button id="sandbox-session">Sandbox</button><button data-settings>Settings</button></nav><p class="menu-caption">A living battlefield under your command</p><p class="attract-status">${escape(this.attractStatus)}</p>`;
     if(this.screen==='leave')content=`<span class="eyebrow">CLOSE THIS BATTLE</span><h2>Return to headquarters?</h2><p>The live battle will close. Continue loads your last saved campaign; the title battle is independent.</p><nav class="pause-actions"><button id="save-return" class="menu-primary">Save and return</button><button id="discard-return">Discard and return</button><button id="cancel-return">Cancel</button></nav>`;
     if(this.screen==='quick')content=renderBattleSetup(this.setup,this.advancedOpen,presets);
     if(this.screen==='operations')content=`<span class="eyebrow">CHOOSE YOUR MISSION</span><h2>Operations</h2><div class="operation-rows">${OPERATION_IDS.map(id=>`<button data-operation="${id}"><strong>${escape(id==='open-front'?OPERATION_DEFINITIONS[id].title:MISSION_COPY[id].title)}</strong><span>${id==='open-front'?operationCopy[id]:MISSION_COPY[id].intent}</span><i>→</i></button>`).join('')}</div>`;
@@ -136,7 +136,8 @@ export class OperationUI {
       this.renderMenu();this.dialog.querySelector<HTMLButtonElement>(`[data-battle-mode="${this.setup.battleMode}"]`)?.focus();
     });
     bind('#menu-back',()=>this.back());bind('#main-continue',()=>this.load());
-    bind('#choose-operation',()=>{this.setup=defaultBattleSetup();this.advancedOpen=false;this.open('quick');});
+    bind('#choose-operation',()=>{this.setup=defaultOpenFrontSetup();this.advancedOpen=false;this.open('quick');});
+    bind('#endless-menu',()=>{this.setup={...defaultBattleSetup(),operation:'open-front',battleMode:'endless',endless:defaultEndlessOptions()};this.advancedOpen=false;this.open('quick');});
     bind('#operations-menu',()=>this.open('operations'));bind('#return-main',()=>this.open('leave'));
     bind('#save-return',()=>{if(this.actions.save())this.open('main');else this.status('Save failed. This battle is still available; Cancel to return to it.');});
     bind('#discard-return',()=>this.open('main'));bind('#cancel-return',()=>this.open('pause'));
@@ -151,7 +152,7 @@ export class OperationUI {
       const seeded=this.dialog.querySelector<HTMLSelectElement>('#battle-map')!.value==='seed';
       this.dialog.querySelector<HTMLElement>('.setup-seed')!.hidden=!seeded;
       this.dialog.querySelector<HTMLInputElement>('#sector-seed')!.disabled=!seeded;
-      if(this.captureSetup())this.dialog.querySelector('.setup-estimate')!.textContent=`${battlePopulation(this.setup)} · 4 × 4 km${this.setup.size==='large'?' · 1× speed recommended':''}`;
+      if(this.captureSetup())this.dialog.querySelector('.setup-estimate')!.textContent=`${battlePopulation(this.setup)} · ${setupWorldSize(this.setup)/1000} × ${setupWorldSize(this.setup)/1000} km${this.setup.size==='large'?' · 1× speed recommended':''}`;
     });
     this.dialog.querySelector('#quick-battle-form')?.addEventListener('submit',e=>{e.preventDefault();if(this.captureSetup())this.prepare(resolveBattleSetup(this.setup,crypto.getRandomValues(new Uint32Array(1))[0]%2147483647+1));});
     this.dialog.querySelector('#setup-preset')?.addEventListener('change',e=>{const id=(e.target as HTMLSelectElement).value;if(id!=='custom'&&this.captureSetup()){this.setup=applyPreset(this.setup,id);this.renderMenu();}});
@@ -187,6 +188,7 @@ export class OperationUI {
       const r=op.runtime,primary=r?.objectives.find(o=>o.side==='player'&&o.priority==='primary');
       this.hud.innerHTML=`<div class="operation-topline"><span>${escape(op.runtime?.missionPlan?MISSION_COPY[op.runtime.missionPlan.kind].title:MODE_INFO[op.mode].title)}</span><b></b></div><button class="primary-intent" title="Focus objective"><strong>${escape(primary?.title??(op.mode==='defense'?'Hold until relief':op.mode==='campaign'?'Secure both command posts':'Take Saint-Martin and a second position'))}</strong></button><details class="optional-intents"><summary>Mission details</summary><p>${primary?escape(r?.missionPlan?MISSION_COPY[r.missionPlan.kind].situation:OPERATION_DEFINITIONS[r!.definitionId].situation):'Capture positions with able personnel. Enemy presence contests control.'}</p>${r?r.objectives.filter(o=>o.priority==='optional').map(o=>`<p>${escape(o.title)} · optional supply access</p>`).join(''):''}<p>Open the map to plan your approach.</p><p class="intent-status"></p></details>`;
       this.hud.querySelector('.primary-intent')!.addEventListener('click',()=>{const spec=primary?.spec,zone=spec&&'zone' in spec?r?.zones.find(z=>z.id===spec.zone):r?.zones.find(z=>z.id==='contested');const target=r?.missionPlan?.house??zone?.center??op.objectives[1]??op.objectives[0];if(target)this.actions.focus(target);});
+      if(r?.openFront){this.hud.querySelector('.optional-intents>p')!.textContent=configuredDefinition('open-front',op.setup).situation;this.hud.querySelector('summary')!.textContent='Front & supply conditions';}
     }
     const remaining=Math.max(0,Math.ceil(op.duration-op.elapsed));
     this.hud.querySelector('.operation-topline b')!.textContent=op.duration?`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`:'NO TIME LIMIT';
@@ -209,6 +211,7 @@ export class OperationUI {
       if(!clock){clock=document.createElement('p');clock.className='mission-clock';this.hud.querySelector('.primary-intent')!.after(clock);}
       const urgent=rows.find(row=>row.warning),progress=rows.find(row=>row.side==='player');
       clock.textContent=urgent?`THREAT · ${urgent.location} · ${urgent.progress}`:progress?.progress.split(' · ')[0]??'';
+      if(op.runtime.openFront&&!urgent&&!op.runtime.progress.some(p=>p.heldFor>0))clock.textContent='Scout · establish positions · protect supply access';
       clock.classList.toggle('threatened',!!urgent);
     }
   }

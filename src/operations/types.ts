@@ -15,7 +15,7 @@ export interface Contact extends Vec2 {
   observerId?:number; trackedUntil?:number;
 }
 export interface LocalIntelligence {
-  squads:{squadId:number;contacts:Contact[];exposure:{soldierId:number;exposure:number}[];link:'connected'|'isolated';nextReport:number}[];
+  squads:{squadId:number;contacts:Contact[];exposure:{soldierId:number;exposure:number;observerId?:number}[];link:'connected'|'isolated';nextReport:number}[];
   reports:{squadId:number;side:Faction;deliverAt:number;contacts:Contact[]}[];
   command:Record<Faction,Contact[]>;
   sounds:{side:Faction;x:number;z:number;radius:number;at:number;status:'suspected'}[];

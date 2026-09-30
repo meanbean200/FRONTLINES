@@ -55,6 +55,7 @@ export class TerrainRenderer {
     this.dressing.reset();this.group.clear();this.group.add(this.dressing.group); this.chunks=[];this.seed=this.terrain.seed;this.generation++;
     const begin=performance.now();this.workerGenerationMs=0;this.workerJobs=0;
     for (const {cx,cz,x,z} of WORLD_CHUNKS) {
+      if(x>=this.terrain.worldHalf||z>=this.terrain.worldHalf||x+CHUNK_SIZE<=-this.terrain.worldHalf||z+CHUNK_SIZE<=-this.terrain.worldHalf)continue;
       const mesh=new THREE.Mesh(createGroundGeometry(this.terrain,x,z,8,false),this.material);
       mesh.receiveShadow=true;
       const chunk:Chunk={cx,cz,mesh,detail:false,revision:this.terrain.revision,modified:this.terrain.intersectsModification(x,x+CHUNK_SIZE,z,z+CHUNK_SIZE)};

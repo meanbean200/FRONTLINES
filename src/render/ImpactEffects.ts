@@ -6,6 +6,7 @@ import {ParticlePool} from './ParticlePool';
 import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
 import {environmentDaylight} from './EnvironmentLighting';
 import {latestGunDischarge} from './SupportAnimation';
+import type {ShotEvent} from '../combat/types';
 
 interface Impact {key:string;id:number;at:number;x:number;y:number;z:number;blast:boolean;stone:boolean;heavy?:boolean}
 export class ImpactEffects {
@@ -16,7 +17,7 @@ export class ImpactEffects {
   private previous=-Infinity;
   constructor(){this.setQuality('balanced');}
   setQuality(q:VisualQuality):void{this.particles.limit=VISUAL_QUALITY[q].particles;}
-  update(state:BattlefieldState,terrain:TerrainSystem):void{
+  update(state:BattlefieldState,terrain:TerrainSystem,arrivals?:ShotEvent[]):void{
     const op=state.operation,now=state.elapsed,pool=this.particles;
     pool.setAmbientLight(.22+.78*Math.min(1,environmentDaylight(state.living?.campaignHours??12)*2));
     if(this.identity!==op||now<this.previous){this.impacts=[];this.remembered.clear();this.identity=op;}this.previous=now;
@@ -25,7 +26,7 @@ export class ImpactEffects {
     const visible=(p:{x:number;z:number})=>friendly.some(s=>Math.hypot(s.x-p.x,s.z-p.z)<80)||playerCanSeePoint(state,terrain,p);
     const remember=(impact:Impact)=>{if(this.remembered.has(impact.key))return;this.remembered.add(impact.key);if(this.impacts.length>=160){const old=this.impacts.shift()!;this.remembered.delete(old.key);}this.impacts.push(impact);};
     for(const b of op?.blastEvents??[])if(now-b.at<1&&visible(b))remember({key:`b${b.id}`,id:b.id,at:b.at,x:b.x,y:terrain.heightAt(b.x,b.z)+.15,z:b.z,blast:true,stone:false,heavy:b.radius>25});
-    for(const s of op?.shotEvents??[])if(s.obstruction&&now-s.at<.25&&visible(s.to)&&(!enemies.has(s.squadId)||seen.has(s.shooterId)||friendly.some(f=>Math.hypot(f.x-s.to.x,f.z-s.to.z)<50)))remember({key:`s${s.id}`,id:s.id,at:s.at,...s.to,blast:false,stone:s.obstruction==='building'});
+    for(const s of arrivals??op?.shotEvents??[])if(s.obstruction&&(arrivals!==undefined||now-s.at<.25)&&visible(s.to)&&(!enemies.has(s.squadId)||seen.has(s.shooterId)||friendly.some(f=>Math.hypot(f.x-s.to.x,f.z-s.to.z)<50)))remember({key:`s${s.id}`,id:s.id,at:arrivals?now:s.at,...s.to,blast:false,stone:s.obstruction==='building'});
     this.impacts=this.impacts.filter(i=>{if(now-i.at<(i.blast?7:1.1))return true;this.remembered.delete(i.key);return false;});pool.begin();
     // Three bounded muzzle-dust particles per actual launch, shared quality cap.
     // Unseen enemy guns do not gain a marker or reveal their crew.

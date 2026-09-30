@@ -5,6 +5,7 @@ import {prepareActions} from './Reactions';
 import {equipWeapon,weaponReady,WEAPONS} from './Weapons';
 import {SaveSystem} from '../persistence/SaveSystem';
 import {preparedPosition} from './testing/PositionFixture';
+import {weaponCrewPoint} from '../construction/PositionDefinitions';
 function setup(){const state=createOperation('advance'),sim=new BattlefieldSimulation(state),s=state.soldiers[0],q=state.squads[0];state.operation!.nextOrders=1e9;for(const p of state.soldiers)p.nextShotAt=1e9;return{state,sim,s,q};}
 describe('human reactions and action authority',()=>{
   it('pinning pauses a persistent drawn order, defeats push-through, then resumes',()=>{
@@ -24,6 +25,18 @@ describe('human reactions and action authority',()=>{
     for(const s of state.soldiers.filter(s=>s.squadId===q.id)){s.suppression=100;}
     for(let n=0;n<20;n++)sim.step(.05);
     expect(state.trenches.find(t=>t.id===id)!.progress).toBe(0);expect(q.order.type).toBe('construct-trench');
+  });
+  it('a healthy mounted gunner holds the protected post under ordinary incoming fire, but pinning still wins',()=>{
+    const {state,sim}=setup(),q=state.squads.find(q=>q.faction==='enemy')!,f=preparedPosition(state,q.id,'emplacement');
+    const g=state.living!.garrisons.find(g=>g.id===f.garrisonId)!,s=state.soldiers.find(s=>s.id===f.weaponCrewIds![0])!,t=state.trenches.find(t=>t.id===f.connectorId)!;
+    g.readiness='stand-to';f.facing=0;f.z=t.points[0].z+t.width*.43;f.trenchAnchor={trenchId:t.id,along:12};
+    Object.assign(s,weaponCrewPoint(state,f,0));s.duty!.destination={x:s.x,z:s.z};s.duty!.arrivedAt=0;
+    vi.spyOn(sim.terrain,'baseHeightAt').mockReturnValue(0);vi.spyOn(sim.terrain,'groundTypeAt').mockReturnValue('field');vi.spyOn(sim.terrain.objects,'trees').mockReturnValue([]);sim.terrain.buildings=[];sim.terrain.syncModifications();
+    s.combat={shotSequence:0,coverReview:0,lastIncoming:0,threatDirection:0};s.suppression=25;s.needs!.energy=90;
+    const origin={x:s.x,z:s.z};
+    for(let i=0;i<80;i++){state.elapsed+=.05;s.combat.lastIncoming=state.elapsed;prepareActions(state,sim.terrain,sim.navigation,.05);}
+    expect({x:s.x,z:s.z}).toEqual(origin);expect(s.combat.owner).toBe('duty');
+    s.suppression=95;prepareActions(state,sim.terrain,sim.navigation,.05);expect(s.combat.reaction).toBe('pinned');expect(s.combat.owner).toBe('reaction');
   });
 });
 describe('finite weapons',()=>{

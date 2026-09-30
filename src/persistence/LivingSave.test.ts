@@ -7,6 +7,7 @@ describe('living save boundaries',()=>{
   it('stores policy schema and preserves the legacy storage key',()=>{
     const storage=new Map([['frontlines-battlefield-v1','legacy-do-not-overwrite']]);
     vi.stubGlobal('localStorage',{getItem:(key:string)=>storage.get(key)??null,setItem:(key:string,value:string)=>storage.set(key,value)});
+    expect(new SaveSystem().legacyNotice()).toContain('new Open Front battle');
     const saved=JSON.parse(new SaveSystem().save(createStudyScenario().state));
     expect(saved.policySchema).toEqual({observationVersion:2,rulesVersion:RULES_VERSION});
     expect(storage.get('frontlines-battlefield-v1')).toBe('legacy-do-not-overwrite');vi.unstubAllGlobals();
@@ -18,9 +19,9 @@ describe('living save boundaries',()=>{
     expect(restored.living!.garrisons[0].policyStatus).toContain('Fallback');
     expect(restored.living!.garrisons[0].modelId).toContain('unavailable-schema:');
   });
-  it('migrates prior command rules without replaying survival migrations or adding stock',()=>{
+  it.each(['combat-44-supply-interception-world2','combat-45-command-logistics-world2'])('migrates %s without replaying survival migrations or adding stock',(rules)=>{
     const state=createStudyScenario().state,g=state.living!.garrisons[0];
-    state.combatRules='combat-44-supply-interception-world2';g.cutoff='decision';g.policy='learned';g.modelId='old-model';
+    state.combatRules=rules;g.cutoff='decision';g.policy='learned';g.modelId='old-model';
     const original=JSON.stringify(state),saved={...state,policySchema:{observationVersion:2,rulesVersion:state.combatRules}};
     const restored=new SaveSystem().parse(JSON.stringify(saved));
     expect(restored.soldiers).toEqual(state.soldiers);expect(restored.squads).toEqual(state.squads);expect(restored.trenches).toEqual(state.trenches);

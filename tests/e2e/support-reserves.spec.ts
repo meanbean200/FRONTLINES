@@ -6,7 +6,7 @@ async function support(page:Page){
 }
 
 for(const reserves of [0,24,48] as const)test(`Open Front shows the configured ${reserves}-person reserve`,async({page},testInfo)=>{
-  await page.goto('/');await page.locator('#choose-operation').click();await page.locator('[data-mode-choice="open-front"]').click();
+  await page.goto('/');await page.locator('#choose-operation').click();
   await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');
   await page.locator('.advanced-setup summary').click();await page.locator('#setup-reserves').selectOption(String(reserves));
   await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();

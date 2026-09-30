@@ -1,5 +1,4 @@
 import type {BattlefieldState,Vec2} from '../core/types';
-import {WORLD_SIZE,WORLD_HALF} from '../core/types';
 import {mapCenter,mapProject,mapUnproject,ROADS,pointOnRoad} from '../terrain/WorldLayout';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {StrategyCamera} from '../render/StrategyCamera';
@@ -49,7 +48,8 @@ export class FieldMap {
   private readonly network=new TrenchNetwork();
   private assets:PlanningAsset[]=[];
   private assetKey='';private selectedAsset='';private listKey='';
-  private get verticalScale(){return this.span===WORLD_SIZE?1:.625;}
+  private get worldSize(){return this.terrain.worldSize;}
+  private get verticalScale(){return this.span===this.worldSize?1:.625;}
   constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem,private camera:StrategyCamera,private selected:Set<number>,private select?:(ids:number[],add?:boolean)=>void,private move?:(point:Vec2)=>void,private actions?:PlanningActions){
     this.dialog.className='field-map';this.dialog.setAttribute('aria-label','Operational map');
     this.dialog.innerHTML=`<header><div><small>OPERATIONAL MAP / NORTH ↑</small><h2>SAINT-MARTIN SECTOR</h2></div><nav><button data-scale="sector">Local</button><button data-scale="theater">Full sector</button><button data-close>Return <kbd>Esc</kbd></button></nav></header><div class="map-stage"></div><footer><span class="map-friendly">⊠ Friendly</span><span class="map-enemy">◇ Confirmed / dashed last report</span><span>━ Excavated / ┄ Planned</span><span>□ Supply · amber route blocked</span></footer><p class="map-help">Select a friendly marker. Right-click to move selected squads. Click terrain to focus. M to return · play paused.</p>`;
@@ -62,7 +62,7 @@ export class FieldMap {
     aside.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('button');if(!b)return;if(b.dataset.asset){this.selectedAsset=b.dataset.asset;this.update(1);return;}const asset=this.assets.find(a=>a.key===this.selectedAsset);if(b.hasAttribute('data-go'))this.actions?.signal();else if(asset){if(b.hasAttribute('data-locate')){this.camera.focus(asset.point,140);this.close();}if(b.hasAttribute('data-inspect')){this.close();this.actions?.inspect(asset);}if(b.hasAttribute('data-prepare'))this.actions?.prepare(asset);}this.update(1);});
     this.dialog.querySelector('[data-close]')!.addEventListener('click',()=>this.close());
     this.dialog.addEventListener('cancel',e=>{e.preventDefault();this.close();});
-    for(const b of this.dialog.querySelectorAll<HTMLButtonElement>('[data-scale]'))b.addEventListener('click',()=>{this.span=b.dataset.scale==='theater'?WORLD_SIZE:b.dataset.scale==='detail'?600:2400;this.center=mapCenter(this.assets.find(a=>a.key===this.selectedAsset)?.point??this.camera.target,this.span,this.verticalScale);this.seed=-1;this.update(1);});
+    for(const b of this.dialog.querySelectorAll<HTMLButtonElement>('[data-scale]'))b.addEventListener('click',()=>{this.span=b.dataset.scale==='theater'?this.worldSize:b.dataset.scale==='detail'?600:Math.min(2400,this.worldSize*.6);this.center=mapCenter(this.assets.find(a=>a.key===this.selectedAsset)?.point??this.camera.target,this.span,this.verticalScale,this.worldSize);this.seed=-1;this.update(1);});
     this.canvas.addEventListener('contextmenu',e=>e.preventDefault());
     this.canvas.addEventListener('dblclick',e=>{const r=this.canvas.getBoundingClientRect();this.camera.focus(mapUnproject((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height,this.center,this.span,this.verticalScale),140);this.close();});
     this.canvas.addEventListener('pointerdown',e=>{
@@ -85,17 +85,17 @@ export class FieldMap {
     if(this.dialog.open)return;
     this.returnFocus=document.activeElement instanceof HTMLElement?document.activeElement:undefined;
     window.dispatchEvent(new Event('frontlines-menu'));document.documentElement.dataset.fieldMap='open';
-    this.center=mapCenter(this.camera.target,this.span,this.verticalScale);this.seed=-1;
-    if(this.getState().operation?.runtime){this.span=WORLD_SIZE;this.center={x:0,z:0};}
+    this.span=Math.min(this.span,this.worldSize);this.center=mapCenter(this.camera.target,this.span,this.verticalScale,this.worldSize);this.seed=-1;
+    if(this.getState().operation?.runtime){this.span=this.worldSize;this.center={x:0,z:0};}
     this.dialog.showModal();this.update(1);
   }
   private close(){this.dialog.close();delete document.documentElement.dataset.fieldMap;this.returnFocus?.focus({preventScroll:true});}
   update(dt:number){
     if(!this.dialog.open)return;this.timer+=dt;if(this.timer<.2)return;this.timer=0;
     const state=this.getState();if(this.seed!==state.seed){this.paintTerrain();this.seed=state.seed;}
-    this.dialog.dataset.scale=this.span===WORLD_SIZE?'theater':'sector';
+    this.dialog.dataset.scale=this.span===this.worldSize?'theater':'sector';
     if(this.canvas.height!==960*this.verticalScale)this.canvas.height=960*this.verticalScale;
-    for(const b of this.dialog.querySelectorAll<HTMLButtonElement>('[data-scale]'))b.setAttribute('aria-pressed',String(b.dataset.scale===(this.span===WORLD_SIZE?'theater':this.span===600?'detail':'sector')));
+    for(const b of this.dialog.querySelectorAll<HTMLButtonElement>('[data-scale]'))b.setAttribute('aria-pressed',String(b.dataset.scale===(this.span===this.worldSize?'theater':this.span===600?'detail':'sector')));
     const ctx=this.canvas.getContext('2d')!,w=this.canvas.width,h=this.canvas.height;ctx.drawImage(this.background,0,0,w,h);
     const screen=(p:Vec2)=>{const q=mapProject(p,this.center,this.span,this.verticalScale);return {x:q.x*w,y:q.y*h};};
     const textScale=this.canvas.width/Math.max(1,this.canvas.getBoundingClientRect().width);
@@ -172,6 +172,6 @@ export class FieldMap {
     // Static, publicly known footprints. No occupancy or damage oracle here.
     ctx.fillStyle='#b1ab8b';for(const b of this.terrain.buildings){const p=mapProject(b,this.center,this.span,this.verticalScale);ctx.fillRect(p.x*w-b.width/this.span*w/2,p.y*h-b.depth/this.span*w/2,Math.max(1,b.width/this.span*w),Math.max(1,b.depth/this.span*w));}
     ctx.strokeStyle='#929989';ctx.lineWidth=1.2;
-    for(const road of ROADS){ctx.beginPath();for(let t=-WORLD_HALF;t<=WORLD_HALF;t+=20){const p=mapProject(pointOnRoad(road,t),this.center,this.span,this.verticalScale);if(t===-WORLD_HALF)ctx.moveTo(p.x*w,p.y*h);else ctx.lineTo(p.x*w,p.y*h);}ctx.stroke();}
+    for(const road of ROADS){ctx.beginPath();for(let t=-this.worldSize/2;t<=this.worldSize/2;t+=20){const p=mapProject(pointOnRoad(road,t),this.center,this.span,this.verticalScale);if(t===-this.worldSize/2)ctx.moveTo(p.x*w,p.y*h);else ctx.lineTo(p.x*w,p.y*h);}ctx.stroke();}
   }
 }

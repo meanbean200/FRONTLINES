@@ -25,6 +25,7 @@ import {reconcileSupplyDemands,validSupplyDemands} from '../garrison/SupplyDeman
 import {migrateSupportPositions} from '../combat/SupportWeapons';
 import {validTerrainKnowledge} from '../operations/TrenchIntelligence';
 import {validPreparedOrders} from '../operations/PreparedOrders';
+import {isNewOpenFront} from '../operations/BattleSetup';
 
 export const SAVE_KEY = 'frontlines-battlefield-v4';
 const WORLD2_V3_KEY = 'frontlines-battlefield-v3-world2-4km';
@@ -56,7 +57,7 @@ export class SaveSystem {
   parse(raw: string): BattlefieldState {
     const value: unknown = JSON.parse(raw);
     const world=value as Partial<BattlefieldState>|null;
-    if(world&&typeof world==='object'&&(world.worldVersion!==WORLD_VERSION||world.worldSize!==WORLD_SIZE))throw new Error('Legacy or incompatible battlefield: this save uses the old 8 km or another world layout. New battles use 4 × 4 km. The original save is preserved; start a new battle, or open it in its matching older build. No coordinates were migrated.');
+    if(world&&typeof world==='object'&&!supportedWorld(world))throw new Error('Legacy or incompatible battlefield: this save uses the old 8 km or another world layout. Supported worlds are legacy 4 × 4 km and versioned 2.4 × 2.4 km Open Front. The original save is preserved; no coordinates were migrated.');
     // Only known legacy inventory locations gain explicit zero-valued new fields.
     // Current v3 payloads must validate as written rather than repairing corruption.
     const legacy=value as Partial<BattlefieldState>|null;
@@ -109,7 +110,7 @@ export class SaveSystem {
       for(const s of state.soldiers)if(s.needs?.life==='dead'&&!s.death)s.death={cause:'legacy-unknown',at:state.elapsed,occurredAt:state.elapsed,condition:{healthBefore:s.health,energy:s.needs.energy,hunger:s.needs.hunger,thirst:s.needs.thirst}};
       state.living!.migrationNote='Copy migrated to v4. People, coordinates, stock and existing timing preserved. Historical death causes are unknown; no retrospective deprivation. Original saves remain untouched.';
     }
-    if(![RULES_VERSION,'combat-44-endless-controller-world2','combat-44-supply-interception-world2'].includes(state.combatRules??'')){
+    if(![RULES_VERSION,'combat-45-command-logistics-world2','combat-44-endless-controller-world2','combat-44-supply-interception-world2'].includes(state.combatRules??'')){
       for(const g of state.living!.garrisons)if(g.cutoff==='decision')g.cutoff='warning';
       for(const s of state.soldiers){
         if(s.selfCare?.kind==='supply-wait'){delete s.selfCare;delete s.survivalReason;}
@@ -126,13 +127,14 @@ export class SaveSystem {
   hasSave(): boolean {
     return localStorage.getItem(SAVE_KEY) !== null||localStorage.getItem(WORLD2_V3_KEY)!==null||localStorage.getItem(V3_KEY)!==null||localStorage.getItem(V2_KEY)!==null||localStorage.getItem(LEGACY_KEY)!==null;
   }
-  legacyNotice():string{return localStorage.getItem(SAVE_KEY)!==null?'':localStorage.getItem(WORLD2_V3_KEY)!==null?'Existing campaign will be migrated as a copy; the original save is preserved.':this.hasSave()?'Legacy 8 km save found · preserved separately. It needs the matching older build; start a new 4 km battle to play here.':'';}
+  legacyNotice():string{return localStorage.getItem(SAVE_KEY)!==null?'':localStorage.getItem(WORLD2_V3_KEY)!==null?'Existing campaign will be migrated as a copy; the original save is preserved.':this.hasSave()?'Legacy 8 km save found · preserved separately. It needs the matching older build; start a new Open Front battle to play here.':'';}
 }
 
+function supportedWorld(s:Partial<BattlefieldState>):boolean{return s.worldVersion===WORLD_VERSION&&s.worldSize===(isNewOpenFront(s.operation?.setup)?2400:WORLD_SIZE);}
 function isBattlefieldState(value: unknown): value is BattlefieldState {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<BattlefieldState>;
-  if(candidate.worldVersion!==WORLD_VERSION||candidate.worldSize!==WORLD_SIZE)return false;
+  if(!supportedWorld(candidate))return false;
   const shape = (
     ([1,2,3,4].includes(candidate.schemaVersion!)) &&
     typeof candidate.seed === 'number' &&
@@ -235,7 +237,7 @@ function validWorldPositions(s:BattlefieldState):boolean {
     ...s.soldiers.flatMap(p=>p.duty?[p.duty.destination,...p.duty.route]:[]),
     ...(s.operation?.objectives??[]),
     ...(w?[w.rear,...(w.enemySupply?[w.enemySupply.rear]:[]),...w.facilities,...w.crates,...w.trucks,...w.trucks.flatMap(t=>t.route),...w.garrisons.flatMap(g=>[g.entrance,g.forward,...(g.pendingSupplyPoint?[g.pendingSupplyPoint.point]:[]),...(g.frontage??[])])]:[])];
-  return points.every(p=>p&&insideWorld(p));
+  return points.every(p=>p&&insideWorld(p,0,s.worldSize));
 }
 
 function validOperation(state:BattlefieldState):boolean {
@@ -252,7 +254,8 @@ function validOperation(state:BattlefieldState):boolean {
   if(!op.objectives.every(o=>o&&typeof o.id==='string'&&typeof o.name==='string'&&Number.isFinite(o.x)&&Number.isFinite(o.z)&&nonnegative(o.radius)&&o.radius>0&&Number.isFinite(o.control)&&Math.abs(o.control)<=1&&['player','enemy','neutral'].includes(o.owner)&&typeof o.contested==='boolean'&&Number.isInteger(o.cacheId)&&o.cacheId>0))return false;
   if(op.mode==='campaign'||op.mode==='open-front'){
     const c=op.campaign;
-    if(!c||op.duration!==0||!state.living?.enemySupply||!(op.runtime?['player-rear','enemy-rear']:['west-hq','east-hq']).every(id=>op.objectives.some(o=>o.id===id))||![c.playerTrench,c.enemyTrench].every(id=>state.trenches.some(t=>t.id===id))||c.playerTrench===c.enemyTrench)return false;
+    if(!c||op.duration!==0||!state.living?.enemySupply||!(op.runtime?['player-rear','enemy-rear']:['west-hq','east-hq']).every(id=>op.objectives.some(o=>o.id===id)))return false;
+    if(![c.playerTrench,c.enemyTrench].every(id=>op.runtime?.openFront&&id===0||state.trenches.some(t=>t.id===id))||c.playerTrench===c.enemyTrench&&!(op.runtime?.openFront&&c.playerTrench===0))return false;
     if(![c.nextRaid,c.returnAt,c.playerHold,c.enemyHold].every(nonnegative)||!['preparing','raiding','returning'].includes(c.phase)||!Array.isArray(c.raidSquads)||new Set(c.raidSquads).size!==c.raidSquads.length||!c.raidSquads.every(id=>state.squads.some(q=>q.id===id&&q.faction==='enemy')))return false;
   }else if(op.campaign!==undefined)return false;
   if(op.lastObservationAt!==undefined&&(!nonnegative(op.lastObservationAt)||op.lastObservationAt>state.elapsed+.001))return false;

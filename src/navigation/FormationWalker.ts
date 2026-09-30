@@ -1,4 +1,4 @@
-import {clamp,distance,type BattlefieldState,type SoldierState,type SquadState,type Vec2,WORLD_HALF} from '../core/types';
+import {clamp,distance,type BattlefieldState,type SoldierState,type SquadState,type Vec2} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {SquadNavigation} from './SquadNavigation';
 import {ownsAction} from '../combat/Reactions';
@@ -28,11 +28,12 @@ export class FormationWalker {
   private destination(q:SquadState,i:number,count:number):Vec2{
     const end=q.route.at(-1)!,angle=q.formationHeading??0,row=Math.floor(i/4),size=Math.min(4,count-row*4);
     const lateral=(i%4-(size-1)/2)*2.4,depth=(row-(Math.ceil(count/4)-1)/2)*2.6;
-    const desired={x:clamp(end.x+Math.cos(angle)*lateral-Math.sin(angle)*depth,-WORLD_HALF+1,WORLD_HALF-1),z:clamp(end.z-Math.sin(angle)*lateral-Math.cos(angle)*depth,-WORLD_HALF+1,WORLD_HALF-1)};
+    const half=this.terrain.worldHalf;
+    const desired={x:clamp(end.x+Math.cos(angle)*lateral-Math.sin(angle)*depth,-half+1,half-1),z:clamp(end.z-Math.sin(angle)*lateral-Math.cos(angle)*depth,-half+1,half-1)};
     if(!this.terrain.walkingObstacleAt(desired.x,desired.z,.8))return desired;
     for(let r=2;r<=20;r+=2)for(let a=0;a<16;a++){
       const p={x:desired.x+Math.sin(a*Math.PI/8)*r,z:desired.z+Math.cos(a*Math.PI/8)*r};
-      if(insideWorld(p,1)&&!this.terrain.walkingObstacleAt(p.x,p.z,.8))return p;
+      if(insideWorld(p,1,this.terrain.worldSize)&&!this.terrain.walkingObstacleAt(p.x,p.z,.8))return p;
     }
     return desired;
   }

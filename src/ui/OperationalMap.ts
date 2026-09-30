@@ -7,6 +7,11 @@ import {zoneCorners} from '../operations/OperationGeometry';
 export function drawOperationPlan(ctx:CanvasRenderingContext2D,r:OperationRuntime,screen:(p:Vec2)=>{x:number;y:number},labels=false,dark=false,textScale=1,label?:(text:string,x:number,y:number,priority:number)=>void):void {
   ctx.save();
   const line=(points:Vec2[],color:string,dash:number[],width=1)=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();points.forEach((p,i)=>{const v=screen(p);if(i)ctx.lineTo(v.x,v.y);else ctx.moveTo(v.x,v.y);});ctx.stroke();};
+  if(r.openFront){
+    for(const route of r.routes.filter(r=>r.side==='player'))line(route.points,dark?'#9a9478':'#7a735b',[3,7]);
+    for(const zone of r.zones.filter(z=>z.id.endsWith('-rear'))){const corners=zoneCorners(zone);line([...corners,corners[0]],zone.id==='player-rear'?'#7896a2':'#a47264',[5,4]);}
+    ctx.restore();return;
+  }
   if(r.missionPlan){
     const m=r.missionPlan,p=screen(m.house),ink=dark?'#ded1a8':'#645330';
     for(const work of m.prepared)line(work.points,work.side==='player'?(dark?'#a6bdc6':'#456170'):(dark?'#c38e80':'#854c41'),[4,3],2);

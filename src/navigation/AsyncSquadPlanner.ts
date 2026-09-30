@@ -16,7 +16,7 @@ export class AsyncSquadPlanner {
     if(this.failed){done([]);return;}
     const id=this.nextId++;
     this.pending.set(id,done);
-    const request:RouteRequest={id,start:{x:start.x,z:start.z},goal,world:{seed:state.seed,trenches:state.trenches,craters:state.craters,buildingChanges:state.buildingChanges}};
+    const request:RouteRequest={id,start:{x:start.x,z:start.z},goal,world:{seed:state.seed,trenches:state.trenches,craters:state.craters,buildingChanges:state.buildingChanges,worldSize:state.worldSize}};
     this.worker.postMessage(request);
   }
   dispose():void{if(this.closed)return;this.closed=true;this.worker.onmessage=null;this.worker.onerror=null;this.pending.clear();this.worker.terminate();}

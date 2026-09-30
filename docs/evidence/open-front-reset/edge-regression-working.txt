@@ -1,0 +1,171 @@
+[WebServer] (node:31192) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 35 tests using 1 worker
+
+(node:17988) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 tests\e2e\assault-control.spec.ts:4:1 › NORMAL and ALL IN review actual individuals, release on GO and restore detached movement (25.3s)
+  ok  2 tests\e2e\command-surfaces.spec.ts:3:61 › position commands remain visible at 1654×910 (7.8s)
+  x   3 tests\e2e\command-surfaces.spec.ts:3:61 › position commands remain visible at 390×844 (45.2s)
+(node:41424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  4 tests\e2e\command-surfaces.spec.ts:3:61 › position commands remain visible at 844×390 (8.6s)
+  ok  5 tests\e2e\command-surfaces.spec.ts:21:1 › town commands are reachable from both the map index and battlefield label (9.3s)
+  x   6 tests\e2e\command-surfaces.spec.ts:34:1 › normal map Locate keeps a finite battlefield camera while settling at a terrain seam (17.5s)
+(node:9388) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  7 tests\e2e\gameplay-controls.spec.ts:13:1 › Add troops is a normal sandbox action with repeatable batch placement (6.7s)
+  ok  8 tests\e2e\gameplay-controls.spec.ts:26:1 › finite operations explain reserves without offering sandbox spawning (6.8s)
+  ok  9 tests\e2e\gameplay-controls.spec.ts:32:1 › Support routes players to physical positions rather than abstract mortar formations (6.3s)
+  x  10 tests\e2e\gameplay-controls.spec.ts:38:1 › machine-gun inspection separates crew readiness from urgent warnings (18.3s)
+(node:35896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 11 tests\e2e\gameplay-controls.spec.ts:77:1 › actual pit inspector rejects roofs and fires a mixed-formation outdoor mortar without a squad selected (25.2s)
+  ok 12 tests\e2e\gameplay-controls.spec.ts:95:1 › position reports a moving crew and retains it after a normal Hold (9.8s)
+  ok 13 tests\e2e\gameplay-controls.spec.ts:102:1 › grouped contact symbols stay quiet and allow tactical orders through them (9.1s)
+  ok 14 tests\e2e\interface.spec.ts:11:1 › main menu offers Open Front, separate Endless and Sandbox without a mission collection (6.0s)
+  ok 15 tests\e2e\interface.spec.ts:19:1 › briefing previews the generated world, then rolls back without a save write (6.6s)
+  ok 16 tests\e2e\interface.spec.ts:30:1 › contextual commands, drawer escape and direct trench entry remain accessible (6.8s)
+  ok 17 tests\e2e\interface.spec.ts:46:1 › pause save/load keeps exact campaign state and manual pause (6.3s)
+  ok 18 tests\e2e\interface.spec.ts:56:1 › a supply decision cannot be obscured by the Position inspector (5.6s)
+  ok 19 tests\e2e\interface.spec.ts:67:3 › full canvas and usable menus at 1920×1080 (5.5s)
+  x  20 tests\e2e\interface.spec.ts:67:3 › full canvas and usable menus at 2560×1440 (46.0s)
+(node:10424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 21 tests\e2e\interface.spec.ts:67:3 › full canvas and usable menus at 1654×910 (6.8s)
+  ok 22 tests\e2e\interface.spec.ts:67:3 › full canvas and usable menus at 1366×768 (6.1s)
+  ok 23 tests\e2e\interface.spec.ts:67:3 › full canvas and usable menus at 1280×720 (5.8s)
+  ok 24 tests\e2e\interface.spec.ts:67:3 › full canvas and usable menus at 1024×768 (5.4s)
+  ok 25 tests\e2e\interface.spec.ts:67:3 › full canvas and usable menus at 2560×1080 (5.9s)
+  ok 26 tests\e2e\interface.spec.ts:67:3 › full canvas and usable menus at 1280×540 (5.2s)
+  ok 27 tests\e2e\live-controls.spec.ts:3:1 › advanced changes preserve native fields and launch with the chosen rules (5.2s)
+  ok 28 tests\e2e\live-controls.spec.ts:18:1 › live trench updates keep the readiness select and apply its keyboard choice (7.9s)
+  ok 29 tests\e2e\live-controls.spec.ts:41:26 › direct front buttons apply every direction at 0x without changing other positions (11.7s)
+  ok 30 tests\e2e\live-controls.spec.ts:41:26 › direct front buttons apply every direction at 5x without changing other positions (12.1s)
+  ok 31 tests\e2e\live-controls.spec.ts:71:3 › touch front controls › a direct tap changes facing after scrolling, without issuing a battlefield order (6.1s)
+  ok 32 tests\e2e\occupied-traffic.spec.ts:5:1 › Edge advances real occupied trench counterflow using the speed controls (26.5s)
+  ok 33 tests\e2e\support-reserves.spec.ts:8:42 › Open Front shows the configured 0-person reserve (5.6s)
+  ok 34 tests\e2e\support-reserves.spec.ts:8:42 › Open Front shows the configured 24-person reserve (11.5s)
+  ok 35 tests\e2e\support-reserves.spec.ts:8:42 › Open Front shows the configured 48-person reserve (5.7s)
+
+
+  1) tests\e2e\command-surfaces.spec.ts:3:61 › position commands remain visible at 390×844 ─────────
+
+    Test timeout of 45000ms exceeded.
+
+    Error: locator.click: Test timeout of 45000ms exceeded.
+    Call log:
+      - waiting for locator('#begin-operation')
+        - locator resolved to <button class="menu-primary" id="begin-operation">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not stable
+        - retrying click action
+        - waiting 20ms
+        - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        - waiting 100ms
+      - element was detached from the DOM, retrying
+
+
+       5 |   await page.locator('#endless-menu').click();
+       6 |   await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');
+    >  7 |   await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
+         |                                                                                          ^
+       8 |   await page.locator('.hud-tools>summary').click();await page.locator('#trenches-command').click();
+       9 |   const panel=page.locator('#trench-panel'),primary=panel.locator(':scope > .command-primary');
+      10 |   await expect(primary.getByRole('button',{name:'Build MG',exact:true})).toBeInViewport();
+        at C:\Users\Will\OneDrive\Documents\ChatGPT\FRONTLINES\tests\e2e\command-surfaces.spec.ts:7:90
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\command-surfaces-position-commands-remain-visible-at-390×844\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\command-surfaces-position-commands-remain-visible-at-390×844\error-context.md
+
+  2) tests\e2e\command-surfaces.spec.ts:34:1 › normal map Locate keeps a finite battlefield camera while settling at a terrain seam
+
+    Error: page.evaluate: Execution context was destroyed, most likely because of a navigation.
+
+      40 |   }
+      41 |   // Read-only current-frame projection. No camera setter or world injection.
+    > 42 |   const result=await page.evaluate(()=>new Promise<{bad:number;visible:number}>(resolve=>{
+         |                           ^
+      43 |     let frames=0,bad=0,visible=0;
+      44 |     const sample=()=>{const p=window.__FRONTLINES__.projectWorld(0,-80);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))bad++;if(p.visible)visible++;if(++frames===900)resolve({bad,visible});else requestAnimationFrame(sample);};requestAnimationFrame(sample);
+      45 |   }));
+        at C:\Users\Will\OneDrive\Documents\ChatGPT\FRONTLINES\tests\e2e\command-surfaces.spec.ts:42:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\command-surfaces-normal-ma-e28d7--settling-at-a-terrain-seam\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\command-surfaces-normal-ma-e28d7--settling-at-a-terrain-seam\error-context.md
+
+  3) tests\e2e\gameplay-controls.spec.ts:38:1 › machine-gun inspection separates crew readiness from urgent warnings
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('#selection-detail')
+    Expected substring: "MG position"
+    Received string:    "1 automatic weapon · 1 tool setCarried rounds480Set · watching sector · crew 1/1 · 320 m maximum"
+    Timeout: 12000ms
+
+    Call log:
+      - Expect "toContainText" locator('#selection-detail') with timeout 12000ms
+      - waiting for locator('#selection-detail')
+        2 × locator resolved to <div role="tabpanel" id="selection-detail">…</div>
+          - unexpected value "1 automatic weapon · 1 tool setCarried rounds480Awaiting weapon setup"
+        4 × locator resolved to <div role="tabpanel" id="selection-detail">…</div>
+          - unexpected value "1 automatic weapon · 1 tool setCarried rounds480Setting up · 1 s · crew 1/1"
+        21 × locator resolved to <div role="tabpanel" id="selection-detail">…</div>
+           - unexpected value "1 automatic weapon · 1 tool setCarried rounds480Set · watching sector · crew 1/1 · 320 m maximum"
+
+
+      38 | test('machine-gun inspection separates crew readiness from urgent warnings',async({page})=>{
+      39 |   await meeting(page);await select(page,'Easy');await page.getByRole('button',{name:'Manage',exact:true}).click();await page.getByRole('tab',{name:'Weapons',exact:true}).click();await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');
+    > 40 |   await page.locator('[data-speed="1"]').click();await expect(page.locator('#selection-detail')).toContainText('MG position',{timeout:12000});await page.locator('[data-speed="0"]').click();
+         |                                                                                                  ^
+      41 | });
+      42 |
+      43 | // Synthetic saved-world fixtures isolate readiness, not building navigation.
+        at C:\Users\Will\OneDrive\Documents\ChatGPT\FRONTLINES\tests\e2e\gameplay-controls.spec.ts:40:98
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\gameplay-controls-machine--f3a05-diness-from-urgent-warnings\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\gameplay-controls-machine--f3a05-diness-from-urgent-warnings\error-context.md
+
+  4) tests\e2e\interface.spec.ts:67:3 › full canvas and usable menus at 2560×1440 ──────────────────
+
+    Test timeout of 45000ms exceeded.
+
+    Error: locator.scrollIntoViewIfNeeded: Test timeout of 45000ms exceeded.
+    Call log:
+      - waiting for locator('#begin-operation')
+
+
+      69 |     expect(await page.locator('#battlefield').evaluate(el=>({width:el.clientWidth,height:el.clientHeight}))).toEqual({width,height});
+      70 |     expect(await page.locator('.operation-menu').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+    > 71 |     await page.locator('#launch-operation').click();await page.locator('#begin-operation').scrollIntoViewIfNeeded();await expect(page.locator('#begin-operation')).toBeVisible();
+         |                                                                                            ^
+      72 |     await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
+      73 |     await page.locator('.hud-tools>summary').click();await page.locator('#open-build').click();
+      74 |     await expect(page.locator('#trench-command')).toBeInViewport();
+        at C:\Users\Will\OneDrive\Documents\ChatGPT\FRONTLINES\tests\e2e\interface.spec.ts:71:92
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\interface-full-canvas-and-usable-menus-at-2560×1440\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\interface-full-canvas-and-usable-menus-at-2560×1440\error-context.md
+
+  4 failed
+    tests\e2e\command-surfaces.spec.ts:3:61 › position commands remain visible at 390×844 ──────────
+    tests\e2e\command-surfaces.spec.ts:34:1 › normal map Locate keeps a finite battlefield camera while settling at a terrain seam
+    tests\e2e\gameplay-controls.spec.ts:38:1 › machine-gun inspection separates crew readiness from urgent warnings
+    tests\e2e\interface.spec.ts:67:3 › full canvas and usable menus at 2560×1440 ───────────────────
+  31 passed (7.4m)

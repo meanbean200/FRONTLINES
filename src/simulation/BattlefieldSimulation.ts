@@ -36,6 +36,7 @@ import {resumeWorkChoices} from '../construction/ResumeWork';
 import {observeTrenches,knownTrenchNetworks} from '../operations/TrenchIntelligence';
 import {prepareRaid,TrenchRaidSystem} from '../operations/TrenchRaid';
 import {previewAssault,sameAssaultPreview,commitAssault,assaultSquad,detachedFromFormation,type AssaultOptions} from '../operations/AssaultPlan';
+import {stepOpenFrontWorks} from '../operations/OpenFrontWorks';
 
 export class BattlefieldSimulation {
   readonly stepCosts={actions:0,movement:0,earthworks:0,garrison:0,combat:0,terrainIntel:0,support:0,total:0};
@@ -211,6 +212,7 @@ export class BattlefieldSimulation {
     for(const s of this.state.soldiers)if(s.combat?.wound||s.combat?.careTask||s.action==='arriving replacement')s.cover=this.terrain.coverAt(s.x,s.z);
     this.updateSquadCenters();
     this.stepCosts.garrison=performance.now()-phase;phase=performance.now();
+    stepOpenFrontWorks(this.state,this.terrain,this.garrisons,{create:(points,id)=>this.createTrench(points,id,true),assist:(id,trench)=>{const q=this.state.squads.find(q=>q.id===id&&q.faction==='enemy');return !!q&&this.startConstruction(q,trench);}});
     this.operations.step(dt, (ids, target) => this.issueMove(ids, target, true), ids => this.issueHold(ids, true),(ids,trench)=>this.garrisons.assign(ids,trench));
     this.stepCosts.combat=performance.now()-phase;phase=performance.now();
     observeTrenches(this.state,this.terrain,this.garrisons.network);
@@ -301,11 +303,12 @@ export class BattlefieldSimulation {
     return undefined;
   }
 
-  createTrench(points: Vec2[], engineerSquadId?: number): number | undefined {
+  createTrench(points: Vec2[], engineerSquadId?: number,enemyOrder=false): number | undefined {
     if(this.commandsLocked)return;
     if (points.length < 2||points.length>4096||points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z))) return undefined;
     const bounded = points.map((point) => this.terrain.clampToWorld(point));
-    const validEngineer = this.state.squads.find((squad) => squad.id === engineerSquadId && squadHasEquipment(this.state,squad,'tools') && factionOf(squad) === 'player');
+    const validEngineer = this.state.squads.find((squad) => squad.id === engineerSquadId && squadHasEquipment(this.state,squad,'tools') && factionOf(squad) === (enemyOrder?'enemy':'player'));
+    if(enemyOrder&&!validEngineer)return;
     if(validEngineer&&reservedConstructionTeam(this.state,validEngineer.id))return undefined;
     for(let i=1;i<bounded.length;i++){
       const a=bounded[i-1],b=bounded[i],n=Math.max(1,Math.ceil(distance(a,b)/2));

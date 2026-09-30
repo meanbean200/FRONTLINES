@@ -8,6 +8,7 @@ import {stepPhysicalMission} from './MissionRuntime';
 import {advanceControl,insideObjective} from './ObjectiveControl';
 import {finishOperation} from './OperationOutcome';
 import {decisiveObjective} from './MissionReadout';
+import {rearAccess} from './RearAccess';
 
 export function operationalForces(state:BattlefieldState):Record<Faction,SoldierState[]>{
   const squads=new Map(state.squads.map(q=>[q.id,q]));
@@ -35,7 +36,7 @@ export function updateRouteAccess(r:OperationRuntime,terrain:TerrainSystem,force
   }
 }
 interface Evaluation {satisfied:boolean;failed?:boolean;pressure?:boolean;reason:string}
-interface Context {state:BattlefieldState;r:OperationRuntime;own:SoldierState[];other:SoldierState[];side:Faction}
+interface Context {state:BattlefieldState;terrain:TerrainSystem;r:OperationRuntime;own:SoldierState[];other:SoldierState[];side:Faction}
 const occupies=(ctx:Context,zone:string,people=ctx.own)=>people.filter(s=>inZone(s,ctx.r.zones.find(z=>z.id===zone)!));
 const connected=(ctx:Context,routes:string[],people:SoldierState[])=>routes.some(id=>ctx.r.routeAccess[id]&&people.some(p=>distance(p,ctx.r.routes.find(r=>r.id===id)!.destination)<500));
 function penetration(ctx:Context,spec:Extract<ObjectiveSpec,{type:'breakthrough'|'hold-line'}>,hostile=false):Evaluation{
@@ -47,6 +48,13 @@ function penetration(ctx:Context,spec:Extract<ObjectiveSpec,{type:'breakthrough'
 /** Add an objective evaluator here, not a new mission branch in the simulation. */
 const EVALUATORS:{[K in ObjectiveSpec['type']]:(c:Context,s:Extract<ObjectiveSpec,{type:K}>)=>Evaluation}={
   'physical-mission':()=>({satisfied:false,reason:'Evaluated by physical mission rules'}),
+  'rear-collapse':(c,s)=>{
+    const rear=rearAccess(c.state,c.terrain,c.side==='player'?'enemy':'player');
+    const force=rear.attackers.filter(p=>c.own.includes(p));
+    const viable=rear.blocked&&force.length>=s.minimum&&new Set(force.map(p=>p.squadId)).size>=s.squads;
+    const access=viable&&connected(c,s.routes,force);
+    return {satisfied:access,reason:!rear.blocked?'Opposing depot operating · empty boundary ground is not a victory':!viable?'Depot under pressure · a sustained field force is required':!access?'Raiding force cut off · restore your own road connection':'Opposing depot disabled · connected pressure building; counterattack can restore access'};
+  },
   'area-control':(c,s)=>{const held=s.zones.filter(id=>occupies(c,id).length>=s.minimum&&occupies(c,id,c.other).length===0).length;return {satisfied:held>=s.required,reason:held>=s.required?'Terrain secured; maintain a viable presence':'Establish control of the key terrain'};},
   'route-control':(c,s)=>({satisfied:s.routes.some(id=>c.r.routeAccess[id]),reason:'Keep at least one corridor open'}),
   breakthrough:(c,s)=>penetration(c,s),
@@ -69,7 +77,7 @@ export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSys
   const forces=operationalForces(state);updateRouteAccess(r,terrain,forces);
   for(const objective of r.objectives){
     const p=r.progress.find(p=>p.id===objective.id)!,side=objective.side;
-    const e=evaluate({state,r,side,own:forces[side],other:forces[side==='player'?'enemy':'player']},objective.spec);
+    const e=evaluate({state,terrain,r,side,own:forces[side],other:forces[side==='player'?'enemy':'player']},objective.spec);
     p.satisfied=e.satisfied;p.reason=e.reason;p.heldFor=e.satisfied?p.heldFor+dt:0;p.pressureFor=e.pressure?p.pressureFor+dt:0;
     p.failed=objective.spec.type==='hold-line'&&p.pressureFor>=objective.spec.breachSeconds;
     p.complete=!p.failed&&e.satisfied&&(objective.spec.type==='hold-line'?op.elapsed>=objective.spec.duration||p.heldFor>=30:'holdSeconds' in objective.spec&&p.heldFor>=objective.spec.holdSeconds);
@@ -79,8 +87,8 @@ export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSys
   const combatSquads=new Set(state.squads.filter(q=>q.faction!=='enemy').map(q=>q.id));
   const survivors=state.soldiers.filter(s=>combatSquads.has(s.squadId)&&s.needs?.life!=='dead').length;
   const survivingSquads=new Set(state.soldiers.filter(s=>combatSquads.has(s.squadId)&&s.needs?.life!=='dead').map(s=>s.squadId)).size;
-  const required=primary.spec.type==='breakthrough'?primary.spec.minimum:primary.spec.type==='area-control'?primary.spec.minimum*primary.spec.required:3;
-  const requiredSquads=primary.spec.type==='breakthrough'?primary.spec.squads:1;
+  const required=primary.spec.type==='breakthrough'||primary.spec.type==='rear-collapse'?primary.spec.minimum:primary.spec.type==='area-control'?primary.spec.minimum*primary.spec.required:3;
+  const requiredSquads=primary.spec.type==='breakthrough'||primary.spec.type==='rear-collapse'?primary.spec.squads:1;
   const future=state.operation?.campaign?.replacements;
   const pending=future&&(future.reserve.player>0||future.manifests.some(m=>m.side==='player'&&m.stage!=='arrived'));
   if(progress.failed){const detail=decisiveObjective(r,primary,true);finishOperation(state,{status:'defeat',side:'enemy',event:'rear-breached',objectives:[detail],explanation:`Opposing forces maintained a connected penetration into ${detail.locations.map(l=>l.name).join(' / ')} for ${Math.floor(progress.pressureFor)} seconds (required ${detail.requiredSeconds}).`});}

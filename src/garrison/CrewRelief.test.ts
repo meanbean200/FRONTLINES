@@ -42,3 +42,11 @@ it('does not suppress critical rest to satisfy 90% readiness when no relief is f
   expect(outgoing.selfCare?.kind==='field-rest'||outgoing.duty?.kind==='sleep').toBe(true);
   expect(positionReadiness(state,f)).toMatch(/RESTING/);expect(g.watchPresent).toBeLessThan(g.watchRequired);
 });
+
+it('can relieve a tiring critical crew from ordinary watch at stand-to, not only from off-duty reserve',()=>{
+  const {sim,f,people,g,outgoing}=fixture();g.underFireUntil=300;
+  for(const s of people)if(!f.weaponCrewIds!.includes(s.id))s.duty={kind:'watch',destination:{x:s.x,z:s.z},route:[],routeIndex:0,since:0,arrivedAt:0,until:300,blockedFor:0,reason:'Ordinary rifle watch'};
+  sim.step(.05);
+  expect(f.crewRelief).toBeDefined();expect(outgoing.duty?.kind).toBe('watch');
+  expect(f.weaponCrewIds).not.toContain(f.crewRelief!.incomingId);
+});

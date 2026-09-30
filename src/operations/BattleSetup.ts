@@ -14,6 +14,8 @@ export interface AdvancedBattleOptions {
 }
 /** Configuration only; never includes units, inventory, DOM or mutable mission progress. */
 export interface BattleSetup {
+  /** Absent means the saved, legacy 4 km rules. Never inferred on load. */
+  openFrontRules?:1;
   battleMode?:'operation'|'endless';endless?:EndlessOptions;
   calendarDayMinutes?:10|20|30;
   version:1; operation:OperationId; size:BattleSize; side:Army|'random';
@@ -32,6 +34,9 @@ export const SIZE_LABELS:Record<BattleSize,string>={small:'Small · fewer format
 export const ARMY_LABELS:Record<Army,string>={us:'U.S. forces',german:'German forces'};
 export const defaultAdvanced=():AdvancedBattleOptions=>({time:'day',direction:'auto',composition:'standard',engineers:1,mortars:true,smoke:true,supply:'standard',reserves:48,approach:'standard'});
 export const defaultBattleSetup=():BattleSetup=>({version:1,operation:'breakthrough',size:'medium',side:'us',map:'random',seed:1944,advanced:defaultAdvanced()});
+export const defaultOpenFrontSetup=():BattleSetup=>({...defaultBattleSetup(),operation:'open-front',openFrontRules:1});
+export const isNewOpenFront=(s:BattleSetup|undefined)=>s?.operation==='open-front'&&s.openFrontRules===1&&s.battleMode!=='endless';
+export const setupWorldSize=(s:BattleSetup)=>isNewOpenFront(s)?2400:4000;
 export function applyPreset(setup:BattleSetup,id:string):BattleSetup {
   const preset=SETUP_PRESETS.find(p=>p.id===id);if(!preset)throw new Error('Unknown setup preset');
   return {...setup,advanced:{...defaultAdvanced(),...preset.options}};
@@ -40,6 +45,7 @@ export function validBattleSetup(value:unknown,resolved=false):value is BattleSe
   if(!value||typeof value!=='object')return false;
   const s=value as BattleSetup,a=s.advanced;
   return s.version===1&&isOperationId(s.operation)&&['small','medium','large'].includes(s.size)&&
+    (s.openFrontRules===undefined||s.openFrontRules===1&&s.operation==='open-front'&&s.battleMode!=='endless')&&
     (s.battleMode===undefined||s.battleMode==='operation'||s.battleMode==='endless')&&
     (s.battleMode==='endless'?s.operation==='open-front'&&validEndlessOptions(s.endless):s.endless===undefined)&&
     (s.calendarDayMinutes===undefined||[10,20,30].includes(s.calendarDayMinutes))&&
@@ -65,6 +71,12 @@ export function configuredDefinition(id:OperationId,setup?:ResolvedBattleSetup):
     f.rifles=front?({small:6,medium:7,large:8}[setup.size]-(side==='enemy'?1:0)):base+advantage;f.engineers=a.engineers;f.mortars=a.mortars?1:0;
   }
   if(a.approach==='close')for(const side of ['player','enemy'] as const){const depth=d.deployment[side];d.deployment[side]=Math.sign(depth)*(Math.abs(depth)===550?450:Math.min(Math.abs(depth),650));}
+  if(isNewOpenFront(setup)){
+    d.prepared=[];d.deployment={player:-300,enemy:300};
+    d.situation='An unsettled 2.4 km sector. Neither army has dug in. Scout the approaches, build useful positions and protect the roads that supply them.';
+    d.intent='Build the front · break their supply access';
+    d.tag='OPEN FRONT';
+  }
   return d;
 }
 export function armyFor(state:BattlefieldState,side:Faction):Army {

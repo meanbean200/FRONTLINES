@@ -27,7 +27,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     const weapon=operatedPosition(state,s,'emplacement')?.installation?.weapon??s.combat?.weapon;
     if(weapon)weapon.burstLeft=0;
   };
-  op.shotEvents=(op.shotEvents??[]).filter(e=>state.elapsed-e.at<.25);
+  op.shotEvents=(op.shotEvents??[]).filter(e=>state.elapsed-e.at<1);
   const buckets=new Map<string,SoldierState[]>(),cell=500;
   for(const s of active){if(!able(s))continue;const key=`${Math.floor(s.x/cell)},${Math.floor(s.z/cell)}`;const row=buckets.get(key)??[];row.push(s);buckets.set(key,row);}
   for(const shooter of active){

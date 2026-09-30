@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ✓ src/persistence/LivingSave.test.ts (7 tests) 83ms
+ ✓ src/learning/PolicyClient.test.ts (3 tests) 15ms
+ ✓ src/persistence/CombatSave.test.ts (2 tests) 17ms
+
+ Test Files  3 passed (3)
+      Tests  12 passed (12)
+   Start at  21:41:21
+   Duration  2.32s (transform 624ms, setup 0ms, collect 1.38s, tests 115ms, environment 0ms, prepare 309ms)

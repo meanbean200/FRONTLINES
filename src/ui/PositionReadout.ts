@@ -17,10 +17,10 @@ export function workReadout(state:BattlefieldState,f:Facility){
   if(f.workOrder?.cancelledAt!==undefined){status='CANCELLED';reason='Delivered materials remain at this site. Future claims released.';}
   else if(f.progress===1){status='COMPLETE';reason='Ready for use.';}
   else if(!f.paid&&carriers.some(s=>s.duty?.routeBlocked||(s.duty?.blockedFor??0)>20)){status='MATERIAL DELIVERY BLOCKED';reason='A carrier cannot reach this worksite. Cargo and assignments are retained.';}
-  else if(!f.paid){status=inbound>0?'MATERIALS IN TRANSIT':'WAITING FOR MATERIALS';reason=`${Math.ceil(demand?unfulfilled(demand):Math.max(0,f.materialCost-delivered-inbound))} still needed · ${Math.floor(reserved)} reserved in stores`;}
   else if(!people.length){status='WAITING FOR WORKERS';reason='No active workers assigned.';}
   else if(people.every(s=>['reaction','casualty','support'].includes(s.combat?.owner??''))){status='INTERRUPTED BY COMBAT';reason='Assignments retained; safety takes priority.';}
   else if(!people.some(s=>hasEquipment(state,s,'tools'))){status='BLOCKED';reason='A tool carrier is required; laborers can assist.';}
+  else if(!f.paid){status=inbound>0?'MATERIALS IN TRANSIT':reserved>0?'COLLECTING MATERIALS':'WAITING FOR MATERIALS';reason=`${Math.ceil(f.materialCost-delivered)} still to reach this site · ${Math.floor(reserved)} reserved locally · ${Math.ceil(demand?unfulfilled(demand):Math.max(0,f.materialCost-delivered-inbound-local))} not yet sourced`;}
   else if(working.length){status='BUILDING';reason=`${working.length} working at the site · ${recovering} recovering`;}
   else if(recovering===people.length){status='RECOVERING';reason=`${recovering} sleeping / eating · work assignments retained`;}
   else if(people.some(s=>s.duty?.routeBlocked||s.duty?.blockedFor&&s.duty.blockedFor>20)){status='BLOCKED';reason='Worker route obstructed · inspect the approach.';}
@@ -48,7 +48,7 @@ export function trenchWorkReadout(state:BattlefieldState,t:TrenchState){
 }
 export function shipmentReadout(state:BattlefieldState,t:Truck){
   const g=state.living!.garrisons.find(g=>g.id===t.garrisonId),returning=t.state==='returning'||t.state==='blocked'&&t.resume==='returning';
-  const destination=t.role==='convoy'?(returning?'Map-edge supply point':'Rear depot'):returning?'Rear depot':g?networkName(state,g.id):'Awaiting delivery assignment';
+  const destination=t.abandoned?'Trip ended · cargo recoverable here':t.role==='convoy'?(returning?'Map-edge supply point':'Rear depot'):returning?'Rear depot':g?networkName(state,g.id):'Awaiting delivery assignment';
   const demands=(state.living!.supplyDemands??[]).filter(d=>d.claims.some(c=>c.source==='truck'&&c.id===t.id));
   const jobs=demands.filter(d=>d.consumer==='construction').map(d=>({name:facilityName(state,state.living!.facilities.find(f=>f.id===d.consumerId)!),amount:d.claims.filter(c=>c.source==='truck'&&c.id===t.id).reduce((n,c)=>n+c.amount,0)}));
   const note=['En route','Delivering physical cargo','Returning to depot','At depot','Awaiting assignment'].includes(t.reason)?'':t.reason;
@@ -56,7 +56,7 @@ export function shipmentReadout(state:BattlefieldState,t:Truck){
   let remaining=0,previous={x:t.x,z:t.z};for(const point of t.route.slice(t.routeIndex)){remaining+=distance(previous,point);previous=point;}
   const seconds=['outbound','returning'].includes(t.state)&&t.reason!=='Road queue'?remaining/12:undefined;
   const rounded=Math.ceil(seconds??0),eta=seconds===undefined?'Not predictable while stopped':`~${Math.floor(rounded/60)}:${String(rounded%60).padStart(2,'0')} at 1× · unobstructed travel`;
-  return {destination,source,eta,remaining,jobs,note,cargo:RESOURCES.filter(k=>t.cargo[k]>.00001).map(k=>`${SUPPLY_LABELS[k]} ${Math.floor(t.cargo[k])}`),status:t.role==='convoy'&&t.state==='idle'?'At map edge':({idle:'At depot',loading:'Loading',outbound:'En route',unloading:'Unloading',returning:'Returning',blocked:'Blocked'}[t.state])};
+  return {destination,source,eta,remaining,jobs,note,cargo:RESOURCES.filter(k=>t.cargo[k]>.00001).map(k=>`${SUPPLY_LABELS[k]} ${Math.floor(t.cargo[k])}`),status:t.abandoned?'Abandoned':t.role==='convoy'&&t.state==='idle'?'At map edge':({idle:'At depot',loading:'Loading',outbound:'En route',unloading:'Unloading',returning:'Returning',blocked:'Blocked'}[t.state])};
 }
 export function networkSupply(state:BattlefieldState,groups:Garrison[]){
   const ids=new Set(groups.map(g=>g.id)),people=state.soldiers.filter(s=>ids.has(s.garrisonId!)&&s.needs?.life!=='dead'&&s.combat?.wound?.care!=='evacuated'),local=inventory(),inbound=inventory(),inaccessible=inventory(),carried=inventory();

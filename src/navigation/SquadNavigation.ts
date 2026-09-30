@@ -1,4 +1,4 @@
-import { type Vec2, WORLD_HALF, distance } from '../core/types';
+import { type Vec2, distance } from '../core/types';
 import type { TerrainSystem } from '../terrain/TerrainSystem';
 import {doorPoint} from '../terrain/BuildingGeometry';
 import {insideWorld} from '../terrain/WorldLayout';
@@ -20,7 +20,7 @@ export class SquadNavigation {
     if(!this.terrain.obstacleAt(target.x,target.z,clearance))return target;
     for(let radius=4;radius<=maxAdjustment;radius+=4)for(let i=0;i<16;i++){
       const p={x:target.x+Math.cos(i*Math.PI/8)*radius,z:target.z+Math.sin(i*Math.PI/8)*radius};
-      if(insideWorld(p,10)&&!this.terrain.obstacleAt(p.x,p.z,clearance))return p;
+      if(insideWorld(p,10,this.terrain.worldSize)&&!this.terrain.obstacleAt(p.x,p.z,clearance))return p;
     }
     return target;
   }
@@ -52,7 +52,7 @@ export class SquadNavigation {
       for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){
         if(!dx&&!dz)continue;
         const nx=current.x+dx,nz=current.z+dz,x=ox+nx*cell,z=oz+nz*cell;
-        if(Math.abs(x)>WORLD_HALF-5||Math.abs(z)>WORLD_HALF-5||this.terrain.obstacleAt(x,z,person?.55:cell<10?5:8)||avoid?.({x,z}))continue;
+        if(Math.abs(x)>this.terrain.worldHalf-5||Math.abs(z)>this.terrain.worldHalf-5||this.terrain.obstacleAt(x,z,person?.55:cell<10?5:8)||avoid?.({x,z}))continue;
         if(!clear(point,{x,z},person?.55:2))continue;
         // Geometry is fixed during this synchronous search. Cache only here,
         // never across excavation changes, saves or another world's terrain.

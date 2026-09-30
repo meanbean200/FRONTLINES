@@ -1,0 +1,34 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ❯ src/garrison/AbandonedDelivery.test.ts (2 tests | 1 failed) 57ms
+   × abandoned trip versus independent salvage and dispatch > releases the trip, retains its physical load, and supplies B with no carrier available to salvage A 30ms
+     → expected 419 to be undefined
+   ✓ abandoned trip versus independent salvage and dispatch > only a physical rear contest pauses loading, then automatically resumes with cargo intact 26ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/garrison/AbandonedDelivery.test.ts > abandoned trip versus independent salvage and dispatch > releases the trip, retains its physical load, and supplies B with no carrier available to salvage A
+AssertionError: expected 419 to be undefined
+
+- Expected:
+undefined
+
++ Received:
+419
+
+ ❯ src/garrison/AbandonedDelivery.test.ts:40:29
+     38|     for(let i=0;i<180;i++)tick();
+     39|     expect(lost.abandoned).toBe(true);expect(total(lost.cargo)).toBe(0…
+     40|     expect(lost.garrisonId).toBeUndefined();expect(lost.destination).t…
+       |                             ^
+     41|     expect(w.supplyDemands!.every(d=>d.claims.every(c=>c.source!=='tru…
+     42|     const crate=w.crates.find(c=>c.id===lost.salvageId)!;expect(crate.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  20:50:03
+   Duration  1.38s (transform 619ms, setup 0ms, collect 998ms, tests 57ms, environment 0ms, prepare 106ms)

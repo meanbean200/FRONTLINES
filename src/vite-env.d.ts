@@ -39,6 +39,7 @@ declare global {
       getState: () => BattlefieldState;
       getSessionStats:()=>{kind:string;generation:number;resets:number;created:number;disposed:number;active:number;planners:number;gpu:{geometries:number;textures:number};entities:number;renderHosts:number;terrainWorkers:number};
       getCombatDiagnostics:()=>ReturnType<typeof import('./combat/Diagnostics').combatDiagnostics>;
+      getSightDiagnostics:(observerId:number,targetId:number)=>import('./operations/Visibility').ObservationDiagnostic|undefined;
       getPolicyPerf:()=>{inferenceMs:number};
       setReadiness:(id:number,value:'routine'|'alert'|'stand-to')=>void;
       resolveEmergency:(id:number,choice:'hold'|'recover'|'withdraw')=>void;

@@ -13,7 +13,8 @@ import {placeOperation} from './OperationPlacement';
 import {atDepth} from './OperationGeometry';
 import type {OperationId} from './OperationalTypes';
 import type {Faction} from './types';
-import {configuredDefinition,validBattleSetup,type ResolvedBattleSetup} from './BattleSetup';
+import {configuredDefinition,validBattleSetup,isNewOpenFront,type ResolvedBattleSetup} from './BattleSetup';
+import {placeOpenFront,OPEN_FRONT_WORLD_SIZE} from './OpenFrontPlacement';
 import {equipInfantryForce} from './InfantryLoadout';
 import {placeMissionOperation} from './MissionContent';
 import {initializeEndless} from './EndlessController';
@@ -23,7 +24,8 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
   if(!Number.isSafeInteger(seed)||seed<1||seed>2147483647)throw new Error('Sector seed must be an integer from 1 to 2147483647');
   if(setup&&(!validBattleSetup(setup,true)||setup.seed!==seed||setup.operation!==id))throw new Error('Invalid battle setup');
   const state=createBattlefield(seed);state.soldiers=[];state.squads=[];state.trenches=[];state.craters=[];
-  const definition=structuredClone(setup?configuredDefinition(id,setup):OPERATION_DEFINITIONS[id]),runtime=newContent&&setup?.battleMode!=='endless'?placeMissionOperation(id,seed,setup,missionVersion):placeOperation(id,seed,setup),mission=runtime.missionPlan;
+  const compact=isNewOpenFront(setup);if(compact)state.worldSize=OPEN_FRONT_WORLD_SIZE;
+  const definition=structuredClone(setup?configuredDefinition(id,setup):OPERATION_DEFINITIONS[id]),runtime=compact?placeOpenFront(seed,setup!):newContent&&setup?.battleMode!=='endless'?placeMissionOperation(id,seed,setup,missionVersion):placeOperation(id,seed,setup),mission=runtime.missionPlan;
   if(mission){definition.deployment=mission.deployment;definition.prepared=[...new Set(mission.prepared.map(p=>p.side))];definition.defenseSeconds=0;}
   const terrain=new TerrainSystem(state),navigation=new SquadNavigation(terrain),construction=new TrenchSystem(state);
   const prepared=new Map<Faction,number[]>(),groups=new Map<number,number[]>();
@@ -56,7 +58,7 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
     const total=forceSize(f),roster=Array.from({length:Math.ceil(total/8)},(_,i)=>({count:Math.min(8,total-i*8),name:names[i]??`Formation ${i+1}`}));
     for(const [i,{count,name}] of roster.entries()){
       const trenchIds=prepared.get(side),tId=mission?.kind==='line-defense'&&side==='player'&&i<roster.length-3?undefined:trenchIds?.[i%trenchIds.length],t=state.trenches.find(t=>t.id===tId);
-      const p=navigation.freeDestination(t?t.points[2]:atDepth(runtime.front,definition.deployment[side]+Math.floor(i/4)*(mission?35:45),(i%4-1.5)*(mission?35:95)));
+      const p=navigation.freeDestination(t?t.points[2]:atDepth(runtime.front,definition.deployment[side]+Math.floor(i/4)*(mission?35:compact?(side==='player'?-28:28):45),(i%4-1.5)*(mission?35:compact?55:95)));
       const q=addSquad(state,'rifle',count,p.x,p.z,side==='enemy'?`Opposing ${name}`:name);q.faction=side;
       if(tId)groups.get(tId)!.push(q.id);
       for(const s of state.soldiers.filter(s=>s.squadId===q.id)){Object.assign(s,navigation.freeDestination(s));s.heading=Math.atan2(runtime.front.forward.x,runtime.front.forward.z)+(side==='enemy'?Math.PI:0);}
@@ -75,6 +77,13 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
   for(const s of state.soldiers){const kit=s.equipment!;
     const supplies=inventory({ammo:60,medical:kit.medicalKit?8:1,smokeGrenades:1,mortarHE:kit.mortar?12:0,mortarSmoke:kit.mortar?6:0});
     for(const key of RESOURCES)s.carried![key]+=supplies[key];account(supplies);s.ammunition=s.carried!.ammo;s.nextShotAt=4+s.id%9*.35;
+  }
+  if(compact)for(const side of ['player','enemy'] as const){
+    // Recorded initial field stores, not a finished facility or a later refill.
+    // Workers physically fetch materials from this reachable deployment cache.
+    const p=navigation.freeDestination(atDepth(runtime.front,definition.deployment[side]+(side==='player'?-25:25),0));
+    const stock=inventory({materials:160,ammo:600,food:80,water:120,medical:16,mortarHE:16,mortarSmoke:8});
+    w.crates.push({id:state.nextEntityId++,...p,stock,faction:side});account(stock);
   }
   const garrisons=new GarrisonSystem(state,terrain,navigation,construction);
   for(const [side,trenchIds] of prepared)for(const [index,trenchId] of trenchIds.entries()){
@@ -98,9 +107,9 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
   state.operation={version:1,forceModel:'infantry-equipment-v1',mode:id,runtime,status:'active',elapsed:0,duration:definition.defenseSeconds,score:0,targetScore:1,nextCombat:0,nextOrders:3,objectives,
     initialPlayer:forceSize(definition.forces.player),initialEnemy:forceSize(definition.forces.enemy),shots:0,hits:0,reason:'',casualtyRules:true,supportRules:true};
   if(setup){state.operation.setup=structuredClone(setup);applyInitialOptions(state,setup);}
-  if(definition.persistent){state.operation.campaign={playerTrench:prepared.get('player')![0],enemyTrench:prepared.get('enemy')![0],nextRaid:0,raidSquads:[],returnAt:0,phase:'preparing',playerHold:0,enemyHold:0};initializeReplacements(state);}
+  if(definition.persistent){state.operation.campaign={playerTrench:prepared.get('player')?.[0]??0,enemyTrench:prepared.get('enemy')?.[0]??0,nextRaid:0,raidSquads:[],returnAt:0,phase:'preparing',playerHold:0,enemyHold:0};initializeReplacements(state);}
   // Clear separation is an invariant, not a camera trick hiding nearby enemies.
-  if(state.squads.some(a=>a.faction==='player'&&state.squads.some(b=>b.faction==='enemy'&&distance(a,b)<(mission?200:600))))throw new Error('Deployment zones overlap');
+  if(state.squads.some(a=>a.faction==='player'&&state.squads.some(b=>b.faction==='enemy'&&distance(a,b)<(mission?200:compact?480:600))))throw new Error('Deployment zones overlap');
   if(setup?.battleMode==='endless')initializeEndless(state,setup.endless);
   return state;
 }

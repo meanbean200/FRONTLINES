@@ -3,7 +3,7 @@ import {StrategyCamera} from './StrategyCamera';
 import {TerrainSystem} from '../terrain/TerrainSystem';
 import {createBattlefield} from '../simulation/createBattlefield';
 
-function setup(terrain={heightAt:()=>0} as unknown as TerrainSystem){
+function setup(terrain={heightAt:()=>0,worldSize:4000,worldHalf:2000} as unknown as TerrainSystem){
   vi.stubGlobal('window',{addEventListener:vi.fn(),removeEventListener:vi.fn()});
   vi.stubGlobal('document',{documentElement:{dataset:{}}});
   const canvas={addEventListener:vi.fn(),removeEventListener:vi.fn(),getBoundingClientRect:()=>({left:0,top:0}),setPointerCapture:vi.fn()} as unknown as HTMLCanvasElement;
@@ -60,6 +60,12 @@ describe('strategy camera overlay projection',()=>{
       const projected=camera.project({x:camera.target.x,z:camera.target.z});
       expect(projected.x).toBeCloseTo(width/2,6);expect(projected.y).toBeCloseTo(height/2,6);
     }
+  });
+  it('uses the actual smaller Open Front bounds rather than the legacy map limits',()=>{
+    const camera=setup({heightAt:()=>0,worldSize:2400,worldHalf:1200} as unknown as TerrainSystem);
+    camera.focus({x:4500,z:-4500},9000);for(let i=0;i<240;i++)camera.update(1/60);
+    expect(camera.target.x).toBeCloseTo(1180);expect(camera.target.z).toBeCloseTo(-1180);expect(camera.zoomDistance).toBeCloseTo(2760);
+    expect(camera.camera.position.toArray().every(Number.isFinite)).toBe(true);
   });
   it('uses the current transform before rendering, including pan, rotation and zoom',()=>{
     const camera=setup();camera.focus({x:-800,z:-900},180);

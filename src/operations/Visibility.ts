@@ -28,13 +28,25 @@ export function visibilitySignal(state:BattlefieldState,terrain:TerrainSystem,ob
   return sightSignal(state,terrain,observer,target,false);
 }
 
+export interface ObservationDiagnostic {reason:string;signal:number;range:number;potential:number;transmission:number;exposure:number}
+/** Developer-only explanation of an explicit observer/target query. It does
+ * not create a contact, report, player marker or commander information. */
+export function diagnoseObservation(state:BattlefieldState,terrain:TerrainSystem,observer:SoldierState,target:SoldierState):ObservationDiagnostic {
+  const result:ObservationDiagnostic={reason:'Recognition not yet accumulated',signal:0,range:distance(observer,target),potential:0,transmission:0,
+    exposure:state.operation?.intelligence?.squads.find(q=>q.squadId===observer.squadId)?.exposure.find(e=>e.soldierId===target.id)?.exposure??0};
+  result.signal=sightSignal(state,terrain,observer,target,false,result);
+  if(result.signal>=SIGHT_RULES.recognitionSignal&&squadContacts(state,observer.squadId).some(c=>c.soldierId===target.id&&c.visible&&c.lastSeen>=state.elapsed-.5))result.reason='Confirmed by a real observer';
+  return result;
+}
+
 // Tracking is recognition hysteresis, not a visibility timer. The same observer
 // must still have a clear ray through largely open space on every sight scan.
-function sightSignal(state:BattlefieldState,terrain:TerrainSystem,observer:SoldierState,target:Vec2&Partial<SoldierState>,tracking:boolean):number {
-  if(observer.health<=0||observer.needs?.life!=='active'||observer.action==='sleeping')return 0;
+function sightSignal(state:BattlefieldState,terrain:TerrainSystem,observer:SoldierState,target:Vec2&Partial<SoldierState>,tracking:boolean,diagnostic?:ObservationDiagnostic):number {
+  const blocked=(reason:string)=>{if(diagnostic)diagnostic.reason=reason;return 0;};
+  if(observer.health<=0||observer.needs?.life!=='active'||observer.action==='sleeping')return blocked(observer.action==='sleeping'?'Observer asleep':'No active observer');
   const hour=(state.living?.campaignHours??12)%24,d=distance(observer,target);
   const night=hour<6||hour>=20,recentShot=target.lastShotAt!==undefined&&state.elapsed-target.lastShotAt<2;
-  if(d>(night?SIGHT_RULES.nightRange:SIGHT_RULES.dayRange))return 0;
+  if(d>(night?SIGHT_RULES.nightRange:SIGHT_RULES.dayRange))return blocked(night?'Night visibility':'Beyond observation search bound');
   const facing=((target.x-observer.x)*Math.sin(observer.heading)+(target.z-observer.z)*Math.cos(observer.heading))/Math.max(1,d);
   const attention=d<35||recentShot?1:facing<-.25?.28:facing<.25?.7:1;
   const tired=.55+(observer.needs?.energy??100)*.0045,stress=1-observer.suppression*.006;
@@ -43,10 +55,12 @@ function sightSignal(state:BattlefieldState,terrain:TerrainSystem,observer:Soldi
   const light=night?.18:hour<7||hour>=19?.55:1;
   const angularSize=1/(1+(d/230)**2);
   const potential=angularSize*attention*tired*stress*(posture*movement*light+(recentShot?.65:0))+(d<25?.45:0);
-  if(potential<(tracking?SIGHT_RULES.trackingSignal:SIGHT_RULES.recognitionSignal))return 0;
+  if(diagnostic)diagnostic.potential=potential;
+  if(potential<(tracking?SIGHT_RULES.trackingSignal:SIGHT_RULES.recognitionSignal))return blocked(facing<-.25&&d>=35?'No observer covering sector':observer.suppression>=70?'Observer suppressed':(observer.needs?.energy??100)<25?'Observer exhausted':night?'Night visibility':'Insufficient recognition signal');
   const ray=terrain.objects.trace(observer,target,eyeHeight(terrain,observer),eyeHeight(terrain,target));
-  if(!ray.clear)return 0;
-  const transmission=ray.transmission*smokeTransmission(state,observer,target);
+  if(!ray.clear)return blocked(ray.blockedBy==='building'?'Building blocked LOS':ray.blockedBy==='trunk'?'Tree trunk blocked LOS':'Terrain blocked LOS');
+  const smoke=smokeTransmission(state,observer,target),transmission=ray.transmission*smoke;
+  if(diagnostic){diagnostic.transmission=transmission;if(smoke<.65)diagnostic.reason='Smoke obscuration';else if(ray.transmission<.65)diagnostic.reason='Foliage concealment';}
   const signal=Math.min(1,transmission*potential);
   // Weak tracking cannot see through foliage or smoke. Strong recognition is
   // unchanged, so this does not improve acquisition or small-arms accuracy.
@@ -71,18 +85,24 @@ export function updateContacts(state:BattlefieldState,terrain:TerrainSystem,buck
     const side=factionOf(squad);
     let local=intel.squads.find(row=>row.squadId===squad.id);
     if(!local){local={squadId:squad.id,contacts:[],exposure:[],link:'connected',nextReport:state.elapsed};intel.squads.push(local);}
-    const previous=new Map(local.contacts.map(c=>[c.soldierId,c])),exposure=new Map(local.exposure.map(p=>[p.soldierId,p.exposure]));
-    const progress:{soldierId:number;exposure:number}[]=[];
+    const previous=new Map(local.contacts.map(c=>[c.soldierId,c])),exposure=new Map(local.exposure.map(p=>[p.soldierId,p]));
+    const progress:typeof local.exposure=[];
     const scouts=observers.filter(s=>s.squadId===squad.id),contacts:Contact[]=[];
     for(const target of state.soldiers){
       if(factions.get(target.squadId)===side)continue;
-      if(bucket!==undefined&&target.id%10!==bucket){const old=previous.get(target.id);if(old&&state.elapsed-old.lastSeen<=SIGHT_RULES.memorySeconds)contacts.push(old);const pending=exposure.get(target.id);if(pending)progress.push({soldierId:target.id,exposure:pending});continue;}
+      if(bucket!==undefined&&target.id%10!==bucket){const old=previous.get(target.id);if(old&&state.elapsed-old.lastSeen<=SIGHT_RULES.memorySeconds)contacts.push(old);const pending=exposure.get(target.id);if(pending)progress.push(pending);continue;}
       const candidates=scouts.filter(s=>Math.abs(s.x-target.x)<=SIGHT_RULES.dayRange&&Math.abs(s.z-target.z)<=SIGHT_RULES.dayRange).sort((a,b)=>distance(a,target)-distance(b,target));
       const old=previous.get(target.id),tracker=old?.visible?candidates.find(s=>s.id===old.observerId):undefined;
       // Keep the real observer in the bounded scan. Rotating attention must not
       // drop a contact just because a different squad member checked this tick.
       const scanning=candidates.length>2&&distance(candidates[0],target)>35?[candidates[0],candidates[1+(Math.floor(state.elapsed*2)+target.id)%(candidates.length-1)]]:candidates;
-      const sweep=tracker?[tracker,...scanning.filter(s=>s.id!==tracker.id)]:scanning;
+      // A partial legitimate sighting needs another look. Previously a clear
+      // guard rotated out for several scans and recognition decayed to zero
+      // behind nearer reserves on the deep trench floor. Retain only the real
+      // observer ID, not hidden target coordinates; repeat the full LOS test.
+      const investigating=candidates.find(s=>s.id===exposure.get(target.id)?.observerId);
+      const guard=candidates.find(s=>s.duty?.kind==='watch'&&s.duty.arrivedAt!==undefined&&s.suppression<70&&!s.selfCare&&Math.cos(Math.atan2(target.x-s.x,target.z-s.z)-s.heading)>.25);
+      const sweep=[...new Set([tracker,investigating,guard,...scanning].filter((s):s is SoldierState=>!!s))];
       let signal=0,observerId:number|undefined,trackingSignal=0;
       for(const scout of sweep){
         const tracking=scout===tracker&&state.elapsed<(old?.trackedUntil??0);
@@ -91,8 +111,8 @@ export function updateContacts(state:BattlefieldState,terrain:TerrainSystem,buck
         if(tracking)trackingSignal=value;
         if(signal>=.62||old?.visible&&signal>=.24)break;
       }
-      const accumulated=Math.max(0,Math.min(1,(exposure.get(target.id)??0)+dt*(signal>=.24?signal*1.6:-.7)));
-      if(accumulated>0)progress.push({soldierId:target.id,exposure:accumulated});
+      const accumulated=Math.max(0,Math.min(1,(exposure.get(target.id)?.exposure??0)+dt*(signal>=.24?signal*1.6:-.7)));
+      if(accumulated>0)progress.push({soldierId:target.id,exposure:accumulated,...(observerId!==undefined?{observerId}:{})});
       const recognized=signal>=.62||signal>=.24&&(accumulated>=.6||old?.visible===true);
       const tracked=trackingSignal>=SIGHT_RULES.trackingSignal;
       if(recognized||tracked)contacts.push({soldierId:target.id,squadId:target.squadId,x:target.x,z:target.z,lastSeen:state.elapsed,visible:true,active:target.health>0&&target.needs?.life==='active',status:'confirmed',uncertainty:0,observerId:recognized?observerId:tracker!.id,trackedUntil:recognized?state.elapsed+SIGHT_RULES.trackingSeconds:old!.trackedUntil});

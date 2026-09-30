@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ✓ src/operations/OpenFrontReset.test.ts (9 tests | 8 skipped) 26692ms
+   ✓ Open Front v1 reset; legacy rules preserved > retains both construction teams and physically supplies/builds an initial enemy MG  26691ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 8 skipped (9)
+   Start at  21:02:17
+   Duration  27.98s (transform 602ms, setup 0ms, collect 988ms, tests 26.69s, environment 0ms, prepare 98ms)

@@ -73,7 +73,6 @@ try {
   }
   if (evidence.ready && !['boot', 'native'].includes(mode)) {
     await page.locator('#choose-operation').click();
-    await page.locator('[data-mode-choice="meeting"]').click();
     await page.locator('#battle-size').selectOption('small');
     await page.locator('#battle-map').selectOption('seed');
     await page.locator('#sector-seed').fill('1944');

@@ -1,0 +1,6 @@
+### Result
+{"rules":"combat-46-open-front-reset-world2","world":2400,"at":170.70000000000456,"exact":true,"differing":[]}
+### Ran Playwright code
+```js
+await (async page => {await page.getByRole('button',{name:'Menu',exact:true}).click();await page.getByRole('button',{name:'Save',exact:true}).click();const before=await page.evaluate(()=>window.__FRONTLINES__.getState());await page.reload();await page.locator('#main-continue').click();const after=await page.evaluate(()=>window.__FRONTLINES__.getState());return {rules:after.combatRules,world:after.worldSize,at:after.elapsed,exact:JSON.stringify(before)===JSON.stringify(after),differing:Object.keys(before).filter(k=>JSON.stringify(before[k])!==JSON.stringify(after[k]))};})(page);
+```

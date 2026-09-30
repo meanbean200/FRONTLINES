@@ -4,7 +4,7 @@ import {preparedPosition} from '../../src/combat/testing/PositionFixture';
 import {reconcileSupplyDemands} from '../../src/garrison/SupplyDemand';
 
 async function meeting(page:Page){
-  await page.goto('/');await page.locator('#choose-operation').click();await page.locator('[data-mode-choice="meeting"]').click();await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
+  await page.goto('/');await page.locator('#choose-operation').click();await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
 }
 async function select(page:Page,name:string,add=false){
   if(!await page.locator('.hud-tools').evaluate((el:HTMLDetailsElement)=>el.open))await page.locator('.hud-tools summary').click();await page.locator('#roster-toggle').click();
@@ -25,11 +25,8 @@ test('Add troops is a normal sandbox action with repeatable batch placement',asy
 });
 test('finite operations explain reserves without offering sandbox spawning',async({page})=>{
   await meeting(page);const paused=await page.evaluate(()=>window.__FRONTLINES__.getState()),before=paused.soldiers.length;expect(paused.simSpeed).toBe(0);await page.getByRole('button',{name:'Reinforcements',exact:true}).click();
-  // The first real tick may precede the pause click: this mission has no timed
-  // preparation and immediately requests building occupation. Display live truth,
-  // not the transient blankMission placeholder observed by an unusually fast run.
-  await expect(page.locator('.operation-topline')).toContainText('Race for the Hamlet');await expect(page.locator('.operation-topline')).toContainText(paused.operation!.runtime!.mission!.phase.toUpperCase());
-  await expect(page.locator('.deployment-status')).toContainText('Finite-force');await expect(page.locator('[data-deploy="rifle"]')).toBeHidden();
+  await expect(page.locator('.operation-topline')).toContainText('Open Front');await expect(page.locator('.operation-topline')).toContainText('NO TIME LIMIT');
+  await expect(page.locator('.reinforcement-totals')).toContainText('RESERVE');await expect(page.locator('[data-deploy="rifle"]')).toBeHidden();
   await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__FRONTLINES__.getState().soldiers.length)).toBe(before);
 });
 test('Support routes players to physical positions rather than abstract mortar formations',async({page})=>{
@@ -40,13 +37,15 @@ test('Support routes players to physical positions rather than abstract mortar f
 });
 test('machine-gun inspection separates crew readiness from urgent warnings',async({page})=>{
   await meeting(page);await select(page,'Easy');await page.getByRole('button',{name:'Manage',exact:true}).click();await page.getByRole('tab',{name:'Weapons',exact:true}).click();await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');
-  await page.locator('[data-speed="1"]').click();await expect(page.locator('#selection-detail')).toContainText('MG position',{timeout:12000});await page.locator('[data-speed="0"]').click();
+  // Open Front starts without installed positions. Easy's finite automatic
+  // weapon sets up locally; a mounted MG requires actual player construction.
+  await page.locator('[data-speed="1"]').click();await expect(page.locator('#selection-detail')).toContainText('Set · watching sector · crew 1/1',{timeout:12000});await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');await page.locator('[data-speed="0"]').click();
 });
 
 // Synthetic saved-world fixtures isolate readiness, not building navigation.
 // They use real generated roof geometry and the normal validated restore path.
 async function placeMortar(page:Page,underRoof:boolean,moving=false){
-  const state=await page.evaluate(()=>window.__FRONTLINES__.getState()),building=buildingsForSeed(1944)[0];
+  const state=await page.evaluate(()=>window.__FRONTLINES__.getState()),building=buildingsForSeed(1944).find(b=>Math.abs(b.x)<(state.worldSize??4000)/2-30&&Math.abs(b.z)<(state.worldSize??4000)/2-30)!;
   const operator=state.soldiers.find(s=>s.equipment?.mortar&&state.squads.find(q=>q.id===s.squadId)?.faction==='player')!;
   const q=state.squads.find(q=>q.id===operator.squadId)!;
   q.x=building.x;q.z=building.z+(underRoof?0:building.depth/2+6);operator.x=q.x;operator.z=q.z;

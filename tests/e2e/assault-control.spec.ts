@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {preparedPosition} from '../../src/combat/testing/PositionFixture';
 
 test('NORMAL and ALL IN review actual individuals, release on GO and restore detached movement',async({page},info)=>{
-  await page.goto('/');await page.locator('#choose-operation').click();await page.locator('[data-mode-choice="meeting"]').click();
+  await page.goto('/');await page.locator('#choose-operation').click();
   await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
   // Synthetic occupied-post fixture; all input after the validated restore is
   // ordinary player UI. This does not claim a player constructed this position.

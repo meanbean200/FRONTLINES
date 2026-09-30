@@ -61,9 +61,9 @@ describe('player-ordered physical supply recovery',()=>{
   const c=s.living!.crates.find(c=>c.id===town.cacheId)!;
   for(const g of s.living!.garrisons.filter(g=>g.faction!=='enemy'&&distance(g.entrance,c)>650)){
    const result=sim.garrisons.recoverSupplies(c.id,g.id);expect(result.accepted,result.reason).toBe(true);
-   const p=s.soldiers.find(p=>p.duty?.crateId===c.id)!,d=p.duty!,entry=d.route.findIndex(v=>distance(v,g.entrance)<.2);
+   const p=s.soldiers.find(p=>p.duty?.crateId===c.id)!,d=p.duty!,exit=d.exitPoint??g.entrance,entry=d.route.findIndex(v=>distance(v,exit)<.2);
    expect(d.route.length).toBeGreaterThan(1);expect(entry).toBeGreaterThanOrEqual(0);
-   const external=d.route.slice(entry),avoid=(v:{x:number;z:number})=>sim.garrisons.network.corridorContains(v)&&distance(v,g.entrance)>4.1;
+   const external=d.route.slice(entry),avoid=(v:{x:number;z:number})=>sim.garrisons.network.corridorContains(v)&&distance(v,exit)>4.1;
    expect(external.slice(1).every((v,i)=>sim.navigation.segmentClear(external[i],v,.4,avoid))).toBe(true);
    expect(sim.navigation.segmentClear(external.at(-1)!,c,.4,avoid)).toBe(true);
    delete p.duty;

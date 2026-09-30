@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 
 for(const [width,height]of [[1654,910],[390,844],[844,390]])test(`position commands remain visible at ${width}×${height}`,async({page})=>{
   await page.setViewportSize({width,height});await page.goto('/');
-  await page.getByRole('button',{name:'Quick Battle',exact:true}).click();await page.locator('[data-mode-choice="open-front"]').click();
+  await page.locator('#endless-menu').click();
   await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');
   await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
   await page.locator('.hud-tools>summary').click();await page.locator('#trenches-command').click();
@@ -19,7 +19,7 @@ for(const [width,height]of [[1654,910],[390,844],[844,390]])test(`position comma
 });
 
 test('town commands are reachable from both the map index and battlefield label',async({page})=>{
-  await page.goto('/');await page.getByRole('button',{name:'Quick Battle',exact:true}).click();await page.locator('[data-mode-choice="open-front"]').click();
+  await page.goto('/');await page.locator('#choose-operation').click();
   await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
   await page.getByRole('button',{name:'Map',exact:true}).click();const map=page.getByRole('dialog',{name:'Operational map'});
   await map.getByRole('button',{name:'SAINT-MARTIN',exact:true}).click();await map.getByRole('button',{name:'Manage',exact:true}).click();
@@ -32,7 +32,7 @@ test('town commands are reachable from both the map index and battlefield label'
 });
 
 test('normal map Locate keeps a finite battlefield camera while settling at a terrain seam',async({page})=>{
-  await page.goto('/');await page.getByRole('button',{name:'Quick Battle',exact:true}).click();await page.locator('[data-mode-choice="open-front"]').click();
+  await page.goto('/');await page.locator('#endless-menu').click();
   await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
   for(const name of ['FRIENDLY SECTOR 3','SAINT-MARTIN']){
     await page.getByRole('button',{name:'Map',exact:true}).click();const map=page.getByRole('dialog',{name:'Operational map'});

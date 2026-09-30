@@ -12,7 +12,7 @@ export function demandSources(state:BattlefieldState,includeInaccessible=false):
     ...w.garrisons.map(g=>({source:'local' as const,id:g.id,garrisonId:g.id,stock:g.cache})),
     ...w.garrisons.filter(g=>includeInaccessible||!forwardAccess(state,g)).map(g=>({source:'forward' as const,id:g.id,garrisonId:g.id,stock:g.forwardStock})),
     ...w.facilities.filter(f=>['store','ammo'].includes(f.kind)&&f.progress===1).map(f=>({source:'store' as const,id:f.id,garrisonId:f.garrisonId,stock:f.stock})),
-    ...w.trucks.filter(t=>t.role==='shuttle'&&t.garrisonId!==undefined&&w.garrisons.some(g=>g.id===t.garrisonId&&(g.faction??'player')===(t.faction??'player'))&&['loading','outbound','unloading','blocked'].includes(t.state)&&t.resume!=='returning').map(t=>({source:'truck' as const,id:t.id,garrisonId:t.garrisonId!,stock:t.cargo})),
+    ...w.trucks.filter(t=>!t.abandoned&&t.role==='shuttle'&&t.garrisonId!==undefined&&w.garrisons.some(g=>g.id===t.garrisonId&&(g.faction??'player')===(t.faction??'player'))&&['loading','outbound','unloading','blocked'].includes(t.state)&&t.resume!=='returning').map(t=>({source:'truck' as const,id:t.id,garrisonId:t.garrisonId!,stock:t.cargo})),
     ...state.soldiers.filter(s=>s.garrisonId!==undefined&&s.needs?.life==='active'&&s.duty?.kind==='haul'&&s.duty.stage==='deliver'&&!s.duty.patientId).map(s=>({source:'carrier' as const,id:s.id,garrisonId:s.garrisonId!,dedicated:s.duty?.facilityId,stock:inventory({...s.carried,ammo:Math.max(0,(s.carried?.ammo??0)-60)})})),
   ];
 }

@@ -2,7 +2,7 @@ import type {BattlefieldState} from '../core/types';
 import {TerrainSystem} from '../terrain/TerrainSystem';
 import {createGroundGeometry} from './GroundGeometry';
 
-export interface GroundRequest {id:number;x:number;z:number;divisions:number;world:Pick<BattlefieldState,'seed'|'trenches'|'craters'>}
+export interface GroundRequest {id:number;x:number;z:number;divisions:number;world:Pick<BattlefieldState,'seed'|'trenches'|'craters'|'worldSize'|'buildingChanges'>}
 export interface GroundResponse {id:number;generationMs:number;position:Float32Array;normal:Float32Array;color:Float32Array;groundCover:Float32Array;index:Uint16Array|Uint32Array}
 const scope=globalThis as unknown as {onmessage:((event:MessageEvent<GroundRequest>)=>void)|null;postMessage:(response:GroundResponse,transfer:Transferable[])=>void};
 scope.onmessage=({data:r})=>{

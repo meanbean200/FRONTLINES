@@ -1,0 +1,15 @@
+
+> frontlines-battlefield-sandbox@0.1.0 build:dev
+> tsc -p tsconfig.dev.json && vite build --config vite.dev.config.ts
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 139 modules transformed.
+rendering chunks...
+computing gzip size...
+dist-dev/dev.html                               0.53 kB │ gzip:   0.36 kB
+dist-dev/assets/NavigationWorker-CQ7YcFk3.js   25.59 kB
+dist-dev/assets/GroundWorker-B-IPqDFI.js      109.56 kB
+dist-dev/assets/dev-DoHLsXY4.css                5.37 kB │ gzip:   1.81 kB
+dist-dev/assets/dev-DPao7S9q.js               974.94 kB │ gzip: 285.64 kB
+✓ built in 2.17s

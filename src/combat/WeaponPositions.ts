@@ -52,7 +52,7 @@ export function positionReadiness(state:BattlefieldState,f:Facility):string {
   if(people.some(s=>s.health<25||['disabling','critical','fatal'].includes(s.combat?.wound?.severity??'')))return 'CREW WOUNDED';
   if(people.some(s=>s.suppression>=70||['pinned','broken'].includes(s.combat?.reaction??'')))return 'PINNED';
   if(people.some(s=>s.selfCare?.kind==='meal'||s.duty?.rationUntil!==undefined||s.action==='eating'))return 'CREW EATING';
-  if(people.some(s=>s.selfCare||s.duty?.kind==='sleep'||s.action==='sleeping'||(s.needs?.energy??100)<25))return f.crewRelief?'RELIEF APPROACHING · crew resting':'CREW RESTING';
+  if(people.some(s=>s.selfCare||s.duty?.kind==='sleep'||s.action==='sleeping'||(s.needs?.energy??100)<25))return f.crewRelief?'RELIEF APPROACHING · crew resting':people.some(s=>(s.needs?.energy??100)<25)?'CREW EXHAUSTED · NO RELIEF · RESTING':'CREW RESTING';
   if(people.some(s=>s.duty?.kind==='meal'&&s.duty.reason==='Reload weapon ammunition from local stores'))return 'RESUPPLYING · waiting for physical ammunition delivery';
   if(people.some(s=>s.duty?.weaponDeliveryId===f.id))return 'AMMO BEING DELIVERED';
   const points=excavatedPoints(t);

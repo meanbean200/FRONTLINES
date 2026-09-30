@@ -12,6 +12,7 @@ export function objectiveCondition(r:OperationRuntime,o:OperationalObjective):st
   const enemy=o.side==='enemy';
   const extra=effectiveness===undefined?'':` ${enemy?'Your':'Opposing'} combat effectiveness must also fall to ${Math.round(effectiveness*100)}% of initial strength or less.`;
   switch(s.type){
+    case 'rear-collapse':return `${enemy?'Opposing forces must keep':'Keep'} ${s.minimum} fit, armed personnel from ${s.squads} formations at the actual ${enemy?'friendly':'opposing'} rear depot, deny dispatch, and maintain an open road back to their own rear for ${s.holdSeconds} continuous seconds. Clearing the depot or cutting the attackers off stops the pressure. Empty edge territory does not count.`;
     case 'breakthrough':return `${enemy?'Opposing forces must keep':'Keep'} at least ${s.minimum} fit, armed personnel from ${s.squads} formations beyond ${enemy?'your rear':'the'} boundary, outnumbering ${enemy?'your defenders':'opposition'}, with an open road connection for ${s.holdSeconds} continuous seconds.`+extra;
     case 'area-control':return `${enemy?'Opposing forces must hold':'Hold'} ${s.required} of ${s.zones.length} areas with at least ${s.minimum} fit, armed personnel in each and no effective opposition for ${s.holdSeconds} continuous seconds.`+extra;
     case 'route-control':return `${enemy?'Opposing forces must keep':'Keep'} at least one named road corridor open for ${s.holdSeconds} continuous seconds.`+extra;
@@ -43,7 +44,7 @@ export function missionRules(r:OperationRuntime,elapsed=0):MissionRule[] {
     return {id:o.id,side:o.side,title:o.title,condition:objectiveCondition(r,o),location,progress:s.type==='hold-line'?`Relief ${operationTimestamp(Math.max(0,s.duration-elapsed))} · enemy penetration ${Math.floor(p.pressureFor)} / ${s.breachSeconds} s`:`${p.complete?'Hold met':'Continuous hold'} ${Math.floor(p.heldFor)} / ${'holdSeconds' in s?s.holdSeconds:0} s · ${p.reason}`,warning:o.side==='enemy'?p.satisfied:s.type==='hold-line'&&p.pressureFor>0};
   });
   const primary=r.objectives.find(o=>o.side==='player'&&o.priority==='primary');
-  if(primary){const s=primary.spec,required=s.type==='breakthrough'?s.minimum:s.type==='area-control'?s.minimum*s.required:3,squads=s.type==='breakthrough'?s.squads:1;
+  if(primary){const s=primary.spec,required=s.type==='breakthrough'||s.type==='rear-collapse'?s.minimum:s.type==='area-control'?s.minimum*s.required:3,squads=s.type==='breakthrough'||s.type==='rear-collapse'?s.squads:1;
     rows.push({id:'force-minimum',side:'enemy',title:'LOSS OF FIELD STRENGTH',condition:`Defeat if fewer than ${required} survivors or ${squads} formations remain and no replacement reserve or pending arrivals can restore them. Temporary suppression or rest does not count.`,location:'Your force',progress:'',warning:false});}
   return rows;
 }

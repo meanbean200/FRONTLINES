@@ -7,11 +7,12 @@ test('advanced changes preserve native fields and launch with the chosen rules',
   await page.locator('#setup-time').selectOption('night');
   expect(await time!.evaluate(el=>el.isConnected)).toBe(true);
   await page.locator('#setup-supply').selectOption('low');
-  await page.locator('#setup-engineers').selectOption('2');
+  await page.locator('#endless-calendar').selectOption('20');
   await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');
   await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();
   await page.locator('[data-speed="0"]').click();
-  expect(await page.evaluate(()=>window.__FRONTLINES__.getState().operation?.setup?.advanced)).toMatchObject({time:'night',supply:'low',engineers:2});
+  expect(await page.evaluate(()=>window.__FRONTLINES__.getState().operation?.setup?.advanced)).toMatchObject({time:'night',supply:'low'});
+  expect(await page.evaluate(()=>window.__FRONTLINES__.getState().operation?.setup?.calendarDayMinutes)).toBe(20);
 });
 
 test('live trench updates keep the readiness select and apply its keyboard choice',async({page})=>{
@@ -29,8 +30,10 @@ test('live trench updates keep the readiness select and apply its keyboard choic
 });
 
 const openFrontPanel=async(page:Page)=>{
-  await page.goto('/');await page.getByRole('button',{name:'Quick Battle',exact:true}).click();
-  await page.locator('[data-mode-choice="open-front"]').click();await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');
+  // Prepared-position controls remain covered in the separate Endless mode;
+  // normal Open Front correctly has no initial trenches to inspect.
+  await page.goto('/');await page.locator('#endless-menu').click();
+  await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');
   await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();await page.locator('[data-speed="0"]').click();
   await page.locator('.hud-tools>summary').click();await page.locator('#trenches-command').click();
 };

@@ -46,7 +46,7 @@ export class WorldOcclusion {
   }
   trees(x0:number,z0:number):TreeSite[]{
     if(x0< -WORLD_HALF||z0< -WORLD_HALF||x0>=WORLD_HALF||z0>=WORLD_HALF)return [];
-    const key=`${x0},${z0}`;let trees=this.chunks.get(key);if(!trees){trees=treesForChunk(this.terrain,x0,z0);this.chunks.set(key,trees);for(const t of trees){const k=`${Math.floor(t.x/8)},${Math.floor(t.z/8)}`,row=this.trunkBuckets.get(k)??[];row.push(t);this.trunkBuckets.set(k,row);}}return trees;
+    const key=`${x0},${z0}`;let trees=this.chunks.get(key);if(!trees){trees=treesForChunk(this.terrain,x0,z0).filter(t=>this.terrain.worldHalf===WORLD_HALF||Math.abs(t.x)<this.terrain.worldHalf-3&&Math.abs(t.z)<this.terrain.worldHalf-3);this.chunks.set(key,trees);for(const t of trees){const k=`${Math.floor(t.x/8)},${Math.floor(t.z/8)}`,row=this.trunkBuckets.get(k)??[];row.push(t);this.trunkBuckets.set(k,row);}}return trees;
   }
   private cleared(tree:TreeSite):boolean {
     const cached=this.clearances.get(tree);if(cached?.revision===this.terrain.revision)return cached.cleared;

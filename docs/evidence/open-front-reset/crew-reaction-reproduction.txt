@@ -1,0 +1,71 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ❯ src/operations/DefensiveObservation.test.ts (8 tests | 1 failed) 83ms
+   ✓ staffed trench observation across an open gap > accumulates a legitimate distant guard observation instead of losing it between bounded scans 23ms
+   ✓ staffed trench observation across an open gap > keeps night masking meaningful and explains it without adding a contact 10ms
+   ✓ staffed trench observation across an open gap > keeps smoke masking meaningful and explains it without adding a contact 12ms
+   ✓ staffed trench observation across an open gap > keeps ridge masking meaningful and explains it without adding a contact 7ms
+   ✓ staffed trench observation across an open gap > keeps building masking meaningful and explains it without adding a contact 8ms
+   ✓ staffed trench observation across an open gap > keeps pinned masking meaningful and explains it without adding a contact 7ms
+   × staffed trench observation across an open gap > keeps exhausted masking meaningful and explains it without adding a contact 11ms
+     → expected true to be false // Object.is equality
+   ✓ staffed trench observation across an open gap > keeps uncovered masking meaningful and explains it without adding a contact 5ms
+ ❯ src/combat/Reactions.test.ts (6 tests | 1 failed) 413ms
+   ✓ human reactions and action authority > pinning pauses a persistent drawn order, defeats push-through, then resumes 127ms
+   ✓ human reactions and action authority > broken troops retain their order and a reachable retreat survives a save 10ms
+   ✓ human reactions and action authority > a paused builder cannot contribute excavation work 251ms
+   × human reactions and action authority > a healthy mounted gunner holds the protected post under ordinary incoming fire, but pinning still wins 20ms
+     → expected { x: -1172.8152744662848, …(1) } to deeply equal { x: -1173.2, z: -1383.9399999999998 }
+   ✓ finite weapons > reloads take real time and never grant inventory 2ms
+   ✓ finite weapons > machine guns need a present crew and setup, not nationality bonuses 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat/Reactions.test.ts > human reactions and action authority > a healthy mounted gunner holds the protected post under ordinary incoming fire, but pinning still wins
+AssertionError: expected { x: -1172.8152744662848, …(1) } to deeply equal { x: -1173.2, z: -1383.9399999999998 }
+
+- Expected
++ Received
+
+  {
+-   "x": -1173.2,
+-   "z": -1383.9399999999998,
++   "x": -1172.8152744662848,
++   "z": -1385.6984044653357,
+  }
+
+ ❯ src/combat/Reactions.test.ts:38:27
+     36|     const origin={x:s.x,z:s.z};
+     37|     for(let i=0;i<80;i++){state.elapsed+=.05;s.combat.lastIncoming=sta…
+     38|     expect({x:s.x,z:s.z}).toEqual(origin);expect(s.combat.owner).toBe(…
+       |                           ^
+     39|     s.suppression=95;prepareActions(state,sim.terrain,sim.navigation,.…
+     40|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/operations/DefensiveObservation.test.ts > staffed trench observation across an open gap > keeps exhausted masking meaningful and explains it without adding a contact
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/operations/DefensiveObservation.test.ts:52:56
+     50|     terrain.revision++;
+     51|     for(let i=0;i<16;i++)scan();
+     52|     expect(playerVisibleEnemies(state).has(target.id)).toBe(false);
+       |                                                        ^
+     53|     const before=JSON.stringify(state.operation!.intelligence),why=dia…
+     54|     expect(why.signal).toBeLessThan(.24);expect(why.reason).toMatch(/N…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 12 passed (14)
+   Start at  20:45:39
+   Duration  1.78s (transform 672ms, setup 0ms, collect 1.99s, tests 496ms, environment 0ms, prepare 211ms)

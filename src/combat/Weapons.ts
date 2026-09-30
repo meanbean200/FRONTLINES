@@ -9,9 +9,9 @@ export const WEAPONS:Record<WeaponId,WeaponDefinition>={
   m1:{id:'m1',name:'M1 rifle',range:360,magazine:8,reload:3,interval:3.8,burst:1,burstGap:3.8,spread:1,setup:0,crew:1},
   kar98k:{id:'kar98k',name:'Kar98k',range:360,magazine:5,reload:4,interval:4.5,burst:1,burstGap:4.5,spread:1,setup:0,crew:1},
   bar:{id:'bar',name:'BAR',range:320,magazine:20,reload:4,interval:.15,burst:3,burstGap:3.5,spread:1.35,setup:1,crew:1},
-  mg42:{id:'mg42',name:'MG42',range:500,magazine:50,reload:6,interval:.1,burst:5,burstGap:3,spread:1.6,setup:3,crew:2},
+  mg42:{id:'mg42',name:'MG42',range:500,magazine:50,reload:6,interval:.1,burst:8,burstGap:2.2,spread:1.6,setup:3,crew:2},
   smg:{id:'smg',name:'Leader SMG',range:90,magazine:30,reload:3,interval:.12,burst:3,burstGap:2.8,spread:1.9,setup:0,crew:1},
-  'crew-mg':{id:'crew-mg',name:'Crew machine gun',range:500,magazine:100,reload:7,interval:.15,burst:5,burstGap:3.5,spread:1.45,setup:5,crew:2},
+  'crew-mg':{id:'crew-mg',name:'Crew machine gun',range:500,magazine:100,reload:7,interval:.15,burst:8,burstGap:2.5,spread:1.45,setup:5,crew:2},
 };
 /** Loaded rounds are a subset of carried ammo, never a second inventory. */
 export function equipWeapon(state:BattlefieldState,s:SoldierState,role?:WeaponId):WeaponState {

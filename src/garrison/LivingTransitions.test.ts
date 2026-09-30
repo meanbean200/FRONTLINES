@@ -184,7 +184,7 @@ describe('living-trench transition contracts',()=>{
     expect(sim.state.living!.metrics.deaths).toBe(0);
     expect(sim.state.living!.facilities.filter(f=>f.progress===1)).toHaveLength(3);
     expect(sim.state.soldiers.some(s=>s.action==='sleeping')).toBe(true);
-    expect(sim.state.soldiers.every(s=>(s.duty?.blockedFor??0)<120)).toBe(true);
+    expect(sim.state.soldiers.filter(s=>(s.duty?.blockedFor??0)>=120).map(s=>({id:s.id,x:s.x,z:s.z,duty:s.duty,action:s.action,needs:s.needs}))).toEqual([]);
     for(const n of Object.values(balance(sim.state)))expect(Math.abs(n)).toBeLessThan(1e-6);
   },40000);
 

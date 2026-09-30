@@ -32,6 +32,7 @@ import { restoredViewTarget } from '../render/RestoredView';
 import { HudLayout } from '../ui/HudLayout';
 import {requestSupport,requestPositionSupport,requestBatterySupport,requestSupportGroup,selectedSupportTeam} from '../combat/SupportWeapons';
 import {combatDiagnostics} from '../combat/Diagnostics';
+import {diagnoseObservation} from '../operations/Visibility';
 import {CombatAudio} from '../render/CombatAudio';
 import {trenchDraft} from '../ui/TrenchDraft';
 import {BuildPanel} from '../ui/BuildPanel';
@@ -500,6 +501,7 @@ export class FrontlinesApp {
       getVisualStats:()=>({triangles:this.renderer.info.render.triangles,drawCalls:this.renderer.info.render.calls,particles:this.operationRenderer.particleCount,submittedSoldiers:this.unitRenderer.visibleCount,residentTrees:this.terrainRenderer.residentTreeCount,visibleTrees:this.terrainRenderer.visibleTrees(this.camera.camera),cameraTarget:{x:this.camera.target.x,z:this.camera.target.z},zoomDistance:this.camera.zoomDistance,...this.terrainRenderer.stats(this.camera.camera)}),
       getState: () => structuredClone(this.state),
       getCombatDiagnostics:()=>combatDiagnostics(this.state,this.simulation.terrain),
+      getSightDiagnostics:(observerId,targetId)=>{const observer=this.state.soldiers.find(s=>s.id===observerId),target=this.state.soldiers.find(s=>s.id===targetId);return observer&&target?diagnoseObservation(this.state,this.simulation.terrain,observer,target):undefined;},
       getPolicyPerf:()=>({inferenceMs:0,coordinator:'deterministic'}),
       setReadiness:(id,value)=>this.simulation.garrisons.setReadiness(id,value),
       resolveEmergency:(id,choice)=>this.simulation.garrisons.resolveEmergency(id,choice),

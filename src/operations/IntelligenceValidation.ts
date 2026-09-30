@@ -19,7 +19,7 @@ export function validIntelligence(state:BattlefieldState):boolean {
   if(new Set(intel.squads.map(r=>r?.squadId)).size!==intel.squads.length)return false;
   for(const row of intel.squads){
     if(!row||!state.squads.some(q=>q.id===row.squadId)||!['connected','isolated'].includes(row.link)||!finite(row.nextReport)||!contacts(row.contacts,sideOf(row.squadId),row.squadId)||!Array.isArray(row.exposure))return false;
-    if(!row.exposure.every(e=>e&&finite(e.exposure)&&e.exposure>=0&&e.exposure<=1&&state.soldiers.some(s=>s.id===e.soldierId&&sideOf(s.squadId)!==sideOf(row.squadId))))return false;
+    if(!row.exposure.every(e=>e&&finite(e.exposure)&&e.exposure>=0&&e.exposure<=1&&state.soldiers.some(s=>s.id===e.soldierId&&sideOf(s.squadId)!==sideOf(row.squadId))&&(e.observerId===undefined||state.soldiers.some(s=>s.id===e.observerId&&s.squadId===row.squadId))))return false;
   }
   for(const r of intel.reports)if(!r||!state.squads.some(q=>q.id===r.squadId)||r.side!==sideOf(r.squadId)||!finite(r.deliverAt)||r.deliverAt<0||!contacts(r.contacts,r.side,r.squadId))return false;
   return intel.sounds.every(s=>s&&['player','enemy'].includes(s.side)&&[s.x,s.z,s.radius,s.at].every(finite)&&s.radius>0&&s.at<=state.elapsed+.001&&s.status==='suspected');

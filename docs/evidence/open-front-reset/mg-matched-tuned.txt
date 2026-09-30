@@ -1,0 +1,15 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+stdout | src/combat/MGAreaDenial.test.ts > mounted MG area denial against the same exposed advance > disrupts movement through credible near shots, not a damage multiplier
+MATCHED_MG_ADVANCE [{"seed":1944,"mg":false,"shots":74,"hits":11,"pinned":0,"meanSuppression":2.6,"reached":0,"crossed100m":11,"casualties":8,"advance":130,"earlyAdvance":83,"exposed":2954},{"seed":1944,"mg":true,"shots":446,"hits":15,"pinned":882,"meanSuppression":26.1,"reached":0,"crossed100m":0,"casualties":12,"advance":55,"earlyAdvance":48,"exposed":2533},{"seed":81,"mg":false,"shots":77,"hits":11,"pinned":0,"meanSuppression":2.5,"reached":0,"crossed100m":14,"casualties":11,"advance":146,"earlyAdvance":86,"exposed":3254},{"seed":81,"mg":true,"shots":448,"hits":13,"pinned":852,"meanSuppression":25.3,"reached":0,"crossed100m":3,"casualties":11,"advance":88,"earlyAdvance":62,"exposed":3095},{"seed":117,"mg":false,"shots":76,"hits":11,"pinned":0,"meanSuppression":2.4,"reached":0,"crossed100m":15,"casualties":10,"advance":145,"earlyAdvance":86,"exposed":3308},{"seed":117,"mg":true,"shots":439,"hits":14,"pinned":860,"meanSuppression":25.1,"reached":0,"crossed100m":0,"casualties":14,"advance":67,"earlyAdvance":55,"exposed":2641}]
+
+ ✓ src/combat/MGAreaDenial.test.ts (1 test) 7127ms
+   ✓ mounted MG area denial against the same exposed advance > disrupts movement through credible near shots, not a damage multiplier  7126ms
+ ✓ src/garrison/SupplyRecovery.test.ts (6 tests) 2789ms
+   ✓ player-ordered physical supply recovery > routes from distant prepared sectors to secured Saint-Martin on actual generated terrain  1743ms
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  21:05:29
+   Duration  11.84s (transform 679ms, setup 0ms, collect 1.29s, tests 9.92s, environment 0ms, prepare 212ms)

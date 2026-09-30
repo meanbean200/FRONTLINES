@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TerrainSystem } from '../terrain/TerrainSystem';
 import {buildingMaterial} from './BuildingMaterials';
 import {buildingStyle} from '../terrain/BuildingGeometry';
-import {WORLD_SIZE,WORLD_HALF,CHUNK_SIZE,clamp} from '../core/types';
+import {CHUNK_SIZE,clamp} from '../core/types';
 import {ROADS,pointOnRoad} from '../terrain/WorldLayout';
 
 export {createVegetation,refreshVegetationClearance} from './Vegetation';
@@ -36,21 +36,21 @@ export function createInfrastructure(terrain: TerrainSystem): THREE.Group {
 
 function ribbon(terrain: TerrainSystem, path: (t: number) => {x:number;z:number}, width: number, material: THREE.Material, water: boolean): THREE.Mesh {
   const vertices: number[] = [], indices: number[] = [],uvs:number[]=[];
-  const steps = Math.ceil(WORLD_SIZE/4);
+  const steps = Math.ceil(terrain.worldSize/4),half=terrain.worldHalf;
   for (let i=0; i<=steps; i++) {
-    const t = -WORLD_HALF + i / steps * WORLD_SIZE, p = path(t), q = path(t + 1);
+    const t = -half + i / steps * terrain.worldSize, p = path(t), q = path(t + 1);
     const length = Math.hypot(q.x-p.x,q.z-p.z), nx = -(q.z-p.z)/length, nz = (q.x-p.x)/length;
     for (const side of [-1,1]) {
       const halfWidth=water?terrain.riverWidth(p.x):width/2;
-      const x = clamp(p.x + nx * halfWidth * side,-WORLD_HALF,WORLD_HALF), z = clamp(p.z + nz * halfWidth * side,-WORLD_HALF,WORLD_HALF);
+      const x = clamp(p.x + nx * halfWidth * side,-half,half), z = clamp(p.z + nz * halfWidth * side,-half,half);
       vertices.push(x, water ? terrain.baseHeightAt(p.x,p.z)+2.4 : terrain.baseHeightAt(x,z)+.18, z);
       uvs.push(side*.5+.5,t);
     }
-    if (i<steps&&(!water||terrain.distanceToRoad(p.x,p.z)>13)) {const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
+    if (i<steps&&Math.abs(p.x)<=half&&Math.abs(p.z)<=half&&(!water||terrain.distanceToRoad(p.x,p.z)>13)) {const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
   }
   const geometry = new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setAttribute('roadCoords',new THREE.Float32BufferAttribute(uvs,2));geometry.setIndex(indices);geometry.computeVertexNormals();
   const mesh=new THREE.Mesh(geometry,material);mesh.receiveShadow=true;
-  if(!water){mesh.userData.road=true;mesh.userData.hiddenRoadQuads=new Set<number>();}
+  if(!water){mesh.userData.road=true;mesh.userData.hiddenRoadQuads=new Set<number>();mesh.userData.excludedRoadQuads=new Set(Array.from({length:steps},(_,i)=>i).filter(i=>{const p=path(-half+i/steps*terrain.worldSize);return Math.abs(p.x)>half||Math.abs(p.z)>half;}));}
   return mesh;
 }
 
@@ -71,7 +71,7 @@ export function refreshRoadCuts(group:THREE.Group,terrain:TerrainSystem,x:number
       }
       if(cut!==hidden.has(i)){changed=true;if(cut)hidden.add(i);else hidden.delete(i);}
     }
-    if(changed){const indices:number[]=[];for(let i=0;i<positions.count/2-1;i++)if(!hidden.has(i)){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}mesh.geometry.setIndex(indices);}
+    if(changed){const indices:number[]=[];for(let i=0;i<positions.count/2-1;i++)if(!hidden.has(i)&&!mesh.userData.excludedRoadQuads?.has(i)){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}mesh.geometry.setIndex(indices);}
   }
 }
 
@@ -81,6 +81,7 @@ function createBuildingMeshes(terrain:TerrainSystem):THREE.Group {
   const wood=buildingMaterial(0x7b674e,'wood'),roofs=[0x535d61,0x856851,0x72685b,0x59615c].map(color=>buildingMaterial(color,'roof'));
   const shutters=[0x5a6357,0x536265,0x685b47,0x635f4d].map(color=>buildingMaterial(color,'wood'));
   terrain.buildings.forEach((b,id)=>{
+    if(Math.abs(b.x)+b.width/2>terrain.worldHalf||Math.abs(b.z)+b.depth/2>terrain.worldHalf)return;
     const root=new THREE.Group();root.userData.buildingId=id;const floor=terrain.baseHeightAt(b.x,b.z),style=buildingStyle(b);
     const parts=new Map<string,{material:THREE.Material;layer:number;geometries:THREE.BufferGeometry[]}>();
     for(const box of terrain.structure(id)){

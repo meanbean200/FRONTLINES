@@ -1,19 +1,18 @@
 import {test,expect,type Page} from '@playwright/test';
 
 const quick=async(page:Page)=>{
-  await page.goto('/');await page.getByRole('button',{name:'Quick Battle',exact:true}).click();
-  await page.locator('[data-mode-choice="line-defense"]').click();
+  await page.goto('/');await page.locator('#choose-operation').click();
   await page.locator('#battle-map').selectOption('seed');await page.locator('#sector-seed').fill('1944');
 };
 const begin=async(page:Page)=>{
   await quick(page);await page.locator('#launch-operation').click();await page.locator('#begin-operation').click();
   await page.locator('[data-speed="0"]').click();
 };
-test('main menu separates setup, settings and operations',async({page})=>{
+test('main menu offers Open Front, separate Endless and Sandbox without a mission collection',async({page})=>{
   await page.goto('/');await expect(page.getByRole('heading',{name:'FRONTLINES',exact:true})).toBeVisible();
   await expect(page.locator('#quick-battle-form')).toHaveCount(0);
-  await page.locator('#operations-menu').click();await expect(page.locator('[data-operation]')).toHaveCount(4);
-  await page.locator('[data-operation="meeting"]').click();await expect(page.locator('[data-mode-choice="meeting"]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('#operations-menu')).toHaveCount(0);await expect(page.locator('#endless-menu')).toBeVisible();
+  await page.locator('#choose-operation').click();await expect(page.getByRole('heading',{name:'Open Front',exact:true})).toBeVisible();await expect(page.locator('[data-mode-choice],[data-operation]')).toHaveCount(0);
   await page.locator('#menu-back').click();await page.locator('[data-settings]').click();
   await page.locator('[data-setting-tab="controls"]').click();await expect(page.locator('.controls-list')).toContainText('M (G also works)');
 });
@@ -23,7 +22,7 @@ test('briefing previews the generated world, then rolls back without a save writ
   const storage=await page.evaluate(()=>JSON.stringify(localStorage));
   await page.locator('#launch-operation').click();
   await expect(page.locator('.operation-menu')).toHaveAttribute('data-screen','briefing');
-  expect(await page.evaluate(()=>window.__FRONTLINES__.getState().operation?.mode)).toBe('line-defense');
+  expect(await page.evaluate(()=>{const s=window.__FRONTLINES__.getState();return {mode:s.operation?.mode,size:s.worldSize,trenches:s.trenches.length,people:s.soldiers.length};})).toEqual({mode:'open-front',size:2400,trenches:0,people:136});
   await page.locator('#back-to-setup').click();
   expect(await page.evaluate(()=>JSON.stringify(window.__FRONTLINES__.getState()))).toBe(before);
   expect(await page.evaluate(()=>JSON.stringify(localStorage))).toBe(storage);

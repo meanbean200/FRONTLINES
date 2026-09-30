@@ -1249,3 +1249,156 @@ NOT CLEARED.** Final rebuilt-file verification is recorded separately below.
   acceptance. No claim that this UI repair closes the broader gameplay gates.
   Evidence: `docs/evidence/front-direction/README.md`; full raw offline evidence
   remains in `output/playwright/front-direction-offline-1790730105324/`.
+
+### 2026-09-29 — Open Front reset / player playtest delta 3 (baseline `914acc3`)
+
+**Overall PARTIAL — PLAYER ACCEPTANCE NOT CLEARED.** The following are scoped
+implementation and verification results, not a declaration that the original
+player incidents or the complete new gameplay loop are accepted. Full evidence,
+failed runs, measurements and screenshots are in
+[`docs/evidence/open-front-reset/README.md`](evidence/open-front-reset/README.md).
+
+- **Smaller battlefield / new-game flow — USER REQUESTED / IMPLEMENTED / BROWSER
+  VERIFIED.** Normal New Battle is a 2.4 × 2.4 km Open Front, 72 friendly and 64
+  enemy personnel, no completed or planned starting trenches/facilities, and
+  finite accounted equipment/stores. Main menu has Continue, New Battle/Open Front,
+  Endless, Sandbox and Settings. Legacy missions remain compatible internally;
+  neither old saves nor Endless are silently resized or converted. Map, camera,
+  navigation/terrain workers, roads, construction and saved bounds use world size.
+- **Enemy builds its front — IMPLEMENTED / automated and BROWSER VERIFIED for
+  the initial works.** Two real equipped formations excavate, then occupy and
+  build an MG through the same paid work system. A finishing-work scheduling gap
+  and the no-project/no-material-demand circular wait were reproduced and fixed.
+  Final controlled seed 1944: MG requested 71.50 s, first work 166.45 s, complete
+  225.95 s with real consumed materials and balanced stock. Final normal Edge play
+  retained both teams and observed a completed, two-person-crewed, 120-round MG
+  by 228.05 s. Bounded connected/forward/fallback works use own deployment and
+  delivered reports; long-game re-siting/abandonment is still REMAINING.
+- **Giant rear objective — SOURCE-CONFIRMED / REPLACED.** New rules require twelve
+  fit armed personnel from two formations at the actual opposing rear depot,
+  physical dispatch denial, an open own-rear road and 180 continuous seconds.
+  Clearing the depot or cutting the attacker's connection resets pressure.
+  Empty far-edge camping neither wins nor stops dispatch in the regression.
+  Conditions, locations and real outcome records are readable. Original rear-loss
+  incident and a normal full counterattack/recovery playthrough remain OPEN.
+- **Defensive observation — USER-REPORTED / controlled ROOT CAUSE / IMPLEMENTED.**
+  The two-trench daylight fixture reproduced legitimate partial recognition being
+  lost between bounded scans. Stable valid observers and appropriately facing
+  watch personnel now remain in the bounded candidate set. No range buff or
+  omniscience. Nine tests cover detection, darkness, smoke, ridge/building masking,
+  pinning, uncovered sectors, exhaustion and saved partial recognition. Read-only
+  sight diagnostics expose actual blocking reasons. The original infiltration
+  screenshot's LOS history/cause is still UNKNOWN, not retroactively diagnosed.
+- **Stand-to MG staffing — USER-REPORTED / two controlled failures REPRODUCED /
+  IMPLEMENTED.** Ordinary watch can supply physical relief after available reserve
+  candidates at high readiness. A sheltered operator no longer abandons the post
+  for an unnecessary generic reaction step. Named posts, other crews, casualty
+  care, pinning and critical survival retain authority. Honest exhausted/no-relief
+  reasons replace silent availability. A normal 15-person live position completed
+  two handovers, consumed ammunition to empty and resumed after real delivery.
+  This is not a guarantee of uninterrupted 90% staffing or the original incident's
+  exact causal reproduction.
+- **MG workspace — PARTIAL BROWSER VERIFIED / ACCEPTANCE OPEN.** The live position
+  combined combat, relief, crew meal/ammunition trips and replenishment with no
+  sampled duty blocked over two seconds. The original large resting/through-traffic
+  pileup was not recreated. Existing occupied-network regressions remain in place.
+- **MG effect — IMPLEMENTED / matched comparison VERIFIED / PLAYER ACCEPTANCE
+  OPEN.** Eight-round MG bursts and weapon-specific burst gaps strengthen sustained
+  suppression without changing damage/dispersion. Across three matched 16-person
+  advances, 3/48 crossed 100 m against the MG versus 40/48 against two riflemen;
+  pinned person-time was 2594 s versus zero. Same 600-round finite budget; real
+  rays/reactions. Neither variant reached the final destination in that fixture,
+  so that metric is explicitly non-discriminating. Per-seed results, casualties,
+  ammunition and exposure are preserved, including the weaker baseline.
+- **Bullet presentation — USER REQUESTED / IMPLEMENTED / regression VERIFIED.**
+  A bounded render-clock queue displays short, fast travelling authoritative-ray
+  cues from real muzzle to resolved endpoint; impact presentation shares arrival
+  events. Unseen origins remain clipped/hidden. No second hit simulation or new
+  RNG. Five focused presentation tests plus existing ballistics calibration pass;
+  subjective cadence/readability remains a player-review gate.
+- **Abandoned shipment — USER-REPORTED / original full shutdown UNKNOWN /
+  controlled cleanup defect REPRODUCED / IMPLEMENTED.** Abandonment now clears
+  the terminated trip's destination, route and claims while retaining physical
+  surviving cargo. A NO CARRIER recovery at A does not prevent another truck
+  serving B. Real contested-depot loading pauses and resumes with unchanged cargo
+  and progress. Conservation/save tests pass; integrated abandonment/interdiction
+  and recovery in an ordinary campaign remain required.
+- **Construction startup — USER-REPORTED / controlled scheduling/delivery causes
+  REPRODUCED / IMPLEMENTED.** Immediate worker/demand setup, useful nearby loose
+  stock and legal local trench exits/entries avoid unnecessary central round trips.
+  Feedback distinguishes current worker, tool, material, travel and route states.
+  Nearby supplied fixture: assigned 0.05 s, real materials 9.10 s, work 10.40 s.
+  No excavation-rate increase or invisible materials. Normal Edge construction
+  showed actual material-transit delay, building, then the real crew/ammo deficit.
+- **Carrier soak failure — newly REPRODUCED / ROOT CAUSE / IMPLEMENTED.** The
+  maintained 72-hour loop-network soak found an external haul pushing toward an
+  obsolete approach across a support branch for over 1500 seconds. Bounded full
+  replanning from the carrier's current position preserves job, claims, cargo and
+  completed recovery. The same soak passes with conservation/no stuck-duty gate;
+  this does not replace the requested full Open Front combat/supply soak.
+
+#### Actual play, saves and packaging
+
+- Used normal installed-Edge controls in isolated production-preview profiles;
+  no solved state, direct simulation advancement or writes to player profiles.
+  Earlier builder/advance opening observed contact at 47.85 s and 98 shots by
+  137.85 s. A fresh final-gameplay repeat with initially stationary infantry
+  observed first contact between 50.25 and 70.45 s; both initial trenches finished
+  by 85.45 s. Ordered Baker forward at 120.50 s; first shot samples were
+  150.60–155.65 s, then 208 shots / 10 hits by 314.50 s. These are seed-specific
+  observations, not guaranteed timing or universal trench-vs-trench acceptance.
+- The earlier actual player MG was built, staffed, supplied and firing by 492.15 s;
+  complete Save/refresh/Continue matched. Added Charlie, used stand-to and observed
+  two physical crew handovers through 707.60 s. Crew/ammunition interruptions and
+  12/14 watch were reported honestly, not relabeled as perfect readiness.
+- Explicit new-world `openFrontRules: 1`; global
+  `combat-46-open-front-reset-world2`. V4 storage remains unchanged. Legacy 4 km
+  dimensions/objectives/people/stocks stay intact; unsupported combinations fail
+  clearly. V44/v45 migrations do not replay old needs changes. Changed neural
+  schemas visibly fall back. Cross-version loading discloses revised rules.
+  Migration preserved the QA world; the first re-save updated policy-schema
+  metadata only. A subsequent current-rules Save/refresh/Continue at 170.70 s was
+  exactly equal, including unfinished enemy support work and ongoing combat orders.
+- Completed full gameplay regression **992/992, 150 files, 474.10 s**, then focused
+  rules-identity migration **12/12**. Maintained Edge regression **35/35, 5.7 min**.
+  Frozen final-rule repeats are appended after completion. The initial 10-failure
+  working unit run and 31/35 working Edge run remain preserved with explanations;
+  no timeout limits or acceptance assertions were relaxed to hide failures.
+- Production/standalone, separate DEV build and packaging **5/5 PASS**. Existing
+  bundle warnings retained. Shipped portable file **1,507,999 bytes**, two embedded
+  workers, SHA-256
+  `455e35f0858f770bf5606a4e79337ff4ffb5cbb73bcb4cb1754ff09a50872080`.
+  Installed Edge launched a copy with networking disabled/no adjacent dependencies:
+  real movement, exact Save/Continue, no page errors, six refresh sizes including
+  390×844 and 2560×1440 all passed. Screenshots were reviewed. Raw evidence stays in
+  `output/playwright/open-front-reset-shipped-offline-1790736143518/`; curated result
+  is `docs/evidence/open-front-reset/offline-shipped.json`.
+- **REMAINING:** complete late-game rear-interdiction/recovery and moving-front
+  campaign acceptance; original visual/crew/logistics incidents; all combined
+  late-game save points; varied-seed travel averages; current large-scene and
+  physical-phone performance; player judgment. Busy-background 136-person browser
+  samples are not a 300/512/1000-person or physical-phone certification. No agents,
+  training, automation restart, platform submission or unrelated rewrite.
+
+#### Final-rules verification follow-up
+
+- Maintained final Edge repeat: **35/35 PASS, 5.9 minutes**.
+- The concurrent final unit run was **992/993**, not a pass: the long combat-speed /
+  save comparison exceeded its unchanged 45-second timeout while Edge/build work
+  was active. No state-mismatch assertion was reported. The failed output is
+  retained as `full-regression-shipped-busy.txt`.
+- With QA renderers closed, the unchanged final source passed **993/993 tests,
+  150 files, 428.21 seconds**. The same combat-speed/save comparison completed
+  in **31.206 seconds**, with its original timeout/assertions. Full output:
+  `docs/evidence/open-front-reset/full-regression-shipped-quiet.txt`.
+  Final source, production/DEV builds, standalone and packaging checks are aligned;
+  the tested standalone bytes match the staged blob. Only evidence/documentation
+  changed after these checks. This closes this milestone's regression gate, not
+  the outstanding ordinary-player late-game or subjective acceptance gates.
+- With competing verification processes stopped, a short installed/headless-Edge
+  sample of the continued 136-person battle achieved **1.000× / 5.006×** actual
+  advancement, with p95 rAF intervals **6.2 / 12.1 ms** respectively. Twelve seconds
+  per setting, 1654×910, balanced graphics, gameplay HUD, 124–126 active personnel.
+  Only 78–82 visible soldiers were submitted, with hidden units still simulated.
+  This is not the large-scene/native-window/physical-phone release gate. Full
+  sampling method and limitations are in the evidence report.

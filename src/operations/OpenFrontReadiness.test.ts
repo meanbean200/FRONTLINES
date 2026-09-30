@@ -26,7 +26,7 @@ describe('Open Front start and opening intentions',()=>{
   it('a first report does not dispatch the main force straight to the rear; assembly must physically arrive',()=>{
     const s=createOperationalBattle('open-front'),terrain=new TerrainSystem(s),o=observeEnemy(s),town=o.operational!.staging![0];
     o.contacts=[{soldierId:1,squadId:1,x:o.operational!.targets[0].point.x,z:o.operational!.targets[0].point.z,lastSeen:o.at,visible:false,active:true,status:'last-reported'}];
-    const initial=commandOperationalEnemy(o,terrain);expect(initial.commander.phase).toBe('scouting');expect(initial.commands.some(c=>c.type==='move')).toBe(true);
+    const initial=commandOperationalEnemy(o,terrain);expect(initial.commander.phase).toBe('scouting');expect(initial.commands.some(c=>c.type==='move'),JSON.stringify({squads:o.squads,commands:initial.commands})).toBe(true);
     const k=o.operational!,approach=atDepth(k.front,k.deploymentDepth,0),selected=k.staging!.filter(site=>frontDepth(k.front,site.point)<k.deploymentDepth-100).sort((a,b)=>Math.hypot(a.point.x-approach.x,a.point.z-approach.z)-Math.hypot(b.point.x-approach.x,b.point.z-approach.z))[0]??town;
     expect(frontDepth(k.front,selected.point)).toBeLessThan(k.deploymentDepth-100);
     expect(initial.commands.some(c=>c.type==='move'&&frontDepth(k.front,c.goal)<frontDepth(k.front,o.squads.find(q=>q.id===c.squadId)!)-20)).toBe(true);

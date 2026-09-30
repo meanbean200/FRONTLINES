@@ -3,6 +3,7 @@ import {isOperationId} from './OperationDefinitions';
 import {placeOperation} from './OperationPlacement';
 import {validBattleSetup} from './BattleSetup';
 import {placeMissionOperation} from './MissionContent';
+import {placeOpenFront} from './OpenFrontPlacement';
 
 /** V8/libm versions may differ by a few ULPs on generated road curves. Keep
  * serialized coordinates, permit only sub-nanometre coordinate differences,
@@ -25,10 +26,12 @@ export function validOperationalRuntime(state:BattlefieldState):boolean {
   if(op.setup!==undefined&&(!validBattleSetup(op.setup,true)||op.setup.operation!==op.mode||op.setup.seed!==state.seed))return false;
   if(Boolean(r.missionPlan)!==Boolean(r.mission))return false;
   if(r.missionPlan&&![1,2,3].includes(r.missionPlan.version))return false;
-  let expected;try{expected=r.missionPlan?placeMissionOperation(r.definitionId,r.seed,op.setup,r.missionPlan.version):placeOperation(r.definitionId,r.seed,op.setup);}catch{return false;}
+  if(Boolean(r.openFront)!==Boolean(op.setup?.openFrontRules))return false;
+  let expected;try{expected=r.openFront?placeOpenFront(r.seed,op.setup!):r.missionPlan?placeMissionOperation(r.definitionId,r.seed,op.setup,r.missionPlan.version):placeOperation(r.definitionId,r.seed,op.setup);}catch{return false;}
   if(!sameDefinition(r.missionPlan,expected.missionPlan))return false;
   for(const key of ['front','zones','locations','routes','reinforcements','objectives','victory'] as const)if(!sameDefinition(r[key],expected[key]))return false;
   const nonnegative=(n:unknown):n is number=>typeof n==='number'&&Number.isFinite(n)&&n>=0;
+  if(r.openFront){const f=r.openFront;if(f.version!==1||state.worldSize!==2400||!nonnegative(f.nextWorks)||!Array.isArray(f.works)||f.works.length>16||new Set(f.works.map(w=>w.trenchId)).size!==f.works.length||!f.works.every(w=>w&&['player','enemy'].includes(w.side)&&['building','occupying'].includes(w.stage)&&state.trenches.some(t=>t.id===w.trenchId)&&Array.isArray(w.squadIds)&&w.squadIds.length>0&&new Set(w.squadIds).size===w.squadIds.length&&w.squadIds.every(id=>state.squads.some(q=>q.id===id&&(q.faction??'player')===w.side))))return false;}
   const phases=['preparation','contact','engagement','exploitation','consolidation','withdrawal'];
   if(r.mission){const m=r.mission,stages=['preparation','contact','line','building','sustain','secured','lost'];
     if(m.houseTaken!==undefined&&typeof m.houseTaken!=='boolean')return false;

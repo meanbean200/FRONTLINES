@@ -12,6 +12,7 @@ export interface StartingForce {rifles:number; engineers:number; machineguns:num
 export interface ReinforcementSource {side:Faction; rear:Vec2; entry:Vec2; reserve:number; intervalHours:number; releaseLimit:number}
 export type ObjectiveSpec =
   | {type:'physical-mission'}
+  | {type:'rear-collapse';zone:string;routes:string[];minimum:number;squads:number;holdSeconds:number}
   | {type:'area-control'; zones:string[]; required:number; minimum:number; holdSeconds:number}
   | {type:'route-control'; routes:string[]; holdSeconds:number}
   | {type:'breakthrough'; zone:string; routes:string[]; minimum:number; squads:number; holdSeconds:number}
@@ -27,6 +28,7 @@ export interface OperationDefinition {
 export interface OperationalCommandMemory {phase:'scouting'|'consolidating'|'committing'|'holding'|'withdrawing'; since:number; startingAble:number; reason:string; nextSupport?:number}
 /** Plain serialized state only. Rules are versioned independently of unchanged combat rules. */
 export interface OperationRuntime {
+  openFront?:{version:1;nextWorks:number;works:{side:Faction;trenchId:number;squadIds:number[];stage:'building'|'occupying'}[]};
   missionPlan?:import('./MissionContent').MissionPlan;
   mission?:import('./MissionContent').MissionState;
   version:2; definitionId:OperationId; seed:number; front:FrontGeometry;
