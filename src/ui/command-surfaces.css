@@ -10,6 +10,8 @@
 .position-inspector>header>div{flex:1;min-width:0}.position-inspector [data-position-back]{flex:none;width:44px;min-height:44px}
 .position-inspector>.position-picker{display:flex;flex-direction:row;gap:12px;align-items:center;margin:4px 0}.position-picker select{flex:1;min-width:0}
 .command-fields{display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin:9px 0}.position-content .command-fields label{display:flex;flex-direction:column;gap:4px;margin:0;font-size:12px}.command-fields select{width:100%;min-width:0;min-height:44px}
+.front-current{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:12px;color:var(--muted)}.front-current output{display:flex;align-items:center;min-height:44px;font:18px var(--heading);color:var(--accent)}
+.front-directions{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.front-directions button{min-height:44px;padding:7px 4px;font:15px var(--heading);border-bottom:2px solid var(--rule)}.front-directions button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--ink-deep)}
 .position-tabs{margin:6px 0}.position-tabs button{min-height:44px}
 .position-content{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:4px}
 .command-primary{padding-bottom:8px;border-bottom:1px solid var(--rule);margin-bottom:8px}

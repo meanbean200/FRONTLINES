@@ -1213,3 +1213,39 @@ NOT CLEARED.** Final rebuilt-file verification is recorded separately below.
   bytes and staged Git blob match; the SHA-256 above identifies the tested file.
   All reported original failures remain recorded. **Validated scoped milestone;
   overall PARTIAL — PLAYER ACCEPTANCE NOT CLEARED.**
+
+### 2026-09-29 — Front direction input repair (baseline `072bcab`)
+
+- **USER-REPORTED:** cannot select the Front direction in trench management;
+  confirmed with the player that this is the direction control, not selecting
+  a front line on the map.
+- **BASELINE CHECKED:** paused and live keyboard changes reached the garrison.
+  Pointer attempts against the native popup did not consistently commit in the
+  isolated Edge CLI session. This does not establish the precise cause in the
+  player's original browser. Baseline screenshots are retained.
+- **ROOT CAUSE / SOURCE CONFIRMED:** the old readout compared raw radians to
+  four exact option values. Equivalent saved angles (for example 270 degrees
+  versus -90 degrees) and custom fronts could falsely display the first option,
+  South. There was no explicit confirmation for a front change.
+- **IMPLEMENTED:** replaced the Front popup with four direct 44-pixel-or-larger
+  North / East / South / West buttons, a current-facing readout, active state and
+  order confirmation. Connected friendly garrisons receive the same explicit
+  direction; other positions and enemy positions are unchanged. Equivalent
+  headings are compared modulo a full turn; mixed/custom headings are reported
+  honestly. The existing simulation command still handles physical watch
+  repositioning; no teleportation, inventory or save migration was added.
+- **BROWSER VERIFIED:** actual installed Edge mouse clicks at pause and 5x,
+  keyboard activation, save/Continue, unchanged unrelated positions, and a
+  390x844 touch-emulated tap. Production-preview clicks independently selected
+  all four fronts while simulation time advanced. The short 844x390 viewport
+  retains reachable 44-pixel direction buttons in the existing scroll area.
+- **VERIFIED:** focused Vitest **16/16** (four files); maintained Edge checks
+  **10/10** (2.5 minutes); production/standalone build and packaging **5/5**.
+  Copied offline HTML launched in network-disabled Edge, moved a formation,
+  preserved exact Save/Continue state and filled all six tested refresh sizes.
+  Standalone SHA-256:
+  `2bad4d37bab0b37c7e9495a235b67b014c69c69ca32a10bf4e374194d91e7efb`.
+- **REMAINING:** confirmation in the player's original session and physical-phone
+  acceptance. No claim that this UI repair closes the broader gameplay gates.
+  Evidence: `docs/evidence/front-direction/README.md`; full raw offline evidence
+  remains in `output/playwright/front-direction-offline-1790730105324/`.

@@ -28,6 +28,7 @@ import {activeSupportMission,supportPositionStatus} from './WeaponReadout';
 import {crateVisible,crateAccess,crateAnchors,factionSeesStock,stockPiles,stockPileAnchors} from '../garrison/SupplyAccess';
 import {controlReadout,controlZone} from '../operations/ObjectiveControl';
 import {RESOURCES} from '../garrison/types';
+import {FRONT_DIRECTIONS,frontDirection,sameFacing} from './FrontDirection';
 
 interface Actions {defend:(id:number)=>void;resume:(id:number)=>void;area:(id:number)=>void;move:(watch?:boolean)=>void;cancel:()=>void;notify:(text:string)=>void;place:(id:number,kind:Facility['kind'])=>void;fire:(id:number,kind:'mortarHE'|'mortarSmoke',battery?:boolean)=>void;person:()=>void}
 type Page='overview'|'personnel'|'weapons'|'construction'|'supplies';
@@ -72,11 +73,7 @@ export class TrenchPanel {
       if(select.hasAttribute('data-raid-release-crews')){this.includeWeaponCrews=(select as unknown as HTMLInputElement).checked;this.update(true);return;}
       if(select.hasAttribute('data-artillery-front')){this.actions.notify(this.sim.garrisons.setArtilleryFacing(this.facilityId,Number(select.value)).reason);this.update(true);return;}
       if(select.hasAttribute('data-building-floor')){this.buildingFloor=Number(select.value) as 0|1;this.update(true);return;}
-      const id=Number(select.dataset.network),network=this.sim.garrisons.network,root=this.sim.state.living!.garrisons.find(g=>g.id===id),component=root&&network.component(root.trenchId);
-      for(const g of this.sim.state.living!.garrisons.filter(g=>g.faction!=='enemy'&&component!==undefined&&network.component(g.trenchId)===component)){
-        if(select.id==='garrison-readiness')this.sim.garrisons.setReadiness(g.id,select.value as Readiness);
-        if(select.id==='garrison-front')this.sim.garrisons.setFront(g.id,Number(select.value));
-      }
+      if(select.id==='garrison-readiness')for(const g of this.networkGroups(Number(select.dataset.network)))this.sim.garrisons.setReadiness(g.id,select.value as Readiness);
     });
     this.labels.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('button');if(b?.dataset.trench)this.open(Number(b.dataset.trench));if(b?.dataset.facility)this.chooseFacility(Number(b.dataset.facility));});
     window.addEventListener('pointermove',e=>{this.pointer=e.target instanceof HTMLCanvasElement?{x:e.clientX,y:e.clientY}:undefined;});
@@ -85,6 +82,10 @@ export class TrenchPanel {
     window.addEventListener('keydown',e=>{if(e.code==='Escape'&&!this.element.hidden){this.close();e.preventDefault();e.stopImmediatePropagation();}},true);
   }
   private locked(){return this.sim.commandsLocked||Boolean(document.documentElement.dataset.menu||document.documentElement.dataset.help||document.documentElement.dataset.replay);}
+  private networkGroups(id:number){
+    const network=this.sim.garrisons.network,groups=this.sim.state.living!.garrisons,root=groups.find(g=>g.id===id&&g.faction!=='enemy'),component=root&&network.component(root.trenchId);
+    return groups.filter(g=>g.faction!=='enemy'&&component!==undefined&&network.component(g.trenchId)===component);
+  }
   open(id?:number):void {window.dispatchEvent(new Event('frontlines-menu'));this.enemy=knownTrenchNetworks(this.sim.state).find(n=>n.id===id&&!friendlyTrenches(this.sim.state,this.sim.garrisons.network).some(t=>t.id===id));this.buildingId=-1;this.trenchId=id??this.trenchId;this.facilityId=this.personId=this.truckId=0;this.assign=undefined;this.page='overview';this.element.hidden=false;document.documentElement.dataset.positionOpen='true';this.button.setAttribute('aria-expanded','true');this.update(true);this.element.scrollTop=0;}
   openConstruction(id?:number):void{this.open(id);this.page='construction';this.update(true);}
   close():void{this.element.hidden=true;this.personId=0;this.workParty=undefined;this.partyTarget=false;this.projectedPerson=undefined;this.overlay.replaceChildren();this.labels.replaceChildren();delete this.labels.dataset.key;this.button.setAttribute('aria-expanded','false');delete document.documentElement.dataset.personSelected;delete document.documentElement.dataset.positionOpen;this.actions.cancel();}
@@ -191,6 +192,12 @@ export class TrenchPanel {
     if(b.hasAttribute('data-focus')){this.focus();return;}
     if(b.dataset.trenchJob){this.open(Number(b.dataset.trenchJob));this.page='construction';this.update(true);this.focus();return;}
     if(this.locked())return;
+    if(b.dataset.frontDirection){
+      const direction=FRONT_DIRECTIONS.find(d=>d.id===b.dataset.frontDirection),groups=this.networkGroups(Number(b.dataset.network));
+      if(!direction||!groups.length)return;
+      for(const g of groups)if(!sameFacing(g.front,direction.angle))this.sim.garrisons.setFront(g.id,direction.angle);
+      this.actions.notify('Infantry front: '+direction.label+' · guards will take the appropriate watch positions.');this.update(true);return;
+    }
     if(b.dataset.selectPool){
       const t=this.sim.state.trenches.find(t=>t.id===this.trenchId);if(!t)return;
       const pools=manpowerPools(this.sim.state,trenchPeople(this.sim.state,this.sim.garrisons.network,t)),pool=b.dataset.selectPool==='workers'?'workers':'available';
@@ -305,8 +312,8 @@ export class TrenchPanel {
       const g=groups[0];
       const pools=manpowerPools(state,people);
       if(g){
-        const mixedReadiness=groups.some(area=>area.readiness!==g.readiness),mixedFront=groups.some(area=>area.front!==g.front);
-        html+='<div class="command-fields"><label>Readiness<select id="garrison-readiness" data-network="'+g.id+'">'+(mixedReadiness?'<option disabled selected>Mixed</option>':'')+(['routine','alert','stand-to'] as const).map(v=>'<option '+(!mixedReadiness&&g.readiness===v?'selected':'')+' value="'+v+'">'+({routine:'Routine · 25%',alert:'Alert · 50%','stand-to':'Stand-to · 90%'}[v])+'</option>').join('')+'</select></label><label>Front<select id="garrison-front" data-network="'+g.id+'">'+(mixedFront?'<option disabled selected>Mixed</option>':'')+[[0,'South'],[Math.PI/2,'East'],[Math.PI,'North'],[-Math.PI/2,'West']].map(([v,n])=>'<option '+(!mixedFront&&g.front===v?'selected':'')+' value="'+v+'">'+n+'</option>').join('')+'</select></label></div><p>'+groups.reduce((n,g)=>n+g.watchPresent,0)+' / '+groups.reduce((n,g)=>n+g.watchRequired,0)+' watching · '+pools.recovering.length+' recovering</p>'+(['hold','recover'].includes(g.cutoff)?'<p class="command-issue">'+ (g.cutoff==='hold'?'Holding and rationing.':'Recovery parties authorized.')+'</p>'+btn('data-review-supply="'+g.id+'"','Review supply response'):'');
+        const mixedReadiness=groups.some(area=>area.readiness!==g.readiness),front=frontDirection(groups.map(area=>area.front));
+        html+='<div class="command-fields"><label>Readiness<select id="garrison-readiness" data-network="'+g.id+'">'+(mixedReadiness?'<option disabled selected>Mixed</option>':'')+(['routine','alert','stand-to'] as const).map(v=>'<option '+(!mixedReadiness&&g.readiness===v?'selected':'')+' value="'+v+'">'+({routine:'Routine · 25%',alert:'Alert · 50%','stand-to':'Stand-to · 90%'}[v])+'</option>').join('')+'</select></label><div class="front-current"><span>Front facing</span><output id="garrison-front-current" aria-live="polite">'+front.label+'</output></div><div id="garrison-front" class="front-directions" role="group" aria-label="Front direction">'+FRONT_DIRECTIONS.map(d=>'<button type="button" data-front-direction="'+d.id+'" data-network="'+g.id+'" aria-label="Face '+d.label+'" aria-pressed="'+(front.selected===d.id)+'" '+(this.locked()?'disabled':'')+'>'+d.label+'</button>').join('')+'</div></div><p>'+groups.reduce((n,g)=>n+g.watchPresent,0)+' / '+groups.reduce((n,g)=>n+g.watchRequired,0)+' watching · '+pools.recovering.length+' recovering</p>'+(['hold','recover'].includes(g.cutoff)?'<p class="command-issue">'+ (g.cutoff==='hold'?'Holding and rationing.':'Recovery parties authorized.')+'</p>'+btn('data-review-supply="'+g.id+'"','Review supply response'):'');
       }
       html+='<details><summary>Manpower / duty details</summary><div class="command-stats">'+([['stationCrew','Crew'],['workers','Workers'],['available','Available'],['recovering','Recovering'],['assault','Assault']] as const).map(([key,label])=>'<span>'+label+' <b>'+pools[key].length+'</b></span>').join('')+'</div><p>Squads rotate watch, rest and supplies. Move or Withdraw leaves this position. Each person appears in one manpower pool; assignments remain attached during recovery.</p></details>';
     }
