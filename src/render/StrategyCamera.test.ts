@@ -1,17 +1,28 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {StrategyCamera} from './StrategyCamera';
-import type {TerrainSystem} from '../terrain/TerrainSystem';
+import {TerrainSystem} from '../terrain/TerrainSystem';
+import {createBattlefield} from '../simulation/createBattlefield';
 
-function setup(){
+function setup(terrain={heightAt:()=>0} as unknown as TerrainSystem){
   vi.stubGlobal('window',{addEventListener:vi.fn(),removeEventListener:vi.fn()});
   vi.stubGlobal('document',{documentElement:{dataset:{}}});
   const canvas={addEventListener:vi.fn(),removeEventListener:vi.fn(),getBoundingClientRect:()=>({left:0,top:0}),setPointerCapture:vi.fn()} as unknown as HTMLCanvasElement;
-  const camera=new StrategyCamera(canvas,{heightAt:()=>0} as unknown as TerrainSystem);
+  const camera=new StrategyCamera(canvas,terrain);
   camera.resize(1440,900);camera.update(.016);return camera;
 }
 afterEach(()=>vi.unstubAllGlobals());
 
 describe('strategy camera overlay projection',()=>{
+  it('never loses the real battlefield while settling across a cached terrain seam',()=>{
+    const camera=setup(new TerrainSystem(createBattlefield())),zoom=(31.8+80)/Math.sin(.92);
+    camera.restore({x:-500,z:-80,zoom,azimuth:0,polar:.92});camera.focus({x:0,z:-80},zoom);
+    for(let i=0;i<900;i++){
+      camera.update(1/60);
+      expect(camera.camera.position.toArray().every(Number.isFinite),`camera frame ${i}`).toBe(true);
+      const projected=camera.project({x:0,z:-80});
+      expect(Number.isFinite(projected.x)&&Number.isFinite(projected.y)).toBe(true);
+    }
+  });
   it('responds to a held pan in the first frame and reverses without a long catch-up tail',()=>{
     const camera=setup(),handler=(name:string)=>vi.mocked(window.addEventListener).mock.calls.find(([n])=>n===name)![1] as (e:KeyboardEvent)=>void;
     const down=handler('keydown'),up=handler('keyup'),start=camera.target.clone();

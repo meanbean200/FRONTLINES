@@ -22,12 +22,18 @@ export interface Duty {
   arrivedAt?: number; until: number; reason: string; facilityId?: number; relieving?: number;
   stage?: 'pickup' | 'deliver'; blockedFor: number;
   patientId?: number; crateId?: number;
+  /** Deliver ammunition at a service bay, not an occupied gun berth. */
+  weaponDeliveryId?:number;
   /** A subset of carried stock, not a second inventory. */
   recoveryLoad?:Inventory;
   pickupStoreId?: number; dropStoreId?: number;
   watchPost?: Vec2;
   rationUntil?: number;
   pickupQueued?: boolean;
+  /** Saved retry cadence and visible blockage; cargo/order stay on this duty. */
+  safetyReviewAt?:number; unsafeRoute?:boolean;
+  /** A real critical-ammunition pickup may accept more known risk before loading. */
+  urgentAmmo?:boolean;
   networkBound?:boolean; routeBlocked?:boolean; routeTrenches?:number[];
   /** Initial local avoidance waypoints need precise following, not marching-lane offsets. */
   detourWaypoints?:number;
@@ -73,14 +79,22 @@ export interface Garrison {
   jobs?: {kind:DutyKind;priority:number;assigned:number;required:number;reason:string}[];
   lossRate?:number; watchEffectiveness?:number;
   recoveredSince?:number; supplyIssue?:string;
+  /** Recent failed safe-route attempt; never changes an existing person's order. */
+  haulIssue?:{personId:number;destination:Vec2;at:number;reason:'NO SAFE APPROACH'};
   /** Temporary safety response; never replaces the player's selected readiness. */
   underFireUntil?:number;
   breachUntil?:number;
   nextRoadheadReview?:number;
+  /** Optional player-selected roadhead. A queued change waits for real handoffs. */
+  supplyTownId?:string;
+  pendingSupplyPoint?:{townId:string;point:Vec2};
+  supplyPointIssue?:string;
   threatSector?:Vec2&{front:number};
   reserveRequired?:number;
   frontage?:Vec2[];
   lastDeliveryAt?:number;
+  /** Dispatch fairness, distinct from physical arrival of a load. */
+  lastDispatchAt?:number;
 }
 export function effectiveReadiness(garrison:Garrison,elapsed:number):Readiness {
   return (garrison.underFireUntil??0)>elapsed&&garrison.cutoff!=='withdraw'&&garrison.readiness==='routine'?'alert':garrison.readiness;

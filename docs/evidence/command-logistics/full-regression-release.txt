@@ -1,0 +1,270 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ✓ src/garrison/LivingTransitions.test.ts (26 tests) 28733ms
+   ✓ living-trench transition contracts > uses separate temporary loading positions and clears a multi-carrier pickup  606ms
+   ✓ living-trench transition contracts > keeps temporary watch posts anchored across repeated physical reliefs  1073ms
+   ✓ living-trench transition contracts > continues travel, work, sleep and shipments identically after a v2 save  3172ms
+   ✓ living-trench transition contracts > conserves stock and completes a supplied 72-hour loop-network soak  21717ms
+   ✓ living-trench transition contracts > physically delivers aid before an incapacitated soldier recovers  592ms
+   ✓ living-trench transition contracts > saves an aid trip as coordinates and continues it without duplicate soldier references  494ms
+ ✓ src/simulation/SimulationSpeed.test.ts (6 tests) 30403ms
+   ✓ simulation speed preserves tick history > keeps living duties, movement and inventories identical at 2×  426ms
+   ✓ simulation speed preserves tick history > keeps living duties, movement and inventories identical at 5×  756ms
+   ✓ simulation speed preserves tick history > preserves combat across speed changes and a save/load  29195ms
+ ✓ src/scenarios/PublishedBattle.test.ts (10 tests) 122974ms
+   ✓ published menu battle > real fixed-step attract cycle 1 has finite supply and clean initial conditions  12865ms
+   ✓ published menu battle > real fixed-step attract cycle 2 has finite supply and clean initial conditions  12285ms
+   ✓ published menu battle > real fixed-step attract cycle 3 has finite supply and clean initial conditions  12257ms
+   ✓ published menu battle > real fixed-step attract cycle 4 has finite supply and clean initial conditions  12393ms
+   ✓ published menu battle > real fixed-step attract cycle 5 has finite supply and clean initial conditions  12168ms
+   ✓ published menu battle > real fixed-step attract cycle 6 has finite supply and clean initial conditions  12298ms
+   ✓ published menu battle > real fixed-step attract cycle 7 has finite supply and clean initial conditions  12075ms
+   ✓ published menu battle > real fixed-step attract cycle 8 has finite supply and clean initial conditions  12351ms
+   ✓ published menu battle > real fixed-step attract cycle 9 has finite supply and clean initial conditions  12117ms
+   ✓ published menu battle > real fixed-step attract cycle 10 has finite supply and clean initial conditions  12160ms
+ ✓ src/operations/Operations.test.ts (17 tests) 13255ms
+   ✓ bounded tactical operations > gives a defensive operation ninety seconds of preparation before enemy movement  2448ms
+   ✓ bounded tactical operations > continues combat, objectives, and enemy decisions identically after save/load  10609ms
+ ✓ src/operations/EnemyCommander.test.ts (17 tests) 8168ms
+   ✓ enemy tactical commander > continues saved enemy plans exactly, with no new supply or player orders  5086ms
+   ✓ enemy tactical commander > walks to ammunition, transfers only on arrival, and resumes a saved resupply trip exactly  2794ms
+ ✓ src/simulation/MarchSurvival.test.ts (8 tests) 7084ms
+   ✓ P0 march survival > completes real travel at 1× after food, water and fatigue breaks  309ms
+   ✓ P0 march survival > crosses 3.7km at 1× with finite starting rations and no needs resets  3177ms
+   ✓ P0 march survival > crosses 3.7km at 5× with finite starting rations and no needs resets  3137ms
+ ✓ src/simulation/OrdersAndEarthworks.test.ts (8 tests) 6918ms
+   ✓ complex works and drawn orders > finishes a complex long route and its queued continuation after a mid-build save/load  5164ms
+   ✓ complex works and drawn orders > pauses and resumes excavation at the working face rather than restarting  812ms
+   ✓ complex works and drawn orders > follows every bend of a drawn corridor and ends in a spaced column  345ms
+   ✓ complex works and drawn orders > keeps multi-squad destinations separate, appends routes, and validates saved orders  577ms
+ ✓ src/garrison/DeterministicGarrison.test.ts (23 tests) 6982ms
+   ✓ deterministic garrison acceptance contracts > never enables normal-scenario mortality merely because a shipment arrives  6403ms
+ ✓ src/navigation/FormationMovement.test.ts (12 tests) 6636ms
+   ✓ formation-scale movement > 3 squads clear the village without stranded followers  426ms
+   ✓ formation-scale movement > 5 squads clear the village without stranded followers  720ms
+   ✓ formation-scale movement > 3 squads clear trees at z=-1660  388ms
+   ✓ formation-scale movement > 3 squads clear trees at z=-1150  355ms
+   ✓ formation-scale movement > 5 squads clear trees at z=-1660  701ms
+   ✓ formation-scale movement > 5 squads clear trees at z=-1150  585ms
+   ✓ formation-scale movement > saves personal progress through a village corner exactly and resumes interruptions  489ms
+   ✓ formation-scale movement > two opposing friendly groups pass each other and retain separate destinations  939ms
+   ✓ formation-scale movement > five squads queue through a four-metre shared gap without entering the walls  1562ms
+ ✓ src/simulation/AsyncOrders.test.ts (8 tests) 5783ms
+   ✓ asynchronous order boundaries > restores a pending browser route into a headless simulation (drawn=false)  2603ms
+   ✓ asynchronous order boundaries > restores a pending browser route into a headless simulation (drawn=true)  3152ms
+stdout | src/garrison/OccupiedTraffic.test.ts > moves eighty people through an occupied production network without body jams or anchor backtracking (loop: false)
+{"isolated":true,"loop":false,"personnel":96,"travellers":11,"seconds":70.49999999999814,"maxStall":0,"maxNearTravel":0.10499878958421505,"remaining":[],"sawWorker":true,"sawCarrier":true,"gunCrew":[342,343],"workProgress":1,"lengths":{"277":146.14999999999986,"304":146.14999839999996,"331":146.15000223199968,"333":0.25,"334":0.25,"335":0.25,"336":0.25,"337":0.25,"338":0.25,"339":0.25,"340":0.25}}
+{"isolated":false,"loop":false,"personnel":96,"travellers":80,"seconds":70.49999999999814,"maxStall":0,"maxNearTravel":0.10499878958421505,"remaining":[],"sawWorker":true,"sawCarrier":true,"gunCrew":[342,343],"workProgress":1,"lengths":{"252":44.950000000000045,"253":49.350000000000136,"254":53.75,"255":58.149999999999864,"256":62.549999999999955,"257":66.95000000000005,"258":71.35000000000014,"259":75.75,"261":80.14999999999986,"262":84.54999999999995,"263":88.95000000000005,"264":93.35000000000014,"265":97.75,"266":102.14999999999986,"267":106.54999999999995,"268":110.95000000000005,"270":115.35000000000014,"271":119.75,"272":124.14999999999986,"273":128.54999999999995,"274":132.95000000000005,"275":137.35000000000014,"276":141.75,"277":146.14999999999986,"279":44.94999840000014,"280":49.34999840000023,"281":53.749998400000095,"282":58.14999839999996,"283":62.54999840000005,"284":66.94999840000014,"285":71.34999840000023,"286":75.7499984000001,"288":80.14999839999996,"289":84.54999840000005,"290":88.94999840000014,"291":93.34999840000023,"292":97.7499984000001,"293":102.14999839999996,"294":106.54999840000005,"295":110.94999840000014,"297":115.34999840000023,"298":119.7499984000001,"299":124.14999839999996,"300":128.54999840000005,"301":132.94999840000014,"302":137.34999840000023,"303":141.7499984000001,"304":146.14999839999996,"306":44.95000290666644,"307":49.35000287733328,"308":53.750002847999895,"309":58.15000281866628,"310":62.55000278933312,"311":66.95000275999996,"312":71.35000273066657,"313":75.75000270133319,"315":80.1500026719998,"316":84.55000264266641,"317":88.95000261333325,"318":93.3500025840001,"319":97.75000255466648,"320":102.1500025253331,"321":106.5500024959997,"322":110.95000246666655,"324":115.35000243733339,"325":119.75000240799977,"326":124.15000237866639,"327":128.55000234933323,"328":132.95000231999984,"329":137.35000229066668,"330":141.7500022613333,"331":146.15000223199968,"333":0.25,"334":0.25,"335":0.25,"336":0.25,"337":0.25,"338":0.25,"339":0.25,"340":0.25}}
+
+stdout | src/garrison/OccupiedTraffic.test.ts > moves eighty people through an occupied production network without body jams or anchor backtracking (loop: true)
+{"isolated":true,"loop":true,"personnel":96,"travellers":11,"seconds":70.49999999999814,"maxStall":0,"maxNearTravel":0.10499878958421505,"remaining":[],"sawWorker":true,"sawCarrier":true,"gunCrew":[342,343],"workProgress":1,"lengths":{"277":146.14999999999986,"304":122.71854272923824,"331":146.1500015999998,"333":0.25,"334":0.25,"335":0.25,"336":0.25,"337":0.25,"338":0.25,"339":0.25,"340":0.25}}
+{"isolated":false,"loop":true,"personnel":96,"travellers":80,"seconds":70.49999999999814,"maxStall":0,"maxNearTravel":0.10499878958421505,"remaining":[],"sawWorker":true,"sawCarrier":true,"gunCrew":[342,343],"workProgress":1,"lengths":{"252":44.950000000000045,"253":49.350000000000136,"254":53.75,"255":58.149999999999864,"256":62.549999999999955,"257":66.95000000000005,"258":71.35000000000014,"259":75.75,"261":80.14999999999986,"262":84.54999999999995,"263":88.95000000000005,"264":93.35000000000014,"265":97.75,"266":102.14999999999986,"267":106.54999999999995,"268":110.95000000000005,"270":115.35000000000014,"271":119.75,"272":124.14999999999986,"273":128.54999999999995,"274":132.95000000000005,"275":137.35000000000014,"276":141.75,"277":146.14999999999986,"279":44.949998400000155,"280":49.349998400000246,"281":53.74999840000011,"282":58.14999839999998,"283":62.54999840000007,"284":66.94999840000017,"285":65.21854112923833,"286":60.81854112923846,"288":57.51854272923841,"289":61.11854272923832,"290":65.51854272923842,"291":69.91854272923851,"292":74.31854272923837,"293":78.71854272923824,"294":83.11854272923833,"295":87.51854272923842,"297":91.91854272923851,"298":96.31854272923837,"299":100.71854272923824,"300":105.11854272923833,"301":109.51854272923842,"302":113.91854272923851,"303":118.31854272923837,"304":122.71854272923824,"306":44.950002319999854,"307":49.350002231999966,"308":53.75000214399985,"309":58.150002055999735,"310":62.550001967999854,"311":66.95000187999997,"312":71.35000179200009,"313":75.75000170399997,"315":80.15000161599986,"316":84.55000159999989,"317":88.95000159999998,"318":93.35000160000007,"319":97.75000159999993,"320":102.1500015999998,"321":106.55000159999989,"322":110.95000159999998,"324":115.35000160000007,"325":119.75000159999993,"326":124.1500015999998,"327":128.5500015999999,"328":132.95000159999998,"329":137.35000160000007,"330":141.75000159999993,"331":146.1500015999998,"333":0.25,"334":0.25,"335":0.25,"336":0.25,"337":0.25,"338":0.25,"339":0.25,"340":0.25}}
+
+ ✓ src/garrison/OccupiedTraffic.test.ts (3 tests) 4977ms
+   ✓ moves eighty people through an occupied production network without body jams or anchor backtracking (loop: false)  1567ms
+   ✓ moves eighty people through an occupied production network without body jams or anchor backtracking (loop: true)  1364ms
+   ✓ replans occupied loop traffic when a connector is removed without cutting through unexcavated floor  2045ms
+ ✓ src/operations/BattleSetup.test.ts (39 tests) 5022ms
+   ✓ Complete setup matrix: 4 operations × 3 sizes × 2 sides × 3 seeds > open-front / medium / us: deployment, route, recreation, briefing and save  305ms
+   ✓ Complete setup matrix: 4 operations × 3 sizes × 2 sides × 3 seeds > open-front / medium / german: deployment, route, recreation, briefing and save  317ms
+   ✓ Complete setup matrix: 4 operations × 3 sizes × 2 sides × 3 seeds > open-front / large / us: deployment, route, recreation, briefing and save  353ms
+   ✓ Complete setup matrix: 4 operations × 3 sizes × 2 sides × 3 seeds > open-front / large / german: deployment, route, recreation, briefing and save  348ms
+   ✓ Advanced options change the existing systems > serializes exact custom continuation and deterministic rematches  360ms
+ ✓ src/simulation/Buildings.test.ts (14 tests) 4826ms
+   ✓ shared usable building geometry > rests on a long building approach, consumes only personal food, saves and resumes the same order  801ms
+   ✓ shared usable building geometry > queues a second formation outside a full floor, then admits it after a physical exit  1055ms
+   ✓ shared usable building geometry > exits through the door to treat a casualty on the approach, then stops reassigning without an aid post  2281ms
+ ✓ src/terrain/WorldRebase.test.ts (10 tests) 5152ms
+   ✓ canonical 4 km world > generates exactly 8×8 real 500m meshes and requests only bounded worker chunks  1008ms
+   ✓ canonical 4 km world > conserves cargo and continues cross-map road shipments after save/load  1168ms
+   ✓ canonical 4 km world > finds whole-map routes in both axes and obeys edge clearance  1142ms
+   ✓ canonical 4 km world > physically walks an ordered soldier across both full-map axes without teleporting  1553ms
+ ✓ src/operations/Endless.test.ts (19 tests) 3647ms
+   ✓ Endless mode ownership and persistence > captures, loses and retakes a site using physical presence without creating stock or ending  835ms
+   ✓ bounded physical Endless economy > physically carries capped replacements through convoy and shuttle; preserves exact mid-travel continuation  675ms
+   ✓ bounded physical Endless economy > separates 10/20/30-minute calendars from needs, rolling sleep credit and physical truck motion  711ms
+   ✓ bounded physical Endless economy > continues the actual fixed-step simulation exactly after save/load  1111ms
+ ✓ src/simulation/BattlefieldSimulation.test.ts (9 tests) 3120ms
+   ✓ battlefield foundation > constructs a trench and assigns a living garrison without permanent positions  1967ms
+   ✓ battlefield foundation > maintains finite simulation state with 300 active soldiers  968ms
+ ✓ src/operations/OperationsV2.test.ts (30 tests) 2897ms
+   ✓ reusable operational objectives and terminal conditions > requires viable multi-squad penetration, access and continuous consolidation; touching is not winning  389ms
+   ✓ reusable operational objectives and terminal conditions > uses contact and physical breach for phases rather than a script clock  692ms
+   ✓ reusable operational objectives and terminal conditions > defense tolerates losing all forward settlements but not sustained rear penetration  368ms
+   ✓ information firewall and persistence > matches exact continuation mid-consolidation and rejects malformed/incompatible runtime  364ms
+ ✓ src/construction/PositionManagement.test.ts (25 tests) 2217ms
+   ✓ V1 position management command boundary > allows independent movement without assigning the formation; moves physically and saves exactly  323ms
+   ✓ V1 position management command boundary > makes a funded explicit job outrank routine patrol/rest with individually assigned tool carriers  327ms
+   ✓ V1 position management command boundary > unfunded jobs wait truthfully and deliver materials before work  561ms
+ ✓ src/construction/ConstructionReadout.test.ts (7 tests) 2033ms
+   ✓ construction controls match actual work rules > delivers materials, excavates and finishes support work across save/load  1996ms
+ ✓ src/garrison/RecoveryTrips.test.ts (4 tests) 2080ms
+   ✓ physical emergency trips > recovers a nearby crate only after arrival and continues a laden return from save  758ms
+   ✓ physical emergency trips > walks to the withdrawal apron before consuming forward supplies  693ms
+   ✓ physical emergency trips > shares scarce withdrawal rations without early arrivals stockpiling reserves  361ms
+ ✓ src/garrison/SupplyRecovery.test.ts (6 tests) 2106ms
+   ✓ player-ordered physical supply recovery > routes from distant prepared sectors to secured Saint-Martin on actual generated terrain  1226ms
+ ✓ src/construction/EngineerSystem.test.ts (16 tests) 2039ms
+   ✓ engineer work parties > finishes a bent loop and several branches without leaving a crew or unfinished arm behind  537ms
+stdout | src/navigation/FriendlyTraffic.test.ts > P0 friendly traffic and local route joining > 96 walkers pass a narrow T with counterflow without two-second body jams
+T-junction walking fixture {"isolated":{"seconds":57.89999999999885,"maxStall":0},"crowded":{"seconds":57.89999999999885,"maxStall":0}}
+
+ ✓ src/navigation/FriendlyTraffic.test.ts (3 tests) 1923ms
+   ✓ P0 friendly traffic and local route joining > 96 walkers pass a narrow T with counterflow without two-second body jams  1870ms
+ ✓ src/construction/MultiBuild.test.ts (8 tests) 1653ms
+   ✓ multi-build skill and ownership reliability > completes all three through real carrier/work movement with inventory conserved  894ms
+   ✓ multi-build skill and ownership reliability > continues exact multi-build progress after a mid-delivery save  658ms
+ ✓ src/garrison/WaitingSpace.test.ts (4 tests) 1559ms
+   ✓ temporary trench waiting space > physically clears a 96-person resting pile from a real junction and keeps floor reservations distinct  1423ms
+ ✓ src/garrison/PersistentDefense.test.ts (7 tests) 1632ms
+   ✓ persistent trench assignments > retains membership through night duties, alarm recovery and a completed support connector  703ms
+ ✓ src/garrison/SupplyDemand.test.ts (17 tests) 1528ms
+   ✓ explicit supply demand and reservation accounting > never automatically plans player structures over twelve campaign hours with stocked materials  1414ms
+ ✓ src/garrison/CrewRelief.test.ts (3 tests) 1417ms
+   ✓ reserves a relief separately and exchanges the actual post only after arrival  1172ms
+ ✓ src/operations/CombatGarrison.test.ts (10 tests) 1142ms
+   ✓ combat and living-garrison transitions > expires the temporary alert, preserves save continuation, and releases explicit player orders  790ms
+ ✓ src/operations/AssaultPlan.test.ts (13 tests) 1040ms
+   ✓ individual assault authority > leaves ongoing simulated duties identical while a read-only review remains open  335ms
+   ✓ individual assault authority > re-crews an abandoned installation only after an explicit assignment and physical return  527ms
+ ✓ src/garrison/LivingTrenches.test.ts (8 tests) 986ms
+   ✓ garrison lifecycle > moves scheduled cargo physically and conserves every resource through save/load  819ms
+ ✓ src/simulation/SelfPreservation.test.ts (6 tests) 961ms
+   ✓ general survival without losing standing orders > physically leaves floor 0, collects stock and returns to the same firing point  308ms
+   ✓ general survival without losing standing orders > physically leaves floor 1, collects stock and returns to the same firing point  411ms
+ ✓ src/garrison/ReturnApproach.test.ts (4 tests) 967ms
+   ✓ validated return approaches > continues the actual pickup and laden return identically through save/load  439ms
+ ✓ src/garrison/SupplyPoints.test.ts (6 tests) 982ms
+   ✓ secured town supply points and physical changeover > rejects neutral towns and offers only a real road and last-mile route  887ms
+ ✓ src/garrison/FrontContinuity.test.ts (4 tests) 895ms
+ ✓ src/garrison/RecoveryTargets.test.ts (6 tests) 879ms
+ ✓ src/construction/SharedExcavation.test.ts (4 tests) 871ms
+   ✓ shared physical excavation > additional ordinary hands join a tool-equipped project and increase real work after arriving  333ms
+   ✓ shared physical excavation > keeps helpers on queued branches when the first trench completes, and resumes after tools return  388ms
+ ✓ src/combat/Artillery.test.ts (10 tests) 873ms
+   ✓ independently owned field artillery > single gun physically builds, owns its weapon when empty, and uses ordinary replacement crew  356ms
+   ✓ independently owned field artillery > bounded bombardment is deterministic and the physical gun silhouette is substantially larger than a person  476ms
+ ✓ src/garrison/EmergencyReview.test.ts (8 tests) 786ms
+ ✓ src/garrison/GarrisonRelocation.test.ts (7 tests) 759ms
+ ✓ src/combat/MountTraverse.test.ts (3 tests) 786ms
+   ✓ mounted MG response and shared traverse > turns before firing, reacquires during cooldown and refuses targets outside the sector at 1x  414ms
+   ✓ mounted MG response and shared traverse > turns before firing, reacquires during cooldown and refuses targets outside the sector at 5x  363ms
+ ✓ src/operations/Campaign.test.ts (4 tests) 729ms
+   ✓ open-ended opposing trench campaign > saves raids, construction, sight acquisition, needs and physical deliveries without changing continuation  668ms
+ ✓ src/render/GroundGeometry.test.ts (3 tests) 689ms
+   ✓ rendered excavation > removes road surfacing across a cut and restores it on load without that cut  316ms
+ ✓ src/combat/Ballistics.test.ts (11 tests) 573ms
+   ✓ physical rifle shots > makes five-foot shots dangerous without making moving or stressed shooters perfect  413ms
+ ✓ src/garrison/NonlethalNeeds.test.ts (7 tests) 567ms
+ ✓ src/operations/Replacements.test.ts (7 tests) 549ms
+   ✓ finite physical replacements > requested squads spend finite reserves, ride real routes and survive a mid-convoy save  465ms
+ ✓ src/garrison/MountedMGTraffic.test.ts (1 test) 545ms
+   ✓ passes both ways through an operating inline MG while ammo uses a separate bay and reserves wait away from it  545ms
+ ✓ src/navigation/SquadNavigation.test.ts (7 tests) 541ms
+ ✓ src/operations/TrenchRaid.test.ts (6 tests) 497ms
+   ✓ persistent physical trench raid > walks from open ground through separate entries and clears branches before physical capture  346ms
+ ✓ src/combat/CasualtyTriage.test.ts (21 tests) 436ms
+ ✓ src/combat/TargetContinuity.test.ts (6 tests) 469ms
+ ✓ src/operations/Missions.test.ts (13 tests) 458ms
+ ✓ src/combat/PositionOwnership.test.ts (6 tests) 444ms
+ ✓ src/garrison/NearestEntry.test.ts (5 tests) 427ms
+ ✓ src/construction/EngineerTransitions.test.ts (6 tests) 415ms
+ ✓ src/combat/WeaponPositions.test.ts (8 tests) 400ms
+   ✓ physical crewed weapon positions > engineers deliver and build; selected crews walk in, hold their post, save and unmount on a new order  304ms
+ ✓ src/garrison/RestPreference.test.ts (1 test) 399ms
+   ✓ prefers a reachable built dugout, falls back when full, and resumes identically after saving the approach  398ms
+ ✓ src/combat/Equipment.test.ts (5 tests) 359ms
+   ✓ equipment, not classes > takes the rest of a mixed formation along to cover its tool carriers, without inventing additional workers  311ms
+ ✓ src/render/BuildingAppearance.test.ts (6 tests) 354ms
+   ✓ adaptive structure presentation > preserves roof cutaways and bounds detail batching per building  333ms
+ ✓ src/combat/MountedEngagement.test.ts (1 test) 363ms
+   ✓ builds, walks a mixed crew, observes and fires the mounted gun; wrong facing and empty ammunition explain inactivity  362ms
+ ✓ src/garrison/PersonalOrders.test.ts (8 tests) 330ms
+ ✓ src/operations/OperationOutcome.test.ts (4 tests) 300ms
+ ✓ src/combat/Reactions.test.ts (5 tests) 315ms
+ ✓ src/combat/Casualties.test.ts (9 tests) 275ms
+ ✓ src/operations/MissionRebuild.test.ts (3 tests) 195ms
+ ✓ src/garrison/DefensivePositions.test.ts (3 tests) 156ms
+ ✓ src/render/GroundDressing.test.ts (2 tests) 142ms
+ ✓ src/combat/OverhaulRegressions.test.ts (4 tests) 127ms
+ ✓ src/operations/PreparedOrders.test.ts (6 tests) 115ms
+ ✓ src/operations/RifleCombat.test.ts (5 tests) 103ms
+ ✓ src/navigation/KnownRouteThreat.test.ts (5 tests) 108ms
+ ✓ src/operations/AssaultWorkers.test.ts (10 tests) 110ms
+ ✓ src/operations/Visibility.test.ts (20 tests) 100ms
+ ✓ src/render/VisualRescue.test.ts (9 tests) 99ms
+ ✓ src/terrain/EngineerGrounding.test.ts (6 tests) 93ms
+ ✓ src/operations/ReserveCapacity.test.ts (5 tests) 93ms
+ ✓ src/garrison/ShipmentInterception.test.ts (5 tests) 84ms
+ ✓ src/operations/OpenFrontReadiness.test.ts (3 tests) 83ms
+ ✓ src/garrison/SupplyWorkload.test.ts (6 tests) 82ms
+ ✓ src/garrison/DutyReservations.test.ts (8 tests) 86ms
+ ✓ src/combat/SupportAudit.test.ts (20 tests) 74ms
+ ✓ src/garrison/CampaignLogistics.test.ts (5 tests) 70ms
+ ✓ src/simulation/DeathRecord.test.ts (4 tests) 62ms
+ ✓ src/garrison/CorridorQueries.test.ts (4 tests) 60ms
+ ✓ src/ui/PlanningReadout.test.ts (4 tests) 65ms
+ ✓ src/persistence/LivingSave.test.ts (5 tests) 59ms
+ ✓ src/garrison/EmergencyPause.test.ts (3 tests) 59ms
+ ✓ src/render/TrenchAppearance.test.ts (2 tests) 55ms
+ ✓ src/garrison/CapacityCells.test.ts (4 tests) 52ms
+ ✓ src/operations/ObjectiveControl.test.ts (2 tests) 51ms
+ ✓ src/garrison/NetworkCapacity.test.ts (4 tests) 45ms
+ ✓ src/dev/AuthoringWorld.test.ts (7 tests) 49ms
+ ✓ src/simulation/SandboxDeployment.test.ts (4 tests) 41ms
+ ✓ src/garrison/SupplyAccess.test.ts (3 tests) 43ms
+ ✓ src/scenarios/ScenarioPreset.test.ts (10 tests) 45ms
+ ✓ src/combat/Autonomy.test.ts (7 tests) 45ms
+ ✓ src/combat/SupportWeapons.test.ts (13 tests) 43ms
+ ✓ src/combat/FireSupportGroup.test.ts (2 tests) 41ms
+ ✓ src/render/ShotPresentation.test.ts (2 tests) 37ms
+ ✓ src/combat/TrenchFiring.test.ts (7 tests) 35ms
+ ✓ src/render/EngineerMotion.test.ts (3 tests) 33ms
+ ✓ src/garrison/Roadhead.test.ts (3 tests) 34ms
+ ✓ src/construction/ResumeWork.test.ts (10 tests) 33ms
+ ✓ src/render/StrategyCamera.test.ts (7 tests) 32ms
+ ✓ src/ui/WeaponReadout.test.ts (4 tests) 27ms
+ ✓ src/garrison/Manpower.test.ts (2 tests) 28ms
+ ✓ src/ui/FieldPresentation.test.ts (7 tests) 26ms
+ ✓ src/operations/TrenchIntelligence.test.ts (2 tests) 23ms
+ ✓ src/ui/TrenchReadout.test.ts (2 tests) 24ms
+ ✓ src/operations/LocalIntelligence.test.ts (2 tests) 25ms
+ ✓ src/ui/GameplayReadouts.test.ts (5 tests) 23ms
+ ✓ src/ui/GarrisonReadout.test.ts (5 tests) 22ms
+ ✓ src/ui/MarchPreview.test.ts (1 test) 20ms
+ ✓ src/ui/NetworkIdentity.test.ts (6 tests) 20ms
+ ✓ src/render/SupportAnimation.test.ts (1 test) 19ms
+ ✓ src/operations/TerrainSight.test.ts (2 tests) 18ms
+ ✓ src/terrain/TerrainSampling.test.ts (1 test) 16ms
+ ✓ src/garrison/PositionCapture.test.ts (2 tests) 17ms
+ ✓ src/persistence/CombatSave.test.ts (2 tests) 16ms
+ ✓ src/operations/ObjectSight.test.ts (3 tests) 16ms
+ ✓ src/combat/MountedGeometry.test.ts (1 test) 15ms
+ ✓ src/learning/PolicyClient.test.ts (3 tests) 15ms
+ ✓ src/garrison/CasualtyCapacity.test.ts (1 test) 12ms
+ ✓ src/combat/WeaponHandling.test.ts (2 tests) 10ms
+ ✓ src/ui/SupportReadiness.test.ts (1 test) 10ms
+ ✓ src/render/RestoredView.test.ts (4 tests) 9ms
+ ✓ src/navigation/MoveFootprint.test.ts (4 tests) 8ms
+ ✓ src/ui/ContactReadout.test.ts (5 tests) 7ms
+ ✓ src/terrain/WorldOcclusion.test.ts (4 tests) 7ms
+ ✓ src/ui/FieldReadout.test.ts (2 tests) 6ms
+ ✓ src/dev/FolderStore.test.ts (4 tests) 5ms
+ ✓ src/render/HostViewport.test.ts (7 tests) 4ms
+ ✓ src/ui/TacticalOverlay.test.ts (4 tests) 4ms
+ ✓ src/ui/FormationLabels.test.ts (3 tests) 3ms
+ ✓ src/sessions/AttractCycle.test.ts (3 tests) 3ms
+ ✓ src/navigation/AsyncSquadPlanner.test.ts (1 test) 3ms
+ ✓ src/render/ContextRecovery.test.ts (1 test) 3ms
+ ✓ src/ui/MapLabels.test.ts (3 tests) 3ms
+ ✓ src/ui/ProjectedPaths.test.ts (3 tests) 2ms
+ ✓ src/input/PlacementPreview.test.ts (2 tests) 2ms
+ ✓ src/ui/HudLayout.test.ts (4 tests) 2ms
+ ✓ src/input/GameplayKeys.test.ts (3 tests) 2ms
+ ✓ src/ui/ReplayTiming.test.ts (3 tests) 2ms
+
+ Test Files  143 passed (143)
+      Tests  948 passed (948)
+   Start at  19:02:01
+   Duration  366.14s (transform 1.62s, setup 0ms, collect 24.08s, tests 312.54s, environment 15ms, prepare 12.60s)

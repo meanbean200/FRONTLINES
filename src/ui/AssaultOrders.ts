@@ -2,6 +2,8 @@ import type {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {previewAssault} from '../operations/AssaultPlan';
 import {updateLiveContent} from './LiveContent';
 import './assault-orders.css';
+import {networkName,trenchName} from './TrenchReadout';
+import {facilityName} from '../construction/PositionDefinitions';
 const esc=(v:unknown)=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 /** Consequence review only; the fixed-tick command revalidates before release. */
 export class AssaultOrders {
@@ -39,18 +41,18 @@ export class AssaultOrders {
     if(wasHidden)window.dispatchEvent(new Event('frontlines-assault-review'));
     const allIn=orders.some(o=>o.assault!.staffing==='all-in'),includeWorkers=orders.some(o=>o.assault!.options?.includeWorkers),ids=[...new Set(orders.flatMap(o=>o.assault!.participantIds))];
     const scoped=orders.some(o=>o.assault!.options?.personIds!==undefined),scopeIds=orders.flatMap(o=>o.assault!.options?.personIds??state.soldiers.filter(s=>s.squadId===o.squadId).map(s=>s.id));
-    const names=(ids:number[])=>ids.map(id=>{const s=state.soldiers.find(s=>s.id===id),q=state.squads.find(q=>q.id===s?.squadId);return esc(`${q?.name??'Person'} ${id}`);}).join(', ')||'None';
+    const names=(ids:number[])=>ids.map(id=>{const s=state.soldiers.find(s=>s.id===id),q=state.squads.find(q=>q.id===s?.squadId);return esc(`${q?.name??'Person'} ${q?q.soldierIds.indexOf(id)+1:''}`);}).join(', ')||'None';
     const weaponIds=[...new Set(orders.flatMap(o=>o.assault!.preview.weaponIds))],workIds=[...new Set(orders.flatMap(o=>o.assault!.preview.workIds))],trenchWorkIds=[...new Set(orders.flatMap(o=>o.assault!.preview.trenchWorkIds??[]))],sources=[...new Set(orders.flatMap(o=>o.assault!.preview.sourcePositionIds))];
     const aggregate=previewAssault(state,orders.map(o=>o.squadId),allIn?'all-in':'normal',orders.every(o=>o.assault!.sourcePositionIds)?sources:undefined,{includeWorkers,personIds:scopeIds});
     const exclusions=orders.flatMap(o=>o.assault!.preview.excluded),changed=orders.some(o=>o.assault!.reviewRequired);
-    const html=`<header><small>FIELD ORDER / ASSAULT</small><h2>${allIn?'ALL IN — release protected personnel':'Prepare assault'}</h2></header><p>Preview only. Current duties continue until GO.</p>
-      <label>Personnel source<select data-assault-source aria-label="Assault personnel source"><option value="">${scoped?'Selected work party · '+scopeIds.length+' people':'Selected formations'}</option>${(state.living?.garrisons??[]).filter(g=>g.faction!=='enemy').map(g=>`<option value="${g.id}" ${orders.every(o=>o.assault!.sourcePositionIds?.includes(g.id))?'selected':''}>${esc(g.name)}</option>`).join('')}</select></label>
+    const html=`<header><small>FIELD ORDER / PREVIEW</small><h2>${allIn?'ALL IN':'Prepare assault'}</h2></header><div class="assault-detail">
+      <label>Personnel source<select data-assault-source aria-label="Assault personnel source"><option value="">${scoped?'Selected work party · '+scopeIds.length+' people':'Selected formations'}</option>${(state.living?.garrisons??[]).filter(g=>g.faction!=='enemy').map(g=>`<option value="${g.id}" ${orders.every(o=>o.assault!.sourcePositionIds?.includes(g.id))?'selected':''}>${esc(networkName(state,g.id))}</option>`).join('')}</select></label>
       <div class="assault-mode"><button data-staffing="normal" aria-pressed="${!allIn}">NORMAL</button><button data-staffing="all-in" aria-pressed="${allIn}">ALL IN</button></div>
-      <label class="assault-workers"><input type="checkbox" data-include-workers ${includeWorkers?'checked':''} ${allIn?'disabled':''}> Include workers</label><small>${allIn?'ALL IN already includes eligible workers and station crews.':scoped?'Only the selected people are reviewed. Squad identities stay unchanged.':'Available personnel first. Workers opt in; station crews and recovery stay protected.'}</small>
+      <label class="assault-workers" title="Normal protects crews and recovery; ALL IN releases eligible crews and workers."><input type="checkbox" data-include-workers ${includeWorkers?'checked':''} ${allIn?'disabled':''}> Include workers</label>
       ${changed?'<strong role="status">Consequences changed. Review before confirming again.</strong>':''}
       <dl><dt>Selected / excluded</dt><dd>${ids.length} / ${exclusions.length}</dd><dt>Weapons losing crews</dt><dd>${weaponIds.length}</dd><dt>Worksites releasing workers</dt><dd>${workIds.length+trenchWorkIds.length}</dd><dt>Assigned remaining</dt><dd>${aggregate.remainingAssigned}</dd><dt>Ready defenders / weapons</dt><dd>${aggregate.remainingReadyPersonnel} / ${aggregate.remainingReadyWeapons}</dd></dl>
-      <details><summary>People and consequences</summary><p>Selected: ${names(ids)}</p>${exclusions.map(e=>`<p>${names([e.id])} — ${esc(e.reason)}</p>`).join('')}<p>Wake: ${names(orders.flatMap(o=>o.assault!.preview.awakenedIds))}</p><p>Unarmed: ${names(orders.flatMap(o=>o.assault!.preview.unarmedIds))}</p><p>Low ammunition: ${names(orders.flatMap(o=>o.assault!.preview.lowAmmoIds))}</p><p>Weapon posts: ${weaponIds.join(', ')||'None'}. Worksites: ${workIds.join(', ')||'None'}. Excavation: ${trenchWorkIds.join(', ')||'None'}.</p></details>
-      <small>Guns stay here. Cargo stays physical. Critical recovery and casualty care cannot be overridden.</small><footer><button data-assault-cancel>Cancel preview</button><button data-assault-go ${!ids.length||orders.every(o=>o.signalAt!==undefined)?'disabled':''}>${allIn?'Confirm ALL IN · GO':'Confirm · GO'}</button></footer>`;
+      <details><summary>People and consequences</summary><p>Selected: ${names(ids)}</p>${exclusions.map(e=>`<p>${names([e.id])} — ${esc(e.reason)}</p>`).join('')}<p>Wake: ${names(orders.flatMap(o=>o.assault!.preview.awakenedIds))}</p><p>Unarmed: ${names(orders.flatMap(o=>o.assault!.preview.unarmedIds))}</p><p>Low ammunition: ${names(orders.flatMap(o=>o.assault!.preview.lowAmmoIds))}</p><p>Positions: ${state.living!.facilities.filter(f=>weaponIds.includes(f.id)||workIds.includes(f.id)).map(f=>esc(facilityName(state,f))).join(', ')||'None'}. Excavation: ${trenchWorkIds.map(id=>trenchName(state,id)).join(', ')||'None'}.</p><p>Nothing changes before GO. Installed guns stay here. Cargo stays physical. Critical recovery and casualty care cannot be overridden.</p></details></div>
+      <footer><button data-assault-cancel>Cancel preview</button><button data-assault-go ${!ids.length||orders.every(o=>o.signalAt!==undefined)?'disabled':''}>${allIn?'Confirm ALL IN · GO':'Confirm · GO'}</button></footer>`;
     if(html!==this.key){this.key=html;updateLiveContent(this.element,html);}
   }
 }

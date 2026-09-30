@@ -35,7 +35,7 @@ test('contextual commands, drawer escape and direct trench entry remain accessib
   await expect(page.locator('.command-dock')).toBeVisible();await expect(page.locator('.command-dock button')).toHaveCount(3);await expect(page.locator('#hold-command')).toBeVisible();
   await expect(page.locator('[data-tactical="assault"]')).toBeHidden();await page.getByRole('button',{name:'Manage',exact:true}).click();
   await expect(page.locator('[data-tactical="assault"]')).toBeVisible();await expect(page.locator('[data-tactical="observe"],[data-tactical="fall-back"]')).toHaveCount(0);await expect(page.locator('#resume-command')).toBeHidden();
-  await page.keyboard.press('Escape');await page.locator('.hud-tools>summary').click();await page.locator('#open-fire-support').click();await expect(page.locator('.support-status')).toContainText('Choose guns, then one target');await page.locator('.support-controls>summary').click();
+  await page.keyboard.press('Escape');await page.locator('.hud-tools>summary').click();await page.locator('#open-fire-support').click();await expect(page.locator('[data-fire-target]')).toHaveText('Choose target');await expect(page.locator('[data-fire-ready]')).toBeVisible();await page.locator('.support-controls>summary').click();
   await page.locator('#selection-docket [data-hud-panel]').click();await expect(page.locator('#selection-card')).toBeVisible();
   await page.keyboard.press('Escape');await expect(page.locator('#selection-card')).toBeHidden();await expect(page.locator('.operation-menu')).toBeHidden();
   await page.locator('.hud-tools>summary').click();await page.locator('#open-build').click();await page.locator('#trench-command').click();

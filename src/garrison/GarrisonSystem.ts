@@ -21,7 +21,7 @@ import {ownsAction} from '../combat/Reactions';
 import {bodyBlocks} from '../navigation/FriendlyTraffic';
 import {facilitySiteReason,SUPPORT_WORKS} from '../construction/ConstructionReadout';
 import {positionOperator,crewAt,crewOperator,carriesPositionWeapon,migrateWeaponCrews,installPositionWeapons,type WeaponPositionKind} from '../combat/WeaponPositions';
-import {WEAPON_POSITIONS,weaponCrewPoint,trenchAnchorAt,inlineGeometry} from '../construction/PositionDefinitions';
+import {WEAPON_POSITIONS,weaponCrewPoint,weaponServicePoint,trenchAnchorAt,inlineGeometry} from '../construction/PositionDefinitions';
 import {facilityFrame,facilityPoint} from '../terrain/SupportGeometry';
 import {equipmentOf,hasEquipment,squadHasEquipment} from '../combat/Equipment';
 import {postureSpeed} from '../combat/Posture';
@@ -31,6 +31,9 @@ import {artilleryLayout} from '../construction/ArtilleryLayout';
 import {raidSearchComplete} from '../operations/TrenchRaid';
 import {detachedFromFormation} from '../operations/AssaultPlan';
 import {waitingSpace} from './WaitingSpace';
+import {knownRouteThreat} from '../navigation/KnownRouteThreat';
+import {trenchName} from './PositionNames';
+import {forwardAccess} from './SupplyPoints';
 
 const WATCH={routine:.25,alert:.5,'stand-to':.9};
 const NIGHT=(hours:number)=>hours%24>=20||hours%24<6;
@@ -82,7 +85,7 @@ export class GarrisonSystem {
       }else if(this.network.corridorContains(s)?!this.network.route(s,entrance,component).length:!this.entryApproach(s,component,entrance))return reject('route',`Access blocked for person ${s.id} · no reachable entry into this network. Capacity is not the blocker.`,s.id);
     }
     let g=existing.find(g=>(g.faction??'player')===side)??existing[0];
-    if(!g){g={id:this.state.nextEntityId++,name:`Garrison ${w.garrisons.length+1}`,trenchId,squadIds:[],entrance:{...entrance},forward:this.logistics.forwardPoint(entrance,side),front:0,readiness:'routine',cache:inventory(),forwardStock:inventory(),nextDecision:0,nextSupport:0,policy:'rules',policyStatus:'Rule-based coordinator',scores:[],cutoff:'clear',watchRequired:0,watchPresent:0,capacity:this.network.capacity(component)};w.garrisons.push(g);}
+    if(!g){g={id:this.state.nextEntityId++,name:trenchName(this.state,trenchId),trenchId,squadIds:[],entrance:{...entrance},forward:this.logistics.forwardPoint(entrance,side),front:0,readiness:'routine',cache:inventory(),forwardStock:inventory(),nextDecision:0,nextSupport:0,policy:'rules',policyStatus:'Rule-based coordinator',scores:[],cutoff:'clear',watchRequired:0,watchPresent:0,capacity:this.network.capacity(component)};w.garrisons.push(g);}
     for(const old of existing.filter(g=>(g.faction??'player')!==side)){
       // Capture changes the post, never the allegiance or physical location of
       // its former people. Include detached personal crews, not only formations.
@@ -190,7 +193,7 @@ export class GarrisonSystem {
     const existing=this.state.living!.garrisons.find(g=>this.network.component(g.trenchId)===component);
     if(existing)return existing.faction==='enemy'?undefined:existing;
     if(this.state.squads.some(q=>q.id===t.engineerSquadId&&q.faction==='enemy'))return;
-    const entrance=trenchEntrance(t),g:Garrison={id:this.state.nextEntityId++,name:`Network ${this.state.living!.garrisons.filter(g=>g.faction!=='enemy').length+1}`,trenchId,squadIds:[],entrance:{...entrance},forward:this.logistics.forwardPoint(entrance),front:0,readiness:'routine',cache:inventory(),forwardStock:inventory(),nextDecision:0,nextSupport:0,policy:'rules',policyStatus:'Rule-based coordinator',scores:[],cutoff:'clear',watchRequired:0,watchPresent:0,capacity:this.network.capacity(component)};
+    const entrance=trenchEntrance(t),g:Garrison={id:this.state.nextEntityId++,name:trenchName(this.state,trenchId),trenchId,squadIds:[],entrance:{...entrance},forward:this.logistics.forwardPoint(entrance),front:0,readiness:'routine',cache:inventory(),forwardStock:inventory(),nextDecision:0,nextSupport:0,policy:'rules',policyStatus:'Rule-based coordinator',scores:[],cutoff:'clear',watchRequired:0,watchPresent:0,capacity:this.network.capacity(component)};
     this.state.living!.garrisons.push(g);return g;
   }
   private personBlock(s:SoldierState,g:Garrison,allowHold=false,allowRecovery=false):string {
@@ -272,7 +275,7 @@ export class GarrisonSystem {
         if(!active.includes(s)||this.personBlock(s,g)||s.needs!.energy<25||s.duty?.kind==='haul'||s.duty?.kind==='meal'||s.duty?.kind==='sleep'&&s.needs!.energy<65)continue;
         const resource:Resource=f.kind==='mortar'?(f.stock.mortarHE<1?'mortarHE':'mortarSmoke'):'ammo',low=s!==operator&&f.stock[resource]<(f.kind==='mortar'?2:30)&&s.carried![resource]<(f.kind==='mortar'?1:8),source=this.supplySource(g,resource);
         const stock=source.storeId?this.state.living!.facilities.find(p=>p.id===source.storeId)!.stock:g.cache;
-        if(low&&availableForPerson(this.state,s.id,source.storeId?'store':'local',source.storeId??g.id,resource,stock[resource])>0){if(this.assignDuty(s,g,'meal',this.supplyPoint(g,s,source.storeId),'Reload weapon ammunition from local stores',30)){s.duty!.stage='pickup';s.duty!.pickupStoreId=source.storeId;}continue;}
+        if(low&&availableForPerson(this.state,s.id,source.storeId?'store':'local',source.storeId??g.id,resource,stock[resource])>0){if(this.assignDuty(s,g,'meal',this.supplyPoint(g,s,source.storeId),'Reload weapon ammunition from local stores',30)){s.duty!.stage='pickup';s.duty!.pickupStoreId=source.storeId;s.duty!.weaponDeliveryId=f.id;}continue;}
         if(s.duty?.kind==='watch'&&s.duty.facilityId===f.id&&distance(s.duty.destination,weaponCrewPoint(this.state,f,s===operator?0:1))<.25)continue;
         if(this.assignDuty(s,g,'watch',weaponCrewPoint(this.state,f,s===operator?0:1),'Assigned weapon crew',150)){s.duty!.facilityId=f.id;s.duty!.watchPost={...s.duty!.destination};}
       }
@@ -289,7 +292,9 @@ export class GarrisonSystem {
       if(this.state.elapsed-pending.handoverAt!<1)return;
       // The newcomer has physically arrived. Only now exchange the operational berth.
       f.weaponCrewIds=f.weaponCrewIds!.map(id=>id===outgoing.id?incoming.id:id);
-      incoming.duty!.reason='Assigned weapon crew';incoming.duty!.until=this.state.elapsed+150;
+      // Incoming waits in the separate handover bay. The vacated gun berth is
+      // reached by movement on the next coordination pass, never teleported.
+      delete incoming.duty;
       delete f.crewRelief;
       if(pending.reason==='rest')this.assignRest(outgoing,g,this.people(g),150);
       else {delete outgoing.duty;outgoing.nextSelfCareReview=0;}
@@ -304,7 +309,8 @@ export class GarrisonSystem {
     const candidates=active.filter(s=>!busy.has(s.id)&&!this.personBlock(s,g)&&!s.duty?.playerOrdered&&!s.combat?.careTask&&!hasEquipment(this.state,s,'medicalKit')&&s.needs!.energy>=65&&(!s.duty||['rest','patrol'].includes(s.duty.kind)||(effectiveReadiness(g,this.state.elapsed)==='stand-to'&&s.duty.kind==='construct')))
       .sort((a,b)=>distance(a,f)-distance(b,f)||a.id-b.id);
     for(const incoming of candidates){
-      const point=weaponCrewPoint(this.state,f,f.weaponCrewIds!.indexOf(outgoing.id));
+      const point=weaponServicePoint(this.state,f,true);
+      if(!this.network.corridorContains(point))continue;
       if(!this.attachPerson(incoming,g,point,'watch','Relief approaching weapon post'))continue;
       incoming.duty!.facilityId=f.id;incoming.duty!.watchPost={...point};
       for(const work of this.state.living!.facilities)if(work.workOrder)work.workOrder.workerIds=work.workOrder.workerIds.filter(id=>id!==incoming.id);
@@ -379,10 +385,10 @@ export class GarrisonSystem {
         }else if(constructionDemand(this.state,f.id)?.claims.some(c=>c.source==='local'||c.source==='store')){
           const claim=constructionDemand(this.state,f.id)!.claims.find(c=>c.source==='local'||c.source==='store')!,source={storeId:claim.source==='store'?claim.id:undefined};
           if(this.assignDuty(s,g,'haul',this.supplyPoint(g,s,source.storeId),'Materials for explicit work order',90)){s.duty!.stage='pickup';s.duty!.facilityId=f.id;s.duty!.pickupStoreId=source.storeId;}
-        }else if(g.forwardStock.materials>0){
+        }else if(g.forwardStock.materials>0&&!g.pendingSupplyPoint&&!forwardAccess(this.state,g)){
           if(this.assignDuty(s,g,'haul',this.forwardServicePoint(g,s),'Fetch delivered construction materials',180,true))s.duty!.stage='pickup';
         }else {
-          const mouth=f.trenchAnchor?weaponCrewPoint(this.state,f,0):this.state.trenches.find(t=>t.id===f.connectorId)!.points[0];
+          const mouth=f.trenchAnchor?weaponServicePoint(this.state,f):this.state.trenches.find(t=>t.id===f.connectorId)!.points[0];
           // A worker who delivered the first load must clear the shared entrance
           // for the remaining carrier, not rest on its final waypoint forever.
           if(s.duty?.kind!=='rest'||distance(s.duty.destination,mouth)<1.5)this.assignDuty(s,g,'rest',this.localMealPoint(g,s),'Waiting aside for delivered materials',10);
@@ -626,9 +632,10 @@ export class GarrisonSystem {
       const haulers=active.filter(p=>p.duty?.kind==='haul').length;
       const ammoTarget=Math.min(300,active.length*6);
       const forwardDemand=local.food<active.length*2&&g.forwardStock.food>0||local.water<active.length*2&&g.forwardStock.water>0||local.materials<32&&g.forwardStock.materials>0||this.state.operation&&(local.ammo<ammoTarget&&g.forwardStock.ammo>0||(['medical','mortarHE','mortarSmoke','smokeGrenades'] as const).some(key=>local[key]<6&&g.forwardStock[key]>0));
-      if(forwardDemand&&haulers<Math.max(2,Math.ceil(active.length*.15))&&(g.scores[4]>.1||local.materials<32||this.state.operation&&local.ammo<ammoTarget)){
+      if(forwardDemand&&!g.pendingSupplyPoint&&!forwardAccess(this.state,g)&&haulers<Math.max(2,Math.ceil(active.length*.15))&&(g.scores[4]>.1||local.materials<32||this.state.operation&&local.ammo<ammoTarget)){
         const loading=this.forwardServicePoint(g,s);
-        if(loading&&this.assignDuty(s,g,'haul',loading,'Collect physical forward shipment',180,true))s.duty!.stage='pickup';continue;
+        const urgentAmmo=(g.underFireUntil??0)>this.state.elapsed&&local.ammo<active.length*2&&forwardClaims(this.state,g.id).some(c=>c.resource==='ammo'&&c.amount>0);
+        if(loading&&this.assignDuty(s,g,'haul',loading,urgentAmmo?'Collect critical ammunition':'Collect physical forward shipment',180,true,urgentAmmo))s.duty!.stage='pickup';continue;
       }
       if(haulers<2){
         const crates=w.crates.filter(c=>total(c.stock)>0&&(g.cutoff==='clear'&&distance(c,g.entrance)<80||g.cutoff==='recover')&&!this.state.soldiers.some(p=>p.duty?.crateId===c.id)&&!crateAccess(this.state,this.terrain,c,g.faction??'player'))
@@ -675,14 +682,14 @@ export class GarrisonSystem {
     const hit=this.network.nearest(p);if(!hit)return p;const e=this.network.edges[hit.edge],a=this.network.nodes[e.a],b=this.network.nodes[e.b],d=distance(a,b)||1;
     return {x:p.x+(b.z-a.z)/d*Math.min(1.15,e.width*.27)*side,z:p.z-(b.x-a.x)/d*Math.min(1.15,e.width*.27)*side};
   }
-  private openApproach(from:Vec2,to:Vec2,entrance:Vec2,exit?:Vec2):Vec2[]{
+  private openApproach(from:Vec2,to:Vec2,entrance:Vec2,exit?:Vec2,danger?:(p:Vec2)=>boolean):Vec2[]{
     // External routes respect trench walls too; a local avoidance search cannot
     // repair a global route that cuts straight through another branch.
     const revision=`${this.network.revision}:${this.terrain.revision}`;
     if(revision!==this.approachRevision){this.approachRevision=revision;this.approachCache.clear();}
-    const key=`${from.x},${from.z}:${to.x},${to.z}:${entrance.x},${entrance.z}:${exit?.x},${exit?.z}`,cached=this.approachCache.get(key);
+    const key=`${from.x},${from.z}:${to.x},${to.z}:${entrance.x},${entrance.z}:${exit?.x},${exit?.z}`,cached=danger?undefined:this.approachCache.get(key);
     if(cached)return cached.map(p=>({...p}));
-    const avoid=(p:Vec2)=>this.network.corridorContains(p)&&distance(p,entrance)>this.passageRadius(entrance)&&(!exit||distance(p,exit)>this.passageRadius(exit));
+    const avoid=(p:Vec2)=>Boolean(danger?.(p))||this.network.corridorContains(p)&&distance(p,entrance)>this.passageRadius(entrance)&&(!exit||distance(p,exit)>this.passageRadius(exit));
     // An external service berth inside a closed trench bank is impossible;
     // do not exhaust an A* search trying to reach its explicitly forbidden goal.
     if(avoid(to))return [];
@@ -695,7 +702,7 @@ export class GarrisonSystem {
     // A physical delivery cannot append an unchecked hop back into that obstacle.
     if(route.length&&!this.navigation.segmentClear(route.at(-1)!,to,.4,avoid))route=[];
     if(this.approachCache.size>=256)this.approachCache.delete(this.approachCache.keys().next().value!);
-    this.approachCache.set(key,route);return route.map(p=>({...p}));
+    if(!danger)this.approachCache.set(key,route);return route.map(p=>({...p}));
   }
   private retracePickupApproach(s:SoldierState,entrance:Vec2):Vec2[]{
     const d=s.duty;
@@ -749,41 +756,57 @@ export class GarrisonSystem {
     const component=this.network.component(g.trenchId),plan=component===undefined?undefined:this.relocationRoute(s,component,g.entrance);
     if(plan)this.beginRelocation(s,plan,true);else if(s.duty)s.duty.routeBlocked=true;
   }
-  private assignDuty(s:SoldierState,g:Garrison,kind:DutyKind,destination:(Vec2&{pickupQueued?:boolean})|undefined,reason:string,duration:number,outside=false):boolean {
+  private assignDuty(s:SoldierState,g:Garrison,kind:DutyKind,destination:(Vec2&{pickupQueued?:boolean})|undefined,reason:string,duration:number,outside=false,urgentAmmo=false):boolean {
     if(!destination||this.terrain.obstacleAt(destination.x,destination.z,.4))return false;
     const component=this.network.component(g.trenchId);if(component===undefined)return false;
+    const threat=kind==='haul'&&!reason.toLowerCase().includes('aid')?knownRouteThreat(this.state,s,this.terrain,(g.underFireUntil??0)>this.state.elapsed&&(urgentAmmo||(s.carried?.ammo??0)>60)):undefined;
+    const danger=threat?.active?threat.unsafe:undefined;
+    const plan=(avoid?: (p:Vec2)=>boolean)=>{
     let route:Vec2[]=[],entryPoint:Vec2|undefined,exitPoint:Vec2|undefined;const near=this.network.nearest(s,component),target=this.network.nearest(destination,component);
-    if(!near||!target)return false;
+    if(!near||!target)return;
     if(!outside){
       const actualTarget=this.network.nearest(destination);
-      if(!actualTarget||!this.network.corridorContains(destination)||this.network.nodes[this.network.edges[actualTarget.edge].a].component!==component)return false;
+      if(!actualTarget||!this.network.corridorContains(destination)||this.network.nodes[this.network.edges[actualTarget.edge].a].component!==component)return;
     }
     const actual=this.network.nearest(s);
-    if(!outside&&actual&&this.network.corridorContains(s)&&this.network.nodes[this.network.edges[actual.edge].a].component!==component)return false;
+    if(!outside&&actual&&this.network.corridorContains(s)&&this.network.nodes[this.network.edges[actual.edge].a].component!==component)return;
     if(distance(s,destination)<.15){route=[];}
     else if(outside){
       const source=actual&&this.network.corridorContains(s)?this.network.nodes[this.network.edges[actual.edge].a].component:undefined;
-      if(source!==undefined&&source!==component){exitPoint=actual!.point;route=this.network.route(s,exitPoint,source);}
-      else if(source!==undefined&&distance(s,g.entrance)>3)route=this.network.route(s,g.entrance,component);
-      const approach=this.openApproach(route.at(-1)??s,destination,g.entrance,exitPoint);if(!approach.length)return false;route.push(...approach);
+      if(source!==undefined&&source!==component){exitPoint=actual!.point;route=this.network.route(s,exitPoint,source,avoid);if(!route.length)return;}
+      else if(source!==undefined&&distance(s,g.entrance)>3){route=this.network.route(s,g.entrance,component,avoid);if(!route.length)return;}
+      const approach=this.openApproach(route.at(-1)??s,destination,g.entrance,exitPoint,avoid);if(!approach.length)return;route.push(...approach);
     }else{
       if(!this.network.corridorContains(s)){
         let approach:Vec2[]=[];
         if(kind==='haul'){
           entryPoint=g.entrance;approach=this.retracePickupApproach(s,g.entrance);
-          if(!approach.length)approach=this.openApproach(s,g.entrance,g.entrance);
+          if(avoid&&threat?.route(s,approach))approach=[];
+          if(!approach.length)approach=this.openApproach(s,g.entrance,g.entrance,undefined,avoid);
         }else{
           const entry=this.entryApproach(s,component,g.entrance);if(entry){entryPoint=entry.point;approach=entry.route;}
         }
-        if(!approach.length)return false;route.push(...approach);
+        if(!approach.length)return;route.push(...approach);
       }
       // Keep the first centreline projection. Skipping it cuts across a dugout
       // wall when the soldier starts near the side of a wide connector.
-      const inside=this.network.route(route.at(-1)??s,destination,component);if(!inside.length)return false;route.push(...inside);
+      const inside=this.network.route(route.at(-1)??s,destination,component,avoid);if(!inside.length)return;route.push(...inside);
     }
     route.push({x:destination.x,z:destination.z});route=route.filter((p,i)=>i===0||distance(p,route[i-1])>.05).map(p=>({x:p.x,z:p.z}));
+    return {route,entryPoint,exitPoint};
+    };
+    const planned=plan(danger);
+    if(!planned){
+      // Only attribute failure to fighting if a physically legal route exists.
+      // This diagnostic retry never assigns a duty or exposes hidden enemies.
+      if(danger){const ordinary=plan();if(ordinary&&threat!.route(s,ordinary.route))g.haulIssue={personId:s.id,destination:{x:destination.x,z:destination.z},at:this.state.elapsed,reason:'NO SAFE APPROACH'};}
+      return false;
+    }
+    const {route,entryPoint,exitPoint}=planned;
+    if(kind==='haul'&&g.haulIssue?.personId===s.id)delete g.haulIssue;
     if(s.duty?.kind==='sleep'&&s.duty.arrivedAt!==undefined&&this.state.elapsed<s.duty.until)s.needs!.interruptedSleep++;
     s.needs!.taskChanges++;s.duty={kind,destination:{x:destination.x,z:destination.z},route,routeIndex:0,since:this.state.elapsed,until:this.state.elapsed+duration,reason,blockedFor:0};
+    if(urgentAmmo)s.duty.urgentAmmo=true;
     if(destination.pickupQueued)s.duty.pickupQueued=true;
     if(!outside){
       if(this.network.corridorContains(s))s.duty.networkBound=true;else {s.duty.entryPending=true;if(entryPoint)s.duty.entryPoint={...entryPoint};}
@@ -801,7 +824,7 @@ export class GarrisonSystem {
       const front=Math.atan2(contact.x-s.x,contact.z-s.z),to={x:contact.x,z:contact.z,y:this.terrain.heightAt(contact.x,contact.z)+1.4};
       const clear=(p:Vec2)=>{const from=muzzlePoint(this.terrain,{...s,...p,heading:front});return this.terrain.objects.trace(from,to,from.y,to.y,false,true).clear;};
       if(clear(s)){s.heading=front;continue;}
-      const candidates=this.network.samples(component,2).filter(p=>distance(p,s)<10).map(p=>bankPoint(this.network,p,front)).filter(p=>distance(p,s)<=12&&distance(p,s)>.5&&!this.terrain.obstacleAt(p.x,p.z,.4)&&this.network.segmentInside(s,p)&&!people.some(o=>o!==s&&o.needs?.life!=='dead'&&(distance(p,o)<.9||o.duty&&distance(p,o.duty.destination)<.9))).sort((a,b)=>distance(s,a)-distance(s,b));
+      const candidates=this.network.samples(component,2).filter(p=>distance(p,s)<10).map(p=>bankPoint(this.network,p,front)).filter(p=>distance(p,s)<=12&&distance(p,s)>.5&&!this.terrain.obstacleAt(p.x,p.z,.4)&&this.network.segmentInside(s,p)&&!this.state.living!.facilities.some(f=>['emplacement','mortar'].includes(f.kind)&&distance(f,p)<5)&&!people.some(o=>o!==s&&o.needs?.life!=='dead'&&(distance(p,o)<.9||o.duty&&distance(p,o.duty.destination)<.9))).sort((a,b)=>distance(s,a)-distance(s,b));
       const point=candidates.find(clear);
       if(point&&this.assignDuty(s,g,'watch',point,'Moving to a clear firing edge',Math.max(30,d.until-this.state.elapsed))){s.duty!.watchPost={...point};delete s.aimTargetId;}
     }
@@ -809,7 +832,21 @@ export class GarrisonSystem {
   private execute(s:SoldierState,g:Garrison,dt:number):void {
     if(!ownsAction(s,'duty'))return;
     const w=this.state.living!;if(s.needs!.life!=='active'){s.action=s.needs!.life;return;}
-    const d=s.duty;if(!d){s.action='waiting for duty';return;}
+    let d=s.duty;if(!d){s.action='waiting for duty';return;}
+    if(d.kind==='haul'&&!d.patientId&&d.arrivedAt===undefined&&this.state.elapsed>=(d.safetyReviewAt??0)){
+      const threat=knownRouteThreat(this.state,s,this.terrain,(g.underFireUntil??0)>this.state.elapsed&&(d.urgentAmmo||(s.carried?.ammo??0)>60));
+      d.safetyReviewAt=this.state.elapsed+3;
+      if(threat.route(s,d.route.slice(d.routeIndex))||d.unsafeRoute){
+        const previous=d,changes=s.needs!.taskChanges;
+        if(this.assignDuty(s,g,'haul',previous.destination,'REROUTING · FIGHTING AHEAD',Math.max(30,previous.until-this.state.elapsed),!this.network.corridorContains(previous.destination),previous.urgentAmmo)){
+          const routed=s.duty!;
+          // Routing owns only geometry, not the physical job or its cargo.
+          s.duty={...previous,...routed,stage:previous.stage,facilityId:previous.facilityId,crateId:previous.crateId,recoveryLoad:previous.recoveryLoad,pickupStoreId:previous.pickupStoreId,dropStoreId:previous.dropStoreId,playerOrdered:previous.playerOrdered,pickupQueued:previous.pickupQueued,safetyReviewAt:this.state.elapsed+3};
+          delete s.duty.unsafeRoute;d=s.duty;s.needs!.taskChanges=changes;
+        }else{d.unsafeRoute=true;d.reason='ROUTE UNSAFE · WAITING';}
+      }
+    }
+    if(d.unsafeRoute){s.action='route unsafe · waiting';return;}
     const passageRadius=(p:Vec2)=>this.passageRadius(p);
     // Arrival in the destination network releases the temporary travel duty.
     // Routine scheduling must not recruit a traveller back to its old trench.
@@ -895,7 +932,7 @@ export class GarrisonSystem {
       if(distanceLeft<movement+arrival)d.routeIndex++;
       return;
     }
-    s.action=d.kind==='sleep'?'sleeping':d.kind==='meal'?'eating':d.kind==='rest'?'resting':d.kind==='construct'?'digging':d.kind==='haul'?'carrying supplies':d.kind==='watch'?'watching':'patrolling';
+    s.action=d.kind==='sleep'?'sleeping':d.kind==='meal'?(d.weaponDeliveryId!==undefined?'collecting ammunition':'eating'):d.kind==='rest'?'resting':d.kind==='construct'?'digging':d.kind==='haul'?'carrying supplies':d.kind==='watch'?'watching':'patrolling';
     if(d.pickupQueued){
       s.action='waiting for supply service';
       if(d.stage==='deliver'&&!d.patientId&&!d.facilityId){
@@ -903,12 +940,12 @@ export class GarrisonSystem {
         if(total(stock)>=(store?w.logistics!.storeCapacity:w.logistics!.cacheCapacity))return;
       }
       const point=this.supplyPoint(g,s,d.stage==='deliver'?d.dropStoreId:d.pickupStoreId,true);
-      if(point&&this.assignDuty(s,g,d.kind,point,'Supply queue called forward',30)){
-        s.duty!.stage=d.stage;s.duty!.facilityId=d.facilityId;s.duty!.patientId=d.patientId;s.duty!.pickupStoreId=d.pickupStoreId;s.duty!.dropStoreId=d.dropStoreId;s.duty!.crateId=d.crateId;s.duty!.recoveryLoad=d.recoveryLoad;s.duty!.playerOrdered=d.playerOrdered;
+      if(point&&this.assignDuty(s,g,d.kind,point,'Supply queue called forward',30,false,d.urgentAmmo)){
+        s.duty!.stage=d.stage;s.duty!.weaponDeliveryId=d.weaponDeliveryId;s.duty!.facilityId=d.facilityId;s.duty!.patientId=d.patientId;s.duty!.pickupStoreId=d.pickupStoreId;s.duty!.dropStoreId=d.dropStoreId;s.duty!.crateId=d.crateId;s.duty!.recoveryLoad=d.recoveryLoad;s.duty!.playerOrdered=d.playerOrdered;
       }return;
     }
     if(g.cutoff==='withdraw'){
-      if(distance(s,g.forward)<10&&this.state.elapsed-d.arrivedAt>=6){
+      if(distance(s,g.forward)<10&&this.state.elapsed-d.arrivedAt>=6&&!forwardAccess(this.state,g)){
         const carried=s.carried??=inventory();
         // Take only the ration needed now. Early arrivals must not fill reserve
         // packs while the rest of the withdrawing column is still walking here.
@@ -943,6 +980,11 @@ export class GarrisonSystem {
           transferBounded(source,carried,'water',Math.max(0,3*reserve-carried.water),carrierCapacity(carried,w.logistics!.carrierCapacity));
           transferBounded(source,carried,'food',Math.max(0,2*reserve-carried.food),carrierCapacity(carried,w.logistics!.carrierCapacity));
         }
+        const weapon=w.facilities.find(f=>f.weaponCrewIds?.includes(s.id)&&f.progress===1&&['emplacement','mortar'].includes(f.kind));
+        if(weapon&&d.weaponDeliveryId===weapon.id){
+          if(this.assignDuty(s,g,'haul',weaponServicePoint(this.state,weapon),'Delivering weapon ammunition',60)){s.duty!.stage='deliver';s.duty!.weaponDeliveryId=weapon.id;}
+          return;
+        }
         const facility=w.facilities.find(f=>f.id===d.facilityId&&f.progress===1);
         const nearbyFacility=facility&&distance(s,facility)<30?facility:undefined;
         const destination=(nearbyFacility?this.facilityDestination(nearbyFacility,s):undefined)??this.localMealPoint(g,s);
@@ -954,8 +996,17 @@ export class GarrisonSystem {
       }
     }else if(d.kind==='haul'&&this.state.elapsed-d.arrivedAt>=3){
       const carried=s.carried??=inventory();
+      if(d.weaponDeliveryId!==undefined){
+        const weapon=w.facilities.find(f=>f.id===d.weaponDeliveryId);
+        if(weapon&&weapon.garrisonId===g.id&&weapon.progress===1){
+          for(const key of (weapon.kind==='mortar'?['mortarHE','mortarSmoke']:['ammo']) as Resource[])transfer(carried,weapon.stock,key,Math.max(0,(key==='ammo'?120:key==='mortarHE'?8:4)-weapon.stock[key]));
+          s.ammunition=carried.ammo;
+        }
+        delete s.duty;g.nextDecision=0;return;
+      }
       if(d.stage==='pickup'){
         const crate=d.crateId?w.crates.find(c=>c.id===d.crateId):undefined;
+        if(!d.crateId&&!d.facilityId&&!d.patientId&&forwardAccess(this.state,g)){d.reason='AREA NOT SECURED · supplies retained at source';s.action='supply route blocked';return;}
         if(crate&&!d.recoveryLoad){const blocked=crateAccess(this.state,this.terrain,crate,g.faction??'player');if(blocked){d.reason=blocked;return;}}
         const before={...carried};
         const source=d.patientId||d.facilityId?(d.pickupStoreId?w.facilities.find(f=>f.id===d.pickupStoreId)?.stock:g.cache):d.crateId?w.crates.find(c=>c.id===d.crateId)?.stock:g.forwardStock;
@@ -970,6 +1021,7 @@ export class GarrisonSystem {
         if(construction&&source){reconcileSupplyDemands(this.state);const reserved=claimedAt(this.state,constructionKey(construction.id),d.pickupStoreId?'store':'local',d.pickupStoreId??g.id);transfer(source,carried,'materials',Math.min(8-carried.materials,reserved));}
         else if(source&&!d.recoveryLoad){let space=Math.max(0,carrierCapacity(carried,w.logistics!.carrierCapacity)-total(carried));const local=localInventory(this.state,g),count=this.people(g).filter(p=>p.needs!.life!=='dead').length;
           if(!d.patientId&&!d.crateId){reconcileSupplyDemands(this.state);for(const demand of forwardClaims(this.state,g.id)){
+            if(d.urgentAmmo&&demand.resource!=='ammo')continue;
             const key=demand.resource,localTarget=key==='materials'?32:key==='ammo'?(this.state.operation?Math.min(300,count*6):5):key==='food'||key==='water'?count*2:6;
             // Fallback reserve depth may stay at the forward point. Explicit
             // consumers still pull their entire assigned requirement onward.
@@ -983,8 +1035,8 @@ export class GarrisonSystem {
         if(construction&&carried.materials<=0){delete s.duty;g.nextDecision=0;return;}
         const stores=w.facilities.filter(f=>f.garrisonId===g.id&&(f.kind==='store'||f.kind==='ammo')&&f.progress===1&&total(f.stock)<w.logistics!.storeCapacity);
         const store=stores.find(f=>f.kind==='ammo'&&carried.ammo>60)??stores.find(f=>f.kind==='store');
-        const patient=this.state.soldiers.find(p=>p.id===d.patientId),destination=patient??(construction?(construction.trenchAnchor?weaponCrewPoint(this.state,construction,0):this.state.trenches.find(t=>t.id===construction.connectorId)!.points[0]):this.supplyPoint(g,s,store?.id));
-        if(this.assignDuty(s,g,'haul',destination,patient?'Delivering aid':construction?'Delivering construction materials':'Returning with supplies',180,Boolean(patient&&!this.network.corridorContains(patient)))){s.duty!.stage='deliver';s.duty!.patientId=d.patientId;s.duty!.facilityId=construction?.id;s.duty!.dropStoreId=store?.id;s.duty!.playerOrdered=d.playerOrdered;if(crate){s.duty!.crateId=crate.id;s.duty!.recoveryLoad=d.recoveryLoad;}}
+        const patient=this.state.soldiers.find(p=>p.id===d.patientId),destination=patient??(construction?(construction.trenchAnchor?weaponServicePoint(this.state,construction):this.state.trenches.find(t=>t.id===construction.connectorId)!.points[0]):this.supplyPoint(g,s,store?.id));
+        if(this.assignDuty(s,g,'haul',destination,patient?'Delivering aid':construction?'Delivering construction materials':'Returning with supplies',180,Boolean(patient&&!this.network.corridorContains(patient)),d.urgentAmmo&&(carried.ammo>60))){s.duty!.stage='deliver';s.duty!.patientId=d.patientId;s.duty!.facilityId=construction?.id;s.duty!.dropStoreId=store?.id;s.duty!.playerOrdered=d.playerOrdered;if(crate){s.duty!.crateId=crate.id;s.duty!.recoveryLoad=d.recoveryLoad;}}
         else if(crate){
           // Retain the real load and its identity while retrying, never picking
           // it up twice or silently turning recovered ammunition into personal kit.
@@ -1123,6 +1175,7 @@ export class GarrisonSystem {
     return undefined;
   }
   private forwardServicePoint(g:Garrison,s:SoldierState):Vec2|undefined {
+    if(forwardAccess(this.state,g))return;
     const candidates:Vec2[]=[],side=Math.sign(g.entrance.z-g.forward.z)||1;
     for(let row=0;row<4;row++)for(let column=-3;column<=3;column++)candidates.push({x:g.forward.x+column*1.4,z:g.forward.z+side*(2+row*1.4)});
     candidates.sort((a,b)=>distance(s,a)-distance(s,b));

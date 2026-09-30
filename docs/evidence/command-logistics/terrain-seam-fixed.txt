@@ -1,0 +1,18 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ✓ src/render/StrategyCamera.test.ts (7 tests) 35ms
+ ✓ src/terrain/TerrainSampling.test.ts (1 test) 18ms
+ ✓ src/terrain/WorldRebase.test.ts (10 tests) 5226ms
+   ✓ canonical 4 km world > generates exactly 8×8 real 500m meshes and requests only bounded worker chunks  1056ms
+   ✓ canonical 4 km world > conserves cargo and continues cross-map road shipments after save/load  1233ms
+   ✓ canonical 4 km world > finds whole-map routes in both axes and obeys edge clearance  1140ms
+   ✓ canonical 4 km world > physically walks an ordered soldier across both full-map axes without teleporting  1512ms
+ ✓ src/render/GroundGeometry.test.ts (3 tests) 742ms
+   ✓ rendered excavation > renders physical causeway heights at both terrain LODs, including seam-adjacent crossings  312ms
+   ✓ rendered excavation > removes road surfacing across a cut and restores it on load without that cut  348ms
+
+ Test Files  4 passed (4)
+      Tests  21 passed (21)
+   Start at  18:49:51
+   Duration  8.46s (transform 657ms, setup 0ms, collect 1.45s, tests 6.02s, environment 0ms, prepare 394ms)

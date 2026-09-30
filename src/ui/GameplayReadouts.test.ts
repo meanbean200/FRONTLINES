@@ -3,7 +3,7 @@ import {createOperation} from '../operations/createOperation';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {buildingReadout} from './BuildingReadout';
 import {reportAnnotations} from './ContactReadout';
-import {networkSupply} from './PositionReadout';
+import {networkSupply,personnelActivity} from './PositionReadout';
 import {createStudyScenario} from '../garrison/StudyScenario';
 import {reconcileSupplyDemands} from '../garrison/SupplyDemand';
 
@@ -22,10 +22,31 @@ describe('click-object player readouts',()=>{
     const a=reportAnnotations(state);expect(a).toHaveLength(1);expect(a[0]).toMatchObject({x:120,z:60,visible:false,heard:true,members:[]});state.soldiers[0].x=1000;expect(reportAnnotations(state)).toEqual(a);state.elapsed=25;expect(reportAnnotations(state)).toEqual([]);
   });
   it('shows real requested supply, pending truck cargo and specific shortages without mutation',()=>{
-    const sim=createStudyScenario(),s=sim.state,g=s.living!.garrisons[0];s.living!.rearStock.materials=0;g.cache.materials=0;reconcileSupplyDemands(s);
+    const sim=createStudyScenario(),s=sim.state,g=s.living!.garrisons[0];
+    expect(sim.garrisons.requestFacility(g.id,'rest',undefined,undefined,undefined,true)).toBeDefined();
+    s.living!.rearStock.materials=0;g.cache.materials=0;reconcileSupplyDemands(s);
     const before=JSON.stringify(s),row=networkSupply(s,[g]).rows.find(r=>r.key==='materials')!;
     expect(row.local).toBe(0);expect(row.requested).toBeGreaterThan(0);expect(row.reason).toContain('rear depot');expect(JSON.stringify(s)).toBe(before);
     const truck=s.living!.trucks.find(t=>t.role==='shuttle')!;truck.garrisonId=g.id;truck.cargo.materials=9;truck.state='blocked';
     const blocked=networkSupply(s,[g]).rows.find(r=>r.key==='materials')!;expect(blocked.inbound).toBe(9);expect(blocked.reason).toBe('Supply truck route blocked');
+  });
+  it('does not turn an internal rest assignment into a false sleeping or recovering readout',()=>{
+    const sim=createStudyScenario(),s=sim.state.soldiers[0];
+    s.duty={kind:'rest',destination:{x:s.x,z:s.z},route:[],routeIndex:0,since:0,until:60,blockedFor:0,reason:'Reserve'};
+    s.action='walking · rest';expect(personnelActivity(s)).toBe('Moving to reserve');
+    s.action='resting';s.duty.arrivedAt=0;s.needs!.energy=80;expect(personnelActivity(s)).toBe('Standing by');
+    s.needs!.life='incapacitated';expect(personnelActivity(s)).toBe('Out of action');
+  });
+  it('reports a stocked position without asking for the same reserve a second time',()=>{
+    const sim=createStudyScenario(),s=sim.state,g=s.living!.garrisons[0];reconcileSupplyDemands(s);
+    expect(networkSupply(s,[g]).rows.find(r=>r.key==='food')!.requested).toBe(0);
+  });
+  it('does not claim someone is collecting untouched forward stock and shows a current unsafe approach',()=>{
+    const sim=createStudyScenario(),s=sim.state,g=s.living!.garrisons[0];s.elapsed=10;g.forwardStock.food=8;
+    for(const p of s.soldiers)delete p.duty;
+    expect(networkSupply(s,[g]).rows.find(r=>r.key==='food')!.reason).toContain('awaiting foot carrier');
+    g.haulIssue={personId:s.soldiers[0].id,destination:{...g.forward},at:10,reason:'NO SAFE APPROACH'};
+    const before=JSON.stringify(s),readout=networkSupply(s,[g]);expect(readout.issue).toBe('NO SAFE APPROACH');expect(readout.rows.find(r=>r.key==='food')!.reason).toContain('NO SAFE APPROACH');expect(JSON.stringify(s)).toBe(before);
+    s.elapsed=23;expect(networkSupply(s,[g]).issue).toBe('');
   });
 });

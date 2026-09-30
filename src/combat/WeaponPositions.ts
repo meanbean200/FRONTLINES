@@ -54,6 +54,7 @@ export function positionReadiness(state:BattlefieldState,f:Facility):string {
   if(people.some(s=>s.selfCare?.kind==='meal'||s.duty?.rationUntil!==undefined||s.action==='eating'))return 'CREW EATING';
   if(people.some(s=>s.selfCare||s.duty?.kind==='sleep'||s.action==='sleeping'||(s.needs?.energy??100)<25))return f.crewRelief?'RELIEF APPROACHING · crew resting':'CREW RESTING';
   if(people.some(s=>s.duty?.kind==='meal'&&s.duty.reason==='Reload weapon ammunition from local stores'))return 'RESUPPLYING · waiting for physical ammunition delivery';
+  if(people.some(s=>s.duty?.weaponDeliveryId===f.id))return 'AMMO BEING DELIVERED';
   const points=excavatedPoints(t);
   const present=(s:SoldierState)=>s.needs?.life==='active'&&!s.combat?.careTask&&s.duty?.kind==='watch'&&s.duty.facilityId===f.id&&s.duty.arrivedAt!==undefined&&distance(s,f)<4&&points.some((p,i)=>i>0&&distanceToSegment(s,points[i-1],p).distance<t.width/2);
   if(people.some(s=>s.duty?.routeBlocked))return 'OBSTRUCTED · crew route blocked';

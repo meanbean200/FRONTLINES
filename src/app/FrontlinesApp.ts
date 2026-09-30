@@ -177,10 +177,10 @@ export class FrontlinesApp {
       place:(id,kind)=>this.beginFacility(id,kind),person:()=>{this.selectedSquads.clear();},fire:(id,kind,battery)=>{this.supportPositions=[];this.supportPosition=id;this.supportBattery=Boolean(battery);this.setMode(kind);this.ui.notify(battery?'Choose target area · each ready battery gun will fire one round':'Choose target area · this position’s assigned crew will fire.');},
     });
     this.tactical=new TacticalOverlay(()=>this.state,this.selectedSquads,this.camera,this.simulation.terrain,(ids,add)=>this.selectSquads(ids,add),id=>this.trenchPanel.open(id),point=>{this.simulation.issueMove([...this.selectedSquads],point);this.ui.notify('Map move order issued');},{
-      inspect:a=>{if(a.key.startsWith('facility:'))this.trenchPanel.inspectFacility(a.id);else if(a.networkId!==undefined)this.trenchPanel.open(a.networkId);else{this.camera.focus(a.point,100);this.trenchPanel.inspectAt(a.point);}},
+      inspect:a=>{if(a.objectiveId)this.trenchPanel.inspectTown(a.objectiveId);else if(a.key.startsWith('facility:'))this.trenchPanel.inspectFacility(a.id);else if(a.networkId!==undefined)this.trenchPanel.open(a.networkId);else{this.camera.focus(a.point,100);this.trenchPanel.inspectAt(a.point);}},
       prepare:a=>{this.simulation.prepareOrder([...this.selectedSquads],'assault',a.point,a.networkId);this.ui.notify('Review assault · current duties continue until GO');},
       signal:()=>{this.simulation.signalPrepared();this.ui.notify(this.simulation.lastSignalReason);},
-    });
+    },id=>this.trenchPanel.inspectTown(id));
     this.deploymentPanel=new DeploymentPanel(()=>this.state,(kind,count)=>{this.pendingDeployment={kind,count};this.setMode('deploy');this.ui.notify(`Place ${count} ${kind==='rifle'?'rifle squad':'engineer team'}${count>1?'s':''} · click clear ground · Esc finishes`);},point=>this.camera.focus(point,90),text=>this.ui.notify(text));
     this.input=new CommandInput({
       supportDangerRadius:()=>this.state.living?.facilities.some(f=>(f.id===this.supportPosition||this.supportPositions.includes(f.id))&&f.artillery)?65:40,

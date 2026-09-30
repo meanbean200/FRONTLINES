@@ -34,7 +34,7 @@ test('finite operations explain reserves without offering sandbox spawning',asyn
 });
 test('Support routes players to physical positions rather than abstract mortar formations',async({page})=>{
   await meeting(page);await select(page,'Able');await page.locator('.hud-tools>summary').click();await page.locator('#open-fire-support').click();
-  await expect(page.locator('[data-support="mortarHE"]')).toHaveCount(0);await expect(page.locator('.support-status')).toContainText('Choose guns, then one target');
+  await expect(page.locator('[data-support="mortarHE"]')).toHaveCount(0);await expect(page.locator('[data-fire-target]')).toHaveText('Choose target');await expect(page.locator('[data-fire-ready]')).toBeVisible();
   await page.locator('.support-other>summary').click();
   await expect(page.locator('[data-support="smokeGrenades"]')).toBeVisible();
 });
@@ -79,12 +79,12 @@ async function inspectPit(page:Page,pit:Awaited<ReturnType<typeof placeMortar>>)
 }
 test('actual pit inspector rejects roofs and fires a mixed-formation outdoor mortar without a squad selected',async({page},testInfo)=>{
   await meeting(page);const roof=await placeMortar(page,true);await inspectPit(page,roof);
-  await expect(page.locator('[data-fire="mortarHE"]')).toBeDisabled();await expect(page.locator('.weapon-blocker')).toContainText('roofs');
+  await expect(page.locator('[data-fire="mortarHE"]')).toBeDisabled();await expect(page.locator('.weapon-blocker')).toBeVisible();await expect(page.locator('.weapon-blocker')).toContainText('roofs');await expect(page.locator('.position-status')).not.toHaveText('READY');
   await page.screenshot({path:testInfo.outputPath('position-roof-blocker.png')});
   // Installation physically consumes the carried mortar. Use a fresh scenario
   // for the separate outdoor fixture rather than assuming the kit was copied.
   await meeting(page);const pit=await placeMortar(page,false);await inspectPit(page,pit);
-  await expect(page.locator('.crew-slots>div')).toHaveCount(2);await expect(page.locator('#trench-panel')).toContainText('HE /');
+  await expect(page.locator('.crew-slots>div')).toHaveCount(2);await expect(page.locator('#trench-panel')).toContainText('8 HE · 4 smoke');
   await expect(page.locator('.position-status')).toHaveText('READY');await expect(page.locator('[data-fire="mortarHE"]')).toBeEnabled();await expect(page.locator('[data-fire="mortarSmoke"]')).toBeEnabled();
   await page.screenshot({path:testInfo.outputPath('mixed-crew-pit-ready.png')});
   await page.locator('[data-fire="mortarHE"]').click();await expect(page.locator('#battlefield')).toHaveAttribute('data-mode','mortarHE');await expect(page.locator('#selection-docket')).toBeHidden();
@@ -97,7 +97,7 @@ test('actual pit inspector rejects roofs and fires a mixed-formation outdoor mor
 });
 test('position reports a moving crew and retains it after a normal Hold',async({page})=>{
   await meeting(page);const pit=await placeMortar(page,false,true);await inspectPit(page,pit);
-  await expect(page.locator('[data-fire="mortarHE"]')).toBeDisabled();await expect(page.locator('.weapon-blocker')).toContainText('Crew moving');
+  await expect(page.locator('[data-fire="mortarHE"]')).toBeDisabled();await expect(page.locator('.weapon-blocker')).toBeVisible();await expect(page.locator('.weapon-blocker')).toContainText('Crew moving');await expect(page.locator('.position-status')).not.toHaveText('READY');
   await page.keyboard.press('Escape');await select(page,pit.name);await page.keyboard.press('h');await inspectPit(page,pit);
   await expect(page.locator('[data-fire="mortarHE"]')).toBeEnabled();expect(await page.evaluate(()=>window.__FRONTLINES__.getState().simSpeed)).toBe(0);
 });

@@ -1,0 +1,77 @@
+### Result
+{
+  "elapsed": 1504.949999999179,
+  "missions": [
+    {
+      "id": 480,
+      "squadId": 293,
+      "positionId": 430,
+      "weapon": "field-gun",
+      "kind": "mortarHE",
+      "target": {
+        "x": 80.07426009243069,
+        "z": 549.9368725455992
+      },
+      "impact": {
+        "x": 84.13263186837578,
+        "z": 539.6545124043453
+      },
+      "requestedAt": 1471.3499999992096,
+      "launchAt": 1491.3499999992096,
+      "impactAt": 1503.2167003303032,
+      "stage": "cancelled",
+      "reason": "Cancelled: CREW RESTING",
+      "dangerRadius": 65,
+      "confirmedRisk": false,
+      "source": "PLAYER",
+      "side": "player",
+      "ammoConsumed": 0,
+      "crewIds": [
+        299,
+        295
+      ]
+    },
+    {
+      "id": 481,
+      "squadId": 293,
+      "positionId": 432,
+      "weapon": "field-gun",
+      "kind": "mortarHE",
+      "target": {
+        "x": 80.07426009243069,
+        "z": 549.9368725455992
+      },
+      "impact": {
+        "x": 89.21449465659397,
+        "z": 530.9792251476288
+      },
+      "requestedAt": 1471.3499999992096,
+      "launchAt": 1491.3499999992096,
+      "impactAt": 1503.2124648808447,
+      "stage": "complete",
+      "reason": "Mission complete",
+      "dangerRadius": 65,
+      "confirmedRisk": false,
+      "source": "PLAYER",
+      "side": "player",
+      "ammoConsumed": 1,
+      "crewIds": [
+        297,
+        327
+      ]
+    }
+  ],
+  "craters": [
+    {
+      "id": 488,
+      "x": 89.21449465659397,
+      "z": 530.9792251476288,
+      "radius": 5.8,
+      "depth": 1.15
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => ((() => {const s=window.__FRONTLINES__.getState();return {elapsed:s.elapsed,missions:s.operation.supportMissions,craters:s.craters};})())');
+```

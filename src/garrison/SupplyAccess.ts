@@ -6,11 +6,12 @@ import type {Crate} from './types';
 import {total} from './Inventory';
 import {playerCanSeePoint} from '../operations/Visibility';
 import type {Inventory} from './types';
+import {positionName} from './PositionNames';
 
 export interface StockPile {kind:'rear'|'cache'|'forward';id:number;point:Vec2;stock:Inventory;side:Faction;name:string}
 export function stockPiles(state:BattlefieldState,terrain:TerrainSystem,spectator=false):StockPile[]{
  const w=state.living!;const piles:StockPile[]=[{kind:'rear',id:0,point:w.rear,stock:w.rearStock,side:'player',name:'Rear depot'}];
- for(const g of w.garrisons)for(const kind of ['cache','forward'] as const)piles.push({kind,id:g.id,point:kind==='cache'?g.entrance:g.forward,stock:kind==='cache'?g.cache:g.forwardStock,side:g.faction??'player',name:`${g.name} · ${kind==='cache'?'position store':'roadhead'}`});
+ for(const g of w.garrisons)for(const kind of ['cache','forward'] as const)piles.push({kind,id:g.id,point:kind==='cache'?g.entrance:g.forward,stock:kind==='cache'?g.cache:g.forwardStock,side:g.faction??'player',name:`${positionName(state,g)} · ${kind==='cache'?'position store':'roadhead'}`});
  if(w.enemySupply)piles.push({kind:'rear',id:1,point:w.enemySupply.rear,stock:w.enemySupply.stock,side:'enemy',name:'Opposing rear depot'});
  return piles.filter(p=>spectator||p.side==='player'||playerCanSeePoint(state,terrain,p.point));
 }

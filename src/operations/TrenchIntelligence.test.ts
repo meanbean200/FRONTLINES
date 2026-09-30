@@ -18,4 +18,15 @@ describe('observed terrain memory, not enemy state',()=>{
     const state=createOperationalBattle('meeting');state.terrainKnowledge={nextReview:1,sections:[{id:state.nextEntityId++,sourceId:9999,cell:0,points:[{x:0,z:0},{x:4,z:0}],width:4,at:0,side:'player'},{id:state.nextEntityId++,sourceId:9999,cell:10,points:[{x:40,z:0},{x:44,z:0}],width:4,at:0,side:'player'}]};
     const rows=knownTrenchNetworks(state);expect(rows).toHaveLength(1);expect(rows[0].length).toBe(8);expect(rows[0].sections).toHaveLength(2);
   });
+  it('names observed earthworks without leaking entity IDs or renumbering the remainder after capture',()=>{
+    const state=createOperationalBattle('meeting'),enemy=state.squads.find(q=>q.faction==='enemy')!,friendly=state.squads.find(q=>q.faction==='player')!;
+    const trenches=[-100,100].map(x=>({id:state.nextEntityId++,points:[{x,z:0},{x:x+4,z:0}],width:4,depth:1.75,progress:1,status:'complete' as const,engineerSquadId:enemy.id}));
+    state.trenches.push(...trenches);
+    state.terrainKnowledge={nextReview:1,sections:trenches.map(t=>({id:state.nextEntityId++,sourceId:t.id,cell:0,points:[t.points[0],t.points[1]],width:4,at:0,side:'player'}))};
+    const before=knownTrenchNetworks(state);expect(before.map(n=>n.name)).toEqual(['Enemy earthworks 01','Enemy earthworks 02']);
+    expect(before.map(n=>n.id)).toEqual(trenches.map(t=>t.id));
+    trenches[0].engineerSquadId=friendly.id;
+    expect(knownTrenchNetworks(state).map(n=>n.name)).toEqual(['Enemy earthworks 02']);
+    expect(knownTrenchNetworks(new SaveSystem().parse(JSON.stringify(state))).map(n=>n.name)).toEqual(['Enemy earthworks 02']);
+  });
 });

@@ -15,14 +15,16 @@ import {FieldMap,type PlanningActions} from './FieldMap';
 import {OrderOverlay} from './OrderOverlay';
 import {connectedName,friendlyTrenches,networkRepresentatives} from './TrenchReadout';
 import {knownTrenchNetworks,type KnownTrenchNetwork} from '../operations/TrenchIntelligence';
+import {formationLabels} from './FormationLabels';
 
 export class TacticalOverlay {
   private readonly layer=document.createElement('div');
+  private readonly leaders=document.createElementNS('http://www.w3.org/2000/svg','svg');
   private markers=new Map<number,HTMLButtonElement>();
   private contactMarkers=new Map<number,{element:HTMLDivElement;contact:ContactGroup}>();
   private trenchMarkers=new Map<number,HTMLButtonElement>();
   private knownMarkers=new Map<number,{element:HTMLButtonElement;row:KnownTrenchNetwork}>();
-  private objectiveMarkers=new Map<string,HTMLDivElement>();
+  private objectiveMarkers=new Map<string,HTMLButtonElement>();
   private markerTimer=1/30;
   private labels: {element:HTMLElement;point:Vec2}[]=[];
   private network=new TrenchNetwork();
@@ -31,8 +33,8 @@ export class TacticalOverlay {
   private readonly fieldMap:FieldMap;
   private readonly orders:OrderOverlay;
   private readonly compass:CameraCompass;
-  constructor(private readonly getState:()=>BattlefieldState,private readonly selected:Set<number>,private readonly camera:StrategyCamera,terrain:TerrainSystem,private readonly select:(ids:number[],add?:boolean)=>void,private readonly occupy:(id:number)=>void,move?:(point:Vec2)=>void,planning?:PlanningActions){
-    this.layer.className='tactical-overlay';document.querySelector('#app')!.append(this.layer);
+  constructor(private readonly getState:()=>BattlefieldState,private readonly selected:Set<number>,private readonly camera:StrategyCamera,terrain:TerrainSystem,private readonly select:(ids:number[],add?:boolean)=>void,private readonly occupy:(id:number)=>void,move?:(point:Vec2)=>void,planning?:PlanningActions,private readonly inspectTown?:(id:string)=>void){
+    this.layer.className='tactical-overlay';this.leaders.classList.add('formation-leaders');this.layer.append(this.leaders);document.querySelector('#app')!.append(this.layer);
     for(const settlement of SETTLEMENTS){const label=document.createElement('div');label.className='place-name';label.textContent=settlement.name;this.layer.append(label);this.labels.push({element:label,point:settlement});}
     this.fieldMap=new FieldMap(getState,terrain,camera,selected,select,move,planning);
     this.orders=new OrderOverlay(getState,selected,camera);
@@ -107,18 +109,31 @@ export class TacticalOverlay {
     const objectiveIds=new Set(state.operation?.objectives.map(o=>o.id));
     for(const[id,marker]of this.objectiveMarkers)if(!objectiveIds.has(id)){marker.remove();this.objectiveMarkers.delete(id);}
     for(const[i,o]of (state.operation?.objectives??[]).entries()){
-      let marker=this.objectiveMarkers.get(o.id);if(!marker){marker=document.createElement('div');this.objectiveMarkers.set(o.id,marker);this.layer.append(marker);}
+      let marker=this.objectiveMarkers.get(o.id);if(!marker){marker=document.createElement('button');marker.onclick=()=>this.inspectTown?.(o.id);marker.setAttribute('aria-label',`Inspect ${o.name}`);this.objectiveMarkers.set(o.id,marker);this.layer.append(marker);}
       marker.className=`objective-world-label ${o.owner}`;marker.textContent=`${String.fromCharCode(65+i)} · ${o.name} · ${controlReadout(state,o).status}`;
     }
   }
   private positionMarkers():void {
     const state=this.getState();
+    const anchors=state.squads.filter(s=>s.soldierIds.length&&this.markers.has(s.id)).map(s=>({id:s.id,...this.camera.project(s,3)}));
+    const objectives=(state.operation?.objectives??[]).map(o=>({o,p:this.camera.project(controlZone(state,o)?.center??o,9)}));
+    const reserved=objectives.filter(({p})=>p.visible).map(({o,p})=>({x:p.x,y:p.y,width:Math.max(160,(this.objectiveMarkers.get(o.id)?.textContent?.length??25)*6.8),height:48}));
+    const arranged=new Map(formationLabels(anchors.filter(p=>p.visible).map(p=>({id:p.id,x:p.x,y:p.y-18})),typeof window==='undefined'?1920:window.innerWidth,typeof window==='undefined'?1080:window.innerHeight,reserved).map(p=>[p.id,p]));
+    const lines:{x1:number;y1:number;x2:number;y2:number}[]=[];
     for(const m of this.knownMarkers?.values()??[]){const p=this.camera.project(m.row.point,1);m.element.style.display=p.visible?'':'none';m.element.style.transform=`translate(${p.x}px,${p.y+20}px) translate(-50%,0)`;}
     for(const squad of state.squads){
       const marker=this.markers.get(squad.id);if(!marker)continue;
       if(!squad.soldierIds.length){marker.style.display='none';continue;}
-      const p=this.camera.project(squad,3);marker.style.display=p.visible?'':'none';
-      marker.style.transform=`translate(${p.x}px,${p.y-18}px) translate(-50%,-100%)`;
+      const p=anchors.find(p=>p.id===squad.id)!,label=arranged.get(squad.id);marker.style.display=p.visible?'':'none';
+      marker.style.transform=`translate(${label?.x??p.x}px,${label?.y??p.y-18}px) translate(-50%,-100%)`;
+      if(label&&(Math.abs(label.x-p.x)>1||Math.abs(label.y-(p.y-18))>1))lines.push({x1:p.x,y1:p.y,x2:label.x,y2:label.y-15});
+    }
+    if(this.leaders){
+      while(this.leaders.children.length<lines.length)this.leaders.append(document.createElementNS(this.leaders.namespaceURI,'line'));
+      for(const [i,node]of [...this.leaders.children].entries()){
+        const line=lines[i];node.setAttribute('visibility',line?'visible':'hidden');
+        if(line)for(const [key,value]of Object.entries(line))node.setAttribute(key,String(value));
+      }
     }
     for(const {element,contact}of this.contactMarkers.values()){
       const p=this.camera.project(contact,3);element.style.display=p.visible?'':'none';
@@ -132,9 +147,9 @@ export class TacticalOverlay {
       marker.style.transform=`translate(${p.x}px,${p.y+20}px) translate(-50%,0)`;
     }
     for(const label of this.labels){const p=this.camera.project(label.point,25);label.element.style.display=p.visible&&this.camera.zoomDistance>200?'':'none';label.element.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`;}
-    for(const objective of state.operation?.objectives??[]){
+    for(const {o:objective,p} of objectives){
       const marker=this.objectiveMarkers.get(objective.id);if(!marker)continue;
-      const p=this.camera.project(controlZone(state,objective)?.center??objective,9);marker.style.display=p.visible?'':'none';
+      marker.style.display=p.visible?'':'none';
       marker.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`;
     }
   }

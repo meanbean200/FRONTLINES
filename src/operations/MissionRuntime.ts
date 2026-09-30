@@ -3,11 +3,14 @@ import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {Faction} from './types';
 import {type MissionState} from './MissionContent';
 import {operationalForces,updateRouteAccess} from './OperationalRuntime';
+import {finishOperation,type OperationOutcome} from './OperationOutcome';
+import {missionRules} from './MissionReadout';
 
 /** One-second fixed-clock mission checks, separate from soldier AI and weapon rules.
  * Object possession requires physically present people. No score circles or hidden
  * enemy coordinates are passed to the commander or normal objective readout. */
 export function stepPhysicalMission(state:BattlefieldState,terrain:TerrainSystem):void {
+  if(state.operation?.status!=='active')return;
   const op=state.operation!,r=op.runtime!,plan=r.missionPlan!,m=r.mission!;
   if(op.elapsed+1e-8<r.nextEvaluation)return;
   const dt=Math.max(0,op.elapsed-r.lastEvaluation);r.lastEvaluation=op.elapsed;r.nextEvaluation=op.elapsed+1;
@@ -63,9 +66,15 @@ export function stepPhysicalMission(state:BattlefieldState,terrain:TerrainSystem
   // recoverable, not as defeat. House and line need distinct physical people.
   const minimum=plan.kind==='line-defense'?(plan.version===3?3:2):plan.kind==='meeting'&&plan.version===3?4:5;
   const viable=state.soldiers.filter(s=>sideBySquad.get(s.squadId)==='player'&&s.needs?.life!=='dead'&&!['disabling','critical','fatal'].includes(s.combat?.wound?.severity??'')).length;
-  const finish=(status:'victory'|'defeat',message:string)=>{op.status=status;op.reason=message;state.simSpeed=0;phase=status==='victory'?'secured':'lost';reason=message;};
-  if(viable<minimum)finish('defeat',`Fewer than ${minimum} field-capable people remain. Serious casualties cannot return during this operation; the remaining force cannot secure its objectives.`);
-  else if(m.breachedFor>=30)finish('defeat','The opposing force occupied the road house. The supply foothold has been lost.');
+  const finish=(status:'victory'|'defeat',message:string,event:OperationOutcome['event']='objectives-secured')=>{
+    const rule=missionRules(r,op.elapsed)[event==='force-exhausted'?2:status==='victory'?0:1];
+    finishOperation(state,{status,side:status==='victory'?'player':'enemy',event,explanation:message,objectives:[{id:rule.id,name:event==='force-exhausted'?'INSUFFICIENT FIELD STRENGTH':plan.place+' / '+(plan.kind==='meeting'?'ROAD HOUSES':'ROAD HOUSE'),condition:rule.condition,
+      locations:[{id:'mission-house',name:plan.place+' / ROAD HOUSE',center:plan.house},...(plan.secondHouse?[{id:'second-house',name:plan.place+' / JUNCTION HOUSE',center:plan.secondHouse}]:[])],
+      ...(event==='force-exhausted'?{progress:viable,required:minimum}:{heldFor:status==='victory'?m.securedFor:m.breachedFor,requiredSeconds:status==='victory'?(plan.version===3?30:12):30})}]});
+    phase=status==='victory'?'secured':'lost';reason=message;
+  };
+  if(viable<minimum)finish('defeat',`${viable} field-capable people remain; ${minimum} are required. Serious casualties cannot return during this operation.`, 'force-exhausted');
+  else if(m.breachedFor>=30)finish('defeat',`Opposing forces occupied ${plan.place}${plan.version===3&&plan.kind==='meeting'?' / both road houses':' / ROAD HOUSE'} unopposed for ${Math.floor(m.breachedFor)} seconds. The supply foothold has been lost.`, 'rear-breached');
   else if(m.securedFor>=(plan.version===3?30:12))finish('victory',plan.version===3?(plan.kind==='line-defense'?'The assault broke. Your defenders hold the supply road.':plan.kind==='meeting'?'Both road houses and the junction approach are secured.':'The defended trench and overlooking farmhouse are secured.'):plan.kind==='line-defense'?'The attack withdrew. Your billet remains occupied and physically supplied.':'The house, field position and supply road form a sustained foothold.');
   if(m.phase!==phase){m.phase=phase;m.history.push({phase,at:op.elapsed,reason});if(m.history.length>32)m.history.shift();}
   m.reason=reason;

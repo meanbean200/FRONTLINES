@@ -4,6 +4,7 @@ import { factionOf } from '../operations/types';
 import type {trenchDraft} from '../ui/TrenchDraft';
 import {MIN_TRENCH_LENGTH,type FacilityPreview} from '../construction/ConstructionReadout';
 import {marchPreview,marchMinutes} from '../ui/MarchPreview';
+import {boundedIndicator,materialPreview} from './PlacementPreview';
 
 export type InteractionMode = 'select' | 'trench' | 'crater' | 'move' | 'facility'|'observe'|'suppress'|'assault'|'fall-back'|'defend'|'mortarHE'|'mortarSmoke'|'smokeGrenades'|'deploy'|'person-move';
 
@@ -237,13 +238,21 @@ export class CommandInput {
     const report=this.options.previewFacility?.(point);if(!report)return;
     const tint=report.valid?'#dbca96':'#b8796b',shape=report.kind==='emplacement'?[[-1.2,-.6],[-1.2,.7],[1.2,.7],[1.2,-.6]]:report.kind==='mortar'?Array.from({length:9},(_,i)=>[Math.sin(i*Math.PI/4)*2.8,Math.cos(i*Math.PI/4)*2.8]):[[-2.8,-2.8],[2.8,-2.8],[2.8,2.8],[-2.8,2.8],[-2.8,-2.8]],angle=report.facing??0,outline=shape.map(([x,z])=>this.options.camera.project({x:report.position.x+x*Math.cos(angle)+z*Math.sin(angle),z:report.position.z-x*Math.sin(angle)+z*Math.cos(angle)},.35));
     this.routePreview.style.display='block';this.routeLine.setAttribute('points',outline.map(p=>`${p.x},${p.y}`).join(' '));this.routeLine.setAttribute('fill',report.valid?'#dbca9630':'#b8796b30');this.routeLine.setAttribute('stroke',tint);this.routeLine.setAttribute('stroke-width','2');this.routeLine.setAttribute('stroke-dasharray','none');this.routeLine.setAttribute('marker-end','none');this.plotted.replaceChildren();
-    const segment=(a:Vec2,b:Vec2,arrow=false)=>{const aa=this.options.camera.project(a,.35),bb=this.options.camera.project(b,.35),line=document.createElementNS('http://www.w3.org/2000/svg','line');for(const[k,v]of Object.entries({x1:aa.x,y1:aa.y,x2:bb.x,y2:bb.y,stroke:tint,'stroke-width':3,'marker-end':arrow?'url(#plot-arrow)':'none'}))line.setAttribute(k,String(v));this.plotted.append(line);};
-    if(report.sites){this.routeLine.setAttribute('points','');for(const site of report.sites){const outline=document.createElementNS('http://www.w3.org/2000/svg','polygon');outline.setAttribute('points',[[-2.7,-3],[2.7,-3],[2.7,3],[-2.7,3]].map(([x,z])=>this.options.camera.project({x:site.x+x*Math.cos(angle)+z*Math.sin(angle),z:site.z-x*Math.sin(angle)+z*Math.cos(angle)},.35)).map(p=>`${p.x},${p.y}`).join(' '));outline.setAttribute('fill',tint+'30');outline.setAttribute('stroke',tint);this.plotted.append(outline);segment(site,{x:site.x+Math.sin(angle)*6,z:site.z+Math.cos(angle)*6},true);}}
-    if(report.kind==='emplacement'){if(report.segment)segment(report.segment[0],report.segment[1]);segment(report.position,{x:report.position.x+Math.sin(angle)*9,z:report.position.z+Math.cos(angle)*9},true);}else if(report.origin)segment(report.origin,report.position);
-    if(report.kind==='mortar')segment(report.position,{x:report.position.x+Math.sin(angle)*15,z:report.position.z+Math.cos(angle)*15},true);
+    const segment=(a:Vec2,b:Vec2,arrow=false)=>{const aa=this.options.camera.project(a,.35),projected=this.options.camera.project(b,.35),bb=arrow?boundedIndicator(aa,projected):projected,line=document.createElementNS('http://www.w3.org/2000/svg','line');for(const[k,v]of Object.entries({x1:aa.x,y1:aa.y,x2:bb.x,y2:bb.y,stroke:tint,'stroke-width':2,'marker-end':arrow?'url(#plot-arrow)':'none'}))line.setAttribute(k,String(v));this.plotted.append(line);};
+    if(report.sites){this.routeLine.setAttribute('points','');for(const site of report.sites){
+      const at=(x:number,z:number)=>({x:site.x+x*Math.cos(angle)+z*Math.sin(angle),z:site.z-x*Math.sin(angle)+z*Math.cos(angle)});
+      const outline=document.createElementNS('http://www.w3.org/2000/svg','polygon');outline.setAttribute('points',[[-2.7,-3],[2.7,-3],[2.7,3],[-2.7,3]].map(([x,z])=>this.options.camera.project(at(x,z),.35)).map(p=>`${p.x},${p.y}`).join(' '));outline.setAttribute('fill',tint+'18');outline.setAttribute('stroke',tint);outline.setAttribute('stroke-dasharray','3 3');this.plotted.append(outline);
+      // Wheels, split trails and barrel communicate a gun site at the exact
+      // chosen bearing. This is a preview only, never a separate aim authority.
+      segment(at(-1.7,.6),at(1.7,.6));segment(at(-1.7,-.2),at(-1.7,1.4));segment(at(1.7,-.2),at(1.7,1.4));
+      segment(at(0,.2),at(-1.5,-2.7));segment(at(0,.2),at(1.5,-2.7));segment(at(0,0),at(0,4.5),true);
+    }}
+    if(report.kind==='emplacement'){if(report.segment)segment(report.segment[0],report.segment[1]);segment(report.position,{x:report.position.x+Math.sin(angle)*7,z:report.position.z+Math.cos(angle)*7},true);}
+    else if(report.origin&&Math.hypot(report.origin.x-report.position.x,report.origin.z-report.position.z)<=40)segment(report.origin,report.position);
+    if(report.kind==='mortar'&&!report.sites)segment(report.position,{x:report.position.x+Math.sin(angle)*9,z:report.position.z+Math.cos(angle)*9},true);
     this.draft.hidden=false;this.draft.dataset.invalid=String(!report.valid);
     const heading=report.kind==='mortar'?` · FACING ${(Math.round(angle*180/Math.PI)+360)%360}°`:'';
-    const text=`${report.name.toUpperCase()} / ${report.cost} MATERIALS${heading}\n${report.reason}\n${Math.floor(report.materials)} in trench stores · Esc / right-click cancels`;
+    const text=`${report.name.toUpperCase()}${heading}\n${materialPreview(report.materials,report.cost)}\n${report.reason}\nEsc / right-click cancels`;
     if(this.draft.textContent!==text)this.draft.textContent=text;
   }
 

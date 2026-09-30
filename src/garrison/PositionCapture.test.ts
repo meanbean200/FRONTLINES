@@ -31,7 +31,7 @@ describe('physical position capture',()=>{
     expect(sim.garrisons.assign([q.id],t.id)).toBe(true);expect(g.faction).toBe('player');expect(f.weaponCrewIds).toEqual([]);
     expect(f.installation).toEqual(weapon);expect(f.stock.ammo).toBe(60);expect(balance(s)).toEqual(before);
     expect(old.every(p=>p.garrisonId===undefined&&p.duty===undefined&&p.personalArea===undefined)).toBe(true);expect(old.map(p=>({x:p.x,z:p.z}))).toEqual(locations);
-    const n=sim.garrisons.network;expect(networkRepresentatives(friendlyTrenches(s,n),n).map(t=>t.id)).toEqual([t.id]);expect(connectedName(s,n,t.id)).toContain('Captured network');
+    const n=sim.garrisons.network;expect(networkRepresentatives(friendlyTrenches(s,n),n).map(t=>t.id)).toEqual([t.id]);expect(connectedName(s,n,t.id)).toBe('Trench 01 · captured');
     expect(new SaveSystem().parse(JSON.stringify(s))).toEqual(s);
   });
 });

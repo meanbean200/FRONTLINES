@@ -12,6 +12,11 @@ describe('command map and passenger readouts',()=>{
     for(const g of s.living!.garrisons.filter(g=>g.faction==='enemy'))g.forwardStock.ammo+=100;
     expect(planningAssets(s,sim.garrisons.network)).toEqual(a);expect(a.some(v=>v.kind==='network')).toBe(true);expect(a.some(v=>v.kind==='memory')).toBe(false);
   });
+  it('makes public towns selectable and keeps transport IDs out of their names',()=>{
+    const sim=new BattlefieldSimulation(createOperation('open-front')),s=sim.state,a=planningAssets(s,sim.garrisons.network);
+    expect(a.find(v=>v.objectiveId==='site-0')).toMatchObject({kind:'town',name:'SAINT-MARTIN'});
+    expect(a.filter(v=>v.kind==='truck').map(v=>v.name)).toEqual(['Supply convoy','Delivery truck 1','Delivery truck 2','Delivery truck 3']);
+  });
   it('reports only the current physical transport leg and preserves a blocked passenger',()=>{
     const s=createOperation('open-front'),t=s.living!.trucks[0],q=s.squads[0],m={id:1234,personId:1235,squadId:q.id,side:'player' as const,returning:false,stage:'convoy' as const,truckId:t.id,stock:inventory(),releasedAt:0};
     Object.assign(t,{x:0,z:0,route:[{x:120,z:0}],routeIndex:0,state:'outbound'});

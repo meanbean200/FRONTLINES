@@ -1,0 +1,44 @@
+/* Command-table hierarchy shared by every gameplay inspector. No nested cards. */
+.tactical-overlay .objective-world-label{pointer-events:auto;min-height:32px;cursor:pointer;z-index:2}.tactical-overlay .objective-world-label:hover{background:var(--panel);outline:1px solid var(--accent)}
+@media(pointer:coarse){.tactical-overlay .objective-world-label{min-height:44px}}
+.formation-leaders{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}.formation-leaders line{stroke:var(--friendly);stroke-width:1;opacity:.45}
+@media(pointer:coarse){.tactical-overlay .squad-marker{height:44px;min-width:60px}.tactical-overlay .squad-marker small{top:45px}}
+.position-inspector:not([hidden]){display:flex;flex-direction:column;width:min(404px,calc(100% - 28px));overflow:hidden;max-height:calc(100dvh - 100px);top:72px;padding:12px 14px}
+.position-inspector>header,.position-inspector>.position-picker,.position-inspector>.position-tabs,.command-primary{flex:none;position:static}
+.position-inspector h2{margin:3px 0 8px;font-size:23px}
+.position-inspector>header{min-height:48px;gap:8px}.position-inspector>header small{font:10px var(--mono);letter-spacing:.08em}
+.position-inspector>header>div{flex:1;min-width:0}.position-inspector [data-position-back]{flex:none;width:44px;min-height:44px}
+.position-inspector>.position-picker{display:flex;flex-direction:row;gap:12px;align-items:center;margin:4px 0}.position-picker select{flex:1;min-width:0}
+.command-fields{display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin:9px 0}.position-content .command-fields label{display:flex;flex-direction:column;gap:4px;margin:0;font-size:12px}.command-fields select{width:100%;min-width:0;min-height:44px}
+.position-tabs{margin:6px 0}.position-tabs button{min-height:44px}
+.position-content{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:4px}
+.command-primary{padding-bottom:8px;border-bottom:1px solid var(--rule);margin-bottom:8px}
+.command-primary p,.position-content p{margin:7px 0;font-size:13px;line-height:1.4}
+.command-primary label{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px}
+.command-primary .position-status{margin:6px 0}.command-primary>button{width:100%}
+.position-actions,.person-orders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin:6px 0}
+.position-actions button,.person-orders button,.crew-slots button{min-height:44px;padding:7px 9px;font:14px var(--heading);white-space:normal}
+.command-stats{display:grid;grid-template-columns:1fr 1fr;gap:7px 16px;padding:8px 0;border-bottom:1px solid var(--rule);font-size:13px;font-variant-numeric:tabular-nums}
+.command-stats span{display:flex;justify-content:space-between;gap:8px}.command-stats b{font:14px var(--mono)}
+.command-issue,.weapon-blocker{color:var(--warning);font-size:13px;line-height:1.4}
+.position-content h3{font-size:15px;text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px}
+.position-content details{border-top:1px solid var(--rule);font-size:13px}.position-content summary{font:13px var(--heading);color:var(--muted);min-height:44px}
+.position-content dl{gap:5px 12px;margin:8px 0}.position-job{padding-bottom:6px;margin-bottom:8px}
+.position-inspector .trench-person-list{max-height:none;overflow:visible}.trench-person-list button{min-height:44px}
+.build-panel:not([hidden]),.deployment-panel:not([hidden]){display:flex;flex-direction:column;overflow:hidden;max-height:calc(100dvh - 108px);padding:14px}
+.build-panel>header,.deployment-panel>header{flex:none;position:static;padding:0;min-height:48px}
+.build-panel h2,.deployment-panel h2{font-size:23px;margin:3px 0 10px}
+.build-context:not([hidden]){display:flex;flex-direction:column;min-height:0}.build-context>label{display:flex;align-items:center;gap:10px}
+.build-context>label select{flex:1;min-width:0}.build-context h3{font-size:17px;margin:8px 0}.build-workforce,.build-supply{font-size:13px;margin:8px 0}
+.build-catalog{min-height:0;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:5px}.build-catalog button{min-height:58px;padding:8px;text-align:left}.build-catalog small{font-size:12px}
+.reinforcement-orders:not([hidden]){display:flex;flex-direction:column;min-height:0}.reinforcement-orders>label,.reinforcement-orders>button,.reinforcement-totals,.dispatch-reason{flex:none}.reinforcement-totals{margin:7px 0}.reinforcement-totals b{font-size:22px}
+.passenger-manifests{min-height:0;overflow:auto;overscroll-behavior:contain}.dispatch-reason{font-size:13px;margin:8px 0}.passenger-row{padding:10px 0}.passenger-row p{font-size:13px;margin:6px 0}
+.support-controls[open]{display:flex;flex-direction:column;overflow:hidden;max-height:calc(100dvh - 104px)}.support-controls>summary{flex:none}
+.support-status{display:flex;flex-direction:column;min-height:0}.fire-controls{flex:none;border-bottom:1px solid var(--rule);padding-bottom:8px}.fire-controls .fire-order{margin:6px 0;display:flex;gap:8px;align-items:end}.fire-controls label{min-width:0}.fire-controls select{width:100%}
+.fire-weapon-list{min-height:70px;overflow:auto;overscroll-behavior:contain}.fire-weapon{padding:8px 0}.fire-weapon small{font-size:12px}.fire-selection{display:flex;flex-wrap:wrap;gap:4px}.fire-selection button{min-height:44px}
+.support-controls .support-other{flex:none;max-height:40vh;overflow:auto}.support-controls p{font-size:13px;margin:6px 0}.support-guide{display:none}
+#assault-orders{display:flex;flex-direction:column;overflow:hidden;max-height:calc(100dvh - 100px);top:72px;padding:12px 14px;width:min(390px,calc(100vw - 28px))}
+#assault-orders .assault-detail{overflow:auto;min-height:0;overscroll-behavior:contain}#assault-orders header,#assault-orders footer{flex:none;position:static}#assault-orders footer{margin:6px 0 0;padding:8px 0 0;border-top:1px solid var(--rule)}#assault-orders dl{gap:5px 12px;margin:9px 0}#assault-orders h2{font-size:22px;margin:4px 0 8px}
+@media(max-width:650px){.position-inspector:not([hidden]),.build-panel:not([hidden]),.deployment-panel:not([hidden]),#assault-orders{right:max(8px,env(safe-area-inset-right));left:max(8px,env(safe-area-inset-left));width:auto;top:auto;bottom:calc(70px + env(safe-area-inset-bottom));max-height:calc(100dvh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}.command-primary .position-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.position-inspector>header small{display:none}}
+@media(max-height:560px){.position-inspector:not([hidden]),.build-panel:not([hidden]),.deployment-panel:not([hidden]),#assault-orders{top:calc(54px + env(safe-area-inset-top));bottom:auto;max-height:calc(100dvh - 108px - env(safe-area-inset-top) - env(safe-area-inset-bottom));padding:8px 10px}.position-inspector>header{min-height:40px}.position-inspector>header small,.position-inspector>.position-picker{display:none}.position-inspector h2{margin:0;font-size:21px}.position-tabs{margin:2px 0}.command-primary{padding-bottom:4px;margin-bottom:4px}.command-primary .position-actions{grid-template-columns:repeat(4,minmax(0,1fr))}.command-primary p{margin:4px 0}.support-controls[open]{max-height:calc(100dvh - 108px)}}
+@media(max-height:560px) and (min-width:651px){.position-inspector:not([hidden]){width:min(620px,calc(100% - 28px))}.command-primary .position-actions,.command-primary .person-orders{grid-template-columns:repeat(auto-fit,minmax(88px,1fr))}}

@@ -18,7 +18,7 @@ export const OPERATION_DEFINITIONS:Readonly<Record<OperationId,OperationDefiniti
   'open-front':{id:'open-front',title:'Open Front',tag:'PERSISTENT CAMPAIGN',duration:'SAVE & RESUME',
     situation:'Opposing trench lines protect finite supply networks; develop your positions and sustain a decisive advance into the enemy rear.',
     intent:'Secure the opposing rear · maintain access',enemyIntent:'penetrate',prepared:['player','enemy'],deployment:{player:-550,enemy:550},
-    forces:{player:force(),enemy:force()},persistent:true,defenseSeconds:0},
+    forces:{player:force(7),enemy:force(6)},persistent:true,defenseSeconds:0},
 };
 export const OPERATION_IDS=Object.keys(OPERATION_DEFINITIONS) as OperationId[];
 export function isOperationId(id:string):id is OperationId{return Object.hasOwn(OPERATION_DEFINITIONS,id);}

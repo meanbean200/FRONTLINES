@@ -59,7 +59,10 @@ export function knownTrenchNetworks(state:BattlefieldState,side:'player'|'enemy'
   const root=(n:number):number=>{const p=parent.get(n);if(p===undefined||p===n)return n;const r=root(p);parent.set(n,r);return r;};
   for(const s of known){const c=graph.component(s.id)??s.id,other=sources.get(s.sourceId);if(other!==undefined)parent.set(root(c),root(other));sources.set(s.sourceId,c);}
   const groups=new Map<number,ObservedTrench[]>();for(const s of known){const c=root(graph.component(s.id)??s.id),list=groups.get(c)??[];list.push(s);groups.set(c,list);}
-  const rows=[...groups.values()].map(sections=>{const first=[...sections].sort((a,b)=>a.id-b.id)[0],id=Math.min(...sections.map(s=>s.sourceId));return {id,name:`Enemy network ${id}`,sections,point:{x:(first.points[0].x+first.points[1].x)/2,z:(first.points[0].z+first.points[1].z)/2},length:sections.reduce((n,s)=>n+distance(...s.points),0)};});
+  // First-observed order is public memory, unlike live enemy network identity.
+  // Keep captured sources in this ordinal list so other names do not shift.
+  const identities=new Map<number,number>();for(const s of memory.sections)if(s.side===side&&!identities.has(s.sourceId))identities.set(s.sourceId,identities.size+1);
+  const rows=[...groups.values()].map(sections=>{const first=[...sections].sort((a,b)=>a.id-b.id)[0],id=Math.min(...sections.map(s=>s.sourceId)),ordinal=Math.min(...sections.map(s=>identities.get(s.sourceId)!));return {id,name:`Enemy earthworks ${String(ordinal).padStart(2,'0')}`,sections,point:{x:(first.points[0].x+first.points[1].x)/2,z:(first.points[0].z+first.points[1].z)/2},length:sections.reduce((n,s)=>n+distance(...s.points),0)};});
   cache.set(memory,{key,rows});return rows;
 }
 export function validTerrainKnowledge(state:BattlefieldState):boolean {

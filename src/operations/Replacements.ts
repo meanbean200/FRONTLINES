@@ -7,6 +7,7 @@ import {equipWeapon} from '../combat/Weapons';
 import {armyFor} from './BattleSetup';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {networkCapacity} from '../garrison/NetworkCapacity';
+import {positionName} from '../garrison/PositionNames';
 import {endlessDeficit,endlessReleaseInterval,stepEndlessAvailability} from './EndlessEconomy';
 
 export interface ReplacementManifest {
@@ -49,7 +50,7 @@ export function requestReserveSquad(state:BattlefieldState,garrisonId:number):{a
   g.squadIds.push(id);r.establishment.push({squadId:id,strength:8});
   for(let i=0;i<8;i++)r.manifests.push({id:state.nextEntityId++,side:'player',squadId:id,personId:state.nextEntityId++,returning:false,stage:'edge',stock:inventory(),releasedAt:w.campaignHours});
   r.reserve.player-=8;(r.dispatchAt??={}).player=w.campaignHours+24;r.nextAt.player=w.campaignHours+24;
-  return {accepted:true,reason:`${name}: 8 riflemen requested. Next available convoy → rear depot → truck to ${g.name}.`};
+  return {accepted:true,reason:`${name}: 8 riflemen requested · next available transport to ${positionName(state,g)}.`};
 }
 /** Configured capacity is immutable as reserves are spent. Pre-setup campaigns
  * and V2 factory scenarios without setup used the original 48-person pool. */

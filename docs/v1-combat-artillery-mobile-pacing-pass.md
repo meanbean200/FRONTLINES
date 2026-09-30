@@ -1023,3 +1023,193 @@ acceptance. Final frozen verification results follow below.
   The mandatory normal-play convoy-to-recovered-delivery chain, full interactive
   MG arc demonstration, unidentified original failing saves, and user acceptance
   remain open. No passing synthetic or menu-combat result closes them.
+
+## 2026-09-29 — command surfaces, genuine logistics workload and Open Front
+
+Baseline: verified local/remote `92101cb43ae1ea6dde98c7fd4f5557007dd677e1`.
+**Overall PARTIAL — PLAYER ACCEPTANCE NOT CLEARED.** Existing objective/result
+work in the dirty checkout was preserved and integrated, not discarded. Existing
+saves, DEV, Endless, Road Cut, rifle tuning, physical recovery and interception
+foundations remain. No neural training, automation restart or general physics.
+
+### Issue status
+
+- **Global panel density — USER-REPORTED / USER REJECTED / IMPLEMENTED /
+  BROWSER VERIFIED in representative panels; overall acceptance OPEN.** Shared
+  pinned identity, tabs and primary commands; compact stat rows, optional details,
+  one content scroller. Applied across position/person/weapon/supply/build/town/
+  vehicle/loose-stock inspectors plus construction, reinforcement, assault,
+  artillery and objectives. Real controls exercised the desktop and 390x844 /
+  844x390 hierarchy, back navigation, disabled reasons and town-map entry points.
+  The original 14-pixel short-landscape detail failure is retained and corrected.
+- **Trench-spam demand — USER-REPORTED / SOURCE-LEVEL STRUCTURAL CAUSE IDENTIFIED /
+  IMPLEMENTED / automated and partial BROWSER VERIFIED.** Per-garrison floors
+  were replaced by real personnel, unpaid work and staffed-weapon requirements.
+  Claimed local/forward/store/carrier/truck stock is counted once. Finite shared
+  trucks prioritize demand and oldest service rather than one pipeline per area.
+  Twenty empty actual garrisons generate no recurring demand in the regression;
+  ten normal-player empty trench works did not expand the eight-truck shared fleet.
+- **Threat-aware hauling — USER-REPORTED / SOURCE GAP IDENTIFIED / IMPLEMENTED /
+  controlled verification; normal dangerous-route BROWSER acceptance REMAINING.**
+  Both ordinary hauling and personal resupply use legitimate local/delivered
+  observations. Changed threats cause bounded replanning or explicit waiting with
+  cargo intact. Longer safe route, threat expiry, knowledge isolation, exact
+  saved continuation and urgent cargo checks pass. Initial NO SAFE APPROACH
+  feedback and saved urgency for an empty-cargo critical-ammo pickup were completed
+  in the final follow-up below; ordinary under-fire occurrence remains unverified.
+- **Building as Network — USER-REPORTED / SOURCE NAMING LEAK IDENTIFIED /
+  IMPLEMENTED; representative BROWSER VERIFIED.** World-facing buildings, towns,
+  positions and weapon/battery names replace organizational IDs; transport details
+  are secondary. Runtime entity identities and saved relationships are unchanged.
+- **Open Front manpower — prior approximately 48/side USER REJECTED /
+  IMPLEMENTED / budget-tested / partial BROWSER VERIFIED.** New standard is
+  72 player / 64 enemy; explicit alternatives 64/56 and 80/72. Production kit,
+  rations and finite manifests support the added personnel; saves and Endless
+  are not increased. Seventy-two is the smallest tested simultaneous role budget,
+  not yet a user-accepted matched pacing comparison.
+- **Open Front rush pacing — USER-REPORTED; original ROOT CAUSE NOT ESTABLISHED;
+  revised opening IMPLEMENTED, fresh contact BROWSER VERIFIED, acceptance OPEN.**
+  Public-ground scouts/assembly/consolidation precede commitment without a ceasefire.
+  The first implementation selected a rearward town and produced no contact through
+  1,253.85 seconds: preserved failure, not a pass. Corrected forward-site selection
+  in a new normal battle yielded a legitimate report by 309.9 seconds and 543 shots /
+  7 hits by 610.6 seconds while support works and deliveries continued. All 72 player
+  personnel remained alive and the town was actively contested. This does not prove
+  the user's original rear-rush state or settle subjective pacing.
+- **Captured-town value — capture retained; reward/readability USER REJECTED /
+  IMPLEMENTED / partial BROWSER VERIFIED.** Town inspector exposes finite stocks,
+  Recover and Set as supply point with truthful road/foot-route checks. Changeover
+  waits for handoffs and leaves old stock recoverable rather than teleporting it.
+  Actual normal-play town pickup of six food/five water completed its return. A
+  pending-switch starvation defect was also found and repaired: new pickup jobs no
+  longer indefinitely postpone the requested change. The chosen town was farther
+  from its consumer; no shorter-route benefit is claimed for that instance.
+- **Four-gun placement — prior workflow preserved / IMPLEMENTED / BROWSER VERIFIED.**
+  Four distinct sites, bounded facing arrow, real installed orientation and
+  `80 / 128 · 48 more` feedback. One normal run built and staffed all four guns;
+  integrated four-gun firing under dangerous supply pressure remains open.
+- **MG crowding — USER-REPORTED; screenshot ROOT CAUSE still UNKNOWN /
+  service/relief separation IMPLEMENTED / controlled verification; full BROWSER
+  acceptance REMAINING.** Required crew alone reserve operating berths; physical
+  ammunition uses a side service bay, routine waiting avoids the workspace and
+  relief arrives separately before outgoing departure. Forty-person MG/counterflow
+  and eighty-traveller occupied-network fixtures preserve cargo, save continuation
+  and movement. Normal play observed built/staffed MGs and relief, not the entire
+  specified busy-emplacement matrix. The second run's backward-facing MG was tester
+  placement, not evidence that correct-facing MG fire failed.
+- **Grey battlefield after Locate — BROWSER REPRODUCED / ROOT CAUSE REPRODUCED /
+  IMPLEMENTED.** A cached terrain interpolation could index beyond the tile when
+  near-zero negative coordinates rounded to its upper boundary, producing NaN
+  camera height. Clamp to the final valid interpolation cell; do not hide labels
+  or substitute flat terrain. Original failing terrain/camera tests are preserved;
+  the new actual-control seam-settling browser gate covers 900 rendered frames.
+
+### Evidence and acceptance limits
+
+Full descriptions, screenshots and retained failure pointers are in
+`docs/evidence/command-logistics/README.md`. Normal Edge profiles were isolated;
+no player storage was cleared. The 902.75-second paused developed-position save
+continued exactly through refresh, including in-transit recovery cargo, works and
+crew assignments. Separate fresh contact evidence is not substituted for the
+required single combined normal-play scenario.
+
+Rules identity: `combat-45-command-logistics-world2`. Version-4 optional fields
+retain queued supply destinations, service scheduling, threat-route reviews and
+weapon delivery duties. Old rule copies recompute derived demand without refills,
+new people, retrospective needs conversion or invented historical deaths.
+
+**REMAINING:** full combined under-fire normal play, including ordinary dangerous
+hauling; matched pacing/user judgment; busy MG and discovered
+interception-to-recovered-delivery chains; unknown original failing states;
+physical phones, 512-person/performance and broader A-G/soak gates. The original
+long-journey deaths remain **not causally reproduced**. Frozen verification and
+artifact identity are appended below after the final run, without increasing
+existing test timeout limits.
+
+### First frozen command/logistics regression results
+
+This frozen run predates the final observed-trench-name and initial-haul-feedback
+follow-up. Preserve it as evidence, not as the identity of a later rebuilt file.
+
+- **948/948 tests, 143 files, 366.14 seconds**, one worker, unchanged test
+  timeouts. The two earlier concurrent-run timeouts pass unchanged in this run:
+  72-hour supplied loop-network soak (21.72 seconds) and combat speed/save replay
+  (29.20 seconds). Ten production Road Cut attract cycles also pass. Earlier
+  failures remain preserved; this is not the broader interrupted-combat soak gate.
+- **32/32 maintained actual-Edge regressions, 5.0 minutes**, one worker. Includes
+  the new 900-frame actual Map Locate seam test, pinned controls at 1654x910,
+  390x844 and 844x390, eight desktop viewport sizes, accessible town entry points,
+  truthful weapon blockers, normal save/Continue and occupied-network traffic.
+  Synthetic support/traffic setup rows remain regression coverage, not an ordinary
+  player's complete under-fire acceptance playthrough.
+- Production/standalone and strict separate DEV builds pass; packaging **5/5**.
+  Existing large-bundle warnings remain. Portable `FRONTLINES.html`: **1,480,873
+  bytes**, two embedded workers, SHA-256
+  `d5c923d9b51e542c46a6b419d8665057f586cf92ff30c186c33c64372abec0ec`.
+  Standalone network-disabled release verification follows separately.
+- Logs are preserved in `docs/evidence/command-logistics/` as
+  `full-regression-release.txt`, `edge-release.txt`, `production-build.txt`,
+  `dev-build.txt` and `packaging.txt`.
+
+### Continued normal play and final small follow-up
+
+- **Developed-position contact — BROWSER VERIFIED, complete matrix REMAINING.**
+  Continued the actual saved campaign through the normal Continue control in a
+  separate QA profile. No manufactured runtime state or debug stepping. At
+  1,471.35 simulation seconds: original built line / ten micro-trenches / MG /
+  four crewed guns / secured town / eight trucks remained; twelve shots, two hits,
+  one player combat-fire death at 1,459.55. Complete Save / refresh / Continue
+  matched exactly. This continuation does not reclassify the initial failed
+  1,253.85-second opening as successful pacing.
+- **Partial salvo / airborne save — BROWSER VERIFIED.** Two of four guns were
+  currently ready; one crew eating and one gun lacking HE were shown honestly.
+  The tester dismissed a real friendly-danger confirmation and chose a separate
+  clear area. Of two ordered guns, one cancelled for CREW RESTING before consuming
+  ammunition; one fired at 1,491.35. In-flight Save / refresh / Continue at
+  1,495.65 was exact. At 1,504.95 the mission was complete, one round consumed,
+  one matching crater rendered. No enemy hit or four-ready-gun salvo is claimed.
+- **Observed trench naming — BROWSER REPRODUCED / IMPLEMENTED / BROWSER VERIFIED.**
+  Discovered `Enemy network 255` became `Enemy earthworks 01`; observer-memory
+  ordinals survive capture/save without querying hidden trench coordinates.
+  The new name and normal Map Locate were exercised. Focused naming/intelligence
+  regression: 15/15 across four files.
+- **Initial unsafe hauling — SOURCE GAP / IMPLEMENTED / controlled verification.**
+  Failed safe-route assignment now reports NO SAFE APPROACH without replacing an
+  existing duty. A read-only ordinary geometry query prevents falsely attributing
+  solid obstacles to enemy fire. Feedback expires/revalidates, is pinned in
+  Overview/Supply, and cannot create a fictional collecting carrier. Saved
+  critical-ammunition urgency works before pickup, restricts that pickup to real
+  ammo and retains cargo/job conservation. Focused suite: 26/26 across five files;
+  an ordinary under-fire player trip showing these branches remains OPEN.
+
+The complete descriptions and reviewed screenshots are in
+`docs/evidence/command-logistics/README.md`. **Overall PARTIAL — PLAYER ACCEPTANCE
+NOT CLEARED.** Final rebuilt-file verification is recorded separately below.
+
+### Final artifact / browser verification
+
+- **32/32 maintained Edge checks, 5.1 minutes**, one worker. Includes the actual
+  Map Locate seam check, command surfaces, town commands, eight desktop sizes,
+  narrow portrait/landscape, live input controls, pause/save and occupied traffic.
+- **Production + standalone + separate DEV builds: PASS. Packaging: 5/5.**
+  Existing bundle-size warnings were not hidden or raised.
+- Final portable file: **1,482,506 bytes**, two embedded workers, SHA-256
+  `293700ef306b1a8e492d9cd7452663c0d534b9c88969a8887880924dd2b349a1`.
+  A copied standalone file was launched in installed Edge with networking disabled
+  and no adjacent game dependencies. Actual movement and Save/Continue passed,
+  state hashes matched, no page errors, all six refresh sizes filled the viewport.
+  Screenshots were reviewed; this is not physical-phone acceptance. Raw evidence:
+  `output/playwright/command-logistics-offline-shipped-1790728662877/`;
+  curated result: `docs/evidence/command-logistics/offline-shipped.json`.
+- Safe-haul save fields now reject malformed feedback/urgency; queue movement
+  retains urgency. The final focused follow-up passed **32/32 tests, six files**.
+  The preceding whole-suite pass was **952/952, 143 files, 378.75 seconds**,
+  preserved separately as `full-regression-pre-save-guard.txt`. Final all-file
+  results follow after the frozen repeat; test timeouts remain unchanged.
+- **Final frozen repeat: 953/953 tests, 143 files, 386.16 seconds, one worker.**
+  Includes the final save guards and queue-urgency preservation; no simulation/UI
+  source changed afterward. The final log is
+  `docs/evidence/command-logistics/full-regression-final.txt`. Portable working-file
+  bytes and staged Git blob match; the SHA-256 above identifies the tested file.
+  All reported original failures remain recorded. **Validated scoped milestone;
+  overall PARTIAL — PLAYER ACCEPTANCE NOT CLEARED.**

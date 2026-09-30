@@ -60,6 +60,7 @@ export function observeFaction(state:BattlefieldState,side:'player'|'enemy'):Ene
         ammo:present&&!reported?(state.living!.crates.find(c=>c.id===site.cacheId)?.stock.ammo??0):0};
     });
     observation.operational={intent:d.enemyIntent,front:structuredClone(r.front),rear:{...r.reinforcements.find(s=>s.side==='enemy')!.rear},deploymentDepth:d.deployment.enemy,
+      ...(r.definitionId==='open-front'&&!op.endless?{staging:r.locations.filter(l=>l.kind==='village').map(l=>({id:l.id,point:{...l.position}}))}:{}),
       targets:d.enemyIntent==='contest'?r.locations.filter(l=>l.kind==='village').map(l=>({id:l.id,point:{...l.position}})):
         r.routes.filter(route=>route.side==='enemy').map(route=>({id:'player-rear',point:{...route.destination}}))};
     if(r.missionPlan){const m=r.missionPlan;

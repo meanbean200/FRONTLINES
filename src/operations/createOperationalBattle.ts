@@ -50,7 +50,7 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
     prepared.set(side,ids);
   }
   terrain.syncModifications();
-  const names=['Able','Baker','Charlie','Dog','Easy','Fox'];
+  const names=['Able','Baker','Charlie','Dog','Easy','Fox','George','How','Item','Jig','King','Love','Mike','Nan','Oboe','Peter'];
   for(const side of ['player','enemy'] as const){
     const f=definition.forces[side];
     const total=forceSize(f),roster=Array.from({length:Math.ceil(total/8)},(_,i)=>({count:Math.min(8,total-i*8),name:names[i]??`Formation ${i+1}`}));
@@ -79,7 +79,7 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
   const garrisons=new GarrisonSystem(state,terrain,navigation,construction);
   for(const [side,trenchIds] of prepared)for(const [index,trenchId] of trenchIds.entries()){
     const ids=groups.get(trenchId)!,component=garrisons.network.component(trenchId)!;
-    const positions=garrisons.network.samples(component,mission?1.5:setup?3:4).filter(p=>terrain.coverAt(p.x,p.z)==='trench');
+    const positions=garrisons.network.samples(component,mission?1.5:setup||id==='open-front'?3:4).filter(p=>terrain.coverAt(p.x,p.z)==='trench');
     const people=state.soldiers.filter(s=>ids.includes(s.squadId));
     for(const [i,s] of people.entries()){if(!positions[i])throw new Error('Prepared sector capacity exceeded');Object.assign(s,positions[i]);s.cover='trench';}
     for(const q of state.squads.filter(q=>ids.includes(q.id))){const people=state.soldiers.filter(s=>s.squadId===q.id);q.x=people.reduce((n,p)=>n+p.x,0)/people.length;q.z=people.reduce((n,p)=>n+p.z,0)/people.length;}

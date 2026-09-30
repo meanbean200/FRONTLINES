@@ -39,6 +39,7 @@ describe('living-trench transition contracts',()=>{
   });
   it('does not let accumulated materials or ammunition suppress food dispatch',()=>{
     const sim=createStudyScenario(),w=sim.state.living!,g=w.garrisons[0];
+    for(const key of ['food','water'] as const)transfer(g.cache,w.rearStock,key,g.cache[key]);
     transfer(w.rearStock,g.forwardStock,'materials',180);transfer(w.rearStock,g.forwardStock,'ammo',100);
     sim.step(.05);expect(w.trucks.some(t=>t.role==='shuttle'&&t.state==='loading'&&t.cargo.food>0&&t.cargo.water>0)).toBe(true);
     for(const n of Object.values(balance(sim.state)))expect(Math.abs(n)).toBeLessThan(1e-6);
@@ -146,6 +147,7 @@ describe('living-trench transition contracts',()=>{
 
   it('retains cargo in a blocked truck without transferring it remotely',()=>{
     const sim=createStudyScenario(),w=sim.state.living!,truck=w.trucks.find(t=>t.role==='shuttle')!;
+    const g=w.garrisons[0];for(const key of ['food','water'] as const)transfer(g.cache,w.rearStock,key,g.cache[key]);
     // Intercept the departure itself: the smaller world's rear may be close.
     for(let i=0;i<200&&truck.state!=='outbound';i++)sim.step(.05);expect(truck.state).toBe('outbound');
     const stock={...truck.cargo},target=truck.route[truck.routeIndex];

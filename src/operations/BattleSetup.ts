@@ -61,8 +61,8 @@ export function configuredDefinition(id:OperationId,setup?:ResolvedBattleSetup):
   if(!validBattleSetup(setup,true)||setup.operation!==id)throw new Error('Incompatible battle setup');
   const base={small:2,medium:4,large:8}[setup.size],a=setup.advanced;
   for(const side of ['player','enemy'] as const){
-    const f=d.forces[side],advantage=a.composition==='standard'&&f.rifles>4?2:0;
-    f.rifles=base+advantage;f.engineers=a.engineers;f.mortars=a.mortars?1:0;
+    const f=d.forces[side],front=id==='open-front'&&setup.battleMode!=='endless',advantage=id!=='open-front'&&a.composition==='standard'&&f.rifles>4?2:0;
+    f.rifles=front?({small:6,medium:7,large:8}[setup.size]-(side==='enemy'?1:0)):base+advantage;f.engineers=a.engineers;f.mortars=a.mortars?1:0;
   }
   if(a.approach==='close')for(const side of ['player','enemy'] as const){const depth=d.deployment[side];d.deployment[side]=Math.sign(depth)*(Math.abs(depth)===550?450:Math.min(Math.abs(depth),650));}
   return d;

@@ -130,13 +130,15 @@ export class TrenchNetwork {
   samples(component:number,spacing=5):Vec2[]{
     const result:Vec2[]=[];for(const e of this.edges){if(this.nodes[e.a].component!==component)continue;const count=Math.max(1,Math.floor(e.length/spacing));for(let i=0;i<count;i++)result.push(lerpVec(this.nodes[e.a],this.nodes[e.b],(i+.5)/count));}return result;
   }
-  route(from:Vec2,to:Vec2,component?:number):Vec2[]{
+  route(from:Vec2,to:Vec2,component?:number,avoid?:(p:Vec2)=>boolean):Vec2[]{
     const a=this.nearest(from,component),b=this.nearest(to,component);if(!a||!b)return [];
     const ae=this.edges[a.edge],be=this.edges[b.edge];if(this.nodes[ae.a].component!==this.nodes[be.a].component)return [];
-    if(a.edge===b.edge)return [a.point,b.point];
+    const clear=(a:Vec2,b:Vec2)=>{if(!avoid)return true;const n=Math.max(1,Math.ceil(distance(a,b)/3));for(let i=1;i<=n;i++)if(avoid(lerpVec(a,b,i/n)))return false;return true;};
+    if(a.edge===b.edge&&clear(from,a.point)&&clear(a.point,b.point)&&clear(b.point,to))return [a.point,b.point];
     let best:number[]|undefined,bestCost=Infinity;
     for(const start of [ae.a,ae.b])for(const end of [be.a,be.b]){
-      const path=this.shortest(start,end);if(!path.length)continue;
+      if(!clear(from,a.point)||!clear(a.point,this.nodes[start])||!clear(this.nodes[end],b.point)||!clear(b.point,to))continue;
+      const path=this.shortest(start,end,avoid);if(!path.length)continue;
       let cost=distance(a.point,this.nodes[start])+distance(b.point,this.nodes[end]);for(let i=1;i<path.length;i++)cost+=distance(this.nodes[path[i-1]],this.nodes[path[i]]);
       if(cost<bestCost){bestCost=cost;best=path;}
     }
@@ -148,14 +150,16 @@ export class TrenchNetwork {
     const probes=route.flatMap((p,i)=>i?[p,lerpVec(route[i-1],p,.5)]:[p]);
     return [...new Set(probes.flatMap(p=>{const hit=this.nearest(p);return hit?this.edges[hit.edge].trenches:[];}))];
   }
-  private shortest(start:number,end:number):number[]{
+  private shortest(start:number,end:number,avoid?:(p:Vec2)=>boolean):number[]{
     const coord=(id:number)=>`${Math.round(this.nodes[id].x*100)},${Math.round(this.nodes[id].z*100)}`;
-    const key=`${coord(start)}:${coord(end)}`,cached=this.cache.get(key);
+    const key=`${coord(start)}:${coord(end)}`,cached=avoid?undefined:this.cache.get(key);
     if(cached){const ids=cached.map(p=>this.nodeLookup.get(p));if(ids.every((id,i)=>id!==undefined&&(i===0||this.nodes[id].edges.some(e=>this.edges[e].a===ids[i-1]||this.edges[e].b===ids[i-1]))))return ids as number[];this.cache.delete(key);}
     const costs=new Map<number,number>([[start,0]]),parent=new Map<number,number>(),open=new Set([start]);
     while(open.size){let at=-1,best=Infinity;for(const id of open){const cost=costs.get(id)!+distance(this.nodes[id],this.nodes[end]);if(cost<best){at=id;best=cost;}}
-      open.delete(at);if(at===end){const path=[at];while(parent.has(path[0]))path.unshift(parent.get(path[0])!);if(this.cache.size>4096)this.cache.delete(this.cache.keys().next().value!);this.cache.set(key,path.map(coord));return path;}
-      for(const i of this.nodes[at].edges){const e=this.edges[i],next=e.a===at?e.b:e.a,cost=costs.get(at)!+e.length;if(cost<(costs.get(next)??Infinity)){costs.set(next,cost);parent.set(next,at);open.add(next);}}
+      open.delete(at);if(at===end){const path=[at];while(parent.has(path[0]))path.unshift(parent.get(path[0])!);if(!avoid){if(this.cache.size>4096)this.cache.delete(this.cache.keys().next().value!);this.cache.set(key,path.map(coord));}return path;}
+      for(const i of this.nodes[at].edges){const e=this.edges[i],next=e.a===at?e.b:e.a;
+        if(avoid){const n=Math.max(1,Math.ceil(e.length/3));let blocked=false;for(let j=1;j<=n;j++)if(avoid(lerpVec(this.nodes[at],this.nodes[next],j/n))){blocked=true;break;}if(blocked)continue;}
+        const cost=costs.get(at)!+e.length;if(cost<(costs.get(next)??Infinity)){costs.set(next,cost);parent.set(next,at);open.add(next);}}
     }return [];
   }
   corridorClearance(p:Vec2):number {let best=Infinity;for(const e of this.edges)best=Math.min(best,distanceToSegment(p,this.nodes[e.a],this.nodes[e.b]).distance-e.width*.43);return best;}

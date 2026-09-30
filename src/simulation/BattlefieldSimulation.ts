@@ -18,6 +18,7 @@ import {MIN_TRENCH_LENGTH} from '../construction/ConstructionReadout';
 import {reservedConstructionTeam} from '../construction/WorkAssignments';
 import {atDistance,simplifyRoute} from '../core/Polyline';
 import { GarrisonSystem } from '../garrison/GarrisonSystem';
+import {trenchName} from '../garrison/PositionNames';
 import { OperationSystem } from '../operations/OperationSystem';
 import { factionOf } from '../operations/types';
 import {EngineerSystem} from '../construction/EngineerSystem';
@@ -333,7 +334,7 @@ export class BattlefieldSimulation {
     const edge=this.garrisons.network.edges[hit.edge],trench=this.state.trenches.find(t=>this.garrisons.network.component(t.id)===this.garrisons.network.nodes[edge.a].component);
     if(!trench||!this.assignGarrison(squadIds,trench.id))return;
     const g=this.state.living!.garrisons.find(g=>g.squadIds.some(id=>squadIds.includes(id)))!;
-    g.frontage=frontage.map(p=>({...p}));g.name=`Defensive area ${g.id}`;g.nextDecision=0;
+    g.frontage=frontage.map(p=>({...p}));g.name=trenchName(this.state,g.trenchId);g.nextDecision=0;
     return g.id;
   }
   requestConstruction(request:ConstructionRequest):number|undefined {

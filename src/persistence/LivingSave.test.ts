@@ -18,6 +18,17 @@ describe('living save boundaries',()=>{
     expect(restored.living!.garrisons[0].policyStatus).toContain('Fallback');
     expect(restored.living!.garrisons[0].modelId).toContain('unavailable-schema:');
   });
+  it('migrates prior command rules without replaying survival migrations or adding stock',()=>{
+    const state=createStudyScenario().state,g=state.living!.garrisons[0];
+    state.combatRules='combat-44-supply-interception-world2';g.cutoff='decision';g.policy='learned';g.modelId='old-model';
+    const original=JSON.stringify(state),saved={...state,policySchema:{observationVersion:2,rulesVersion:state.combatRules}};
+    const restored=new SaveSystem().parse(JSON.stringify(saved));
+    expect(restored.soldiers).toEqual(state.soldiers);expect(restored.squads).toEqual(state.squads);expect(restored.trenches).toEqual(state.trenches);
+    expect(restored.living!.ledger).toEqual(state.living!.ledger);expect(restored.living!.rearStock).toEqual(state.living!.rearStock);
+    expect(restored.living!.garrisons[0].cache).toEqual(g.cache);expect(restored.living!.garrisons[0].cutoff).toBe('decision');
+    expect(restored.living!.garrisons[0].policyStatus).toContain('Fallback');expect(restored.combatRules).toBe(RULES_VERSION);
+    expect(restored.living!.migrationNote).not.toContain('Food and water');expect(JSON.stringify(state)).toBe(original);
+  });
   it('rejects dangling stores, duplicate memberships and missing metrics',()=>{
     const state=createStudyScenario().state,save=new SaveSystem();
     const duplicate=structuredClone(state);duplicate.living!.garrisons[0].squadIds.push(duplicate.squads[0].id);expect(()=>save.parse(JSON.stringify(duplicate))).toThrow();
@@ -34,5 +45,15 @@ describe('living save boundaries',()=>{
         expect(storage.get('frontlines-battlefield-v2')).toBe('existing-save');
       }
     }finally{vi.unstubAllGlobals();}
+  });
+  it('preserves optional safe-haul feedback and urgency but rejects malformed copies',()=>{
+    const sim=createStudyScenario();sim.step(.05);
+    const state=sim.state,g=state.living!.garrisons[0],person=state.soldiers.find(p=>p.duty)!,save=new SaveSystem();
+    g.haulIssue={personId:person.id,destination:{...g.forward},at:state.elapsed,reason:'NO SAFE APPROACH'};person.duty!.urgentAmmo=true;
+    const saved=save.parse(JSON.stringify(state));expect(saved.living!.garrisons[0].haulIssue).toEqual(g.haulIssue);expect(saved.soldiers.find(p=>p.id===person.id)!.duty!.urgentAmmo).toBe(true);
+    for(const value of [null,{...g.haulIssue,at:-1},{...g.haulIssue,destination:{x:'bad',z:0}},{...g.haulIssue,reason:'invented'}]){
+      const copy=structuredClone(state);Object.assign(copy.living!.garrisons[0],{haulIssue:value});expect(()=>save.parse(JSON.stringify(copy))).toThrow();
+    }
+    const copy=structuredClone(state);Object.assign(copy.soldiers.find(p=>p.id===person.id)!.duty!,{urgentAmmo:'true'});expect(()=>save.parse(JSON.stringify(copy))).toThrow();
   });
 });

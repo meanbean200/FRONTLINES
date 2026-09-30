@@ -7,6 +7,7 @@ import {connectedName,networkRepresentatives} from './TrenchReadout';
 import {friendlyTrenches} from './TrenchReadout';
 import type {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {squadHasEquipment} from '../combat/Equipment';
+import {positionName} from '../garrison/PositionNames';
 
 interface BuildActions {manage:(id?:number)=>void;place:(id:number,kind:Facility['kind'],guns?:1|4)=>void;assign:(id?:number)=>void;focus:(point:Vec2)=>void}
 /** Contextual construction choices. Opening never changes orders or inventories. */
@@ -55,7 +56,7 @@ export class BuildPanel {
     this.button.disabled=locked;
     this.button.hidden=!state.squads.some(q=>this.selected().has(q.id)&&squadHasEquipment(state,q,'tools'));
     if(this.element.hidden||!force&&performance.now()-this.last<250)return;this.last=performance.now();
-    const networks=this.trenchNetwork?networkRepresentatives(friendlyTrenches(state,this.trenchNetwork).filter(t=>this.trenchNetwork!.component(t.id)!==undefined),this.trenchNetwork).map(t=>{const g=state.living!.garrisons.find(g=>this.trenchNetwork!.component(g.trenchId)===this.trenchNetwork!.component(t.id));return {id:g?.id??-t.id,trenchId:t.id,name:connectedName(state,this.trenchNetwork!,t.id)};}):state.living!.garrisons.filter(g=>g.faction!=='enemy'),select=this.element.querySelector<HTMLSelectElement>('#build-network')!;
+    const networks=this.trenchNetwork?networkRepresentatives(friendlyTrenches(state,this.trenchNetwork).filter(t=>this.trenchNetwork!.component(t.id)!==undefined),this.trenchNetwork).map(t=>{const g=state.living!.garrisons.find(g=>this.trenchNetwork!.component(g.trenchId)===this.trenchNetwork!.component(t.id));return {id:g?.id??-t.id,trenchId:t.id,name:connectedName(state,this.trenchNetwork!,t.id)};}):state.living!.garrisons.filter(g=>g.faction!=='enemy').map(g=>({...g,name:positionName(state,g)})),select=this.element.querySelector<HTMLSelectElement>('#build-network')!;
     if(!networks.some(g=>g.id===this.networkId))this.networkId=networks[0]?.id??0;
     const key=networks.map(g=>g.id+g.name).join('|');
     if(select.dataset.key!==key){select.dataset.key=key;select.replaceChildren();if(!networks.length)select.add(new Option('No excavated friendly trench yet','0'));for(const g of networks)select.add(new Option(g.name,String(g.id)));}

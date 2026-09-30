@@ -53,6 +53,7 @@ export interface OperationState {
   shots: number;
   hits: number;
   reason: string;
+  outcome?:import('./OperationOutcome').OperationOutcome;
   /** Observed positions only. Lost contacts never track unseen movement. */
   contacts?:Record<Faction,Contact[]>;
   enemyAI?:EnemyMemory;

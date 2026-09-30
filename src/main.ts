@@ -2,6 +2,7 @@ import './style.css';
 import './ui/menu.css';
 import './ui/hud.css';
 import './ui/map.css';
+import './ui/command-surfaces.css';
 import { FrontlinesApp } from './app/FrontlinesApp';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#battlefield');

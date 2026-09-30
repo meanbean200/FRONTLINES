@@ -1,15 +1,15 @@
-import {distance,distanceToSegment,polylineLength,type BattlefieldState,type SoldierState,type Vec2} from '../core/types';
+import {distance,polylineLength,type BattlefieldState,type SoldierState,type Vec2} from '../core/types';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {SquadNavigation} from '../navigation/SquadNavigation';
 import {consume,transferBounded,carrierCapacity} from '../garrison/Inventory';
 import {inventory,type Inventory} from '../garrison/types';
-import {squadContacts} from '../operations/Visibility';
 import {doorPoint} from '../terrain/BuildingGeometry';
 import {bodyBlocks} from '../navigation/FriendlyTraffic';
 import {routeJoin} from '../navigation/RouteJoin';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {effectiveSquad} from '../operations/AssaultPlan';
 import {chooseLocalCover,CoverSpace} from '../combat/LocalCover';
+import {knownRouteThreat} from '../navigation/KnownRouteThreat';
 
 export interface SelfCare {
   kind:'sleep'|'field-rest'|'meal'|'resupply'|'supply-wait'; stage:'exit'|'outbound'|'use'|'return';
@@ -44,7 +44,7 @@ function sources(state:BattlefieldState,s:SoldierState):Source[]{
 }
 function threatened(state:BattlefieldState,s:SoldierState,from:Vec2,route:Vec2[]):boolean {
   // Only delivered/local contacts, never hidden enemy coordinates.
-  return squadContacts(state,s.squadId).some(c=>state.elapsed-c.lastSeen<15&&route.some((p,i)=>distanceToSegment(c,i?route[i-1]:from,p).distance<100));
+  return knownRouteThreat(state,s).route(from,route);
 }
 function consumePack(state:BattlefieldState,s:SoldierState):void {
   const n=s.needs!,pack=s.carried??=inventory();

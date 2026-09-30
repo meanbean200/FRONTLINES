@@ -1,7 +1,8 @@
 import {OPERATION_IDS,OPERATION_DEFINITIONS} from '../operations/OperationDefinitions';
 import {ARMY_LABELS,SIZE_LABELS,SETUP_PRESETS,battlePopulation,configuredDefinition,forceSummary,type BattleSetup,type ResolvedBattleSetup} from '../operations/BattleSetup';
 
-import {MISSION_COPY,MISSION_SUCCESS,missionFailure,placeMissionOperation} from '../operations/MissionContent';
+import {MISSION_COPY,placeMissionOperation} from '../operations/MissionContent';
+import {missionRules} from '../operations/MissionReadout';
 import type {SavedSetup} from '../persistence/SetupPresets';
 import {defaultEndlessOptions} from '../operations/EndlessTypes';
 
@@ -49,7 +50,7 @@ export function renderBattleBriefing(s:ResolvedBattleSetup):string {
   const hours={dawn:'06:00',day:'08:00',dusk:'18:00',night:'22:00'}[s.advanced.time];
   return `<section class="battle-briefing" aria-label="Operation briefing"><div class="setup-title"><span class="eyebrow">${ARMY_LABELS[s.side]} · ${hours}</span><h2>${escapeText(d.title)}</h2><p class="muted">Sector ${s.seed}</p></div>
     <dl><div><dt>SITUATION</dt><dd>${escapeText(d.situation)}</dd></div><div class="briefing-primary"><dt>PRIMARY</dt><dd>${escapeText(primary.title)}</dd></div><div><dt>${r.missionPlan?'LANDMARK':'OPTIONAL'}</dt><dd>${r.missionPlan?escapeText(r.missionPlan.place+' · click the marked road house to manage its floors'):r.objectives.filter(o=>o.priority==='optional').map(o=>escapeText(o.title)).join(' · ')}<small>${r.missionPlan?'A forward trench receives real supplies by truck. No capture-score victory.':'Local supply stores. Choose what supports your plan.'}</small></dd></div><div><dt>YOUR FORCE</dt><dd>${forceSummary(s)}<small>${battlePopulation(s)}${d.persistent?` · ${s.advanced.reserves} reserve personnel per side`:''}</small></dd></div></dl>
-    ${r.missionPlan?`<p class="briefing-success">${escapeText(MISSION_SUCCESS[r.missionPlan.kind])}</p><p class="muted">${escapeText(missionFailure(r.missionPlan.kind))}</p>`:''}
+    <div class="briefing-rules">${missionRules(r).map(row=>`<section><b>${row.side==='player'?'VICTORY':'DEFEAT'} · ${escapeText(row.location)}</b><p>${escapeText(row.condition)}</p></section>`).join('')}</div>
     <p class="briefing-settings">${s.advanced.supply==='low'?'Limited supplies':'Standard supplies'} · ${s.advanced.smoke?'Smoke available':'No smoke'} · ${d.persistent?'Save and resume anytime':d.duration.toLowerCase()}</p>
     <button class="menu-primary" id="begin-operation">Begin operation <span>→</span></button><button class="briefing-back" id="back-to-setup">← Change settings</button></section>`;
 }

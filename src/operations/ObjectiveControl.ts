@@ -2,6 +2,7 @@ import {clamp,distance,type BattlefieldState,type SoldierState,type Vec2} from '
 import type {Objective,Faction} from './types';
 import {inZone,zoneCorners} from './OperationGeometry';
 import {SETTLEMENTS} from '../terrain/WorldFeatures';
+import {RESOURCES} from '../garrison/types';
 
 export function controlZone(state:BattlefieldState,o:Objective){
   const r=state.operation?.runtime,location=r?.locations.find(l=>l.id===o.id);
@@ -44,6 +45,7 @@ export function controlReadout(state:BattlefieldState,o:Objective,side:Faction='
   const hostileContest=o.owner===side&&counts[other]>0;
   const progress=Math.round((side==='player'?o.control+1:1-o.control)*50);
   const status=mixed||hostileContest?'CONTESTED':securing?`SECURING · ${progress}%`:o.owner===side?'FRIENDLY CONTROL':o.owner===other?'ENEMY CONTROL':'NEUTRAL';
-  const reason=mixed||hostileContest?'Control area contested · clear the area':eligible[side]<minimum?`${eligible[side]} / ${minimum} able, unpinned personnel in control area`:securing?`${Math.ceil((side==='player'?1-o.control:1+o.control)*seconds)} simulation seconds remaining`:'Secured · physical supplies available';
+  const stock=state.living?.crates.find(c=>c.id===o.cacheId)?.stock,hasStock=stock&&RESOURCES.some(k=>stock[k]>0);
+  const reason=mixed||hostileContest?'Control area contested · clear the area':o.owner===side?hasStock?'Local stock available · inspect supply options':'Local stock depleted · inspect supply options':eligible[side]<minimum?`${eligible[side]} / ${minimum} able, unpinned personnel in control area`:`${Math.ceil((side==='player'?1-o.control:1+o.control)*seconds)} simulation seconds remaining`;
   return {status,reason,progress};
 }

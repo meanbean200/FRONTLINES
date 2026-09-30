@@ -9,6 +9,7 @@ import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {preparedPosition} from '../combat/testing/PositionFixture';
 import {requestPositionSupport,requestSupport,stepSupport} from '../combat/SupportWeapons';
 import {positionReadiness} from '../combat/WeaponPositions';
+import {networkName} from '../ui/TrenchReadout';
 
 function jobs(){
   const sim=createStudyScenario(),state=sim.state,w=state.living!,g=w.garrisons[0],t=state.trenches[0];
@@ -46,7 +47,7 @@ describe('explicit supply demand and reservation accounting',()=>{
     const {state,w,g,a,b}=jobs(),truck=w.trucks.find(t=>t.role==='shuttle')!;
     transfer(g.cache,w.rearStock,'materials',12);transfer(w.rearStock,truck.cargo,'materials',8);truck.state='outbound';truck.garrisonId=g.id;reconcileSupplyDemands(state);
     expect(workReadout(state,a)).toMatchObject({reserved:8,inbound:8,remaining:0});expect(workReadout(state,b).remaining).toBe(b.materialCost);
-    const r=shipmentReadout(state,truck);expect(r.destination).toBe(`Network ${String(g.trenchId).padStart(3,'0')}`);expect(r.cargo).toEqual(['Materials 8']);expect(r.jobs).toEqual([{name:'MG position 01',amount:8}]);
+    const r=shipmentReadout(state,truck);expect(r.destination).toBe(networkName(state,g.id));expect(r.destination).not.toMatch(/Network|Garrison/);expect(r.cargo).toEqual(['Materials 8']);expect(r.jobs).toEqual([{name:'MG position 01',amount:8}]);
     truck.x+=1000;expect(shipmentReadout(state,truck).destination).toBe(r.destination);
     truck.state='blocked';truck.resume='outbound';reconcileSupplyDemands(state);expect(workReadout(state,a).inbound).toBe(8);
     truck.resume='returning';reconcileSupplyDemands(state);expect(workReadout(state,a).inbound).toBe(0);

@@ -24,7 +24,7 @@ export interface OperationDefinition {
   enemyIntent:'defend'|'penetrate'|'contest'; prepared:readonly Faction[]; deployment:Record<Faction,number>;
   forces:Record<Faction,StartingForce>; persistent:boolean; defenseSeconds:number;
 }
-export interface OperationalCommandMemory {phase:'scouting'|'committing'|'holding'|'withdrawing'; since:number; startingAble:number; reason:string; nextSupport?:number}
+export interface OperationalCommandMemory {phase:'scouting'|'consolidating'|'committing'|'holding'|'withdrawing'; since:number; startingAble:number; reason:string; nextSupport?:number}
 /** Plain serialized state only. Rules are versioned independently of unchanged combat rules. */
 export interface OperationRuntime {
   missionPlan?:import('./MissionContent').MissionPlan;

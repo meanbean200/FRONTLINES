@@ -1,0 +1,20 @@
+
+> frontlines-battlefield-sandbox@0.1.0 build:dev
+> tsc -p tsconfig.dev.json && vite build --config vite.dev.config.ts
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 136 modules transformed.
+rendering chunks...
+computing gzip size...
+dist-dev/dev.html                               0.53 kB │ gzip:   0.36 kB
+dist-dev/assets/NavigationWorker-CWYz1Hzy.js   25.15 kB
+dist-dev/assets/GroundWorker-ClLUm9mz.js      108.89 kB
+dist-dev/assets/dev-DoHLsXY4.css                5.37 kB │ gzip:   1.81 kB
+dist-dev/assets/dev-W7K0Aib-.js               960.95 kB │ gzip: 281.30 kB
+✓ built in 1.86s
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.

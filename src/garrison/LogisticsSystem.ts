@@ -10,6 +10,8 @@ import {initializeEquipment,equipmentOf} from '../combat/Equipment';
 import {loadEndlessManifest,stepEndlessAvailability} from '../operations/EndlessEconomy';
 import {eyeHeight} from '../operations/Visibility';
 import {smokeTransmission} from '../combat/SupportWeapons';
+import {changeSupplyPoint,supplyPointAccess,supplyPointTown} from './SupplyPoints';
+import {SquadNavigation} from '../navigation/SquadNavigation';
 
 export function roadPoint(x:number):Vec2{return {x,z:supplyRoadZ(x)};}
 export const defaultLogistics=():LogisticsConfig=>({deliveryInterval:450,manifest:inventory({food:400,water:600,materials:120,fuel:180,ammo:160,medical:12,mortarHE:12,mortarSmoke:6,smokeGrenades:10}),rearCapacity:12000,forwardCapacity:400,cacheCapacity:600,storeCapacity:600,convoyCapacity:1500,shuttleCapacity:140,carrierCapacity:16});
@@ -34,9 +36,29 @@ export function initializeLiving(state:BattlefieldState):void {
 
 /** Kinematic road transport; roads severed by excavation cannot be driven across. */
 export class LogisticsSystem {
-  private reserved=new Set<number>();
+  private pointPreviews=new Map<string,{accepted:boolean;reason:string;point?:Vec2}>();
   constructor(private state:BattlefieldState,private terrain:TerrainSystem){}
-  replaceState(state:BattlefieldState):void{this.state=state;}
+  replaceState(state:BattlefieldState):void{this.state=state;this.pointPreviews.clear();}
+  previewSupplyPoint(garrisonId:number,townId:string){
+    const g=this.state.living!.garrisons.find(g=>g.id===garrisonId&&g.faction!=='enemy'),site=supplyPointTown(this.state,townId);
+    const blocked=supplyPointAccess(this.state,townId);
+    if(!g||!site)return {accepted:false,reason:'Choose a friendly position to supply'};
+    if(blocked)return {accepted:false,reason:blocked};
+    const key=[g.id,townId,this.terrain.revision,g.entrance.x,g.entrance.z].join(':');
+    const cached=this.pointPreviews.get(key);if(cached)return cached;
+    const result=(r:{accepted:boolean;reason:string;point?:Vec2})=>{if(this.pointPreviews.size>32)this.pointPreviews.clear();this.pointPreviews.set(key,r);return r;};
+    const point=this.forwardPoint(site.point),route=roadRoute(this.state.living!.rear,point,(a,b)=>this.clear(a,b));
+    if(distance(site.point,point)>180||!route.length||!this.clear(point,point))return result({accepted:false,reason:'NO ROAD ACCESS'});
+    if(!new SquadNavigation(this.terrain).plan(point,g.entrance,undefined,true,8000,32).length)return result({accepted:false,reason:'NO LAST-MILE ROUTE'});
+    return result({accepted:true,reason:`${Math.round(distance(point,g.entrance))} m direct to position · shared transport`,point});
+  }
+  setSupplyPoint(garrisonId:number,townId:string):{accepted:boolean;reason:string}{
+    if(this.state.operation?.status!=='active')return {accepted:false,reason:'Operation ended'};
+    const preview=this.previewSupplyPoint(garrisonId,townId);if(!preview.accepted||!preview.point)return preview;
+    const g=this.state.living!.garrisons.find(g=>g.id===garrisonId)!;
+    g.pendingSupplyPoint={townId,point:preview.point};
+    return {accepted:true,reason:'Supply point ordered · existing handoffs finish first; old stock stays recoverable'};
+  }
   forwardPoint(entrance:Vec2,side:'player'|'enemy'='player'):Vec2 {
     const nearest=nearestRoad(entrance);
     if(this.clear(nearest.point,nearest.point))return nearest.point;
@@ -94,7 +116,9 @@ export class LogisticsSystem {
   step(dt:number):void {
     const w=this.state.living!,config=w.logistics!;
     stepEndlessAvailability(this.state);
+    for(const g of w.garrisons)changeSupplyPoint(this.state,g,p=>this.clear(p,p));
     for(const g of w.garrisons){
+      if(g.supplyTownId||g.pendingSupplyPoint)continue;
       if(g.cutoff==='withdraw'||total(g.forwardStock)>0||this.clear(g.forward,g.forward))continue;
       // Existing stocked depots and in-flight handovers stay at their physical
       // location. Only an empty invalid apron with no foot/medical trip can move.
@@ -106,13 +130,15 @@ export class LogisticsSystem {
       for(const t of w.trucks.filter(t=>!t.abandoned&&t.garrisonId===g.id&&(t.state==='outbound'||t.state==='blocked'&&t.resume==='outbound'))){this.depart(t,next,'outbound');t.reason='Rerouting to accessible unloading apron · cargo retained';}
     }
     reconcileSupplyDemands(this.state);
-    this.reserved=new Set(w.trucks.filter(t=>!t.abandoned&&t.garrisonId!==undefined&&t.state!=='idle').map(t=>t.garrisonId!));
     for(const t of w.trucks){
       if(t.abandoned)continue;
       const side=t.faction??'player',enemy=side==='enemy'?w.enemySupply:undefined;
       if(side==='enemy'&&!enemy){t.reason='No friendly rear depot';continue;}
       const rear=enemy?.rear??w.rear,rearStock=enemy?.stock??w.rearStock,edge=(side==='enemy'?enemy?.entry:w.entry)??convoyEntry(side==='enemy',rear);
       const assigned=w.garrisons.find(g=>g.id===t.garrisonId&&(g.faction??'player')===side);
+      if(t.role==='shuttle'&&assigned?.supplyTownId&&supplyPointAccess(this.state,assigned.supplyTownId,side)&&['outbound','unloading','blocked'].includes(t.state)&&t.resume!=='returning'){
+        this.depart(t,rear,'returning');t.reason='Supply point no longer secured · returning with cargo';continue;
+      }
       // A captured destination does not teleport its shipment back into a depot.
       if(t.role==='shuttle'&&t.garrisonId!==undefined&&!assigned&&t.state!=='returning'&&!(t.state==='blocked'&&t.resume==='returning')){
         this.depart(t,rear,'returning');t.reason='Destination lost; returning with cargo';continue;
@@ -140,17 +166,21 @@ export class LogisticsSystem {
           if(this.state.operation?.endless&&total(t.cargo)===0&&!this.state.operation.campaign?.replacements?.manifests.some(m=>m.side===side&&m.stage==='edge')){t.reason='Rear target stocked or authorized supply exhausted';continue;}
           t.state='loading';t.timer=8;t.reason='Scheduled rear manifest loading';
         }else{
-          const peopleTrip=(g:Garrison)=>Boolean(this.state.operation?.campaign?.replacements?.manifests.some(m=>m.side===side&&m.stage==='rear'&&g.squadIds.includes(m.squadId)))||this.state.soldiers.some(s=>s.combat?.careTask?.stage==='evacuate'&&distance(s.combat.careTask.destination,g.forward)<5);
+          const approaching=(g:Garrison)=>w.trucks.filter(v=>!v.abandoned&&v.role==='shuttle'&&v.garrisonId===g.id&&(v.faction??'player')===side&&['loading','outbound','unloading','blocked'].includes(v.state)&&v.resume!=='returning');
+          const space=(g:Garrison)=>Math.max(0,config.forwardCapacity-total(g.forwardStock)-approaching(g).reduce((n,v)=>n+total(v.cargo),0));
+          const peopleTrip=(g:Garrison)=>!approaching(g).length&&(Boolean(this.state.operation?.campaign?.replacements?.manifests.some(m=>m.side===side&&m.stage==='rear'&&g.squadIds.includes(m.squadId)))||this.state.soldiers.some(s=>s.combat?.careTask?.stage==='evacuate'&&distance(s.combat.careTask.destination,g.forward)<5));
           const demands=(g:Garrison)=>(w.supplyDemands??[]).filter(d=>d.garrisonId===g.id&&unfulfilled(d)>.00001&&rearStock[d.resource]>0);
           const priority=(g:Garrison)=>Math.min(peopleTrip(g)?3:6,...demands(g).map(d=>d.priority));
-          const g=w.garrisons.filter(g=>(g.faction??'player')===side&&!this.reserved.has(g.id)&&(g.squadIds.length>0||this.state.soldiers.some(s=>s.garrisonId===g.id&&s.needs?.life==='active')||w.facilities.some(f=>f.garrisonId===g.id&&f.workOrder?.explicit&&f.workOrder.cancelledAt===undefined))&&(total(g.forwardStock)<config.forwardCapacity||peopleTrip(g))&&(demands(g).length>0||peopleTrip(g))).sort((a,b)=>priority(a)-priority(b)||a.id-b.id)[0];
+          // One finite regional fleet. Equal-urgency destinations take turns;
+          // IDs are a final deterministic tie-break, not permanent first claim.
+          const g=w.garrisons.filter(g=>(g.faction??'player')===side&&!g.pendingSupplyPoint&&(!g.supplyTownId||!supplyPointAccess(this.state,g.supplyTownId,side))&&(g.squadIds.length>0||this.state.soldiers.some(s=>s.garrisonId===g.id&&s.needs?.life==='active')||w.facilities.some(f=>f.garrisonId===g.id&&f.workOrder?.explicit&&f.workOrder.cancelledAt===undefined))&&(space(g)>0&&demands(g).length>0||peopleTrip(g))).sort((a,b)=>priority(a)-priority(b)||(a.lastDispatchAt??a.lastDeliveryAt??-1)-(b.lastDispatchAt??b.lastDeliveryAt??-1)||distance(t,a.forward)-distance(t,b.forward)||a.id-b.id)[0];
           if(!g)continue;
           const fuel=transfer(rearStock,t.cargo,'fuel',Math.max(0,30-t.fuel));t.cargo.fuel-=fuel;t.fuel+=fuel;
           if(t.fuel<2){t.reason='Depot fuel shortage';continue;}
-          let capacity=Math.min(config.shuttleCapacity-total(t.cargo),config.forwardCapacity-total(g.forwardStock));
+          let capacity=Math.min(config.shuttleCapacity-total(t.cargo),space(g));
           for(const d of demands(g)){const reserveLimit=d.priority<5?Infinity:d.resource==='ammo'?90:d.resource==='food'||d.resource==='water'?55:d.resource==='materials'?24:6;capacity-=transfer(rearStock,t.cargo,d.resource,Math.min(capacity,reserveLimit,unfulfilled(d)));}
           if(total(t.cargo)===0&&!peopleTrip(g)){t.reason='Depot empty';continue;}
-          t.garrisonId=g.id;this.reserved.add(g.id);t.state='loading';t.timer=6;t.reason='Loading forward shipment';
+          t.garrisonId=g.id;g.lastDispatchAt=this.state.elapsed;t.state='loading';t.timer=6;t.reason='Loading forward shipment';
           reconcileSupplyDemands(this.state);
         }
       }else if(t.state==='loading'){

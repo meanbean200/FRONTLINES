@@ -92,6 +92,7 @@ describe('deterministic garrison acceptance contracts',()=>{
   });
   it('collects construction shortages without filling a supplied camp with extra food',()=>{
     const sim=createStudyScenario(),w=sim.state.living!,g=w.garrisons[0],s=sim.state.soldiers[0];g.nextDecision=1000;
+    expect(sim.garrisons.requestFacility(g.id,'rest',undefined,undefined,undefined,true)).toBeDefined();
     transfer(g.cache,w.rearStock,'materials',g.cache.materials);
     transfer(w.rearStock,g.forwardStock,'materials',20);transfer(w.rearStock,g.forwardStock,'food',20);transfer(w.rearStock,g.forwardStock,'water',20);
     s.x=g.forward.x;s.z=g.forward.z;s.duty={kind:'haul',stage:'pickup',destination:{x:s.x,z:s.z},route:[],routeIndex:0,since:0,arrivedAt:0,until:300,reason:'Demand dispatch',blockedFor:0};

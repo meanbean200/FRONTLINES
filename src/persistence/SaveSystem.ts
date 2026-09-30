@@ -16,6 +16,7 @@ import {validEndless} from '../operations/EndlessValidation';
 import {initializeReplacements} from '../operations/Replacements';
 import {validBuildings} from '../terrain/BuildingValidation';
 import {validOperationalRuntime} from '../operations/OperationalValidation';
+import {validOperationOutcome} from '../operations/OperationOutcome';
 import {isOperationId} from '../operations/OperationDefinitions';
 import {initializeEquipment} from '../combat/Equipment';
 import {migrateWeaponCrews,installPositionWeapons} from '../combat/WeaponPositions';
@@ -103,12 +104,12 @@ export class SaveSystem {
     installPositionWeapons(state);
     migrateExplicitWorkQueues(state);
     migrateSupportPositions(state);
-    if(!state.living!.supplyDemands)reconcileSupplyDemands(state);
+    if(!state.living!.supplyDemands||state.combatRules!==RULES_VERSION)reconcileSupplyDemands(state);
     if(migratedV4){
       for(const s of state.soldiers)if(s.needs?.life==='dead'&&!s.death)s.death={cause:'legacy-unknown',at:state.elapsed,occurredAt:state.elapsed,condition:{healthBefore:s.health,energy:s.needs.energy,hunger:s.needs.hunger,thirst:s.needs.thirst}};
       state.living!.migrationNote='Copy migrated to v4. People, coordinates, stock and existing timing preserved. Historical death causes are unknown; no retrospective deprivation. Original saves remain untouched.';
     }
-    if(state.combatRules!==RULES_VERSION&&state.combatRules!=='combat-44-endless-controller-world2'){
+    if(![RULES_VERSION,'combat-44-endless-controller-world2','combat-44-supply-interception-world2'].includes(state.combatRules??'')){
       for(const g of state.living!.garrisons)if(g.cutoff==='decision')g.cutoff='warning';
       for(const s of state.soldiers){
         if(s.selfCare?.kind==='supply-wait'){delete s.selfCare;delete s.survivalReason;}
@@ -233,7 +234,7 @@ function validWorldPositions(s:BattlefieldState):boolean {
     ...s.squads.flatMap(q=>[...(q.route??[]),...(q.order?.drawnPath??[]),...(q.order?.target?[q.order.target]:[]),...(q.engineerWork?.crews.flatMap(c=>c.route)??[])]),
     ...s.soldiers.flatMap(p=>p.duty?[p.duty.destination,...p.duty.route]:[]),
     ...(s.operation?.objectives??[]),
-    ...(w?[w.rear,...(w.enemySupply?[w.enemySupply.rear]:[]),...w.facilities,...w.crates,...w.trucks,...w.trucks.flatMap(t=>t.route),...w.garrisons.flatMap(g=>[g.entrance,g.forward,...(g.frontage??[])])]:[])];
+    ...(w?[w.rear,...(w.enemySupply?[w.enemySupply.rear]:[]),...w.facilities,...w.crates,...w.trucks,...w.trucks.flatMap(t=>t.route),...w.garrisons.flatMap(g=>[g.entrance,g.forward,...(g.pendingSupplyPoint?[g.pendingSupplyPoint.point]:[]),...(g.frontage??[])])]:[])];
   return points.every(p=>p&&insideWorld(p));
 }
 
@@ -241,6 +242,7 @@ function validOperation(state:BattlefieldState):boolean {
   if(!validEndless(state))return false;
   if(!validCampaignSystems(state))return false;
   const op=state.operation!;
+  if(!validOperationOutcome(op,state.elapsed))return false;
   if(!validIntelligence(state))return false;
   const nonnegative=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v)&&v>=0;
   if(!op||op.version!==1||state.schemaVersion===1||!(['advance','defense','campaign'].includes(op.mode)||isOperationId(op.mode))||!['active','victory','defeat','ended'].includes(op.status)||typeof op.reason!=='string'||!validOperationalRuntime(state))return false;
@@ -303,6 +305,11 @@ function validLiving(state:BattlefieldState):boolean {
     if(g.underFireUntil!==undefined&&!nonnegative(g.underFireUntil))return false;
     if(g.breachUntil!==undefined&&!nonnegative(g.breachUntil))return false;
     if(g.nextRoadheadReview!==undefined&&!nonnegative(g.nextRoadheadReview))return false;
+    if(g.lastDispatchAt!==undefined&&!nonnegative(g.lastDispatchAt))return false;
+    if(g.supplyTownId!==undefined&&(typeof g.supplyTownId!=='string'||!state.operation?.objectives.some(o=>o.id===g.supplyTownId)))return false;
+    if(g.pendingSupplyPoint&&(!point(g.pendingSupplyPoint.point)||!state.operation?.objectives.some(o=>o.id===g.pendingSupplyPoint!.townId)))return false;
+    if(g.supplyPointIssue!==undefined&&typeof g.supplyPointIssue!=='string')return false;
+    if(g.haulIssue!==undefined&&(!g.haulIssue||!Number.isInteger(g.haulIssue.personId)||g.haulIssue.personId<0||!point(g.haulIssue.destination)||!insideWorld(g.haulIssue.destination)||!nonnegative(g.haulIssue.at)||g.haulIssue.reason!=='NO SAFE APPROACH'))return false;
     if(g.threatSector&&(!point(g.threatSector)||!finite(g.threatSector.front))||g.reserveRequired!==undefined&&!nonnegative(g.reserveRequired))return false;
     if(g.frontage!==undefined&&(!Array.isArray(g.frontage)||g.frontage.length<2||g.frontage.length>4096||!g.frontage.every(point)))return false;
     if(g.recoveredSince!==undefined&&!nonnegative(g.recoveredSince)||g.supplyIssue!==undefined&&typeof g.supplyIssue!=='string')return false;
@@ -349,10 +356,12 @@ function validLiving(state:BattlefieldState):boolean {
       if(d.exitPoint!==undefined&&!point(d.exitPoint))return false;
       if(d.rationUntil!==undefined&&!nonnegative(d.rationUntil))return false;
       if(d.pickupQueued!==undefined&&typeof d.pickupQueued!=='boolean')return false;
+      if(d.safetyReviewAt!==undefined&&!nonnegative(d.safetyReviewAt)||d.unsafeRoute!==undefined&&typeof d.unsafeRoute!=='boolean')return false;
+      if(d.urgentAmmo!==undefined&&typeof d.urgentAmmo!=='boolean')return false;
       if(d.detourWaypoints!==undefined&&(!Number.isInteger(d.detourWaypoints)||d.detourWaypoints<0||d.detourWaypoints>d.route.length))return false;
       for(const flag of [d.networkBound,d.routeBlocked,d.entryPending,d.exitPending])if(flag!==undefined&&typeof flag!=='boolean')return false;
       if(s.garrisonId===undefined||typeof d.reason!=='string'||(d.stage!==undefined&&!['pickup','deliver'].includes(d.stage))||(d.relieving!==undefined&&!sIds.has(d.relieving))||(d.crateId!==undefined&&!crateIds.has(d.crateId)))return false;
-      for(const id of [d.facilityId,d.pickupStoreId,d.dropStoreId])if(id!==undefined&&facilities.get(id)?.garrisonId!==s.garrisonId)return false;
+      for(const id of [d.facilityId,d.pickupStoreId,d.dropStoreId,d.weaponDeliveryId])if(id!==undefined&&facilities.get(id)?.garrisonId!==s.garrisonId)return false;
     }
   }
   return validPositionState(state)&&validSupplyDemands(state);

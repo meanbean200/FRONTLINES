@@ -2,15 +2,21 @@ import {distanceToSegment,type Vec2,type BattlefieldState,type TrenchState} from
 import {excavatedPoints} from '../core/TrenchGeometry';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {assaultFor,detachedFromFormation} from '../operations/AssaultPlan';
+import {trenchName,positionName} from '../garrison/PositionNames';
+export {trenchName} from '../garrison/PositionNames';
 
 /** A saved trench's array order is stable; use the same short name on every surface. */
-export const trenchName=(state:BattlefieldState,id:number)=>`Trench ${String(state.trenches.findIndex(t=>t.id===id)+1).padStart(2,'0')}`;
 const readoutGraphs=new WeakMap<BattlefieldState,TrenchNetwork>();
 export const networkName=(state:BattlefieldState,id:number)=>{
-  const g=state.living?.garrisons.find(g=>g.id===id);if(!g)return 'Unassigned network';
+  const g=state.living?.garrisons.find(g=>g.id===id);if(!g)return 'Unassigned position';
   let graph=readoutGraphs.get(state);if(!graph){graph=new TrenchNetwork();readoutGraphs.set(state,graph);}graph.sync(state.trenches);return connectedName(state,graph,g.trenchId);
 };
-export const connectedName=(state:BattlefieldState,network:TrenchNetwork,id:number)=>`${state.trenches.some(t=>network.anchor(t.id)===network.anchor(id)&&state.squads.some(q=>q.id===t.engineerSquadId&&q.faction==='enemy'))?'Captured network':'Network'} ${String(network.anchor(id)).padStart(3,'0')}${state.trenches.find(t=>t.id===id)?.status==='planned'?' · planned':''}`;
+export const connectedName=(state:BattlefieldState,network:TrenchNetwork,id:number)=>{
+  const anchor=network.anchor(id),g=state.living?.garrisons.find(g=>network.anchor(g.trenchId)===anchor);
+  const authored=g?.name&&!/^Trench \d+$/i.test(positionName(state,g))?positionName(state,g):undefined;
+  const captured=g?.faction!=='enemy'&&Boolean(g)&&state.trenches.some(t=>network.anchor(t.id)===anchor&&state.squads.some(q=>q.id===t.engineerSquadId&&q.faction==='enemy'));
+  return `${captured?trenchName(state,anchor):authored??trenchName(state,anchor)}${captured?' · captured':''}${state.trenches.find(t=>t.id===id)?.status==='planned'?' · planned':''}`;
+};
 export function networkRepresentatives(trenches:TrenchState[],network:TrenchNetwork):TrenchState[]{
   const groups=new Map<number,TrenchState>();for(const t of trenches){const id=network.anchor(t.id),prior=groups.get(id);if(!prior||t.id<prior.id)groups.set(id,t);}return [...groups.values()];
 }

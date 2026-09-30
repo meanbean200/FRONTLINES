@@ -139,7 +139,10 @@ export class TerrainSystem {
     const bx=Math.floor(x/32),bz=Math.floor(z/32),key=bx+','+bz;
     let tile=this.baseTiles.get(key);
     if(!tile){tile=new Float64Array(33*33);for(let iz=0;iz<=32;iz++)for(let ix=0;ix<=32;ix++)tile[iz*33+ix]=this.rawBaseHeightAt(bx*32+ix,bz*32+iz);if(this.baseTileKeys.length<4096)this.baseTileKeys.push(key);else{this.baseTiles.delete(this.baseTileKeys[this.baseTileCursor]);this.baseTileKeys[this.baseTileCursor]=key;this.baseTileCursor=(this.baseTileCursor+1)%4096;}this.baseTiles.set(key,tile);}
-    const px=x-bx*32,pz=z-bz*32,ix=Math.floor(px),iz=Math.floor(pz),fx=px-ix,fz=pz-iz,i=iz*33+ix;
+    // Floating-point subtraction can round an almost-zero negative coordinate
+    // to local 32. Interpolate the last valid cell (fraction 1), not row 33
+    // outside the tile. Subnormal division can similarly produce local -epsilon.
+    const px=clamp(x-bx*32,0,32),pz=clamp(z-bz*32,0,32),ix=Math.min(31,Math.floor(px)),iz=Math.min(31,Math.floor(pz)),fx=px-ix,fz=pz-iz,i=iz*33+ix;
     const a=tile[i]+(tile[i+1]-tile[i])*fx,b=tile[i+33]+(tile[i+34]-tile[i+33])*fx;return a+(b-a)*fz;
   }
   private rawBaseHeightAt(x:number,z:number):number {

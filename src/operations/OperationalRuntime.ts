@@ -4,9 +4,10 @@ import {transfer} from '../garrison/Inventory';
 import {factionOf,type Faction} from './types';
 import {type ObjectiveSpec,type OperationRuntime,type OperationalPhase,type OperationalRoute} from './OperationalTypes';
 import {corridorDistance,frontDepth,inZone} from './OperationGeometry';
-import {configuredDefinition} from './BattleSetup';
 import {stepPhysicalMission} from './MissionRuntime';
 import {advanceControl,insideObjective} from './ObjectiveControl';
+import {finishOperation} from './OperationOutcome';
+import {decisiveObjective} from './MissionReadout';
 
 export function operationalForces(state:BattlefieldState):Record<Faction,SoldierState[]>{
   const squads=new Map(state.squads.map(q=>[q.id,q]));
@@ -61,6 +62,7 @@ function phase(r:OperationRuntime,next:OperationalPhase,at:number,reason:string)
 
 /** Fixed-clock, serialized evaluation schedule. Save/load cannot gain consolidation time. */
 export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSystem):void {
+  if(state.operation?.status!=='active')return;
   if(state.operation?.runtime?.missionPlan){stepPhysicalMission(state,terrain);return;}
   const op=state.operation!,r=op.runtime!;if(op.elapsed+1e-8<r.nextEvaluation)return;
   const dt=Math.max(0,op.elapsed-r.lastEvaluation);r.lastEvaluation=op.elapsed;r.nextEvaluation=op.elapsed+1;
@@ -72,9 +74,7 @@ export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSys
     p.failed=objective.spec.type==='hold-line'&&p.pressureFor>=objective.spec.breachSeconds;
     p.complete=!p.failed&&e.satisfied&&(objective.spec.type==='hold-line'?op.elapsed>=objective.spec.duration||p.heldFor>=30:'holdSeconds' in objective.spec&&p.heldFor>=objective.spec.holdSeconds);
   }
-  const finish=(status:'victory'|'defeat',reason:string)=>{op.status=status;op.reason=reason;state.simSpeed=0;};
   const primary=r.objectives.find(o=>o.side==='player'&&o.priority==='primary')!,progress=r.progress.find(p=>p.id===primary.id)!;
-  const definition=configuredDefinition(r.definitionId,op.setup);
   // Dead personnel, not sleeping or temporarily pinned men, determine irrecoverable loss.
   const combatSquads=new Set(state.squads.filter(q=>q.faction!=='enemy').map(q=>q.id));
   const survivors=state.soldiers.filter(s=>combatSquads.has(s.squadId)&&s.needs?.life!=='dead').length;
@@ -83,13 +83,15 @@ export function stepOperationalRuntime(state:BattlefieldState,terrain:TerrainSys
   const requiredSquads=primary.spec.type==='breakthrough'?primary.spec.squads:1;
   const future=state.operation?.campaign?.replacements;
   const pending=future&&(future.reserve.player>0||future.manifests.some(m=>m.side==='player'&&m.stage!=='arrived'));
-  if(progress.failed)finish('defeat','A viable enemy force established sustained access into your rear.');
-  else if((survivors<required||survivingSquads<requiredSquads)&&!pending)finish('defeat','Too few surviving combat personnel or formations remain to carry out the operation.');
+  if(progress.failed){const detail=decisiveObjective(r,primary,true);finishOperation(state,{status:'defeat',side:'enemy',event:'rear-breached',objectives:[detail],explanation:`Opposing forces maintained a connected penetration into ${detail.locations.map(l=>l.name).join(' / ')} for ${Math.floor(progress.pressureFor)} seconds (required ${detail.requiredSeconds}).`});}
+  else if((survivors<required||survivingSquads<requiredSquads)&&!pending)finishOperation(state,{status:'defeat',side:'enemy',event:'force-exhausted',objectives:[{id:primary.id,name:'INSUFFICIENT FIELD STRENGTH',condition:`At least ${required} survivors in ${requiredSquads} formations are required.`,locations:[],progress:survivors,required}],explanation:`${survivors} survivors in ${survivingSquads} formations remain; this objective needs ${required} personnel in ${requiredSquads} formations. No replacement reserve or pending arrivals remain.`});
   else for(const condition of r.victory){
     const other=condition.side==='player'?'enemy':'player';
     const effective=forces[other].length/Math.max(1,other==='enemy'?op.initialEnemy:op.initialPlayer);
     if(condition.objectives.every(id=>r.progress.find(p=>p.id===id)?.complete)&&(condition.opponentEffectivenessBelow===undefined||effective<=condition.opponentEffectivenessBelow)){
-      finish(condition.side==='player'?'victory':'defeat',condition.side==='player'?`${definition.title}: the operational objective is secured.`:'The opposing force achieved its operational objective.');break;
+      const objectives=condition.objectives.map(id=>decisiveObjective(r,r.objectives.find(o=>o.id===id)!));
+      finishOperation(state,{status:condition.side==='player'?'victory':'defeat',side:condition.side,event:'objectives-secured',objectives,
+        explanation:`${condition.side==='player'?'Your force':'Opposing forces'} completed ${objectives.map(o=>`${o.name}${o.locations.length?' at '+o.locations.map(l=>l.name).join(' / '):''}${o.requiredSeconds!==undefined?` · held ${Math.floor(o.heldFor!)} / ${o.requiredSeconds} s`:''}`).join('; ')}.${condition.opponentEffectivenessBelow!==undefined?` Opposing effectiveness also met the ${Math.round(condition.opponentEffectivenessBelow*100)}% limit.`:''}`});break;
     }
   }
   const contact=(op.intelligence?.command.player??op.contacts?.player??[]).some(c=>c.active);

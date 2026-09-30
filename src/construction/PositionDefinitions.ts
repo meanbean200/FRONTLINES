@@ -34,5 +34,18 @@ export function weaponCrewPoint(state:BattlefieldState,f:Facility,index:number):
 export function facilityName(state:BattlefieldState,f:Facility):string{
   const names={emplacement:'MG position',mortar:'Mortar pit',aid:'Aid post',ammo:'Ammo store',store:'Supply store',rest:'Rest dugout',meal:'Meal bay'};
   const index=state.living!.facilities.filter(p=>p.kind===f.kind&&state.living!.garrisons.find(g=>g.id===p.garrisonId)?.faction!=='enemy').findIndex(p=>p.id===f.id)+1;
-  return f.artillery?f.artillery.size>1?`Battery ${f.artillery.batteryId} · Gun ${f.artillery.index+1}`:`Field gun ${String(index).padStart(2,'0')}`:`${names[f.kind]} ${String(index).padStart(2,'0')}${f.kind==='mortar'?' · legacy':''}`;
+  const batteries=[...new Set(state.living!.facilities.filter(p=>p.artillery&&state.living!.garrisons.find(g=>g.id===p.garrisonId)?.faction!=='enemy').map(p=>p.artillery!.batteryId))];
+  return f.artillery?f.artillery.size>1?`Battery ${batteries.indexOf(f.artillery.batteryId)+1} · Gun ${f.artillery.index+1}`:`Field gun ${String(index).padStart(2,'0')}`:`${names[f.kind]} ${String(index).padStart(2,'0')}${f.kind==='mortar'?' · legacy':''}`;
+}
+/** Service/handover bay on the berm, clear of the gun berths and centre lane. */
+export function weaponServicePoint(state:BattlefieldState,f:Facility,relief=false):Vec2{
+  const t=state.trenches.find(t=>t.id===f.trenchAnchor?.trenchId);
+  if(t&&f.trenchAnchor){
+    const span=excavatedSpan(t),gap=relief?4.7:2.8;
+    const along=f.trenchAnchor.along-span.start>=gap?f.trenchAnchor.along-gap:Math.min(span.end,f.trenchAnchor.along+gap);
+    const a=inlineGeometry(t,along,f.facing??0);
+    return {x:a.center.x+a.normal.x*t.width*.3,z:a.center.z+a.normal.z*t.width*.3};
+  }
+  const crew=weaponCrewPoint(state,f,1),a=f.facing??0;
+  return {x:crew.x-Math.sin(a)*(relief?1.7:.9),z:crew.z-Math.cos(a)*(relief?1.7:.9)};
 }

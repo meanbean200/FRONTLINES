@@ -8,6 +8,7 @@ export interface OperationalKnowledge {
   mission?:{kind:import('./MissionContent').MissionKind;houseId:number;house:Vec2;secondHouseId?:number;secondHouse?:Vec2;preparationSeconds:number;frontage:number};
   intent:'defend'|'penetrate'|'contest';front:FrontGeometry;rear:Vec2;deploymentDepth:number;
   targets:{id:string;point:Vec2}[];
+  staging?:{id:string;point:Vec2}[];
 }
 /** Takes ONLY the information-firewall observation. It cannot inspect the live world,
  * objective oracle, player orders, hidden casualties or mission-completion progress. */
@@ -18,8 +19,20 @@ export function commandOperationalEnemy(o:EnemyObservation,terrain:TerrainSystem
   const report=o.contacts.filter(c=>o.at-c.lastSeen<=12&&c.active).sort((a,b)=>b.lastSeen-a.lastSeen)[0];
   const exhausted=ready.length<2||able<start*.45||old?.phase==='withdrawing'&&o.at-old.since<60;
   const scouts=ready.filter(q=>!q.emplaced).slice(0,2),scoutProgress=scouts.length>=2&&scouts.every(q=>frontDepth(k.front,q)<k.deploymentDepth-180);
-  const phase=exhausted?'withdrawing':k.intent==='defend'?'holding':scoutProgress||report?'committing':old?.phase==='committing'?'committing':'scouting';
-  const commander:OperationalCommandMemory={phase,since:old?.phase===phase?old.since:o.at,startingAble:start,nextSupport:old?.nextSupport??0,reason:exhausted?'Regroup: insufficient fit squads':k.intent==='defend'?'Protect the belt; react only to received reports':phase==='scouting'?'Two formations reconnoitre together; main body assembles in depth':'Commit the assembled force using received reports; retain a reserve'};
+  // Public terrain ahead of the deployment line is useful reconnaissance.
+  // Choosing the closest town to the rear instead sent the opening scouts
+  // backwards and needlessly delayed pressure on an otherwise open front.
+  const forwardSites=k.staging?.filter(site=>frontDepth(k.front,site.point)<k.deploymentDepth-100);
+  const approach=atDepth(k.front,k.deploymentDepth,0);
+  const staging=(forwardSites?.length?forwardSites:k.staging)?.slice().sort((a,b)=>distance(approach,a.point)-distance(approach,b.point)||a.id.localeCompare(b.id))[0];
+  const reached=staging&&scouts.some(q=>distance(q,staging.point)<160);
+  const assembled=staging&&ready.filter(q=>!q.emplaced&&distance(q,staging.point)<200).length>=3;
+  const contested=staging&&o.contacts.some(c=>c.active&&o.at-c.lastSeen<20&&distance(c,staging.point)<120);
+  const developed=assembled&&!contested;
+  const phase=exhausted?'withdrawing':k.intent==='defend'?'holding':staging?
+    old?.phase==='committing'||developed&&old?.phase==='consolidating'&&o.at-old.since>=18?'committing':developed?'consolidating':'scouting':
+    scoutProgress||report?'committing':old?.phase==='committing'?'committing':'scouting';
+  const commander:OperationalCommandMemory={phase,since:old?.phase===phase?old.since:o.at,startingAble:start,nextSupport:old?.nextSupport??0,reason:exhausted?'Regroup: insufficient fit squads':k.intent==='defend'?'Protect the belt; react only to received reports':phase==='consolidating'?'Secure forward ground and assemble support before the rear advance':phase==='scouting'?(staging?'Probe useful ground; retain line guards and a reserve':'Two formations reconnoitre together; main body assembles in depth'):'Commit the assembled force using received reports; retain a reserve'};
   const assignments=combat.map((q,i)=>{
     const target=k.targets[i%k.targets.length],reserve=i===(k.mission?.kind==='breakthrough'?Math.max(1,combat.length-3):combat.length-1)&&combat.length>=4;
     let goal:Vec2=target.point,defend=false;
@@ -32,6 +45,14 @@ export function commandOperationalEnemy(o:EnemyObservation,terrain:TerrainSystem
     }else if(reserve){goal=atDepth(k.front,k.deploymentDepth-150,(i%3-1)*200);defend=true;}
     else if(phase==='scouting'&&!scouts.some(s=>s.id===q.id)){goal=atDepth(k.front,k.deploymentDepth-100,(i%3-1)*(k.mission?35:120));defend=true;}
     else if(k.intent==='penetrate'){goal=phase==='scouting'?atDepth(k.front,0,(i%3-1)*450):target.point;}
+    if(staging&&!exhausted){
+      const guard=i===Math.max(2,combat.length-2);
+      if(reserve||guard){goal=atDepth(k.front,k.deploymentDepth+(reserve?60:0),(i%3-1)*120);defend=true;}
+      else if(phase!=='committing'){
+        goal=scouts.some(s=>s.id===q.id)||reached?{x:staging.point.x+k.front.forward.x*(scouts.some(s=>s.id===q.id)?0:90)+k.front.right.x*(i%3-1)*35,z:staging.point.z+k.front.forward.z*(scouts.some(s=>s.id===q.id)?0:90)+k.front.right.z*(i%3-1)*35}:atDepth(k.front,k.deploymentDepth-100,(i%3-1)*120);
+        defend=Boolean(reached&&distance(q,goal)<65||!reached&&!scouts.some(s=>s.id===q.id));
+      }
+    }
     // The mixed-equipped rear formation must be able to bring its mortar into
     // range of a delivered report. Being the reserve is not a permanent class
     // lock at deployment. No report means no pursuit of hidden coordinates.

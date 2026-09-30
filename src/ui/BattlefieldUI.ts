@@ -11,6 +11,7 @@ import {squadHasEquipment} from '../combat/Equipment';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {FireSupportPanel} from './FireSupportPanel';
 import {squadContacts} from '../operations/Visibility';
+import {RESOURCES} from '../garrison/types';
 
 export interface PerfSnapshot {fps:number;frameMs:number;simulationMs:number;drawCalls:number;chunks:number;p95Ms?:number}
 interface UIActions {
@@ -42,6 +43,7 @@ export class BattlefieldUI {
   private supportKey='';
   private selectionKey='';
   private selectionTab='overview';
+  private townOwners=new Map<string,string>();
   private readonly fireSupport:FireSupportPanel;
   constructor(private state:BattlefieldState,private readonly selected:Set<number>,private readonly flags:DebugFlags,private readonly actions:UIActions,private readonly terrain:TerrainSystem){
     this.root.innerHTML=this.template();this.bind();
@@ -78,10 +80,17 @@ export class BattlefieldUI {
     defend.title='Draw a frontage near completed trenches, then choose facing in the area inspector. Click a trench label for quick assignment.';
     for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-selection-tab]'))button.onclick=()=>{this.selectionTab=button.dataset.selectionTab!;this.selectionKey='';this.renderSelection();};
   }
-  replaceState(state:BattlefieldState):void{this.state=state;this.rosterSize=-1;this.selectionKey='';this.supportKey='';this.fireSupport.reset();}
+  replaceState(state:BattlefieldState):void{this.state=state;this.rosterSize=-1;this.selectionKey='';this.supportKey='';this.fireSupport.reset();this.townOwners.clear();}
   setQuality(level:string):void{this.root.querySelector<HTMLSelectElement>('#quality')!.value=level;}
   render(now:number,perf:PerfSnapshot,mode:InteractionMode):void{
     if(now-this.lastRender<100)return;this.lastRender=now;
+    for(const o of this.state.operation?.objectives??[]){
+      const previous=this.townOwners.get(o.id);this.townOwners.set(o.id,o.owner);
+      if(previous!==undefined&&previous!=='player'&&o.owner==='player'&&!document.documentElement.dataset.menu){
+        const stock=this.state.living?.crates.find(c=>c.id===o.cacheId)?.stock,available=stock&&RESOURCES.some(k=>stock[k]>0);
+        this.notify(`${o.name} secured · ${available?'Local stock available · ':''}Select the town for supply options`);
+      }
+    }
     const hours=this.state.living?.campaignHours??0;
     const reviewing=Boolean(document.documentElement.dataset.replay);
     const ended=Boolean(this.state.operation&&this.state.operation.status!=='active'),locked=reviewing||ended;
