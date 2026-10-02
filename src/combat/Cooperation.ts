@@ -7,10 +7,13 @@ import {assaultSquad,detachedFromFormation} from '../operations/AssaultPlan';
  * rounds, not simply by labeling another squad 'support'. */
 export function coordinateMovement(state:BattlefieldState):void {
   const op=state.operation;if(!op)return;
+  const sides=new Map(state.squads.map(q=>[q.id,q.faction??'player']));
+  const bySquad=new Map<number,typeof state.soldiers>();
+  for(const person of state.soldiers){let row=bySquad.get(person.squadId);if(!row){row=[];bySquad.set(person.squadId,row);}row.push(person);}
   const detachments=(state.preparedOrders??[]).flatMap(o=>o.assault?.march&&o.assault.phase!=='secured'?[assaultSquad(state.squads.find(q=>q.id===o.squadId)!,o.assault)]:[]);
   for(const q of [...state.squads,...detachments]){
     if(q.order.type!=='move'||q.order.pushThrough||q.order.intent==='fall-back')continue;
-    const people=state.soldiers.filter(s=>q.soldierIds.includes(s.id)&&s.needs?.life==='active'&&(detachments.includes(q)||!detachedFromFormation(state,s))),side=q.faction??'player';
+    const people=(bySquad.get(q.id)??[]).filter(s=>q.soldierIds.includes(s.id)&&s.needs?.life==='active'&&(detachments.includes(q)||!detachedFromFormation(state,s))),side=q.faction??'player';
     const threats=squadContacts(state,q.id).filter(c=>c.active&&c.visible&&distance(c,q)<300);
     if(!threats.length){if(q.tactics)delete q.tactics;if(detachments.includes(q)){const a=state.preparedOrders?.find(o=>o.squadId===q.id)?.assault;if(a?.march)delete a.march.tactics;}continue;}
     const t=q.tactics??={group:0,switchAt:state.elapsed+10};
@@ -19,7 +22,7 @@ export function coordinateMovement(state:BattlefieldState):void {
     const support=people.filter(s=>q.soldierIds.indexOf(s.id)%2!==t.group),moving=people.filter(s=>!support.includes(s));
     const useful=(s:typeof people[number])=>{const w=currentWeapon(state,s);return (w?.effectiveUntil??0)>state.elapsed&&Boolean(w?.effectivePoint&&threats.some(c=>distance(c,w.effectivePoint!)<45));};
     const effective=support.some(s=>useful(s)&&(weaponStock(state,s)?.ammo??0)>0&&s.suppression<70);
-    const otherSupport=state.soldiers.some(s=>s.squadId!==q.id&&state.squads.some(other=>other.id===s.squadId&&(other.faction??'player')===side)&&distance(s,q)<150&&useful(s)&&s.needs?.life==='active');
+    const otherSupport=state.soldiers.some(s=>s.squadId!==q.id&&sides.get(s.squadId)===side&&distance(s,q)<150&&useful(s)&&s.needs?.life==='active');
     for(const s of support)if(s.combat?.owner==='order'){s.combat.owner='reaction';s.combat.pauseReason='Covering moving group';s.action='covering fire';}
     // A short wait permits the supporting group to settle. Without effective
     // fire it is NOT safe, but neither is indefinite exposed paralysis. The

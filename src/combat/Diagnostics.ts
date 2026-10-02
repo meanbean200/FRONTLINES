@@ -22,10 +22,10 @@ export function combatDiagnostics(state:BattlefieldState,terrain?:TerrainSystem)
       const observed=operator?squadContacts(state,operator.squadId):[];
       const targets=observed.map(c=>{const t=state.soldiers.find(s=>s.id===c.soldierId),range=operator?distance(operator,c):0;return {id:c.soldierId,reportVisible:c.visible,reportAge:state.elapsed-c.lastSeen,range,
         inSector:operator?Math.cos(Math.atan2(c.x-operator.x,c.z-operator.z)-(f.facing??0))>=.34:false,
-        visible:!!(terrain&&operator&&t&&c.visible&&canSpot(state,terrain,operator,t)),clearMuzzle:!!(terrain&&operator&&t&&c.visible&&clearAimPoint(terrain,operator,t))};});
+        visible:!!(terrain&&operator&&t&&c.visible&&canSpot(state,terrain,operator,t)),clearMuzzle:!!(terrain&&operator&&t&&c.visible&&clearAimPoint(terrain,operator,t,state))};});
       return {id:f.id,kind:f.kind,facing:f.facing,installation:f.installation,readyStock:{...f.stock},readiness:positionReadiness(state,f)||'READY',reason:positionReadiness(state,f)||operator?.combat?.pauseReason||'No observed target',operatorId:operator?.id,
         crew:crew.map(s=>({id:s.id,equipment:s.equipment,x:s.x,z:s.z,suppression:s.suppression,duty:s.duty,ammo:s.carried?.ammo,he:s.carried?.mortarHE,smoke:s.carried?.mortarSmoke})),
-        range:weapon?WEAPONS[weapon.id].range:undefined,cooldown:operator?.nextShotAt,weapon,muzzle:terrain&&operator?muzzlePoint(terrain,operator):undefined,targets,
+        range:weapon?WEAPONS[weapon.id].range:undefined,cooldown:operator?.nextShotAt,weapon,muzzle:terrain&&operator?muzzlePoint(terrain,operator,state):undefined,targets,
         missions:state.operation?.supportMissions?.filter(m=>m.positionId===f.id)};
     }),
   };

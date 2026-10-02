@@ -13,6 +13,7 @@ class MinHeap {
 
 /** One route per squad order. Local searches resolve building footprints at 8 m. */
 export class SquadNavigation {
+  readonly counts={requests:0,expanded:0};
   constructor(private readonly terrain:TerrainSystem){}
   planFormation(start:Vec2,goal:Vec2):Vec2[]{const wide=this.plan(start,goal);return wide.length?wide:this.plan(start,goal,undefined,true,5000);}
   freeDestination(point:Vec2,clearance=8,maxAdjustment=60):Vec2 {
@@ -25,6 +26,7 @@ export class SquadNavigation {
     return target;
   }
   plan(start:Vec2,requestedGoal:Vec2,avoid?: (point:Vec2)=>boolean,person=false,budget?:number,gridSize?:number):Vec2[] {
+    this.counts.requests++;
     const interior=this.terrain.buildingAt(start);
     if(interior!==undefined){const b=this.terrain.buildings[interior],out=doorPoint(b,8),rest=this.plan(out,requestedGoal,avoid,person,budget);return rest.length?[{x:b.x,z:b.z},doorPoint(b,-1),out,...rest]:[];}
     const goal=this.freeDestination(requestedGoal,person?.55:8),range=distance(start,goal);
@@ -42,6 +44,7 @@ export class SquadNavigation {
     let found:Node|undefined;
     for(let iteration=0;iteration<(budget??(avoid?8000:30000))&&open.size;iteration++){
       const current=open.pop()!;
+      this.counts.expanded++;
       if(current.g!==(best.get(key(current.x,current.z))??Infinity))continue;
       const point={x:ox+current.x*cell,z:oz+current.z*cell};
       // Like the direct-approach shortcut and route compaction, an external

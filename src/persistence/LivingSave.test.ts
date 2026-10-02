@@ -19,7 +19,7 @@ describe('living save boundaries',()=>{
     expect(restored.living!.garrisons[0].policyStatus).toContain('Fallback');
     expect(restored.living!.garrisons[0].modelId).toContain('unavailable-schema:');
   });
-  it.each(['combat-44-supply-interception-world2','combat-45-command-logistics-world2'])('migrates %s without replaying survival migrations or adding stock',(rules)=>{
+  it.each(['combat-44-supply-interception-world2','combat-45-command-logistics-world2','combat-46-open-front-reset-world2'])('migrates %s without replaying survival migrations or adding stock',(rules)=>{
     const state=createStudyScenario().state,g=state.living!.garrisons[0];
     state.combatRules=rules;g.cutoff='decision';g.policy='learned';g.modelId='old-model';
     const original=JSON.stringify(state),saved={...state,policySchema:{observationVersion:2,rulesVersion:state.combatRules}};

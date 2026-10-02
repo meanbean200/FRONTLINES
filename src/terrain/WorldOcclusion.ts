@@ -27,51 +27,92 @@ function sphereIntersection(a:{x:number;y:number;z:number},b:{x:number;y:number;
 }
 
 export class WorldOcclusion {
+  readonly counts={requests:0,traces:0,cacheHits:0,groundSamples:0,treeCandidates:0,structureCandidates:0};
   private chunks=new Map<string,TreeSite[]>();
+  private indexedTrees=new WeakSet<TreeSite[]>();
   private trunkBuckets=new Map<string,TreeSite[]>();
+  private canopyBuckets=new Map<string,TreeSite[]>();
+  private treeQueries=new Map<string,TreeSite[]>();
+  private treeQueryKeys:string[]=[];
+  private treeQueryCursor=0;
   private clearances=new WeakMap<TreeSite,{revision:number;cleared:boolean}>();
   private rays=new Map<string,SightRay>();
   private rayRevision=-1;
   private rayKeys:string[]=[];
   private rayCursor=0;
+  private protectionSource?:ReturnType<TerrainSystem['supportProtection']>;
+  private protectionBounds:{box:ReturnType<TerrainSystem['supportProtection']>[number];rx:number;ry:number;rz:number}[]=[];
   constructor(private terrain:TerrainSystem){}
-  reset():void{this.chunks.clear();this.trunkBuckets.clear();this.clearances=new WeakMap();this.rays.clear();this.rayKeys=[];this.rayCursor=0;this.rayRevision=-1;}
+  reset():void{this.chunks.clear();this.indexedTrees=new WeakSet();this.trunkBuckets.clear();this.canopyBuckets.clear();this.treeQueries.clear();this.treeQueryKeys=[];this.treeQueryCursor=0;this.clearances=new WeakMap();this.rays.clear();this.rayKeys=[];this.rayCursor=0;this.rayRevision=-1;}
   /** Same trunks as sight/fire/rendering; foliage is not a movement wall. */
   trunkAt(x:number,z:number,clearance:number):TreeSite|undefined{
     for(let cx=Math.floor((x-clearance-1)/500)*500;cx<=Math.floor((x+clearance+1)/500)*500;cx+=500)
-      for(let cz=Math.floor((z-clearance-1)/500)*500;cz<=Math.floor((z+clearance+1)/500)*500;cz+=500)this.trees(cx,cz);
+      for(let cz=Math.floor((z-clearance-1)/500)*500;cz<=Math.floor((z+clearance+1)/500)*500;cz+=500)this.indexTrees(cx,cz);
     for(let bx=Math.floor((x-clearance-.34)/8);bx<=Math.floor((x+clearance+.34)/8);bx++)for(let bz=Math.floor((z-clearance-.34)/8);bz<=Math.floor((z+clearance+.34)/8);bz++)
       for(const t of this.trunkBuckets.get(`${bx},${bz}`)??[])if(Math.abs(x-t.x)<.34+clearance&&Math.abs(z-t.z)<.34+clearance&&!this.cleared(t))return t;
     return undefined;
   }
   trees(x0:number,z0:number):TreeSite[]{
     if(x0< -WORLD_HALF||z0< -WORLD_HALF||x0>=WORLD_HALF||z0>=WORLD_HALF)return [];
-    const key=`${x0},${z0}`;let trees=this.chunks.get(key);if(!trees){trees=treesForChunk(this.terrain,x0,z0).filter(t=>this.terrain.worldHalf===WORLD_HALF||Math.abs(t.x)<this.terrain.worldHalf-3&&Math.abs(t.z)<this.terrain.worldHalf-3);this.chunks.set(key,trees);for(const t of trees){const k=`${Math.floor(t.x/8)},${Math.floor(t.z/8)}`,row=this.trunkBuckets.get(k)??[];row.push(t);this.trunkBuckets.set(k,row);}}return trees;
+    const key=`${x0},${z0}`;let trees=this.chunks.get(key);if(!trees){trees=treesForChunk(this.terrain,x0,z0).filter(t=>this.terrain.worldHalf===WORLD_HALF||Math.abs(t.x)<this.terrain.worldHalf-3&&Math.abs(t.z)<this.terrain.worldHalf-3);this.chunks.set(key,trees);}return trees;
+  }
+  private indexTrees(x:number,z:number):void{
+    const trees=this.trees(x,z);if(this.indexedTrees.has(trees))return;this.indexedTrees.add(trees);
+    for(const t of trees){const k=`${Math.floor(t.x/8)},${Math.floor(t.z/8)}`,row=this.trunkBuckets.get(k)??[];row.push(t);this.trunkBuckets.set(k,row);const c=`${Math.floor(t.x/32)},${Math.floor(t.z/32)}`,canopy=this.canopyBuckets.get(c)??[];canopy.push(t);this.canopyBuckets.set(c,canopy);}
+  }
+  private nearbyTrees(minX:number,maxX:number,minZ:number,maxZ:number):TreeSite[]{
+    const x0=Math.floor((minX-10)/32),x1=Math.floor((maxX+10)/32),z0=Math.floor((minZ-10)/32),z1=Math.floor((maxZ+10)/32),key=`${x0},${x1},${z0},${z1}`;
+    const cached=this.treeQueries.get(key);if(cached)return cached;
+    // Load the whole indexed rectangle before caching, including chunk seams.
+    for(let x=Math.floor(x0*32/500)*500;x<=Math.floor(((x1+1)*32-.000001)/500)*500;x+=500)for(let z=Math.floor(z0*32/500)*500;z<=Math.floor(((z1+1)*32-.000001)/500)*500;z+=500)this.indexTrees(x,z);
+    const trees:TreeSite[]=[];for(let x=x0;x<=x1;x++)for(let z=z0;z<=z1;z++)trees.push(...this.canopyBuckets.get(`${x},${z}`)??[]);
+    // Preserve the original chunk/tree accumulation order bit for bit.
+    trees.sort((a,b)=>Math.floor(a.x/500)-Math.floor(b.x/500)||Math.floor(a.z/500)-Math.floor(b.z/500)||a.index-b.index);
+    const capacity=4096;if(this.treeQueryKeys.length<capacity)this.treeQueryKeys.push(key);else{this.treeQueries.delete(this.treeQueryKeys[this.treeQueryCursor]);this.treeQueryKeys[this.treeQueryCursor]=key;this.treeQueryCursor=(this.treeQueryCursor+1)%capacity;}this.treeQueries.set(key,trees);return trees;
   }
   private cleared(tree:TreeSite):boolean {
     const cached=this.clearances.get(tree);if(cached?.revision===this.terrain.revision)return cached.cleared;
     const cleared=treeCleared(this.terrain,tree);this.clearances.set(tree,{revision:this.terrain.revision,cleared});return cleared;
   }
   trace(from:Vec2,to:Vec2,fromY:number,toY:number,foliage=true,precise=false):SightRay {
+    this.counts.requests++;
     if(this.rayRevision!==this.terrain.revision){this.rays.clear();this.rayKeys=[];this.rayCursor=0;this.rayRevision=this.terrain.revision;}
     // Exact endpoints: no rounding across the edge of a narrow trunk or wall.
     const key=`${from.x},${from.z},${fromY}:${to.x},${to.z},${toY}:${foliage}:${precise}`;
-    const cached=this.rays.get(key);if(cached)return cached;
+    const cached=this.rays.get(key);if(cached){this.counts.cacheHits++;return cached;}
+    this.counts.traces++;
     const ray=this.traceUncached(from,to,fromY,toY,foliage,precise);
     // A ring avoids repeatedly scanning deleted Map entries during a moving battle.
-    if(this.rayKeys.length<12000)this.rayKeys.push(key);else{this.rays.delete(this.rayKeys[this.rayCursor]);this.rayKeys[this.rayCursor]=key;this.rayCursor=(this.rayCursor+1)%12000;}
+    // A busy eight-sector scan exceeds the former 12k working set every review,
+    // evicting all unchanged rays just before they are reused. Still strictly
+    // bounded and exact; physical geometry changes invalidate all cached rays.
+    const capacity=65536;
+    if(this.rayKeys.length<capacity)this.rayKeys.push(key);else{this.rays.delete(this.rayKeys[this.rayCursor]);this.rayKeys[this.rayCursor]=key;this.rayCursor=(this.rayCursor+1)%capacity;}
     this.rays.set(key,ray);return ray;
   }
   private traceUncached(from:Vec2,to:Vec2,fromY:number,toY:number,foliage:boolean,precise:boolean):SightRay {
     const a={x:from.x,z:from.z,y:fromY},b={x:to.x,z:to.z,y:toY},length=distance(from,to);
+    // A ray cannot emerge from earth just because its first sample lands beyond
+    // the bank. This also covers a sub-step torso-to-muzzle clearance check.
+    this.counts.groundSamples++;
+    if(this.terrain.heightAt(a.x,a.z)>fromY+(foliage?.12:0))return {clear:false,transmission:0,blockedBy:'terrain',point:{x:a.x,z:a.z},energy:1};
     const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y),minZ=Math.min(a.z,b.z),maxZ=Math.max(a.z,b.z);
     let nearest=Infinity,blockedBy:SightRay['blockedBy'];
     const penetrations:{enter:number;leave:number;resistance:number}[]=[];
-    for(const box of this.terrain.supportProtection()){const hit=boxIntersection(a,b,box);if(hit&&hit[0]<nearest){nearest=hit[0];blockedBy='terrain';}}
+    const protection=this.terrain.supportProtection();
+    if(protection!==this.protectionSource){this.protectionSource=protection;this.protectionBounds=protection.map(box=>{
+      const c=Math.abs(Math.cos(box.angle)),s=Math.abs(Math.sin(box.angle));
+      return {box,rx:box.rx*c+box.rz*s,ry:box.ry,rz:box.rz*c+box.rx*s};
+    });}
+    for(const {box,rx,ry,rz} of this.protectionBounds){
+      if(box.x+rx<minX||box.x-rx>maxX||box.y+ry<minY||box.y-ry>maxY||box.z+rz<minZ||box.z-rz>maxZ)continue;
+      const hit=boxIntersection(a,b,box);if(hit&&hit[0]<nearest){nearest=hit[0];blockedBy='terrain';}
+    }
     for(const [id,building] of this.terrain.buildings.entries()){
       if(building.x+building.width/2+.6<Math.min(a.x,b.x)||building.x-building.width/2-.6>Math.max(a.x,b.x)||building.z+building.depth/2+.6<Math.min(a.z,b.z)||building.z-building.depth/2-.6>Math.max(a.z,b.z))continue;
       const base=this.terrain.baseHeightAt(building.x,building.z);
       for(const box of this.terrain.structure(id)){
+        this.counts.structureCandidates++;
         // Reject whole roof/foundation/detail pieces before allocating a world box
         // or doing slab intersections. Pitch contributes to the true vertical bounds.
         const ry=box.pitch?Math.abs(Math.cos(box.pitch))*box.ry+Math.abs(Math.sin(box.pitch))*box.rz:box.ry;
@@ -86,11 +127,12 @@ export class WorldOcclusion {
     let opticalDepth=0;
     // Test nearby ground first. A hidden target behind a bank does not require
     // visiting every tree along the rest of a long ray.
-    const steps=Math.max(1,Math.ceil(length/(precise?.5:3)));
+    const steps=Math.max(2,Math.ceil(length/(precise?.5:3)));
     let understory=false;
-    for(let i=1;i<steps;i++){
+    for(let i=1;i<=steps;i++){
       const t=i/steps;if(t>=nearest)break;
       const x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t,y=fromY+(toY-fromY)*t;
+      this.counts.groundSamples++;
       if(this.terrain.heightAt(x,z)>y+(foliage?.12:0)){
         let low=(i-1)/steps,high=t;
         if(precise)for(let n=0;n<8;n++){const mid=(low+high)/2;if(this.terrain.heightAt(a.x+(b.x-a.x)*mid,a.z+(b.z-a.z)*mid)>fromY+(toY-fromY)*mid)high=mid;else low=mid;}
@@ -104,9 +146,8 @@ export class WorldOcclusion {
       // cannot restore it. Bullet traces never take this optical shortcut.
       if(foliage&&opticalDepth>3.5)return {clear:true,transmission:Math.exp(-opticalDepth)};
     }
-    for(let x=Math.floor((Math.min(a.x,b.x)-10)/500)*500;x<=Math.floor((Math.max(a.x,b.x)+10)/500)*500;x+=500)
-      for(let z=Math.floor((Math.min(a.z,b.z)-10)/500)*500;z<=Math.floor((Math.max(a.z,b.z)+10)/500)*500;z+=500){
-        for(const tree of this.trees(x,z)){
+        for(const tree of this.nearbyTrees(minX,maxX,minZ,maxZ)){
+          this.counts.treeCandidates++;
           if(tree.x<Math.min(a.x,b.x)-10||tree.x>Math.max(a.x,b.x)+10||tree.z<Math.min(a.z,b.z)-10||tree.z>Math.max(a.z,b.z)+10)continue;
           const u=Math.max(0,Math.min(1,((tree.x-a.x)*(b.x-a.x)+(tree.z-a.z)*(b.z-a.z))/Math.max(.001,length*length)));
           if(Math.hypot(tree.x-a.x-(b.x-a.x)*u,tree.z-a.z-(b.z-a.z)*u)>tree.size*1.5||this.cleared(tree))continue;
@@ -119,7 +160,6 @@ export class WorldOcclusion {
             opticalDepth+=sphereIntersection(a,b,{x:tree.x+Math.cos(angle)*tree.size*.45,y:base+tree.size*(1.8+layer*.25),z:tree.z+Math.sin(angle)*tree.size*.45},radius,tree.size*(1.05-layer*.13))*.22;
           }
         }
-      }
     // Real heightfield (including earthworks), not a flat range circle. Dense
     // understory adds gradual concealment; it is not an invisible bullet wall.
     let energy=1;const rayLength=Math.hypot(length,toY-fromY);

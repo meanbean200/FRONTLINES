@@ -7,6 +7,8 @@ export interface ShotEvent {
   cause?:'combat-fire'|'artillery';
   id:number; at:number; shooterId:number; squadId:number;
   from:Point3; to:Point3; hitId?:number;
+  /** Recorded physical solution, not an additional hit roll or renderer guess. */
+  aim?:Point3; projectedEnd?:Point3;
   obstruction?:'terrain'|'building'|'trunk'; energy:number;
 }
 export interface AimState {

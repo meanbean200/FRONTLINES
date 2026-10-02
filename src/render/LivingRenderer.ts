@@ -25,14 +25,21 @@ export class LivingRenderer {
   private readonly fieldGuns=new THREE.InstancedMesh(fieldGunGeometry('carriage'),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.88}),256);
   private readonly fieldTubes=new THREE.InstancedMesh(fieldGunGeometry('upper'),this.fieldGuns.material,256);
   private identity?:object;
+  private readonly frustum=new THREE.Frustum();
+  private readonly projection=new THREE.Matrix4();
+  private readonly sphere=new THREE.Sphere(new THREE.Vector3(),25);
   constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem){this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes,this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes);for(const mesh of [this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes]){mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;mesh.count=0;}}
-  update(now:number,showRoutes:boolean,view?:Vec2&{zoom:number}):void {
+  update(now:number,showRoutes:boolean,view?:Vec2&{zoom:number},camera?:THREE.Camera):void {
     this.routes.visible=showRoutes;if(now-this.last<80)return;this.last=now;
     const state=this.getState(),w=state.living;if(!w){this.boxes.count=this.vehicles.count=this.wheels.count=this.mortars.count=this.fieldGuns.count=this.fieldTubes.count=0;return;}
     if(this.identity!==w){this.identity=w;this.lastTrucks.clear();}
+    if(camera)this.frustum.setFromProjectionMatrix(this.projection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
+    // Reject only presentation outside the real camera frustum, with a generous
+    // bound for structures and their cast shadow. Knowledge still uses full LOS.
+    const inView=(p:Vec2)=>{if(!camera)return true;this.sphere.center.set(p.x,this.terrain.heightAt(p.x,p.z)+2,p.z);return this.frustum.intersectsSphere(this.sphere);};
     const visible=playerVisibleEnemies(state),enemies=new Set(state.squads.filter(q=>q.faction==='enemy').map(q=>q.id));
     const hidden=(s:BattlefieldState['soldiers'][number])=>Boolean(!this.spectator&&state.operation&&enemies.has(s.squadId)&&!visible.has(s.id));
-    const trucks=w.trucks.filter(t=>this.spectator||t.faction!=='enemy'||playerCanSeeObject(state,this.terrain,t,'truck'));
+    const trucks=w.trucks.filter(t=>inView(t)&&(this.spectator||t.faction!=='enemy'||playerCanSeeObject(state,this.terrain,t,'truck')));
     const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),color=new THREE.Color(),position=new THREE.Vector3(),scale=new THREE.Vector3();let count=0;
     const box=(x:number,y:number,z:number,sx:number,sy:number,sz:number,tint:number,angle=0,pitch=0)=>{if(count>=8192)return;position.set(x,y,z);scale.set(sx,sy,sz);q.setFromEuler(new THREE.Euler(pitch,angle,0,'YXZ'));matrix.compose(position,q,scale);this.boxes.setMatrixAt(count,matrix);this.boxes.setColorAt(count++,color.setHex(tint));};
     let vehicleCount=0,wheelCount=0;const axis=new THREE.Vector3(0,1,0),wheelAxis=new THREE.Vector3(1,0,0),wheelRotation=new THREE.Quaternion();
@@ -46,9 +53,10 @@ export class LivingRenderer {
       for(let i=0;i<passengers;i++){const x=(i%2?1:-1)*.72,z=-.6-Math.floor(i/2)*.52,px=t.x+x*Math.cos(angle)+z*Math.sin(angle),pz=t.z-x*Math.sin(angle)+z*Math.cos(angle);box(px,h+1.85,pz,.4,.65,.4,0x616744,angle);box(px,h+2.27,pz,.3,.19,.3,0x4c543b,angle);}
     }
     this.vehicles.count=vehicleCount;this.wheels.count=wheelCount;this.vehicles.instanceMatrix.needsUpdate=this.wheels.instanceMatrix.needsUpdate=true;
-    for(const pile of stockPiles(state,this.terrain,this.spectator))for(const [i,p] of stockPileAnchors(pile).entries())box(p.x,this.terrain.heightAt(p.x,p.z)+.35,p.z,.9,.65,.8,i%2?0x80734c:0x686e49);
+    for(const pile of stockPiles(state,this.terrain,this.spectator,inView))for(const [i,p] of stockPileAnchors(pile).entries())box(p.x,this.terrain.heightAt(p.x,p.z)+.35,p.z,.9,.65,.8,i%2?0x80734c:0x686e49);
     let mortarCount=0,gunCount=0;
     for(const f of w.facilities){
+      if(!inView(f))continue;
       if(!this.spectator&&w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!playerCanSeeObject(state,this.terrain,f,f.artillery&&f.progress===1?'field-gun':'position'))continue;
       const h=this.terrain.heightAt(f.x,f.z);
       const detail=!view||Math.hypot(f.x-view.x,f.z-view.z,view.zoom*.6)<230;
@@ -69,9 +77,9 @@ export class LivingRenderer {
             const shells=f.stock.mortarHE;
             if(shells>0)box(f.x+1.15,h+.17,f.z-.5,.7,.3,1,0x817758,angle);
           }else{
-            const {muzzle,pivot}=mountedGeometry(state,this.terrain,f,angle),bx=pivot.x,bz=pivot.z,base=this.terrain.heightAt(bx,bz),height=Math.max(.3,muzzle.y-base);
+            const {muzzle,pivot,pitch}=mountedGeometry(state,this.terrain,f,angle),bx=pivot.x,bz=pivot.z,base=this.terrain.heightAt(bx,bz),height=Math.max(.3,pivot.y-base);
             box(bx,base+height/2,bz,.13,height,.13,0x414739,angle);box(bx,base+.12,bz,.8,.13,.65,0x454b3c,angle);
-            box(bx,muzzle.y-.035,bz,.19,.18,.45,0x343a35,angle);box(muzzle.x-Math.sin(angle)*.30,muzzle.y,muzzle.z-Math.cos(angle)*.30,.065,.065,.60,0x292e2b,angle);
+            box(bx,pivot.y-.035,bz,.19,.18,.45,0x343a35,angle,-pitch);box(muzzle.x-Math.sin(angle)*Math.cos(pitch)*.30,muzzle.y-Math.sin(pitch)*.30,muzzle.z-Math.cos(angle)*Math.cos(pitch)*.30,.065,.065,.60,0x292e2b,angle,-pitch);
           }
         }
         continue;
@@ -79,8 +87,9 @@ export class LivingRenderer {
     }
     this.mortars.count=mortarCount;this.mortars.instanceMatrix.needsUpdate=true;
     this.fieldGuns.count=this.fieldTubes.count=gunCount;this.fieldGuns.instanceMatrix.needsUpdate=this.fieldTubes.instanceMatrix.needsUpdate=true;
-    for(const s of state.soldiers){if(hidden(s)||s.needs?.life!=='active'||s.duty?.kind!=='haul')continue;const n=Object.values(s.carried??{}).reduce((a,b)=>a+b,0);if(n>0)box(s.x+Math.sin(s.heading)*.45,this.terrain.heightAt(s.x,s.z)+1,s.z+Math.cos(s.heading)*.45,.5,.42,.42,0xa18b5b,s.heading);}
+    for(const s of state.soldiers){if(s.needs?.life!=='active'||s.duty?.kind!=='haul'||!inView(s)||hidden(s))continue;const n=Object.values(s.carried??{}).reduce((a,b)=>a+b,0);if(n>0)box(s.x+Math.sin(s.heading)*.45,this.terrain.heightAt(s.x,s.z)+1,s.z+Math.cos(s.heading)*.45,.5,.42,.42,0xa18b5b,s.heading);}
     for(const c of w.crates)if(Object.values(c.stock).some(n=>n>0)){
+      if(!inView(c))continue;
       if(!this.spectator&&!crateVisible(state,this.terrain,c))continue;
       const supplyPoint=this.getState().operation?.objectives.some(o=>o.cacheId===c.id);
       // Older saves did not record the dropper; an exact casualty-position match
@@ -96,7 +105,7 @@ export class LivingRenderer {
     this.boxes.count=count;this.boxes.instanceMatrix.needsUpdate=true;if(this.boxes.instanceColor)this.boxes.instanceColor.needsUpdate=true;
     if(showRoutes){
       const lines:number[]=[];const segment=(a:Vec2,b:Vec2)=>lines.push(a.x,this.terrain.heightAt(a.x,a.z)+.4,a.z,b.x,this.terrain.heightAt(b.x,b.z)+.4,b.z);
-      for(const t of trucks.filter(t=>t.faction!=='enemy')){let previous:Vec2=t;for(const p of t.route.slice(t.routeIndex)){segment(previous,p);previous=p;}}
+      for(const t of w.trucks.filter(t=>t.faction!=='enemy')){let previous:Vec2=t;for(const p of t.route.slice(t.routeIndex)){segment(previous,p);previous=p;}}
       for(const s of state.soldiers){if(enemies.has(s.squadId)||s.duty?.kind!=='haul')continue;let previous:Vec2=s;for(const p of s.duty.route.slice(s.duty.routeIndex)){segment(previous,p);previous=p;}}
       this.routes.geometry.dispose();this.routes.geometry=new THREE.BufferGeometry();this.routes.geometry.setAttribute('position',new THREE.Float32BufferAttribute(lines,3));
     }

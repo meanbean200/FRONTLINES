@@ -110,7 +110,7 @@ export class SaveSystem {
       for(const s of state.soldiers)if(s.needs?.life==='dead'&&!s.death)s.death={cause:'legacy-unknown',at:state.elapsed,occurredAt:state.elapsed,condition:{healthBefore:s.health,energy:s.needs.energy,hunger:s.needs.hunger,thirst:s.needs.thirst}};
       state.living!.migrationNote='Copy migrated to v4. People, coordinates, stock and existing timing preserved. Historical death causes are unknown; no retrospective deprivation. Original saves remain untouched.';
     }
-    if(![RULES_VERSION,'combat-45-command-logistics-world2','combat-44-endless-controller-world2','combat-44-supply-interception-world2'].includes(state.combatRules??'')){
+    if(![RULES_VERSION,'combat-46-open-front-reset-world2','combat-45-command-logistics-world2','combat-44-endless-controller-world2','combat-44-supply-interception-world2'].includes(state.combatRules??'')){
       for(const g of state.living!.garrisons)if(g.cutoff==='decision')g.cutoff='warning';
       for(const s of state.soldiers){
         if(s.selfCare?.kind==='supply-wait'){delete s.selfCare;delete s.survivalReason;}
@@ -164,6 +164,7 @@ function isBattlefieldState(value: unknown): value is BattlefieldState {
     ids.add(entity.id);
   }
   if(!state.soldiers.every(s=>point(s)&&finite(s.heading)&&finite(s.health)&&s.health>=0&&s.health<=100&&finite(s.fatigue)&&finite(s.morale)&&finite(s.ammunition)&&finite(s.suppression)&&Number.isInteger(s.squadId)&&typeof s.action==='string'))return false;
+  if(state.soldiers.some(s=>s.smokeAwareness&&(!point(s.smokeAwareness.turn)||!finite(s.smokeAwareness.until)||!finite(s.smokeAwareness.reviewAt)||s.smokeAwareness.until<0||s.smokeAwareness.reviewAt<s.smokeAwareness.until)))return false;
   if(!state.squads.every(s=>point(s)&&typeof s.name==='string'&&['rifle','engineer','machinegun','mortar','medical'].includes(s.kind)&&Array.isArray(s.soldierIds)&&Array.isArray(s.route)&&s.route.every(point)&&Number.isInteger(s.routeIndex)&&s.routeIndex>=0&&s.order&&['hold','move','occupy-trench','construct-trench'].includes(s.order.type)&&(!s.order.target||point(s.order.target))))return false;
   const soldierMap=new Map(state.soldiers.map(s=>[s.id,s])),claimed=new Set<number>();
   for(const squad of state.squads)for(const id of squad.soldierIds){if(claimed.has(id)||soldierMap.get(id)?.squadId!==squad.id)return false;claimed.add(id);}
@@ -359,6 +360,7 @@ function validLiving(state:BattlefieldState):boolean {
       if(d.exitPoint!==undefined&&!point(d.exitPoint))return false;
       if(d.rationUntil!==undefined&&!nonnegative(d.rationUntil))return false;
       if(d.pickupQueued!==undefined&&typeof d.pickupQueued!=='boolean')return false;
+      if(d.pickupLoaded!==undefined&&(typeof d.pickupLoaded!=='boolean'||d.kind!=='haul'||d.stage!=='pickup'))return false;
       if(d.safetyReviewAt!==undefined&&!nonnegative(d.safetyReviewAt)||d.unsafeRoute!==undefined&&typeof d.unsafeRoute!=='boolean')return false;
       if(d.urgentAmmo!==undefined&&typeof d.urgentAmmo!=='boolean')return false;
       if(d.detourWaypoints!==undefined&&(!Number.isInteger(d.detourWaypoints)||d.detourWaypoints<0||d.detourWaypoints>d.route.length))return false;

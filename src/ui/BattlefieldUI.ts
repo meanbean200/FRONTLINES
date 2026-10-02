@@ -13,7 +13,7 @@ import {FireSupportPanel} from './FireSupportPanel';
 import {squadContacts} from '../operations/Visibility';
 import {RESOURCES} from '../garrison/types';
 
-export interface PerfSnapshot {fps:number;frameMs:number;simulationMs:number;drawCalls:number;chunks:number;p95Ms?:number}
+export interface PerfSnapshot {fps:number;frameMs:number;simulationMs:number;drawCalls:number;chunks:number;p95Ms?:number;achievedSpeed?:number}
 interface UIActions {
   setSpeed:(speed:number)=>void;hold:()=>void;occupy:()=>void;trenchMode:()=>void;moveMode:()=>void;craterMode:()=>void;
   save:()=>void;load:()=>void;stress:()=>void;select:(ids:number[],add?:boolean)=>void;focus:(id?:number)=>void;
@@ -96,6 +96,9 @@ export class BattlefieldUI {
     const ended=Boolean(this.state.operation&&this.state.operation.status!=='active'),locked=reviewing||ended;
     const time=`D${Math.floor(hours/24)+1} ${Math.floor(hours%24).toString().padStart(2,'0')}:${Math.floor(hours*60%60).toString().padStart(2,'0')}`;
     this.root.querySelector('#battle-time')!.textContent=time;
+    const rate=this.root.querySelector<HTMLElement>('#simulation-rate')!;
+    rate.hidden=this.state.simSpeed<=0||perf.achievedSpeed===undefined||perf.achievedSpeed>=this.state.simSpeed*.85;
+    if(!rate.hidden)rate.textContent=`${(perf.achievedSpeed??0).toFixed(1)}× actual / ${this.state.simSpeed}× requested`;
     const friendlies=new Set(this.state.squads.filter(s=>factionOf(s)==='player').map(s=>s.id));
     this.root.querySelector('#unit-count')!.textContent=`${this.state.soldiers.filter(s=>friendlies.has(s.squadId)&&s.needs?.life!=='dead').length} personnel · ${friendlies.size} formations`;
     this.root.querySelector('.brand small')!.textContent=this.state.operation?'TACTICAL OPERATIONS':'LIVING BATTLEFIELD';
@@ -248,7 +251,7 @@ export class BattlefieldUI {
   }
   private template():string{return `
     <header class="brand"><strong>FRONTLINES</strong><small>BATTLEFIELD SANDBOX</small></header>
-    <nav class="session-controls"><span id="battle-time">00:00</span><div class="sim-controls" aria-label="Simulation speed"><button data-speed="0" title="Pause [Space]">Ⅱ</button><button data-speed="1" class="active">1×</button><button data-speed="2">2×</button><button data-speed="5">5×</button></div><button id="save-command">Save</button><button id="load-command">Load</button><button id="help-toggle" title="Controls">?</button></nav>
+    <nav class="session-controls"><span id="battle-time">00:00</span><div class="sim-controls" aria-label="Simulation speed"><button data-speed="0" title="Pause [Space]">Ⅱ</button><button data-speed="1" class="active">1×</button><button data-speed="2">2×</button><button data-speed="5">5×</button></div><small id="simulation-rate" title="Measured simulation advancement over real wall time. Fixed ticks and gameplay rules are unchanged." hidden></small><button id="save-command">Save</button><button id="load-command">Load</button><button id="help-toggle" title="Controls">?</button></nav>
     <nav class="battle-tools"><button id="map-expand" title="Operational map [M]">${fieldIcon('map')}Map</button><details class="hud-tools"><summary>Command</summary><button id="roster-toggle" data-hud-panel="force" aria-label="Your force" aria-expanded="false" aria-controls="force-roster">${fieldIcon('force')}Forces</button><button id="open-build">${fieldIcon('engineer')}Build</button></details></nav>
     <section id="selection-docket" class="selection-docket" aria-label="Selected formation" hidden><div id="selection-summary"></div><nav class="command-dock" aria-label="Formation commands"><div><button id="move-command">Move</button><button id="hold-command">Hold</button><button data-hud-panel="selection" aria-expanded="false" aria-controls="selection-card">Manage</button></div></nav></section>
     <div id="battle-alerts" aria-label="Battlefield alerts"></div>

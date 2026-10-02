@@ -43,7 +43,7 @@ export class TrenchSystem {
       if(!hit?.a)return;
       connector=hit.t;anchor={trenchId:hit.t.id,along:hit.a.along};position=inlineGeometry(hit.t,anchor.along,facing).position;
     }else{connector=this.create([request.origin,request.position]);connector.width=7.2;connector.progress=.001;connector.status='building';if(kind==='mortar')connector.depth=.45;}
-    w.facilities.push({id,...position,garrisonId:g.id,kind,facing,connectorId:connector.id,trenchAnchor:anchor,includesWeapon:['emplacement','mortar'].includes(kind)?true:undefined,weaponCrewIds:['emplacement','mortar'].includes(kind)?[]:undefined,workOrder:{explicit:request.explicit??false,workerIds:[],createdAt:this.state.elapsed},progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'||kind==='mortar'?WEAPON_POSITIONS[kind].crew:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
+    w.facilities.push({id,...position,garrisonId:g.id,kind,facing,connectorId:connector.id,trenchAnchor:anchor,includesWeapon:['emplacement','mortar'].includes(kind)?true:undefined,weaponCrewIds:['emplacement','mortar'].includes(kind)?[]:undefined,workOrder:{explicit:request.explicit??false,autoWorkers:request.explicit??false,priority:'normal',workerIds:[],createdAt:this.state.elapsed},progress:0,capacity:kind==='rest'?8:kind==='meal'?6:kind==='aid'?4:kind==='emplacement'||kind==='mortar'?WEAPON_POSITIONS[kind].crew:20,paid:false,stock:inventory(),materialCost:SUPPORT_WORKS[kind].cost});
     if(kind==='mortar')w.facilities.at(-1)!.artillery={batteryId:id,index:0,size:1};
     // Explicit works have one authority: their person-level work order. The
     // squad queue belongs to trench excavation / legacy automatic support.
@@ -61,8 +61,10 @@ export class TrenchSystem {
     }else{
       const f=this.state.living?.facilities.find(f=>f.id===job.id);if(!f?.paid||f.progress===1||f.workOrder?.cancelledAt!==undefined)return;
       const t=this.state.trenches.find(t=>t.id===f.connectorId);if(!t)return;
+      const previous=f.progress+t.progress;
       if(!f.trenchAnchor&&t.progress<1)this.applyWork({kind:'trench',id:t.id},seconds,rate*.2);
       else f.progress=Math.min(1,f.progress+seconds*rate/90);
+      if(f.workOrder&&f.progress+t.progress>previous)f.workOrder.lastProgressAt=this.state.elapsed;
       if(f.progress===1)for(const q of this.state.squads)q.constructionQueue=q.constructionQueue?.filter(j=>typeof j==='number'||j.kind!=='facility'||j.id!==f.id);
       if(f.progress===1&&f.workOrder)f.workOrder.workerIds=[];
       if(f.progress===1)installPositionWeapons(this.state);

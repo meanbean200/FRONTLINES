@@ -1,0 +1,17 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ✓ src/construction/ConstructionAutonomy.test.ts (8 tests) 53ms
+ ✓ src/garrison/ForwardReturn.test.ts (1 test) 20ms
+ ✓ src/construction/PositionManagement.test.ts (25 tests) 2841ms
+   ✓ V1 position management command boundary > allows independent movement without assigning the formation; moves physically and saves exactly  382ms
+   ✓ V1 position management command boundary > makes a funded explicit job outrank routine patrol/rest with individually assigned tool carriers  389ms
+   ✓ V1 position management command boundary > unfunded jobs wait truthfully and deliver materials before work  631ms
+   ✓ V1 position management command boundary > two physically present workers build faster than one; untooled labor cannot build alone  312ms
+   ✓ V1 position management command boundary > combat interrupts manually staffed work without losing the work order, then resumes  477ms
+
+ Test Files  3 passed (3)
+      Tests  34 passed (34)
+   Start at  18:48:32
+   Duration  4.22s (transform 694ms, setup 0ms, collect 2.36s, tests 2.91s, environment 0ms, prepare 306ms)
+

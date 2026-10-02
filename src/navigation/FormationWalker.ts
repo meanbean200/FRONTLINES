@@ -7,6 +7,7 @@ import type {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {insideWorld} from '../terrain/WorldLayout';
 import {bodyBlocks,sameSide} from './FriendlyTraffic';
 import {routeJoin} from './RouteJoin';
+import {smokeMovement} from './SmokeMovement';
 
 /** Serialized progress belongs to each walker, not the formation's average position. */
 export interface FormationTravel {
@@ -79,8 +80,9 @@ export class FormationWalker {
   }
   walk(s:SoldierState,target:Vec2,dt:number,inside?:TrenchNetwork):void{
     const d=distance(s,target);if(d<.05)return;
+    const smoke=this.state?smokeMovement(this.state,s,target):1;if(smoke===0)return;
     const heading=Math.atan2(target.x-s.x,target.z-s.z),local=this.neighbors(s).filter(p=>p!==s);
-    const speed=3.4*postureSpeed(s)/(1+this.terrain.slopeAt(s.x,s.z)*3)*(1-clamp(s.fatigue/180,0,.35))*Math.max(.12,1-s.suppression/110),amount=Math.min(d,speed*dt);
+    const speed=3.4*postureSpeed(s)/(1+this.terrain.slopeAt(s.x,s.z)*3)*(1-clamp(s.fatigue/180,0,.35))*Math.max(.12,1-s.suppression/110),amount=Math.min(d,speed*dt*smoke);
     // Right-hand passing is relative to travel direction, so opposing walkers
     // choose opposite physical sides. Friendly separation is only a soft
     // preference; hostile bodies and physical geometry still constrain travel.

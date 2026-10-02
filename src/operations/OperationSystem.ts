@@ -24,19 +24,24 @@ export function combatCover(cover: SoldierState['cover']): number {
 }
 
 export class OperationSystem {
+  readonly costs={visibility:0,targeting:0,ai:0,objectives:0};
   constructor(private state: BattlefieldState, private readonly terrain: TerrainSystem) {}
   replaceState(state: BattlefieldState): void { this.state = state; }
   step(dt: number, moveEnemy: (ids: number[], destination: Vec2) => void, holdEnemy: (ids:number[])=>void = ()=>{},occupyEnemy:(ids:number[],trench:number)=>boolean=()=>false): void {
+    this.costs.visibility=this.costs.targeting=this.costs.ai=this.costs.objectives=0;let phase=performance.now();
     const op = this.state.operation; if (!op || op.status !== 'active') return;
     op.elapsed += dt;
     const factions = new Map(this.state.squads.map(s => [s.id, factionOf(s)]));
     const active = this.state.soldiers.filter(s => s.health > 0 && s.needs?.life === 'active');
     for (const soldier of active) soldier.suppression = Math.max(0, soldier.suppression - dt * 2.5);
     if(op.runtime)updateOperationalCaches(this.state,active,factions,dt);else this.updateObjectives(active, factions, dt);
+    this.costs.objectives=performance.now()-phase;phase=performance.now();
     // Every target is revisited each half-second, spread over the fixed ticks
     // instead of creating one all-observers visibility spike every ten frames.
     if(dt<=.050001)updateContacts(this.state,this.terrain,Math.floor((op.elapsed+.000001)/.05)%10);
-    if (op.elapsed >= op.nextCombat) { op.nextCombat = op.elapsed + .1;if(dt>.050001)updateContacts(this.state,this.terrain);fireSmallArms(this.state,this.terrain,active,factions,(a,b)=>this.alertNearbyGarrisons(a,b)); }
+    this.costs.visibility=performance.now()-phase;phase=performance.now();
+    if (op.elapsed >= op.nextCombat) { op.nextCombat = op.elapsed + .1;if(dt>.050001)updateContacts(this.state,this.terrain);fireSmallArms(this.state,this.terrain,active,factions,(a,b)=>this.alertNearbyGarrisons(a,b,factions)); }
+    this.costs.targeting=performance.now()-phase;phase=performance.now();
     if(op.contacts?.player.some(c=>c.visible&&c.active))signalEngagement(this.state);
     if (op.elapsed >= op.nextOrders) {
       op.nextOrders = op.elapsed + 3;
@@ -85,6 +90,7 @@ export class OperationSystem {
       }
     }
     // Exactly one outcome controller owns a battle. Endless never invokes the
+    this.costs.ai=performance.now()-phase;
     // operation/mission evaluator, even if all its former objectives are held.
     if(op.battleMode==='endless'){stepEndlessController(this.state);return;}
     if(op.runtime){stepOperationalRuntime(this.state,this.terrain);return;}
@@ -132,17 +138,21 @@ export class OperationSystem {
     const owned = op.objectives.filter(o => o.owner === 'player' && !o.contested).length;
     if (owned >= 2 && op.objectives.some(o => o.id === 'village' && o.owner === 'player' && !o.contested)) op.score += dt * (owned - 1);
   }
-  private alertNearbyGarrisons(shooter:SoldierState,event:ShotEvent):void {
-    const side=this.state.squads.find(q=>q.id===shooter.squadId)?.faction??'player';
-    if(side==='enemy'&&this.state.soldiers.some(s=>this.state.squads.some(q=>q.id===s.squadId&&factionOf(q)==='player')&&segmentDistance(bodyVolume(this.terrain,s),event.from,event.to)<8))signalEngagement(this.state);
+  private alertNearbyGarrisons(shooter:SoldierState,event:ShotEvent,factions:Map<number,Faction>):void {
+    const side=factions.get(shooter.squadId)??'player';
+    const minX=Math.min(event.from.x,event.to.x),maxX=Math.max(event.from.x,event.to.x),minZ=Math.min(event.from.z,event.to.z),maxZ=Math.max(event.from.z,event.to.z);
+    // Conservative 2D broad phase. It cannot reject anyone within the original
+    // 3D distance, but avoids floor/posture geometry for distant bystanders.
+    const nearRay=(s:SoldierState,r:number)=>s.x>=minX-r&&s.x<=maxX+r&&s.z>=minZ-r&&s.z<=maxZ+r&&segmentDistance(bodyVolume(this.terrain,s),event.from,event.to)<r;
+    if(side==='enemy'&&this.state.soldiers.some(s=>factions.get(s.squadId)==='player'&&nearRay(s,8)))signalEngagement(this.state);
     const intel=this.state.operation!.intelligence;
     if(intel)for(const listener of ['player','enemy'] as const){
-      if(listener===side||!this.state.soldiers.some(s=>this.state.squads.some(q=>q.id===s.squadId&&factionOf(q)===listener)&&s.needs?.life==='active'&&distance(s,shooter)<250))continue;
+      if(listener===side||!this.state.soldiers.some(s=>factions.get(s.squadId)===listener&&s.needs?.life==='active'&&distance(s,shooter)<250))continue;
       const x=Math.round(shooter.x/50)*50,z=Math.round(shooter.z/50)*50;
       if(!intel.sounds.some(s=>s.side===listener&&s.x===x&&s.z===z&&this.state.elapsed-s.at<3))intel.sounds.push({side:listener,x,z,radius:60,at:this.state.elapsed,status:'suspected'});
     }
     for(const g of this.state.living!.garrisons){
-    if(g.cutoff==='withdraw'||!this.state.soldiers.some(s=>s.garrisonId===g.id&&s.needs?.life==='active'&&(distance(s,shooter)<100||segmentDistance(bodyVolume(this.terrain,s),event.from,event.to)<30)))continue;
+    if(g.cutoff==='withdraw'||!this.state.soldiers.some(s=>s.garrisonId===g.id&&s.needs?.life==='active'&&(distance(s,shooter)<100||nearRay(s,30))))continue;
     // An actual fired round raises the alarm, without 20 Hz assignment churn.
     if((g.underFireUntil??0)<=this.state.elapsed)g.nextDecision=0;
     g.underFireUntil=this.state.elapsed+30;

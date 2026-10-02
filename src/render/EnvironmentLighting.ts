@@ -36,7 +36,9 @@ export class EnvironmentLighting {
     const daylight=environmentDaylight(hours),nightFill=1-Math.min(1,daylight*5);
     // Readable moon/sky fill, not a change to the simulation's night visibility.
     // Daylight above twilight is identical to the calibrated day presentation.
-    this.sun.intensity=.2+daylight*2.5+nightFill*.28;this.sky.intensity=.43+daylight*.82+nightFill*1.07;
+    const high=this.quality==='high';
+    this.sun.intensity=.2+daylight*(high?2.85:2.5)+nightFill*.28;this.sky.intensity=.43+daylight*(high?.63:.82)+nightFill*1.07;
+    this.sky.groundColor.setHex(high?0x40392e:0x554b3d);
     // A command camera remains dark-adapted. Keep equipment, earth edges and
     // friendly bodies legible after dusk without adding lights or changing sight.
     this.renderer.toneMappingExposure=1.05+nightFill*.23;

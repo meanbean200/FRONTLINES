@@ -1,0 +1,34 @@
+
+Running 1 test using 1 worker
+
+(node:8416) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 tests\e2e\gameplay-controls.spec.ts:45:1 › measured-speed readout stays clear of alerts and compact mission information (5.9s)
+
+
+  1) tests\e2e\gameplay-controls.spec.ts:45:1 › measured-speed readout stays clear of alerts and compact mission information 
+
+    Error: 1654: speed readout must clear alerts
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 94.953125
+    Received:    80
+
+      60 |     expect(boxes.rate.left,`${width}: speed readout left edge`).toBeGreaterThanOrEqual(0);
+      61 |     expect(boxes.rate.right,`${width}: speed readout right edge`).toBeLessThanOrEqual(width);
+    > 62 |     expect(boxes.alerts.top,`${width}: speed readout must clear alerts`).toBeGreaterThanOrEqual(boxes.rate.bottom+4);
+         |                                                                          ^
+      63 |     if(width<=850)expect(boxes.mission.top,`${width}: compact mission must clear speed readout`).toBeGreaterThanOrEqual(boxes.rate.bottom+4);
+      64 |   }
+      65 | });
+        at C:\Users\Will\OneDrive\Documents\ChatGPT\FRONTLINES\tests\e2e\gameplay-controls.spec.ts:62:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    output\playwright\player-delta-4\rate-layout-before\gameplay-controls-measured-907f6-compact-mission-information\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: output\playwright\player-delta-4\rate-layout-before\gameplay-controls-measured-907f6-compact-mission-information\error-context.md
+
+  1 failed
+    tests\e2e\gameplay-controls.spec.ts:45:1 › measured-speed readout stays clear of alerts and compact mission information 

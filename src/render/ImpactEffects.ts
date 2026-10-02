@@ -15,12 +15,14 @@ export class ImpactEffects {
   private remembered=new Set<string>();
   private identity?:object;
   private previous=-Infinity;
+  private high=false;
+  private readonly motion=new Map<string,{x:number;z:number;at:number;movingUntil:number;heading:number}>();
   constructor(){this.setQuality('balanced');}
-  setQuality(q:VisualQuality):void{this.particles.limit=VISUAL_QUALITY[q].particles;}
+  setQuality(q:VisualQuality):void{this.high=q==='high';this.particles.limit=VISUAL_QUALITY[q].particles;this.particles.setVolume(this.high);}
   update(state:BattlefieldState,terrain:TerrainSystem,arrivals?:ShotEvent[]):void{
     const op=state.operation,now=state.elapsed,pool=this.particles;
     pool.setAmbientLight(.22+.78*Math.min(1,environmentDaylight(state.living?.campaignHours??12)*2));
-    if(this.identity!==op||now<this.previous){this.impacts=[];this.remembered.clear();this.identity=op;}this.previous=now;
+    if(this.identity!==op||now<this.previous){this.impacts=[];this.remembered.clear();this.motion.clear();this.identity=op;}this.previous=now;
     const enemies=new Set(state.squads.filter(s=>s.faction==='enemy').map(s=>s.id)),seen=playerVisibleEnemies(state);
     const friendly=state.soldiers.filter(s=>!enemies.has(s.squadId)&&s.needs?.life==='active');
     const visible=(p:{x:number;z:number})=>friendly.some(s=>Math.hypot(s.x-p.x,s.z-p.z)<80)||playerCanSeePoint(state,terrain,p);
@@ -41,21 +43,38 @@ export class ImpactEffects {
     for(const c of op?.smokeFields??[]){
       if(!visible(c))continue;const life=Math.min(1,(now-c.born+1)/4,(c.until-now)/10);if(life<=0)continue;
       const floor=terrain.heightAt(c.x,c.z),age=now-c.born;
-      for(let n=0;n<14;n++){const a=n*2.399,r=c.radius*.50*Math.sqrt((n+.5)/14)*life,drift=Math.sin(age*.12+n)*.2*life;
-        pool.add(c.x+Math.cos(a)*r+drift,floor+1.7+n%4*1.1*life,c.z+Math.sin(a)*r,c.radius*.90*life,(4.5+n%3)*life,0xb7b7a9,.7*life);}
+      const puffs=this.high?22:14;
+      for(let n=0;n<puffs;n++){const a=n*2.399,r=c.radius*.50*Math.sqrt((n+.5)/puffs)*life,drift=Math.sin(age*.12+n)*.2*life;
+        pool.add(c.x+Math.cos(a)*r+drift,floor+1.7+n%4*1.1*life,c.z+Math.sin(a)*r,c.radius*(this.high?.74:.90)*life,(4.5+n%3)*life,0xb7b7a9,(this.high?.66:.7)*life);}
     }
     for(const i of this.impacts){const age=Math.max(0,now-i.at);if(!visible(i))continue;
       if(i.blast){
         const scale=i.heavy?2.5:1;
         // Very brief flash, then dirty thrown earth, never a persistent fireball.
         if(age<.10)pool.add(i.x,i.y+.5,i.z,2.5*scale,2*scale,0xe5bd77,(1-age/.1)*.9,true);
-        for(let n=0;n<20;n++){const h=hash2D(n,i.id,29),a=n*2.399+i.id,r=(.8+age*1.35)*(h+.2),fade=Math.max(0,1-age/7);
+        for(let n=0;n<(this.high?30:20);n++){const h=hash2D(n,i.id,29),a=n*2.399+i.id,r=(.8+age*1.35)*(h+.2),fade=Math.max(0,1-age/7);
           pool.add(i.x+Math.cos(a)*r*scale,i.y+.35+Math.min(2.8,age*1.3)*(1+h)*scale,i.z+Math.sin(a)*r*scale,(1.2+age*.85)*(1+h)*scale,(1.2+age*.7)*scale,n%3?0x928678:0x6b6258,fade*.50);
           if(age<1.2){const t=age*2.3,flight=Math.max(0,t*(2.5+h*3)-4.9*t*t);pool.add(i.x+Math.cos(a)*t*3,i.y+flight+.15,i.z+Math.sin(a)*t*3,.10+h*.15,.16+h*.2,0x51473b,1-age/1.2);}
         }
       }else{
-        const fade=Math.max(0,1-age/1.1);for(let n=0;n<3;n++)pool.add(i.x+Math.sin(n*2.4+i.id)*age*.30,i.y+.05+age*.35,i.z+Math.cos(n*2.4+i.id)*age*.30,.18+age*.7,.2+age*.65,i.stone?0xb7b3a4:0x8d7c63,fade*.7);
+        const fade=Math.max(0,1-age/1.1);for(let n=0;n<(this.high?5:3);n++)pool.add(i.x+Math.sin(n*2.4+i.id)*age*.30,i.y+.05+age*.35,i.z+Math.cos(n*2.4+i.id)*age*.30,.18+age*.7,.2+age*.65,i.stone?0xb7b3a4:0x8d7c63,fade*.7);
       }
-    }pool.end();
+    }
+    if(this.high){
+      // Dust trails need actual displacement. Visibility is checked before
+      // emitting; unseen trucks or soldiers never advertise their location.
+      const dust=(key:string,p:{x:number;z:number},vehicle:boolean)=>{
+        let m=this.motion.get(key);if(!m){m={...p,at:now,movingUntil:now,heading:0};this.motion.set(key,m);}
+        if(now-m.at>.15){const d=Math.hypot(p.x-m.x,p.z-m.z);if(d>.09){m.movingUntil=now+.5;m.heading=Math.atan2(p.x-m.x,p.z-m.z);}m.x=p.x;m.z=p.z;m.at=now;}
+        if(m.movingUntil<=now)return;
+        const floor=terrain.heightAt(p.x,p.z);if(terrain.baseHeightAt(p.x,p.z)-floor>.4)return;
+        const fade=Math.min(1,(m.movingUntil-now)*2),n=vehicle?4:1;
+        for(let i=0;i<n;i++){const offset=(vehicle?2.5:.5)+i*.9;pool.add(p.x-Math.sin(m.heading)*offset,floor+.2+i*.14,p.z-Math.cos(m.heading)*offset,vehicle?2.2:.6,vehicle?.8:.4,0xada088,fade*(vehicle?.20:.12));}
+      };
+      for(const t of state.living?.trucks??[])if(['outbound','returning'].includes(t.state)&&(t.faction!=='enemy'||playerCanSeePoint(state,terrain,t)))dust('t'+t.id,t,true);
+      for(const s of state.soldiers)if(s.needs?.life==='active'&&(!enemies.has(s.squadId)||seen.has(s.id)))dust('s'+s.id,s,false);
+      for(const [key,m]of this.motion)if(now-m.at>3)this.motion.delete(key);
+    }else this.motion.clear();
+    pool.end();
   }
 }

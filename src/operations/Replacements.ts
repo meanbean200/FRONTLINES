@@ -19,11 +19,14 @@ export interface ReplacementManifest {
 }
 export interface ReplacementSystem {
   clock?:'simulation';
+  /** Explicit new-battle policy. Absence preserves legacy daily releases. */
+  releaseIntervalSeconds?:number;
   reserve:Record<Faction,number>;nextAt:Record<Faction,number>;
   /** Shared daily dispatch allowance for requested squads and automatic loss replacement. */
   dispatchAt?:Partial<Record<Faction,number>>;
   establishment:{squadId:number;strength:number}[];manifests:ReplacementManifest[];
 }
+export const replacementInterval=(state:BattlefieldState):number=>state.operation?.campaign?.replacements?.releaseIntervalSeconds??(state.operation?.endless?endlessReleaseInterval(state):24);
 export function reserveDispatchAt(r:ReplacementSystem,side:Faction):number{
   if(r.clock==='simulation')return r.dispatchAt?.[side]??0;
   // Older saves predate the explicit shared cooldown, but retain their release ledger.
@@ -42,14 +45,15 @@ export function requestReserveSquad(state:BattlefieldState,garrisonId:number):{a
     return count?{accepted:true,reason:`${count} loss replacements requested · map-edge convoy → rear → position. No extra formations created.`}:reject(r.reserve.player===0?'Reserve empty; no dispatch authorized.':'No eligible losses at this position. Replacements cannot exceed starting force strength.');
   }
   if(r.reserve.player<8)return reject('Need 8 personnel remaining in the finite reserve pool.');
-  if(w.campaignHours<reserveDispatchAt(r,'player'))return reject(`Next dispatch in ${(reserveDispatchAt(r,'player')-w.campaignHours).toFixed(1)} campaign hours.`);
+  const now=r.clock==='simulation'?state.elapsed:w.campaignHours;
+  if(now<reserveDispatchAt(r,'player'))return reject(r.clock==='simulation'?`Next release in ${Math.ceil(reserveDispatchAt(r,'player')-now)} simulation seconds · transport travel follows.`:`Next dispatch in ${(reserveDispatchAt(r,'player')-now).toFixed(1)} campaign hours.`);
   const graph=new TrenchNetwork();graph.sync(state.trenches);const capacity=networkCapacity(state,graph,g.trenchId);
   if(capacity.free<8)return reject(`Network has ${capacity.free} free places (${capacity.assigned} assigned + ${capacity.inbound} inbound / ${capacity.capacity}). Eight required; expand it or choose another position.`);
   const id=state.nextEntityId++,name=`Reserve ${state.squads.filter(q=>q.faction!=='enemy'&&q.name.startsWith('Reserve ')).length+1}`;
   state.squads.push({id,name,kind:'rifle',faction:'player',soldierIds:[],...w.rear,order:{type:'occupy-trench',trenchId:g.trenchId,issuedAt:state.elapsed},route:[],routeIndex:0,movementState:'entrenching',orderNote:'Inbound by truck · not yet on the battlefield'});
   g.squadIds.push(id);r.establishment.push({squadId:id,strength:8});
-  for(let i=0;i<8;i++)r.manifests.push({id:state.nextEntityId++,side:'player',squadId:id,personId:state.nextEntityId++,returning:false,stage:'edge',stock:inventory(),releasedAt:w.campaignHours});
-  r.reserve.player-=8;(r.dispatchAt??={}).player=w.campaignHours+24;r.nextAt.player=w.campaignHours+24;
+  for(let i=0;i<8;i++)r.manifests.push({id:state.nextEntityId++,side:'player',squadId:id,personId:state.nextEntityId++,returning:false,stage:'edge',stock:inventory(),releasedAt:w.campaignHours,...(r.clock==='simulation'?{releasedSimAt:state.elapsed}:{})});
+  r.reserve.player-=8;(r.dispatchAt??={}).player=now+replacementInterval(state);r.nextAt.player=now+replacementInterval(state);
   return {accepted:true,reason:`${name}: 8 riflemen requested · next available transport to ${positionName(state,g)}.`};
 }
 /** Configured capacity is immutable as reserves are spent. Pre-setup campaigns
@@ -57,11 +61,11 @@ export function requestReserveSquad(state:BattlefieldState,garrisonId:number):{a
 export function initialReserveCapacity(state:BattlefieldState):number {
   return state.operation?.setup?.advanced?.reserves??48;
 }
-export function initializeReplacements(state:BattlefieldState):void {
+export function initializeReplacements(state:BattlefieldState,responsive=false):void {
   const c=state.operation?.campaign;if(!c||c.replacements)return;
-  const next=state.living!.campaignHours+24;
+  const next=responsive?state.elapsed+240:state.living!.campaignHours+24;
   const reserve=initialReserveCapacity(state);
-  c.replacements={reserve:{player:reserve,enemy:reserve},nextAt:{player:next,enemy:next},establishment:state.squads.map(q=>({squadId:q.id,strength:q.soldierIds.length})),manifests:[]};
+  c.replacements={...(responsive?{clock:'simulation' as const,releaseIntervalSeconds:240}:{}),reserve:{player:reserve,enemy:reserve},nextAt:{player:next,enemy:next},establishment:state.squads.map(q=>({squadId:q.id,strength:q.soldierIds.length})),manifests:[]};
 }
 /** Called immediately before truck motion, so loading and unloading are real timed handoffs. */
 export function stepReplacements(state:BattlefieldState,dt:number):void {
@@ -71,7 +75,7 @@ export function stepReplacements(state:BattlefieldState,dt:number):void {
   for(const side of ['player','enemy'] as const){
     if(now>=r.nextAt[side]&&now>=(r.dispatchAt?.[side]??0)){
       // No accumulated wave after a loaded clock jump, and no army growth.
-      r.nextAt[side]=now+(r.clock==='simulation'?endlessReleaseInterval(state):24);
+      r.nextAt[side]=now+replacementInterval(state);
       releaseLossReplacements(state,side);
     }
   }
@@ -133,6 +137,6 @@ function releaseLossReplacements(state:BattlefieldState,side:Faction,squads?:Set
     for(let i=0;i<count;i++)r.manifests.push({id:state.nextEntityId++,side,squadId:q.id,personId:state.nextEntityId++,returning:false,stage:'edge',stock:inventory(),releasedAt:w.campaignHours,replacesId:losses[i]?.id,...(r.clock==='simulation'?{releasedSimAt:state.elapsed}:{})});
     allowance-=count;r.reserve[side]-=count;released+=count;
   }
-  if(released){const next=(r.clock==='simulation'?state.elapsed+endlessReleaseInterval(state):w.campaignHours+24);(r.dispatchAt??={})[side]=next;r.nextAt[side]=next;}
+  if(released){const next=(r.clock==='simulation'?state.elapsed:w.campaignHours)+replacementInterval(state);(r.dispatchAt??={})[side]=next;r.nextAt[side]=next;}
   return released;
 }

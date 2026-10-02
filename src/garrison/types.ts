@@ -8,6 +8,7 @@ export type DutyKind = 'watch' | 'patrol' | 'sleep' | 'rest' | 'meal' | 'haul' |
 export type PersonalOrder = 'watch' | 'rest' | 'meal' | 'move' | 'auto';
 export type Readiness = 'routine' | 'alert' | 'stand-to';
 export type PolicyKind = 'rules' | 'learned' | 'hybrid';
+export type ConstructionPriority='low'|'normal'|'high'|'critical';
 export interface Needs {
   energy: number; hunger: number; thirst: number; life: 'active' | 'incapacitated' | 'dead';
   hungryHours: number; thirstyHours: number; sleepHours: number; day: number;
@@ -30,6 +31,8 @@ export interface Duty {
   watchPost?: Vec2;
   rationUntil?: number;
   pickupQueued?: boolean;
+  /** Load is already on this carrier while a safe return route is retried. */
+  pickupLoaded?:boolean;
   /** Saved retry cadence and visible blockage; cargo/order stay on this duty. */
   safetyReviewAt?:number; unsafeRoute?:boolean;
   /** A real critical-ammunition pickup may accept more known risk before loading. */
@@ -62,7 +65,7 @@ export interface Facility extends Vec2 {
   weaponCrewIds?:number[];
   /** Metres along the parent centreline; no detached connector for inline posts. */
   trenchAnchor?:{trenchId:number;along:number};
-  workOrder?:{explicit:boolean;workerIds:number[];createdAt:number;cancelledAt?:number;autoWorkers?:boolean;pausedByAssault?:boolean};
+  workOrder?:{explicit:boolean;workerIds:number[];createdAt:number;cancelledAt?:number;autoWorkers?:boolean;pausedByAssault?:boolean;priority?:ConstructionPriority;lastProgressAt?:number;accessIssue?:{at:number;reason:'WORK FACE OCCUPIED'|'ACCESS BLOCKED'}};
   connectorId: number; progress: number; capacity: number; paid: boolean;
   stock: Inventory; materialCost: number;
   facing?:number;

@@ -1,0 +1,40 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ❯ src/combat/MountedGeometry.test.ts (3 tests | 1 failed) 34ms
+   × fixed mounted gun geometry > uses the active replacement operator aim when the first listed gunner is incapacitated 20ms
+     → expected { x: -1690.2, …(2) } to deeply equal { x: -1690.2, …(2) }
+   ✓ fixed mounted gun geometry > pitches the physical barrel and authoritative shot from the same intended uphill or downhill solution 6ms
+   ✓ fixed mounted gun geometry > keeps receiver ahead of the torso and uses exactly the same muzzle for shots and presentation 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat/MountedGeometry.test.ts > fixed mounted gun geometry > uses the active replacement operator aim when the first listed gunner is incapacitated
+AssertionError: expected { x: -1690.2, …(2) } to deeply equal { x: -1690.2, …(2) }
+
+- Expected
++ Received
+
+  {
+    "x": -1690.2,
+-   "y": -26.46428989675785,
++   "y": -26.64142257896859,
+    "z": -1229.405044515328,
+  }
+
+ ❯ src/combat/MountedGeometry.test.ts:15:77
+     13|     first.combat={shotSequence:0,aim:{point:{...aim,y:frame.pivot.y-8}…
+     14|     replacement.combat={shotSequence:0,aim:{point:aim,since:0,lastSeen…
+     15|     expect(mountedGeometry(state,sim.terrain,f,replacement.heading).mu…
+       |                                                                             ^
+     16|   });
+     17|   it('pitches the physical barrel and authoritative shot from the same…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  19:35:55
+   Duration  1.86s (transform 730ms, setup 0ms, collect 1.12s, tests 34ms, environment 0ms, prepare 422ms)
+

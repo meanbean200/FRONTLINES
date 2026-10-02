@@ -1,0 +1,28 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ❯ src/construction/ConstructionAutonomy.test.ts (2 tests | 1 failed) 24ms
+   ✓ persistent construction staffing after startup > defaults both explicitly ordered field guns to persistent automatic workers 14ms
+   × persistent construction staffing after startup > replaces an exhausted reserved tool carrier instead of counting them as useful labor forever 9ms
+     → expected [ 2, 11 ] to include 3
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/construction/ConstructionAutonomy.test.ts > persistent construction staffing after startup > replaces an exhausted reserved tool carrier instead of counting them as useful labor forever
+AssertionError: expected [ 2, 11 ] to include 3
+ ❯ src/construction/ConstructionAutonomy.test.ts:24:36
+     22|     const stock=structuredClone(tired.carried),position={x:tired.x,z:t…
+     23|     sim.garrisons.autoWorkers(f.id);
+     24|     expect(f.workOrder!.workerIds).toContain(spare.id);
+       |                                    ^
+     25|     expect(f.workOrder!.workerIds).not.toContain(previous);
+     26|     expect(tired.carried).toEqual(stock);expect({x:tired.x,z:tired.z})…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  17:42:33
+   Duration  1.09s (transform 502ms, setup 0ms, collect 800ms, tests 24ms, environment 0ms, prepare 92ms)
+

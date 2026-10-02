@@ -31,6 +31,9 @@ import { releaseLostContextResources } from '../render/ContextRecovery';
 import { restoredViewTarget } from '../render/RestoredView';
 import { HudLayout } from '../ui/HudLayout';
 import {requestSupport,requestPositionSupport,requestBatterySupport,requestSupportGroup,selectedSupportTeam} from '../combat/SupportWeapons';
+import {supportPreview} from '../ui/SupportPreview';
+import {SimulationRate} from '../diagnostics/SimulationRate';
+import {constructionDiagnostics} from '../diagnostics/ConstructionDiagnostic';
 import {combatDiagnostics} from '../combat/Diagnostics';
 import {diagnoseObservation} from '../operations/Visibility';
 import {CombatAudio} from '../render/CombatAudio';
@@ -87,7 +90,8 @@ export class FrontlinesApp {
   private readonly intervalSamples: number[] = [];
   private readonly simSamples: number[] = [];
   private perf: PerfSnapshot = { fps: 0, frameMs: 0, simulationMs: 0, drawCalls: 0, chunks: 0 };
-  private frameCosts={simulation:0,terrain:0,units:0,tactical:0,positions:0,webgl:0,hud:0,total:0};
+  private readonly simulationRate=new SimulationRate();
+  private frameCosts={simulation:0,terrain:0,units:0,trenches:0,tactical:0,living:0,positions:0,effects:0,webgl:0,hud:0,total:0};
   private pixelRatioLimit=1.25;
   private readonly viewport:HostViewport;
   private readonly garrisonPanel:GarrisonPanel;
@@ -185,6 +189,7 @@ export class FrontlinesApp {
     this.deploymentPanel=new DeploymentPanel(()=>this.state,(kind,count)=>{this.pendingDeployment={kind,count};this.setMode('deploy');this.ui.notify(`Place ${count} ${kind==='rifle'?'rifle squad':'engineer team'}${count>1?'s':''} · click clear ground · Esc finishes`);},point=>this.camera.focus(point,90),text=>this.ui.notify(text));
     this.input=new CommandInput({
       supportDangerRadius:()=>this.state.living?.facilities.some(f=>(f.id===this.supportPosition||this.supportPositions.includes(f.id))&&f.artillery)?65:40,
+      previewSupport:point=>{const f=this.state.living!.facilities.find(f=>f.id===this.supportPosition),ids=this.supportPositions.length?this.supportPositions:this.supportBattery&&f?.artillery?this.state.living!.facilities.filter(p=>p.artillery?.batteryId===f.artillery!.batteryId).map(p=>p.id):f?[f.id]:[],kind=this.mode==='mortarHE'?'mortarHE':this.mode==='smokeGrenades'?'smokeGrenades':'mortarSmoke';return supportPreview(this.state,this.simulation.terrain,kind,ids,point,kind==='smokeGrenades'?selectedSupportTeam(this.state,this.selectedSquads,kind,this.simulation.terrain):undefined);},
       canvas,
       camera: this.camera,
       getState: () => this.state,
@@ -242,7 +247,7 @@ export class FrontlinesApp {
     });
     this.installDeveloperAPI();
     this.lastTime=performance.now();
-    window.addEventListener('visibilitychange',()=>{this.lastTime=performance.now();this.accumulator=0;});
+    window.addEventListener('visibilitychange',()=>{this.lastTime=performance.now();this.accumulator=0;this.simulationRate.sample(this.state,this.lastTime,this.state.elapsed,0);});
     requestAnimationFrame(this.frame);
   }
 
@@ -275,6 +280,7 @@ export class FrontlinesApp {
       const op=this.state.operation!,at=this.state.elapsed,contact=Boolean(op.contacts?.player.some(c=>c.visible)||op.contacts?.enemy.some(c=>c.visible));
       if(this.attractCycle.update(at,op.status,contact,op.shots)){this.attractResets++;this.startHome();}
     }
+    this.simulationRate.sample(this.state,now,this.state.elapsed,running?this.state.simSpeed:0);
     this.camera.update(realDt);
     this.input.updatePreview();
     let phaseStart=performance.now();
@@ -284,13 +290,13 @@ export class FrontlinesApp {
     const inspected=this.trenchPanel.inspectedBuilding;if(inspected!==undefined&&this.state.soldiers.some(s=>s.building?.id===inspected&&this.state.squads.some(q=>q.id===s.squadId&&q.faction!=='enemy')))interiors.set(inspected,this.trenchPanel.inspectedFloor);
     this.terrainRenderer.showInteriors(interiors);
     phaseStart=performance.now();this.unitRenderer.update(this.selectedSquads,realDt,this.camera.zoomDistance);this.frameCosts.units=performance.now()-phaseStart;
-    this.trenchRenderer.update(this.camera.zoomDistance);
+    phaseStart=performance.now();this.trenchRenderer.update(this.camera.zoomDistance);this.frameCosts.trenches=performance.now()-phaseStart;
     this.debugRenderer.update(realDt, this.flags, this.selectedSquads);
     phaseStart=performance.now();this.tactical.update(realDt);this.frameCosts.tactical=performance.now()-phaseStart;
-    this.livingRenderer.update(now,this.garrisonPanel.showRoutes||this.deploymentPanel.showRoutes||this.trenchPanel.showRoutes,{...this.camera.target,zoom:this.camera.zoomDistance});this.garrisonPanel.update(now);
+    phaseStart=performance.now();this.livingRenderer.update(now,this.garrisonPanel.showRoutes||this.deploymentPanel.showRoutes||this.trenchPanel.showRoutes,{...this.camera.target,zoom:this.camera.zoomDistance},this.camera.camera);this.garrisonPanel.update(now);this.frameCosts.living=performance.now()-phaseStart;
     phaseStart=performance.now();this.trenchPanel.update();this.assaultOrders.update();this.frameCosts.positions=performance.now()-phaseStart;
     this.buildPanel.update();this.deploymentPanel.update();
-    this.operationRenderer.cinematic=attract;this.operationRenderer.update();this.operationUI.update(now);
+    phaseStart=performance.now();this.operationRenderer.cinematic=attract;this.operationRenderer.update();this.frameCosts.effects=performance.now()-phaseStart;this.operationUI.update(now);
     if(!attract)this.audio.update();
     this.lighting.update(this.state.living?.campaignHours??12,this.camera.target,this.camera.zoomDistance,now);
     phaseStart=performance.now();this.renderer.render(this.scene, this.camera.camera);this.frameCosts.webgl=performance.now()-phaseStart;
@@ -455,6 +461,7 @@ export class FrontlinesApp {
       fps: average(this.intervalSamples) > 0 ? 1000 / average(this.intervalSamples) : 0,
       frameMs: averageFrame,
       simulationMs: average(this.simSamples),
+      achievedSpeed:this.simulationRate.value,
       drawCalls: this.renderer.info.render.calls,
       chunks: this.terrainRenderer.visibleChunkCount,
       p95Ms:[...this.intervalSamples].sort((a,b)=>a-b)[Math.floor(this.intervalSamples.length*.95)]??0,
@@ -498,8 +505,11 @@ export class FrontlinesApp {
       getPerf: () => ({ ...this.perf }),
       getFrameCosts:()=>({...this.frameCosts}),
       getSimulationCosts:()=>({...this.simulation.stepCosts}),
+      setProfiling:enabled=>this.simulation.tickProfile.setEnabled(enabled),
+      getRuntimeProfile:(after=0)=>({ticks:this.simulation.tickProfile.read(after),traces:{...this.simulation.terrain.objects.counts},paths:{...this.simulation.navigation.counts}}),
       getVisualStats:()=>({triangles:this.renderer.info.render.triangles,drawCalls:this.renderer.info.render.calls,particles:this.operationRenderer.particleCount,submittedSoldiers:this.unitRenderer.visibleCount,residentTrees:this.terrainRenderer.residentTreeCount,visibleTrees:this.terrainRenderer.visibleTrees(this.camera.camera),cameraTarget:{x:this.camera.target.x,z:this.camera.target.z},zoomDistance:this.camera.zoomDistance,...this.terrainRenderer.stats(this.camera.camera)}),
       getState: () => structuredClone(this.state),
+      getConstructionDiagnostics:()=>structuredClone(constructionDiagnostics(this.state)),
       getCombatDiagnostics:()=>combatDiagnostics(this.state,this.simulation.terrain),
       getSightDiagnostics:(observerId,targetId)=>{const observer=this.state.soldiers.find(s=>s.id===observerId),target=this.state.soldiers.find(s=>s.id===targetId);return observer&&target?diagnoseObservation(this.state,this.simulation.terrain,observer,target):undefined;},
       getPolicyPerf:()=>({inferenceMs:0,coordinator:'deterministic'}),

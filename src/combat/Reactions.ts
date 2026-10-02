@@ -5,6 +5,7 @@ import type {Reaction} from './types';
 import {chooseLocalCover,CoverSpace} from './LocalCover';
 import {insideWorld} from '../terrain/WorldLayout';
 import {effectiveSquad} from '../operations/AssaultPlan';
+import {smokeMovement} from '../navigation/SmokeMovement';
 
 const severity:Record<Reaction,number>={steady:0,'under-fire':1,shaken:2,pinned:3,broken:4};
 const duration:Record<Reaction,number>={steady:0,'under-fire':4,shaken:8,pinned:6,broken:20};
@@ -49,7 +50,7 @@ export function prepareActions(state:BattlefieldState,terrain:TerrainSystem,navi
         const rally=g?.forward??(side==='enemy'?state.living!.enemySupply?.rear:state.living!.rear)??{x:s.x+80,z:s.z};
         c.reactionRoute=navigation.plan(s,rally);c.reactionIndex=0;
       }
-      followReaction(s,terrain,dt,'falling back');continue;
+      followReaction(state,s,terrain,dt,'falling back');continue;
     }
     if(reaction!=='pinned'&&(q.order.pushThrough||q.order.intent==='fall-back'))continue;
     const post=mounted.get(s.id);
@@ -75,21 +76,22 @@ export function prepareActions(state:BattlefieldState,terrain:TerrainSystem,navi
         else delete c.coverAnchor;
       }
     }
-    if(c.reactionRoute?.[c.reactionIndex??0]){c.owner='reaction';c.pauseReason='Taking nearby cover · route retained';followReaction(s,terrain,dt,reaction==='pinned'?'crawling to cover':'seeking cover');continue;}
+    if(c.reactionRoute?.[c.reactionIndex??0]){c.owner='reaction';c.pauseReason='Taking nearby cover · route retained';followReaction(state,s,terrain,dt,reaction==='pinned'?'crawling to cover':'seeking cover');continue;}
     if(reaction==='pinned'){c.owner='reaction';s.action='pinned';c.pauseReason='Pinned · prone, using available protection';continue;}
     // Brief orientation/hesitation, not an indefinite veto on the player's route.
     if(reaction!=='steady'&&now-(c.reactionSince??now)<(reaction==='shaken'?3:1.5)){c.owner='reaction';s.action='crouching';c.pauseReason='Under fire · lowering exposure';}
     else if(reaction==='steady'&&terrain.coverAt(s.x,s.z)!=='open'&&q.order.type==='hold')s.posture='crouched';
   }
 }
-function followReaction(s:SoldierState,terrain:TerrainSystem,dt:number,action:string):void {
+function followReaction(state:BattlefieldState,s:SoldierState,terrain:TerrainSystem,dt:number,action:string):void {
   const c=s.combat!,route=c.reactionRoute??[],i=c.reactionIndex??0,target=route[i];
   if(!target){s.action=c.reaction==='broken'?'rallying':'crouching';return;}
   // Old saves can contain a cover waypoint outside the sector. Reject it before
   // taking even one step; clamping the actor would teleport edge occupants.
   if(!insideWorld(target)){s.action='sheltering';c.pauseReason='Cover route blocked · map boundary';delete c.reactionRoute;c.reactionIndex=0;c.coverReview=0;return;}
   const d=distance(s,target);if(d<.25){c.reactionIndex=i+1;s.action='crouching';return;}
-  const amount=Math.min(d,dt*(c.reaction==='broken'?2:c.reaction==='pinned'?.45:1.2)),x=s.x+(target.x-s.x)/d*amount,z=s.z+(target.z-s.z)/d*amount;
+  const smoke=smokeMovement(state,s,target);if(smoke===0)return;
+  const amount=Math.min(d,dt*(c.reaction==='broken'?2:c.reaction==='pinned'?.45:1.2)*smoke),x=s.x+(target.x-s.x)/d*amount,z=s.z+(target.z-s.z)/d*amount;
   if(terrain.obstacleAt(x,z,.5)){s.action='sheltering';c.pauseReason='Cover route blocked';c.reactionRoute=[];return;}
   s.heading=Math.atan2(target.x-s.x,target.z-s.z);s.x=x;s.z=z;s.action=action;s.cover=terrain.coverAt(x,z);
 }

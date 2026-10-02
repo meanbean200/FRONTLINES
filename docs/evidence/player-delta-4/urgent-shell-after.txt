@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ✓ src/garrison/ForwardReturn.test.ts (2 tests) 21ms
+ ✓ src/garrison/SupplyDemand.test.ts (17 tests) 1842ms
+   ✓ explicit supply demand and reservation accounting > never automatically plans player structures over twelve campaign hours with stocked materials  1703ms
+ ✓ src/garrison/ReturnApproach.test.ts (4 tests) 1148ms
+   ✓ validated return approaches > continues the actual pickup and laden return identically through save/load  530ms
+
+ Test Files  3 passed (3)
+      Tests  23 passed (23)
+   Start at  19:17:40
+   Duration  5.40s (transform 692ms, setup 0ms, collect 1.62s, tests 3.01s, environment 0ms, prepare 304ms)
+

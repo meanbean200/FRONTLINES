@@ -31,7 +31,10 @@ describe('validated return approaches',()=>{
     const barrier={id:sim.state.nextEntityId++,points:[{x,z:z-15},{x,z:z+15}],width:4.2,depth:1.75,progress:1,status:'complete' as const};sim.state.trenches.push(barrier);
     const plan=vi.spyOn(sim.navigation,'plan').mockReturnValue([]);advance(sim,4);
     expect(s.duty?.stage).toBe('pickup');expect(total(s.carried!)).toBeGreaterThan(0);expect(plan).toHaveBeenCalled();
-    const pack={...s.carried};sim.state.trenches.splice(sim.state.trenches.indexOf(barrier),1);sim.step(.05);
+    const pack={...s.carried};sim.state.trenches.splice(sim.state.trenches.indexOf(barrier),1);
+    // A loaded blocked carrier now retains a serialized, bounded three-second
+    // retry cadence rather than repeating a failed path search every 50 ms.
+    for(let i=0;i<61&&s.duty?.stage!=='deliver';i++){sim.step(.05);expect(s.carried).toEqual(pack);}
     expect(s.duty?.stage).toBe('deliver');expect(s.carried).toEqual(pack);plan.mockRestore();
     for(const n of Object.values(balance(sim.state)))expect(Math.abs(n)).toBeLessThan(1e-6);
   });

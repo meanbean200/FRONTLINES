@@ -1,6 +1,7 @@
 import type {BattlefieldState} from '../core/types';
 import {inventory,RESOURCES,type Inventory,type Resource,type SupplyClaim,type SupplyDemand} from './types';
 import {forwardAccess} from './SupplyPoints';
+import {workPriority} from '../construction/WorkPriority';
 
 type Source=Omit<SupplyClaim,'amount'>&{garrisonId:number;stock:Inventory;dedicated?:number};
 export const constructionKey=(id:number)=>`construction:${id}:materials`;
@@ -13,7 +14,7 @@ export function demandSources(state:BattlefieldState,includeInaccessible=false):
     ...w.garrisons.filter(g=>includeInaccessible||!forwardAccess(state,g)).map(g=>({source:'forward' as const,id:g.id,garrisonId:g.id,stock:g.forwardStock})),
     ...w.facilities.filter(f=>['store','ammo'].includes(f.kind)&&f.progress===1).map(f=>({source:'store' as const,id:f.id,garrisonId:f.garrisonId,stock:f.stock})),
     ...w.trucks.filter(t=>!t.abandoned&&t.role==='shuttle'&&t.garrisonId!==undefined&&w.garrisons.some(g=>g.id===t.garrisonId&&(g.faction??'player')===(t.faction??'player'))&&['loading','outbound','unloading','blocked'].includes(t.state)&&t.resume!=='returning').map(t=>({source:'truck' as const,id:t.id,garrisonId:t.garrisonId!,stock:t.cargo})),
-    ...state.soldiers.filter(s=>s.garrisonId!==undefined&&s.needs?.life==='active'&&s.duty?.kind==='haul'&&s.duty.stage==='deliver'&&!s.duty.patientId).map(s=>({source:'carrier' as const,id:s.id,garrisonId:s.garrisonId!,dedicated:s.duty?.facilityId,stock:inventory({...s.carried,ammo:Math.max(0,(s.carried?.ammo??0)-60)})})),
+    ...state.soldiers.filter(s=>s.garrisonId!==undefined&&s.needs?.life==='active'&&s.duty?.kind==='haul'&&(s.duty.stage==='deliver'||s.duty.pickupLoaded)&&!s.duty.patientId).map(s=>({source:'carrier' as const,id:s.id,garrisonId:s.garrisonId!,dedicated:s.duty?.facilityId,stock:inventory({...s.carried,ammo:Math.max(0,(s.carried?.ammo??0)-60)})})),
   ];
 }
 /** Deterministic bounded allocation. No transfer or stock mutation occurs here. */
@@ -27,7 +28,7 @@ export function reconcileSupplyDemands(state:BattlefieldState):SupplyDemand[]{
   for(const g of w.garrisons){
     const people=state.soldiers.filter(s=>s.garrisonId===g.id&&s.needs?.life!=='dead'&&s.combat?.wound?.care!=='evacuated'),active=people.filter(s=>s.needs?.life==='active');
     for(const f of w.facilities.filter(f=>f.garrisonId===g.id&&f.workOrder?.cancelledAt===undefined)){
-      if(f.progress<1)add(g.id,'construction',f.id,'materials',f.materialCost,f.paid?f.materialCost:f.stock.materials,f.workOrder?.explicit?1:4,f.workOrder?.createdAt??f.id);
+      if(f.progress<1)add(g.id,'construction',f.id,'materials',f.materialCost,f.paid?f.materialCost:f.stock.materials,workPriority(f),f.workOrder?.createdAt??f.id);
       if(f.progress===1&&['emplacement','mortar'].includes(f.kind)){
         const crew=active.filter(s=>f.weaponCrewIds?.includes(s.id));
         // An empty emplacement is not a consumer. A reserved incoming operator

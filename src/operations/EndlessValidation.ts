@@ -1,13 +1,14 @@
 import type {BattlefieldState} from '../core/types';
 import {RESOURCES,type Inventory} from '../garrison/types';
 import {validEndlessOptions} from './EndlessTypes';
+import {isNewOpenFront} from './BattleSetup';
 
 /** Mode state is never inferred or repaired into a different campaign. */
 export function validEndless(state:BattlefieldState):boolean {
   const op=state.operation;if(!op)return true;
   if(op.battleMode!==undefined&&!['operation','endless'].includes(op.battleMode))return false;
   const e=op.endless,r=op.campaign?.replacements;
-  if(op.battleMode!=='endless')return e===undefined&&op.status!=='ended'&&r?.clock===undefined&&op.setup?.battleMode!=='endless';
+  if(op.battleMode!=='endless')return e===undefined&&op.status!=='ended'&&(r?.clock===undefined||r.clock==='simulation'&&r.releaseIntervalSeconds!==undefined&&isNewOpenFront(op.setup))&&op.setup?.battleMode!=='endless';
   if(!e||!r||!op.runtime||op.runtime.missionPlan||op.authored||op.mode!=='open-front'||r.clock!=='simulation'||e.version!==1||!validEndlessOptions(e.options)||op.setup?.battleMode!=='endless')return false;
   if(e.options.reinforcements!==op.setup.endless?.reinforcements||e.options.pressure!==op.setup.endless?.pressure)return false;
   const n=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v)&&v>=0;

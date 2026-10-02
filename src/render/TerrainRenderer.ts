@@ -102,7 +102,7 @@ export class TerrainRenderer {
     return parts.join('|');
   }
   setChunkDebug(visible:boolean):void {this.chunkDebugVisible=visible;this.material.wireframe=visible;}
-  setQuality(quality:VisualQuality):void{this.quality=quality;this.material.userData.detail.value=VISUAL_QUALITY[quality].groundDetail;this.dressing.setQuality(quality);}
+  setQuality(quality:VisualQuality):void{this.quality=quality;this.material.userData.detail.value=VISUAL_QUALITY[quality].groundDetail;this.material.userData.atmosphere.value=quality==='high'?1:0;this.dressing.setQuality(quality);}
   showInteriors(cutaways:Map<number,number>):void{if(this.infrastructure)refreshBuildingMeshes(this.infrastructure,this.terrain,cutaways);}
   get visibleChunkCount():number {return this.chunks.filter(c=>c.detail).length;}
   stats(camera:THREE.Camera){

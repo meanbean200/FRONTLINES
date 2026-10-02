@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ✓ src/render/VisualRescue.test.ts (11 tests) 128ms
+ ✓ src/diagnostics/SimulationRate.test.ts (1 test) 2ms
+
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+   Start at  20:23:05
+   Duration  1.68s (transform 637ms, setup 0ms, collect 1.04s, tests 130ms, environment 0ms, prepare 191ms)
+

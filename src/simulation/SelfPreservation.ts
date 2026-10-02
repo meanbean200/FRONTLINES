@@ -10,6 +10,7 @@ import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {effectiveSquad} from '../operations/AssaultPlan';
 import {chooseLocalCover,CoverSpace} from '../combat/LocalCover';
 import {knownRouteThreat} from '../navigation/KnownRouteThreat';
+import {smokeMovement} from '../navigation/SmokeMovement';
 
 export interface SelfCare {
   kind:'sleep'|'field-rest'|'meal'|'resupply'|'supply-wait'; stage:'exit'|'outbound'|'use'|'return';
@@ -202,7 +203,8 @@ export function stepSelfPreservation(state:BattlefieldState,terrain:TerrainSyste
       task.stage='use';task.until=state.elapsed+6;continue;
     }
     if(distance(s,target)<.5){task.index++;continue;}
-    const heading=Math.atan2(target.x-s.x,target.z-s.z),step=Math.min(distance(s,target),dt*1.6),clear=(p:Vec2)=>!terrain.obstacleAt(p.x,p.z,.4)&&(!task!.networkBound||graphFor(state).segmentInside(s,p))&&!state.soldiers.some(o=>bodyBlocks(state,s,o,p,.55));
+    const smoke=smokeMovement(state,s,target);if(smoke===0)continue;
+    const heading=Math.atan2(target.x-s.x,target.z-s.z),step=Math.min(distance(s,target),dt*1.6*smoke),clear=(p:Vec2)=>!terrain.obstacleAt(p.x,p.z,.4)&&(!task!.networkBound||graphFor(state).segmentInside(s,p))&&!state.soldiers.some(o=>bodyBlocks(state,s,o,p,.55));
     let next:Vec2|undefined;
     for(const offset of [0,.65,-.65,1.2,-1.2]){const p={x:s.x+Math.sin(heading+offset)*step,z:s.z+Math.cos(heading+offset)*step};if(clear(p)){next=p;break;}}
     if(!next){task.blockedFor+=dt;s.action='waiting for supply route';s.survivalReason='Supply route blocked · standing order retained';if(task.kind==='field-rest'&&task.blockedFor>=2){task.stage='use';task.until=state.elapsed+45;}continue;}

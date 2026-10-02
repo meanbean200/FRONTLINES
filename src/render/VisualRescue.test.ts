@@ -11,6 +11,7 @@ import {releaseLostContextResources} from './ContextRecovery';
 import {createOperation} from '../operations/createOperation';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
+import {smokeTransmission} from '../combat/SupportWeapons';
 
 describe('visual rescue contracts',()=>{
   it('keeps human and lorry geometry finite and metre-scaled, with cheaper distant bodies',()=>{
@@ -79,6 +80,30 @@ describe('visual rescue contracts',()=>{
     state.operation!.shotEvents=[{id:1,at:state.elapsed,shooterId:s.id,squadId:s.squadId,from,to:{...from,x:from.x+50},energy:1}];
     unit.update(new Set(),1/60,25);const mesh=unit.group.children[6] as THREE.InstancedMesh,m=new THREE.Matrix4();expect(mesh.count).toBe(1);mesh.getMatrixAt(0,m);
     expect(m.elements[12]).toBeCloseTo(from.x,3);expect(m.elements[13]).toBeCloseTo(from.y,3);expect(m.elements[14]).toBeCloseTo(from.z,3);
+  });
+  it('adds High smoke and impact depth without changing smoke physics or serialized state',()=>{
+    const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),p=state.soldiers[0];
+    state.elapsed=6;state.operation!.smokeFields=[{id:999,x:p.x,z:p.z,radius:12,born:0,until:80}];
+    state.operation!.blastEvents=[{id:1000,at:5.5,x:p.x,z:p.z,radius:40}];
+    const before=JSON.stringify(state),transmission=smokeTransmission(state,{x:p.x-15,z:p.z},{x:p.x+15,z:p.z});
+    const balanced=new ImpactEffects(),high=new ImpactEffects();high.setQuality('high');
+    balanced.update(state,sim.terrain);high.update(state,sim.terrain);
+    expect(high.particles.count).toBeGreaterThan(balanced.particles.count);
+    for(let i=0;i<12;i++){high.update(state,sim.terrain);balanced.update(state,sim.terrain);}
+    expect(JSON.stringify(state)).toBe(before);expect(smokeTransmission(state,{x:p.x-15,z:p.z},{x:p.x+15,z:p.z})).toBe(transmission);
+    const frozen=Array.from(high.particles.mesh.instanceMatrix.array);high.update(state,sim.terrain);
+    expect(Array.from(high.particles.mesh.instanceMatrix.array)).toEqual(frozen);
+  });
+  it('emits High movement dust only for actual, visible displacement',()=>{
+    const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),effects=new ImpactEffects();effects.setQuality('high');
+    const p=state.soldiers[0],enemy=state.soldiers.find(s=>state.squads.find(q=>q.id===s.squadId)?.faction==='enemy')!;
+    // Keep the test on open ground, clear of both sides' trench floors.
+    Object.assign(p,{x:-1800,z:-1800});Object.assign(enemy,{x:1800,z:1800});
+    effects.update(state,sim.terrain);expect(effects.particles.count).toBe(0);
+    state.elapsed+=.2;enemy.x+=1;effects.update(state,sim.terrain);expect(effects.particles.count).toBe(0);
+    state.elapsed+=.2;p.x+=1;const before=JSON.stringify(state);effects.update(state,sim.terrain);
+    expect(effects.particles.count).toBeGreaterThan(0);expect(JSON.stringify(state)).toBe(before);
+    state.elapsed+=1;effects.update(state,sim.terrain);expect(effects.particles.count).toBe(0);
   });
   it('releases alpha-tested shadow materials and textures during context recovery',()=>{
     const scene=new THREE.Scene(),map=new THREE.DataTexture(),depth=new THREE.MeshDepthMaterial({map}),g=new THREE.PlaneGeometry(),m=new THREE.MeshBasicMaterial({map});

@@ -1,0 +1,19 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ✓ src/operations/OperationalBuilding.test.ts (5 tests) 15ms
+ ✓ src/operations/EnemyCommander.test.ts (17 tests) 10695ms
+   ✓ enemy tactical commander > continues saved enemy plans exactly, with no new supply or player orders  6996ms
+   ✓ enemy tactical commander > walks to ammunition, transfers only on arrival, and resumes a saved resupply trip exactly  3433ms
+ ✓ src/operations/OperationsV2.test.ts (30 tests) 3262ms
+   ✓ reusable operational objectives and terminal conditions > requires viable multi-squad penetration, access and continuous consolidation; touching is not winning  422ms
+   ✓ reusable operational objectives and terminal conditions > uses contact and physical breach for phases rather than a script clock  742ms
+   ✓ reusable operational objectives and terminal conditions > defense tolerates losing all forward settlements but not sustained rear penetration  390ms
+   ✓ information firewall and persistence > matches exact continuation mid-consolidation and rejects malformed/incompatible runtime  472ms
+ ✓ src/terrain/BuildingUtility.test.ts (1 test) 12ms
+
+ Test Files  4 passed (4)
+      Tests  53 passed (53)
+   Start at  19:43:16
+   Duration  16.80s (transform 763ms, setup 0ms, collect 1.80s, tests 13.98s, environment 0ms, prepare 413ms)
+

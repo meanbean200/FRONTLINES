@@ -42,6 +42,28 @@ test('machine-gun inspection separates crew readiness from urgent warnings',asyn
   await page.locator('[data-speed="1"]').click();await expect(page.locator('#selection-detail')).toContainText('Set · watching sector · crew 1/1',{timeout:12000});await expect(page.locator('#battle-alerts')).not.toContainText('Setting up');await page.locator('[data-speed="0"]').click();
 });
 
+test('measured-speed readout stays clear of alerts and compact mission information',async({page})=>{
+  await meeting(page);
+  for(const [width,height] of [[1654,910],[960,540],[844,390],[390,844]]){
+    await page.setViewportSize({width,height});
+    // Presentation-only fixture. Synchronously expose both real UI surfaces
+    // to measure their layout without manufacturing an overloaded simulation.
+    const boxes=await page.evaluate(()=>{
+      const rate=document.querySelector<HTMLElement>('#simulation-rate')!,alerts=document.querySelector<HTMLElement>('#battle-alerts')!,mission=document.querySelector<HTMLElement>('.operation-hud')!;
+      const hidden=rate.hidden,text=rate.textContent,children=[...alerts.childNodes];
+      rate.hidden=false;rate.textContent='0.4× actual / 5× requested';
+      const warning=document.createElement('button');warning.textContent='! Defense under fire';alerts.replaceChildren(warning);
+      const rect=(e:Element)=>{const b=e.getBoundingClientRect();return {left:b.left,right:b.right,top:b.top,bottom:b.bottom};};
+      const result={rate:rect(rate),alerts:rect(alerts),mission:rect(mission)};
+      rate.hidden=hidden;rate.textContent=text;alerts.replaceChildren(...children);return result;
+    });
+    expect(boxes.rate.left,`${width}: speed readout left edge`).toBeGreaterThanOrEqual(0);
+    expect(boxes.rate.right,`${width}: speed readout right edge`).toBeLessThanOrEqual(width);
+    expect(boxes.alerts.top,`${width}: speed readout must clear alerts`).toBeGreaterThanOrEqual(boxes.rate.bottom+4);
+    if(width<=850)expect(boxes.mission.top,`${width}: compact mission must clear speed readout`).toBeGreaterThanOrEqual(boxes.rate.bottom+4);
+  }
+});
+
 // Synthetic saved-world fixtures isolate readiness, not building navigation.
 // They use real generated roof geometry and the normal validated restore path.
 async function placeMortar(page:Page,underRoof:boolean,moving=false){
@@ -59,12 +81,19 @@ async function placeMortar(page:Page,underRoof:boolean,moving=false){
 }
 async function inspectPit(page:Page,pit:Awaited<ReturnType<typeof placeMortar>>){
   await select(page,pit.name);await page.keyboard.press('f');await page.mouse.move(720,350);await page.mouse.wheel(0,650);
-  // Drag on empty battlefield, below/right of the mission HUD. The previous
-  // top-left coordinates now hit that panel and never reach command input.
-  expect(await page.evaluate(()=>document.elementFromPoint(460,250)?.id)).toBe('battlefield');
-  await page.mouse.move(460,250);await page.mouse.down();await page.mouse.move(480,270);await page.mouse.up();await expect(page.locator('#selection-docket')).toBeHidden();
   let last:{x:number;y:number}|undefined;
   await expect.poll(async()=>{const p=await page.evaluate(p=>window.__FRONTLINES__.projectWorld(p.x,p.z,.1),pit.point),settled=last&&p.visible&&Math.hypot(p.x-last.x,p.y-last.y)<.15;last=p;return Boolean(settled);}).toBe(true);
+  // First wait for camera focus/zoom to settle. Fixed screen coordinates can
+  // contain Dog's real soldiers, so locate an actually empty selection box.
+  const empty=await page.evaluate(()=>{
+    const api=window.__FRONTLINES__,s=api.getState(),points=[...s.soldiers,...s.squads].map(p=>api.projectWorld(p.x,p.z,.1));
+    for(let y=250;y<innerHeight-230;y+=45)for(let x=410;x<innerWidth-400;x+=45){
+      if(document.elementFromPoint(x,y)?.id!=='battlefield'||document.elementFromPoint(x+20,y+20)?.id!=='battlefield')continue;
+      if(points.every(p=>!p.visible||p.x<x-45||p.x>x+65||p.y<y-45||p.y>y+65))return{x,y};
+    }return null;
+  });
+  expect(empty).not.toBeNull();
+  await page.mouse.move(empty!.x,empty!.y);await page.mouse.down();await page.mouse.move(empty!.x+20,empty!.y+20);await page.mouse.up();await expect(page.locator('#selection-docket')).toBeHidden();
   if(pit.underRoof){
     // Roofs correctly pick the building. Inspect this intentionally invalid
     // legacy fixture through the ordinary Positions > Weapons list instead.

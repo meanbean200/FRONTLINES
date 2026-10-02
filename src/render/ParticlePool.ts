@@ -8,27 +8,35 @@ export class ParticlePool {
   private readonly color=new THREE.Color();
   private used=0;
   private ambient=1;
+  private readonly volume={value:0};
   limit:number;
   constructor(readonly capacity=900){
     this.limit=capacity;const geometry=new THREE.PlaneGeometry(1,1);
     this.alpha=new THREE.InstancedBufferAttribute(new Float32Array(capacity),1);geometry.setAttribute('particleAlpha',this.alpha);
     const material=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide});
     material.onBeforeCompile=shader=>{
+      shader.uniforms.puffVolume=this.volume;
       shader.vertexShader='attribute float particleAlpha; varying float puffAlpha; varying vec2 puffUv;\n'+shader.vertexShader;
       shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>',`vec4 center=modelViewMatrix*instanceMatrix*vec4(0.,0.,0.,1.);
         vec2 size=vec2(length(instanceMatrix[0].xyz),length(instanceMatrix[1].xyz));
         vec4 mvPosition=center+vec4(position.xy*size,0.,0.);
         gl_Position=projectionMatrix*mvPosition;puffAlpha=particleAlpha;puffUv=uv;`);
-      shader.fragmentShader='varying float puffAlpha; varying vec2 puffUv;\n'+shader.fragmentShader;
+      shader.fragmentShader='uniform float puffVolume; varying float puffAlpha; varying vec2 puffUv;\n'+shader.fragmentShader;
       shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
         vec2 p=puffUv*2.-1.;float d=length(p);
         float lobes=.85+.15*sin(p.x*13.+sin(p.y*9.))*sin(p.y*11.+p.x*3.);
         diffuseColor.a*=puffAlpha*pow(max(0.,1.-d),1.6)*lobes;
+        // Soft directional depth inside the billboard, without extra lights or
+        // simulation opacity. Dense lower lobes and a sunlight-facing rim.
+        float body=sqrt(max(0.,1.-dot(p,p)));
+        float light=clamp(.68+p.y*.21-p.x*.14+body*.25,.35,1.15);
+        diffuseColor.rgb*=mix(1.,light,puffVolume);
         if(diffuseColor.a<.008)discard;`);
     };
     this.mesh=new THREE.InstancedMesh(geometry,material,capacity);this.mesh.count=0;this.mesh.frustumCulled=false;this.mesh.renderOrder=2;
   }
   begin():void{this.used=0;}
+  setVolume(enabled:boolean):void{this.volume.value=enabled?1:0;}
   setAmbientLight(value:number):void{this.ambient=Math.max(0,Math.min(1,value));}
   add(x:number,y:number,z:number,width:number,height:number,tint:number,opacity:number,emissive=false):void{
     if(this.used>=Math.min(this.limit,this.capacity)||opacity<=0)return;

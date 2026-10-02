@@ -33,10 +33,13 @@ declare global {
       spawnStressTest: (count?: number) => number;
       focus: (x: number, z: number, distance?: number) => void;
       getPerf: () => PerfSnapshot;
-      getFrameCosts:()=>{simulation:number;terrain:number;units:number;tactical:number;positions:number;webgl:number;hud:number;total:number};
+      getFrameCosts:()=>{simulation:number;terrain:number;units:number;trenches:number;tactical:number;living:number;positions:number;effects:number;webgl:number;hud:number;total:number};
       getSimulationCosts:()=>{actions:number;movement:number;earthworks:number;garrison:number;combat:number;terrainIntel:number;support:number;total:number};
+      setProfiling:(enabled:boolean)=>void;
+      getRuntimeProfile:(after?:number)=>{ticks:Record<string,number>[];traces:Record<string,number>;paths:Record<string,number>};
       getVisualStats:()=>{triangles:number;drawCalls:number;particles:number;submittedSoldiers:number;residentTrees:number;visibleTrees:number;generatedChunks:number;detailedChunks:number;visibleChunks:number;coarseGenerationMs:number;workerGenerationMs:number;workerJobs:number;cameraTarget:{x:number;z:number};zoomDistance:number};
       getState: () => BattlefieldState;
+      getConstructionDiagnostics:()=>ReturnType<typeof import('./diagnostics/ConstructionDiagnostic').constructionDiagnostics>;
       getSessionStats:()=>{kind:string;generation:number;resets:number;created:number;disposed:number;active:number;planners:number;gpu:{geometries:number;textures:number};entities:number;renderHosts:number;terrainWorkers:number};
       getCombatDiagnostics:()=>ReturnType<typeof import('./combat/Diagnostics').combatDiagnostics>;
       getSightDiagnostics:(observerId:number,targetId:number)=>import('./operations/Visibility').ObservationDiagnostic|undefined;

@@ -1,0 +1,147 @@
+DIRECT_FIRE_TERRAIN  [
+  {
+    "name": "level",
+    "shots": 1000,
+    "hits": 180,
+    "terrainHits": 181,
+    "immediate": 0
+  },
+  {
+    "name": "mild-uphill",
+    "shots": 1000,
+    "hits": 180,
+    "terrainHits": 175,
+    "immediate": 0
+  },
+  {
+    "name": "steep-uphill",
+    "shots": 1000,
+    "hits": 180,
+    "terrainHits": 170,
+    "immediate": 0
+  },
+  {
+    "name": "mild-downhill",
+    "shots": 1000,
+    "hits": 181,
+    "terrainHits": 181,
+    "immediate": 0
+  },
+  {
+    "name": "steep-downhill",
+    "shots": 1000,
+    "hits": 180,
+    "terrainHits": 183,
+    "immediate": 0
+  },
+  {
+    "name": "trench-open-uphill",
+    "shots": 1000,
+    "hits": 190,
+    "terrainHits": 134,
+    "immediate": 0
+  },
+  {
+    "name": "trench-opposing-trench",
+    "shots": 1000,
+    "hits": 68,
+    "terrainHits": 298,
+    "immediate": 0
+  },
+  {
+    "name": "mounted-level",
+    "shots": 1000,
+    "hits": 152,
+    "terrainHits": 171,
+    "immediate": 0
+  },
+  {
+    "name": "mounted-uphill",
+    "shots": 1000,
+    "hits": 152,
+    "terrainHits": 168,
+    "immediate": 0
+  },
+  {
+    "name": "mounted-steep-uphill",
+    "shots": 1000,
+    "hits": 154,
+    "terrainHits": 163,
+    "immediate": 0
+  },
+  {
+    "name": "mounted-downhill",
+    "shots": 1000,
+    "hits": 152,
+    "terrainHits": 172,
+    "immediate": 0
+  },
+  {
+    "name": "mounted-steep-downhill",
+    "shots": 1000,
+    "hits": 153,
+    "terrainHits": 179,
+    "immediate": 0
+  },
+  {
+    "name": "mounted-opposing-trench",
+    "shots": 1000,
+    "hits": 51,
+    "terrainHits": 321,
+    "immediate": 0
+  },
+  {
+    "name": "mounted-cratered",
+    "shots": 1000,
+    "hits": 152,
+    "terrainHits": 168,
+    "immediate": 0
+  },
+  {
+    "name": "cratered",
+    "shots": 1000,
+    "hits": 190,
+    "terrainHits": 134,
+    "immediate": 0
+  }
+]
+SMOKE_JUNCTION  [
+  {
+    "side": "player",
+    "clear": {
+      "seconds": 53.64999999999851,
+      "maxStall": 0,
+      "pauses": 0,
+      "spread": 8.049152010345097,
+      "arrived": 8,
+      "wrongTurns": 0
+    },
+    "smoked": {
+      "seconds": 74.04999999999735,
+      "maxStall": 0.9000000000000002,
+      "pauses": 325,
+      "spread": 21.720332331847818,
+      "arrived": 8,
+      "wrongTurns": 0
+    }
+  },
+  {
+    "side": "enemy",
+    "clear": {
+      "seconds": 53.64999999999851,
+      "maxStall": 0,
+      "pauses": 0,
+      "spread": 8.049152010345097,
+      "arrived": 8,
+      "wrongTurns": 0
+    },
+    "smoked": {
+      "seconds": 73.09999999999741,
+      "maxStall": 0.9000000000000002,
+      "pauses": 340,
+      "spread": 19.135266244064876,
+      "arrived": 8,
+      "wrongTurns": 0
+    }
+  }
+]

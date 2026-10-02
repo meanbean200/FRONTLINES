@@ -1402,3 +1402,140 @@ failed runs, measurements and screenshots are in
   Only 78–82 visible soldiers were submitted, with hidden units still simulated.
   This is not the large-scene/native-window/physical-phone release gate. Full
   sampling method and limitations are in the evidence report.
+
+### 2026-10-01 — Player playtest delta 4
+
+Verified starting local/remote master:
+`1072d7cf678c7153afe485b8e124e128ab35669c`.
+**PARTIAL — PLAYER ACCEPTANCE NOT CLEARED.**
+The accepted Open Front reset remains delivered: 2400 x 2400 m, 72/64 initial
+personnel, no prebuilt works, physical enemy construction/supply, rear-depot win
+condition, observation continuity, MG behavior/relief and travelling shot cues.
+No population, range, AI, logistics or fixed-tick fidelity reductions were used
+to claim performance. No agents, training, automation restart or DEV rewrite.
+
+Detailed issue boundaries, normal-control chronology and evidence inventory:
+[Player delta 4](evidence/player-delta-4/README.md).
+Busy-scene method, measurements and remaining gates:
+[Performance](evidence/player-delta-4/performance.md).
+
+#### Reported, reproduced, implemented and remaining
+
+- **Direct fire / uphill — USER-REPORTED / original ROOT CAUSE UNKNOWN / P0 OPEN.**
+  Fifteen controlled production-geometry layouts exercise level/up/downhill,
+  firing edges, opposing trenches, mounted guns and craters, with 1000 seeded
+  rays per layout. Records include muzzle, authoritative origin, intended aim,
+  dispersed projection, impact and obstruction. A muzzle starting in earth
+  bypassed the old trace's first sample; the fail-to-pass origin guard now holds
+  fire. Mounted pitch used an incapacitated first-listed gunner while ballistics
+  used the active replacement; that separate failing regression is repaired.
+  No arbitrary aim raise or accuracy/damage change. These are not a causal
+  reproduction of the player's missing uphill incident, nor pixel-exact muzzle
+  acceptance. Existing FIRING EDGE BLOCKED readout remains authoritative.
+- **Construction after startup — USER-REPORTED / original two-gun incident
+  UNKNOWN / distinct ordinary-play stall REPRODUCED / ROOT CAUSE / IMPLEMENTED /
+  BROWSER VERIFIED.** At 903.4 seconds the second paid field gun had an on-site
+  tool carrier and helper but .001 connector progress. Hard friendly-body vetoes
+  made both clamped starting faces permanently unavailable. Prefer clear faces,
+  then permit ordinary friendly pass-through; real work reservations, sleep,
+  protected roles, explicit orders and enemies still constrain space. Current
+  access failures have persisted, expiring explanations. Continued the preserved
+  save through controls: gun 02 finished around 1140 seconds, all four facilities
+  by 1448.95. The original player's exact failed save is still not available.
+- **Persistent auto workers / priority — IMPLEMENTED / regression VERIFIED /
+  ordinary-control BROWSER VERIFIED.** New player sites default ON; LOW, NORMAL,
+  HIGH, CRITICAL affect uncommitted workers/tools/material claims without stealing
+  protected crews/care/player orders or loaded deliveries. Individual orders no
+  longer silently turn off the whole site's auto staffing. Explicit OFF remains
+  manual, including old saves missing the field. Exhausted/pinned replacement and
+  cargo preservation have controlled tests. Actual casualty-driven replacement in
+  a busy ordinary battle remains REMAINING.
+- **Physical supply — two controlled failures REPRODUCED / IMPLEMENTED.** Loaded
+  foot carriers now retain cargo and retry a blocked return without another pickup
+  or remote credit. Urgent ammunition pickup accepts actually claimed HE/smoke,
+  not only the small-arms resource. Real play delivered two HE/one smoke into a
+  finished gun, then fired exactly one HE. No invisible replenishment.
+- **Reinforcement pacing — PLAYER-REJECTED daily cooldown / source-confirmed /
+  IMPLEMENTED / BROWSER VERIFIED.** New normal Open Front releases up to eight
+  from its finite pool every 240 simulation seconds. Old unset saves keep daily
+  cadence; Endless remains separate. UI distinguishes ready/later/travelling and
+  physical arrival. An actual eight-person request at 1571 s arrived by 1781.9 s;
+  next-release readout was about four minutes. Varied-route joining averages are
+  not inferred from this one destination.
+- **Buildings — differentiated readout IMPLEMENTED / BROWSER VERIFIED; AI
+  adoption regression VERIFIED.** Actual geometry supplies category, sheltered
+  capacity, directional openings, elevation and road distance; only legitimately
+  friendly physical recoverable stock is shown. No invented storage or bonuses.
+  Fixed idle defensive plans missing useful nearby structures when no other Move
+  was emitted; existing commitments/crews/work stay protected. Normal controls
+  placed George in all eight barn positions and Fox on the farmhouse upper floor.
+  One Fox soldier was disabled on the stairs by recorded enemy artillery, not
+  needs. AI use through normal controls and player usefulness judgment remain open.
+- **Smoke local awareness — IMPLEMENTED / matched regression VERIFIED / partial
+  BROWSER VERIFIED.** Shared local opacity slows travel and adds bounded turn
+  hesitation, never changes remembered topology or standing orders. Formation,
+  duty, building, care and reaction movement use the same rule. Clear/smoked
+  multi-junction cases for both factions measure completion, real stopped ticks,
+  spread, wrong turns and maximum stall. Actual smoke used a real grenade and
+  seven mobile people; a committed gunner remained at its post. Full opposing
+  friendly/enemy traffic through dense smoke remains REMAINING.
+- **High graphics / artillery overlay — IMPLEMENTED / BROWSER REVIEWED / PLAYER
+  ACCEPTANCE OPEN.** Added soil/contact depth, lighting balance, richer smoke,
+  impacts and movement-driven dust under bounded visual budgets. Graphics cannot
+  alter simulation state/LOS/opacity/accuracy. Fire control uses a thin no-fill
+  danger outline, compact target marker and truthful ready/range/traverse/risk
+  reasons; it does not pretend danger radius is weapon range. High was checked
+  with real shell impact/smoke and targeting at two zooms. Further visual refinement
+  is not declared complete by these screenshots.
+- **Large-battle lag — busy ladder MEASURED / structural optimization IMPLEMENTED /
+  P0 OPEN.** Bounded exact-ray/geometry caches, spatial broad phases, live-ID maps
+  and render-only culling remove redundant work with matched fixed-tick parity.
+  Profiling records every tick, phases, LOS/path counters, render costs, heap/GC
+  and achieved rate. Larger battles still miss 16.7 ms p95 and actual 5x. The HUD
+  reports achieved speed under load. Neither lower populations nor downgraded High
+  substitute for acceptance; final measurements are in the performance report.
+
+#### Ordinary play and persistence boundary
+
+Two isolated production-preview Edge campaigns used normal controls, not injected
+solved states. The fresh repeat queued trench / two field guns / MG / store, with
+four priorities and real truck-plus-223 m-foot deliveries. Facilities completed at
+756.55, 812.70, 813.30 and 872.15 seconds. First salvo legitimately cancelled for
+exhaustion without consuming ammunition; recovered crew fired the second order
+and one authoritative impact followed. Smoke movement and two building types were
+then exercised. Read-only inspection retained exact evidence, including failures.
+
+Save/refresh/Continue at 860.4 and 1692 seconds preserved people, positions,
+resources, duties, wounds and operation state. Existing normalization removed
+completed enemy construction-queue entries (seven, then three); first resave also
+adds policy metadata. Do not call those whole raw JSON snapshots byte-identical.
+Version is `combat-47-player-delta4-world2`, V4 storage unchanged, original saves
+preserved; optional state validates without refill/roster increase or retrospective
+needs migration. Incompatible learned schemas fall back visibly.
+
+Final-source regression, actual Edge, build, portable launch and performance
+verification is recorded in the delta-4 evidence report. Overall status remains
+PARTIAL until original incident, long-game, large-population, physical-phone and
+player acceptance gates pass. Failed experiments and working runs are retained.
+
+#### Final verification and delivery boundary
+
+- Quiet regression **1048/1048 PASS, 161 files, 191.55 s**; timeout limits unchanged.
+- Final production/standalone and separate DEV builds PASS; packaging **5/5**.
+  A final CSS-only clearance repair prevents actual/requested speed text from
+  overlapping combat alerts or narrow-screen mission text. Its new Edge regression
+  fails on r11 and passes on r12; presentation/rate regressions **12/12 PASS**.
+- Final installed-Edge suite **36/36 PASS, 4.5 minutes**. Normal-control campaign
+  evidence remains separate from declared synthetic save/layout fixtures.
+- Final single-file and companion-index launches PASS in networking-disabled
+  Edge: movement, exact save/resume, six refreshed viewport sizes, no page errors
+  or network dependencies. Portable file: **1,538,310 bytes**, two embedded workers;
+  SHA-256 `aca77191564ee55ff76a1d5f8e0c6401d58054f6e0a38d95174b43977eb387da`.
+- Final busy r12 ladder: 136 sustains 1.000x / 5.000x (p95 6.2 / 12.2 ms).
+  At 512, Balanced/High 1x p95 are **48.5 / 48.6 ms**; selected 5x achieves only
+  **1.372x / 1.305x**. At 1000, achieved rate is approximately .40x.
+  **The large-battle gate is FAILED / P0 OPEN**, not closed by the smaller scene.
+  The ladder includes real smoke from earlier support missions, not ongoing
+  artillery barrages; longer combined-fire/GC acceptance also remains open.
+- Only scoped delta-4 implementation, tests, package and selected evidence belong
+  to this delivery. No original campaign save or failed run was overwritten.

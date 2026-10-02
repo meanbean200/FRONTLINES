@@ -1,0 +1,38 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ❯ src/operations/OperationalBuilding.test.ts (5 tests | 1 failed) 16ms
+   × an idle defender can choose nearby physical shelter even without a pending tactical move 10ms
+     → expected undefined to be 'move' // Object.is equality
+   ✓ building opportunities do not steal working personnel 2ms
+   ✓ building opportunities do not steal emplaced personnel 1ms
+   ✓ building opportunities do not steal supportBusy personnel 1ms
+   ✓ building adoption preserves an unexpired movement commitment 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/operations/OperationalBuilding.test.ts > an idle defender can choose nearby physical shelter even without a pending tactical move
+AssertionError: expected undefined to be 'move' // Object.is equality
+
+- Expected: 
+"move"
+
++ Received: 
+undefined
+
+ ❯ src/operations/OperationalBuilding.test.ts:23:25
+     21|   const {terrain,house,observation}=fixture(),before=JSON.stringify(ob…
+     22|   const result=commandOperationalEnemy(observation,terrain),command=re…
+     23|   expect(command?.type).toBe('move');expect(command?.goal).toEqual({x:…
+       |                         ^
+     24|   expect(result.memory.plans.find(p=>p.squadId===2)?.goal).toEqual(com…
+     25|   expect(JSON.stringify(observation)).toBe(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  19:42:17
+   Duration  1.22s (transform 564ms, setup 0ms, collect 882ms, tests 16ms, environment 0ms, prepare 112ms)
+

@@ -107,7 +107,7 @@ export function createOperationalBattle(id:OperationId,seed=1944,setup?:Resolved
   state.operation={version:1,forceModel:'infantry-equipment-v1',mode:id,runtime,status:'active',elapsed:0,duration:definition.defenseSeconds,score:0,targetScore:1,nextCombat:0,nextOrders:3,objectives,
     initialPlayer:forceSize(definition.forces.player),initialEnemy:forceSize(definition.forces.enemy),shots:0,hits:0,reason:'',casualtyRules:true,supportRules:true};
   if(setup){state.operation.setup=structuredClone(setup);applyInitialOptions(state,setup);}
-  if(definition.persistent){state.operation.campaign={playerTrench:prepared.get('player')?.[0]??0,enemyTrench:prepared.get('enemy')?.[0]??0,nextRaid:0,raidSquads:[],returnAt:0,phase:'preparing',playerHold:0,enemyHold:0};initializeReplacements(state);}
+  if(definition.persistent){state.operation.campaign={playerTrench:prepared.get('player')?.[0]??0,enemyTrench:prepared.get('enemy')?.[0]??0,nextRaid:0,raidSquads:[],returnAt:0,phase:'preparing',playerHold:0,enemyHold:0};initializeReplacements(state,isNewOpenFront(setup)&&setup?.battleMode!=='endless');}
   // Clear separation is an invariant, not a camera trick hiding nearby enemies.
   if(state.squads.some(a=>a.faction==='player'&&state.squads.some(b=>b.faction==='enemy'&&distance(a,b)<(mission?200:compact?480:600))))throw new Error('Deployment zones overlap');
   if(setup?.battleMode==='endless')initializeEndless(state,setup.endless);

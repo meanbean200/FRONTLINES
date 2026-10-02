@@ -2,6 +2,7 @@ import {distance,type BattlefieldState,type SoldierState,type Vec2} from '../cor
 import type {TerrainSystem} from '../terrain/TerrainSystem';
 import type {SquadNavigation} from '../navigation/SquadNavigation';
 import {buildingContains,buildingFloors,doorPoint,firingPoints,floorHeight,stairPoint} from '../terrain/BuildingGeometry';
+import {smokeMovement} from '../navigation/SmokeMovement';
 import {postureSpeed} from '../combat/Posture';
 import {bodyBlocks,sameSide} from '../navigation/FriendlyTraffic';
 import {detachedFromFormation} from '../operations/AssaultPlan';
@@ -110,7 +111,8 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
       const waiting=inside.stage==='approach'&&distance(s,door)<16&&traffic[0]?.id!==s.id&&!!traffic[0]&&!sameSide(state,s,traffic[0]);
       if(waiting){const queue=traffic.filter(p=>p.building!.stage==='approach').sort((a,b)=>a.id-b.id),rank=Math.max(0,queue.indexOf(s));target={x:door.x+(rank%2?1:-1)*3.2,z:door.z-10-Math.floor(rank/2)*1.4};if(terrain.obstacleAt(target.x,target.z,.5)){s.action='waiting at doorway';c.pauseReason='Doorway queue · approach obstructed';continue;}}
       const d=distance(s,target);if(d<(waiting?.15:inside.stage==='exit'&&inside.index===inside.route.length-1?.25:inside.index<inside.route.length-1||inside.floor!==inside.targetFloor?.65:.03)){if(!waiting)inside.index++;else{s.action='waiting at doorway';c.pauseReason='Doorway queue · yielding to passage';}continue;}
-      const step=Math.min(d,dt*1.35*postureSpeed(s)),p={x:s.x+(target.x-s.x)/d*step,z:s.z+(target.z-s.z)/d*step};
+      const smoke=smokeMovement(state,s,target);if(smoke===0)continue;
+      const step=Math.min(d,dt*1.35*postureSpeed(s)*smoke),p={x:s.x+(target.x-s.x)/d*step,z:s.z+(target.z-s.z)/d*step};
       const floorY=terrain.baseHeightAt(b.x,b.z)+inside.vertical+1;
       const blocked=(p:{x:number;z:number})=>terrain.structure(inside.id).some(box=>box.role==='wall'&&Math.abs(p.x-box.x)<box.rx+.22&&Math.abs(p.z-box.z)<box.rz+.22&&Math.abs(floorY-(terrain.baseHeightAt(b.x,b.z)+box.y))<box.ry+.6);
       // If stair handover or a loaded formation already overlaps, permit

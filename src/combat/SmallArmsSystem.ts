@@ -22,6 +22,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
   const op=state.operation!;
   const able=(s:SoldierState)=>s.health>0&&s.needs?.life==='active';
   const byId=new Map(state.soldiers.map(s=>[s.id,s]));
+  const observedBySquad=new Map<number,Set<number>>();
   const forgetTarget=(s:SoldierState)=>{
     delete s.aimTargetId;delete s.aimReadyAt;if(s.combat)delete s.combat.aim;
     const weapon=operatedPosition(state,s,'emplacement')?.installation?.weapon??s.combat?.weapon;
@@ -29,7 +30,7 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
   };
   op.shotEvents=(op.shotEvents??[]).filter(e=>state.elapsed-e.at<1);
   const buckets=new Map<string,SoldierState[]>(),cell=500;
-  for(const s of active){if(!able(s))continue;const key=`${Math.floor(s.x/cell)},${Math.floor(s.z/cell)}`;const row=buckets.get(key)??[];row.push(s);buckets.set(key,row);}
+  for(const s of active){if(!able(s))continue;const key=`${factions.get(s.squadId)}:${Math.floor(s.x/cell)},${Math.floor(s.z/cell)}`;const row=buckets.get(key)??[];row.push(s);buckets.set(key,row);}
   for(const shooter of active){
     // Death/incapacity invalidates tracking before cooldown, reload or duty
     // early-outs. The caller's active array can also change during this volley.
@@ -47,10 +48,11 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
     if(!operatedPosition(state,shooter,'emplacement')&&op.elapsed<(shooter.nextShotAt??0))continue;
     const combat=shooter.combat??={shotSequence:0};
     const squad=effectiveSquad(state,shooter,state.squads.find(q=>q.id===shooter.squadId)!),area=squad.order.intent==='suppress'?squad.order.target:undefined;
-    const known=new Set(squadContacts(state,shooter.squadId).filter(c=>c.visible).map(c=>c.soldierId));
+    let known=observedBySquad.get(shooter.squadId);
+    if(!known){known=new Set(squadContacts(state,shooter.squadId).filter(c=>c.visible).map(c=>c.soldierId));observedBySquad.set(shooter.squadId,known);}
     const faction=factions.get(shooter.squadId)!,candidates:SoldierState[]=[];
     const cx=Math.floor(shooter.x/cell),cz=Math.floor(shooter.z/cell);
-    for(let x=cx-1;x<=cx+1;x++)for(let z=cz-1;z<=cz+1;z++)for(const s of buckets.get(`${x},${z}`)??[])
+    for(let x=cx-1;x<=cx+1;x++)for(let z=cz-1;z<=cz+1;z++)for(const s of buckets.get(`${faction==='player'?'enemy':'player'}:${x},${z}`)??[])
       if(able(s)&&factions.get(s.squadId)!==faction&&distance(shooter,s)<definition.range)candidates.push(s);
     // Hold a valid firing solution. A few centimetres of crossing movement
     // must not keep restarting acquisition (especially automatic weapons).
@@ -67,22 +69,22 @@ export function fireSmallArms(state:BattlefieldState,terrain:TerrainSystem,activ
       observed++;
       if(inSector(candidate)){observedInSector=true;solution=clearAimPoint(terrain,shooter,candidate,state);if(solution){target=candidate;break;}}
     }
-    if(!target&&!area){combat.pauseReason=observedInSector?'Firing edge obstructed · cannot clear cover':observed?'Outside mounted gun firing sector':'No observed target in weapon range';forgetTarget(shooter);continue;}
+    if(!target&&!area){combat.pauseReason=observedInSector?'FIRING EDGE BLOCKED · cannot clear cover':observed?'Outside mounted gun firing sector':'No observed target in weapon range';forgetTarget(shooter);continue;}
     const point=area?{...area,y:terrain.heightAt(area.x,area.z)+.8}:solution!;
-    const muzzle=muzzlePoint(terrain,{...shooter,heading:Math.atan2(point.x-shooter.x,point.z-shooter.z)},state);
+    const muzzle=muzzlePoint(terrain,{...shooter,heading:Math.atan2(point.x-shooter.x,point.z-shooter.z)},state,point);
     if(area){
       // Suppression may deliberately strike the enemy's protection. Reject an
       // obstructed local firing edge, not every distant parapet on the ray.
       // The authoritative shot still stops at the first real obstacle.
       const t=Math.min(1,8/Math.max(.01,distance(muzzle,point))),edge={x:muzzle.x+(point.x-muzzle.x)*t,z:muzzle.z+(point.z-muzzle.z)*t,y:muzzle.y+(point.y-muzzle.y)*t};
-      if(!terrain.objects.trace(muzzle,edge,muzzle.y,edge.y,false,true).clear){combat.pauseReason='Suppression firing edge blocked by cover';continue;}
+      if(!terrain.objects.trace(muzzle,edge,muzzle.y,edge.y,false,true).clear){combat.pauseReason='FIRING EDGE BLOCKED · suppression held';continue;}
     }
     if(!inSector(point)){combat.pauseReason='Outside mounted gun firing sector';continue;}
     const heading=Math.atan2(point.x-shooter.x,point.z-shooter.z),range=distance(shooter,point),spread=dispersionMultiplier(state,shooter,area?undefined:target)*definition.spread;
     if(range>definition.range)continue;
     // A conservative envelope for fire discipline, bounded by the same physical
     // cone as the shot. Raw stress multipliers must not withhold point-blank fire.
-    const envelope=Math.min(rifleSpread(range)*spread,maximumShotOffset(Math.hypot(range,point.y-muzzlePoint(terrain,shooter,state).y)));
+    const envelope=Math.min(rifleSpread(range)*spread,maximumShotOffset(Math.hypot(range,point.y-muzzle.y)));
     if(!area&&definition.burst===1&&.8/(2*Math.PI*envelope**2)<.003&&!squad.order.pushThrough){combat.pauseReason='Holding ammunition · aimed hit implausible';continue;}
     const aimId=area?undefined:target?.id;
     if(shooter.aimTargetId!==aimId||!combat.aim||area&&distance(combat.aim.point,point)>2){

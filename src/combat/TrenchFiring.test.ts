@@ -23,7 +23,7 @@ describe('usable physical trench firing edges',()=>{
     q.order={type:'hold',issuedAt:0,intent:'suppress',target:{x:0,z:100}};s.carried!.ammo=60;s.nextShotAt=0;enemy.carried!.ammo=0;enemy.x=0;enemy.z=100;
     const sides=new Map(state.squads.map(q=>[q.id,q.faction??'player'] as const)),fired:number[]=[];
     const step=()=>{state.elapsed+=.05;state.operation!.elapsed=state.elapsed;fireSmallArms(state,terrain,[s,enemy],sides,()=>fired.push(state.elapsed));};
-    for(let i=0;i<100;i++)step();expect(fired).toHaveLength(0);expect(s.combat?.pauseReason).toContain('firing edge blocked');
+    for(let i=0;i<100;i++)step();expect(fired).toHaveLength(0);expect(s.combat?.pauseReason?.toUpperCase()).toContain('FIRING EDGE BLOCKED');
     Object.assign(s,bankPoint(sim.garrisons.network,s,0),{heading:0});
     for(let i=0;i<160;i++)step();expect(fired.length).toBeGreaterThan(0);expect(s.carried!.ammo).toBeLessThan(60);
   });

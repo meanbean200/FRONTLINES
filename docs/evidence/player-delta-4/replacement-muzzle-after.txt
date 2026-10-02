@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ✓ src/combat/MountedGeometry.test.ts (3 tests) 31ms
+ ✓ src/combat/TrenchFiring.test.ts (7 tests) 43ms
+
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+   Start at  19:36:09
+   Duration  1.85s (transform 640ms, setup 0ms, collect 1.22s, tests 74ms, environment 0ms, prepare 211ms)
+

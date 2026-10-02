@@ -4,7 +4,7 @@ import { buildingsForSeed, SETTLEMENTS, type BuildingSite } from './WorldFeature
 import {excavatedPoints,excavatedSpan,excavationKey} from '../core/TrenchGeometry';
 import {routeMetrics} from '../core/Polyline';
 import {WorldOcclusion} from './WorldOcclusion';
-import {structureBoxes,buildingContains,type BuildingCondition,type StructureBox} from './BuildingGeometry';
+import {structureBoxes,type BuildingCondition,type StructureBox} from './BuildingGeometry';
 import {emplacementBoxes} from './SupportGeometry';
 import {roadDistance,riverCenter,riverWidth,ROADS} from './WorldLayout';
 
@@ -37,6 +37,9 @@ export class TerrainSystem {
   private baseTiles=new Map<string,Float64Array>();
   private baseTileKeys:string[]=[];
   private baseTileCursor=0;
+  private lastBase?:{x:number;z:number;tile:Float64Array};
+  private lastGround?:{x:number;z:number;revision:number;segments:ExcavationSegment[];craters:BattlefieldState['craters']};
+  private lastBuildings?:{x:number;z:number;ids:number[]};
   private protectionRevision=-1;
   private protection:ReturnType<typeof emplacementBoxes>=[];
   supportProtection(){if(this.protectionRevision!==this.revision){this.protectionRevision=this.revision;this.protection=this.state.living?.facilities.flatMap(f=>emplacementBoxes(f).map(b=>({...b,y:b.y+this.heightAt(f.x,f.z)})))??[];}return this.protection;}
@@ -56,8 +59,13 @@ export class TerrainSystem {
     this.structureCache.set(id,{condition,site,boxes});return boxes;
   }
   buildingAt(p:Vec2):number|undefined{
-    if(this.buildingIndex!==this.buildings){this.buildingIndex=this.buildings;this.buildingBuckets.clear();this.buildings.forEach((b,id)=>{for(let x=Math.floor((b.x-b.width/2)/32);x<=Math.floor((b.x+b.width/2)/32);x++)for(let z=Math.floor((b.z-b.depth/2)/32);z<=Math.floor((b.z+b.depth/2)/32);z++){const key=x+','+z,row=this.buildingBuckets.get(key)??[];row.push(id);this.buildingBuckets.set(key,row);}});}
-    return this.buildingBuckets.get(Math.floor(p.x/32)+','+Math.floor(p.z/32))?.find(i=>buildingContains(this.buildings[i],p));
+    return this.buildingAtXY(p.x,p.z);
+  }
+  private buildingAtXY(px:number,pz:number):number|undefined{
+    if(this.buildingIndex!==this.buildings){this.buildingIndex=this.buildings;this.buildingBuckets.clear();this.lastBuildings=undefined;this.buildings.forEach((b,id)=>{for(let x=Math.floor((b.x-b.width/2)/32);x<=Math.floor((b.x+b.width/2)/32);x++)for(let z=Math.floor((b.z-b.depth/2)/32);z<=Math.floor((b.z+b.depth/2)/32);z++){const key=x+','+z,row=this.buildingBuckets.get(key)??[];row.push(id);this.buildingBuckets.set(key,row);}});}
+    const x=Math.floor(px/32),z=Math.floor(pz/32);
+    if(!this.lastBuildings||this.lastBuildings.x!==x||this.lastBuildings.z!==z)this.lastBuildings={x,z,ids:this.buildingBuckets.get(x+','+z)??[]};
+    for(const i of this.lastBuildings.ids){const b=this.buildings[i];if(Math.abs(px-b.x)<b.width/2&&Math.abs(pz-b.z)<b.depth/2)return i;}
   }
   constructor(private state: BattlefieldState) {
     this.buildings = buildingsForSeed(state.seed);
@@ -86,6 +94,7 @@ export class TerrainSystem {
     this.state = state;
     this.objects.reset();
     this.baseTiles.clear();this.baseTileKeys=[];this.baseTileCursor=0;
+    this.lastBase=this.lastGround=this.lastBuildings=undefined;
     this.structureCache.clear();
     this.buildings = buildingsForSeed(state.seed);
     this.signature = '';
@@ -138,9 +147,10 @@ export class TerrainSystem {
     // One shared metre-resolution base surface for rendering, navigation and
     // ballistic queries. Earthwork deformation remains continuous and exact.
     // Cache tiles, not individual rays through the same static hillside.
-    const bx=Math.floor(x/32),bz=Math.floor(z/32),key=bx+','+bz;
-    let tile=this.baseTiles.get(key);
+    const bx=Math.floor(x/32),bz=Math.floor(z/32),same=this.lastBase?.x===bx&&this.lastBase.z===bz,key=same?'':bx+','+bz;
+    let tile=same?this.lastBase!.tile:this.baseTiles.get(key);
     if(!tile){tile=new Float64Array(33*33);for(let iz=0;iz<=32;iz++)for(let ix=0;ix<=32;ix++)tile[iz*33+ix]=this.rawBaseHeightAt(bx*32+ix,bz*32+iz);if(this.baseTileKeys.length<4096)this.baseTileKeys.push(key);else{this.baseTiles.delete(this.baseTileKeys[this.baseTileCursor]);this.baseTileKeys[this.baseTileCursor]=key;this.baseTileCursor=(this.baseTileCursor+1)%4096;}this.baseTiles.set(key,tile);}
+    if(!same)this.lastBase={x:bx,z:bz,tile};
     // Floating-point subtraction can round an almost-zero negative coordinate
     // to local 32. Interpolate the last valid cell (fraction 1), not row 33
     // outside the tile. Subnormal division can similarly produce local -epsilon.
@@ -165,7 +175,9 @@ export class TerrainSystem {
   deformationAt(x: number, z: number): number {
     let excavation = 0;
     let spoil = 0;
-    for (const segment of this.buckets.get(`${Math.floor(x / 32)},${Math.floor(z / 32)}`) ?? []) {
+    const bx=Math.floor(x/32),bz=Math.floor(z/32);
+    if(!this.lastGround||this.lastGround.x!==bx||this.lastGround.z!==bz||this.lastGround.revision!==this.revision){const key=bx+','+bz;this.lastGround={x:bx,z:bz,revision:this.revision,segments:this.buckets.get(key)??[],craters:this.craterBuckets.get(key)??[]};}
+    for (const segment of this.lastGround.segments) {
       const hit = distanceToSegment({ x, z }, segment.a, segment.b);
       const half = segment.width / 2;
       if (hit.distance < half) {
@@ -174,14 +186,14 @@ export class TerrainSystem {
         spoil = Math.max(spoil, 0.5 * Math.sin((hit.distance - half) / 3 * Math.PI));
       }
     }
-    for (const crater of this.craterBuckets.get(`${Math.floor(x/32)},${Math.floor(z/32)}`)??[]) {
+    for (const crater of this.lastGround.craters) {
       const t = Math.hypot(x - crater.x, z - crater.z) / crater.radius;
       if (t < 1) excavation = Math.min(excavation, -crater.depth * Math.pow(1 - t * t, 1.6));
       if (t > 0.82 && t < 1.3) spoil = Math.max(spoil, crater.depth * 0.18 * Math.sin((t - 0.82) / 0.48 * Math.PI));
     }
     return excavation < -0.05 ? excavation : spoil;
   }
-  heightAt(x: number, z: number): number {const id=this.buildingAt({x,z}),b=id===undefined?undefined:this.buildings[id];return b?this.baseHeightAt(b.x,b.z):this.baseHeightAt(x,z)+this.deformationAt(x,z);}
+  heightAt(x: number, z: number): number {const id=this.buildingAtXY(x,z),b=id===undefined?undefined:this.buildings[id];return b?this.baseHeightAt(b.x,b.z):this.baseHeightAt(x,z)+this.deformationAt(x,z);}
   groundTypeAt(x: number, z: number): GroundType {
     if (this.distanceToRoad(x, z) < 4) return 'road';
     if (Math.abs(z - this.riverCenter(x)) < this.riverWidth(x)) return 'river';

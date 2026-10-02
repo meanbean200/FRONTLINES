@@ -3,6 +3,7 @@ import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {commandEnemy,type EnemyMemory,type EnemyObservation} from './EnemyCommander';
 import {atDepth,frontDepth} from './OperationGeometry';
 import {type FrontGeometry,type OperationalCommandMemory} from './OperationalTypes';
+import {buildingUtility} from '../terrain/BuildingUtility';
 
 export interface OperationalKnowledge {
   mission?:{kind:import('./MissionContent').MissionKind;houseId:number;house:Vec2;secondHouseId?:number;secondHouse?:Vec2;preparationSeconds:number;frontage:number};
@@ -84,6 +85,30 @@ export function commandOperationalEnemy(o:EnemyObservation,terrain:TerrainSystem
     const houses=[{id:k.mission.houseId,point:k.mission.house},...(k.mission.secondHouse&&k.mission.secondHouseId!==undefined?[{id:k.mission.secondHouseId,point:k.mission.secondHouse}]:[])],used=new Set<number>();
     for(const house of houses){const candidate=combat.find(q=>!used.has(q.id)&&q.buildingOrder===undefined&&!q.emplaced&&!q.working&&q.able>=3&&q.suppression<30&&distance(q,house.point)<65);
       if(candidate&&!combat.some(q=>q.buildingOrder===house.id)){used.add(candidate.id);result.commands=result.commands.filter(c=>c.squadId!==candidate.id);result.commands.push({squadId:candidate.id,type:'move',goal:{...house.point},role:'defend',reason:'Occupy the road house and cover its approaches'});}
+    }
+  }
+  if(!k.mission&&!exhausted){
+    const occupied=new Set(combat.flatMap(q=>q.buildingOrder===undefined?[]:[q.buildingOrder]));
+    for(const plan of result.memory.plans){
+      const q=combat.find(q=>q.id===plan.squadId),command=result.commands.find(c=>c.squadId===plan.squadId);
+      if(!q||q.emplaced||q.working||q.supportBusy||q.buildingOrder!==undefined||q.suppression>=30||plan.role!=='defend')continue;
+      // A settled defender may need no tactical Move, but still reviews nearby
+      // shelter. Do not interrupt an existing journey or an unexpired order.
+      if(!command&&(q.moving||q.planning||(previous?.plans.find(p=>p.squadId===q.id)?.commitUntil??0)>o.at))continue;
+      // Known terrain only. A nearby house may replace an exposed holding
+      // point; no bonus, hidden occupancy oracle or long diversion is used.
+      const houses=terrain.buildings.map((house,id)=>({house,id})).filter(b=>!occupied.has(b.id)&&distance(q,b.house)<60&&distance(plan.goal,b.house)<75);
+      const value=(b:typeof houses[number])=>{const u=buildingUtility(b.house);return Math.min(q.able,u.places)*2+u.elevation*3-distance(q,b.house)*.35-u.road*.04;};
+      const house=houses.sort((a,b)=>value(b)-value(a)||a.id-b.id)[0];
+      if(house){
+        occupied.add(house.id);
+        const goal={x:house.house.x,z:house.house.z},reason='Use nearby sheltered firing positions; preserve the holding task';
+        if(command){command.type='move';command.goal={...goal};command.reason=reason;}
+        else {result.commands.push({squadId:q.id,type:'move',goal:{...goal},role:'defend',reason});plan.orders++;}
+        // The serialized plan must describe the order actually issued, not its
+        // superseded outdoor holding point.
+        plan.goal=goal;plan.reason=reason;plan.lastIssued=o.at;plan.commitUntil=Math.max(plan.commitUntil,o.at+24);
+      }
     }
   }
   let support:{squadId:number;target:Vec2}|undefined;

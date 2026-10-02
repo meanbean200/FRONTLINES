@@ -41,6 +41,7 @@ interface CommandInputOptions {
   onTactical?:(mode:'observe'|'suppress'|'assault'|'fall-back',point:Vec2)=>void;
   onSupport?:(kind:'mortarHE'|'mortarSmoke'|'smokeGrenades',point:Vec2)=>boolean;
   supportDangerRadius?:()=>number;
+  previewSupport?:(point:Vec2)=>ReturnType<typeof import('../ui/SupportPreview').supportPreview>;
   onDeploy?:(point:Vec2)=>void;
   previewDeployment?:(point:Vec2)=>{valid:boolean;reason:string;positions:Vec2[]};
 }
@@ -59,6 +60,7 @@ export class CommandInput {
   private readonly draft=document.createElement('div');
   private readonly plotted=document.createElementNS('http://www.w3.org/2000/svg','g');
   private hover?:{x:number;y:number};
+  private hoverPoint?:Vec2;
   private previewMode:InteractionMode='select';
 
   constructor(private readonly options: CommandInputOptions) {
@@ -128,9 +130,13 @@ export class CommandInput {
 
   private readonly onPointerMove = (event: PointerEvent): void => {
     this.hover={x:event.clientX,y:event.clientY};
+    this.hoverPoint=observedMarkerPoint(event);
     const preview=this.options.getMode();
     if(preview==='facility'||preview==='deploy'){this.updatePreview();return;}
-    if(['mortarHE','mortarSmoke','smokeGrenades'].includes(preview)&&!document.documentElement.dataset.menu){const p=observedMarkerPoint(event)??this.options.camera.groundPoint(event.clientX,event.clientY);if(p){const radius=preview==='mortarHE'?(this.options.supportDangerRadius?.()??40):preview==='mortarSmoke'?18:11;const points=Array.from({length:49},(_,i)=>this.options.camera.project({x:p.x+Math.sin(i*Math.PI/24)*radius,z:p.z+Math.cos(i*Math.PI/24)*radius},.6));this.plotted.replaceChildren();this.routeLine.setAttribute('marker-end','none');this.routeLine.setAttribute('stroke-dasharray','5 4');this.routeLine.setAttribute('points',points.map(p=>`${p.x},${p.y}`).join(' '));this.routeLine.setAttribute('stroke',preview==='mortarHE'?'#b8796b':'#b8bbaa');this.routeLine.setAttribute('fill',preview==='mortarHE'?'#b8796b18':'#e6e0cb18');this.routePreview.style.display='block';}return;}
+    if(['mortarHE','mortarSmoke','smokeGrenades'].includes(preview)&&!document.documentElement.dataset.menu){
+      const p=observedMarkerPoint(event)??this.options.camera.groundPoint(event.clientX,event.clientY);
+      if(p)this.showSupport(p,event.clientX,event.clientY);return;
+    }
     if (!this.pointerStart) return;
     const mode = this.gesture;
     if (mode === 'select') this.updateBox(event.clientX, event.clientY);
@@ -152,6 +158,17 @@ export class CommandInput {
       }
     }
   };
+
+  private showSupport(p:Vec2,x:number,y:number):void{
+        const preview=this.options.getMode();
+        const info=this.options.previewSupport?.(p),radius=info?(info.danger||info.dispersion):preview==='mortarHE'?(this.options.supportDangerRadius?.()??40):18;
+        const points=Array.from({length:33},(_,i)=>this.options.camera.project({x:p.x+Math.sin(i*Math.PI/16)*radius,z:p.z+Math.cos(i*Math.PI/16)*radius},.6)),center=this.options.camera.project(p,.6);
+        this.plotted.replaceChildren();this.routeLine.setAttribute('marker-end','none');this.routeLine.setAttribute('stroke-dasharray','3 9');this.routeLine.setAttribute('stroke-width','1');this.routeLine.setAttribute('opacity','.42');
+        this.routeLine.setAttribute('points',points.map(p=>`${p.x},${p.y}`).join(' '));this.routeLine.setAttribute('stroke',info?.risk?'#bf887b':'#cfbea0');this.routeLine.setAttribute('fill','none');this.routePreview.style.display='block';
+        const cross=document.createElementNS('http://www.w3.org/2000/svg','path');cross.setAttribute('d',`M${center.x-9},${center.y}h6 m6,0h6 M${center.x},${center.y-9}v6 m0,6v6`);cross.setAttribute('stroke','#eee2c4');cross.setAttribute('stroke-width','1.5');cross.setAttribute('fill','none');this.plotted.append(cross);
+        this.draft.hidden=false;this.draft.classList.add('support-readout');this.draft.style.left=`${Math.max(8,Math.min(x+19,innerWidth-280))}px`;this.draft.style.top=`${Math.max(8,Math.min(y+19,innerHeight-130))}px`;
+        this.draft.textContent=info?`${preview==='mortarHE'?'HE SALVO':'SMOKE'} · ${info.range}\n${info.ready} / ${info.total} ${info.unit} ready${info.risk?' · FRIENDLY DANGER: '+info.risk:''}\n${info.danger?'Danger':'Dispersion'} boundary · ${radius} m${info.reason?'\n'+info.reason:''}`:'Smoke throw · choose target';
+  }
 
   private readonly onPointerUp = (event: PointerEvent): void => {
     this.draft.hidden=true;
@@ -226,7 +243,10 @@ export class CommandInput {
 
   updatePreview():void{
     const mode=this.options.getMode();
-    if(mode!==this.previewMode){if(!this.pointerStart){this.routePreview.style.display='none';this.draft.hidden=true;this.plotted.replaceChildren();}this.previewMode=mode;}
+    if(mode!==this.previewMode){if(!this.pointerStart){this.routePreview.style.display='none';this.draft.hidden=true;this.plotted.replaceChildren();}this.routeLine.setAttribute('stroke-width','3');this.routeLine.setAttribute('opacity','1');this.draft.classList.remove('support-readout');this.draft.style.left='';this.draft.style.top='';this.previewMode=mode;}
+    if(['mortarHE','mortarSmoke','smokeGrenades'].includes(mode)&&this.hover&&!document.documentElement.dataset.menu&&!document.documentElement.dataset.help&&!document.documentElement.dataset.fieldMap){
+      const point=this.hoverPoint??this.options.camera.groundPoint(this.hover.x,this.hover.y);if(point)this.showSupport(point,this.hover.x,this.hover.y);return;
+    }
     if(mode==='deploy'&&this.hover&&!document.documentElement.dataset.menu&&!document.documentElement.dataset.help&&!document.documentElement.dataset.fieldMap){
       const point=this.options.camera.groundPoint(this.hover.x,this.hover.y),report=point&&this.options.previewDeployment?.(point);if(!report)return;
       this.routePreview.style.display='block';this.routeLine.setAttribute('points','');this.plotted.replaceChildren();

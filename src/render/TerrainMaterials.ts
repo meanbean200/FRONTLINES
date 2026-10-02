@@ -4,11 +4,13 @@ import * as THREE from 'three';
 export function groundMaterial():THREE.MeshStandardMaterial {
   const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.96});
   const detail={value:1};material.userData.detail=detail;
+  const atmosphere={value:0};material.userData.atmosphere=atmosphere;
   material.onBeforeCompile=shader=>{
     shader.uniforms.surfaceDetail=detail;
+    shader.uniforms.surfaceAtmosphere=atmosphere;
     shader.vertexShader='attribute vec3 groundCover; varying vec3 fieldCover; varying vec3 fieldPosition; varying float groundSlope;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nfieldPosition=position;fieldCover=groundCover;groundSlope=normal.y;');
-    shader.fragmentShader=`uniform float surfaceDetail;
+    shader.fragmentShader=`uniform float surfaceDetail; uniform float surfaceAtmosphere;
       varying vec3 fieldCover; varying vec3 fieldPosition; varying float groundSlope;
       float gh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float gn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(gh(i),gh(i+vec2(1,0)),f.x),mix(gh(i+vec2(0,1)),gh(i+vec2(1,1)),f.x),f.y);}
@@ -48,6 +50,13 @@ export function groundMaterial():THREE.MeshStandardMaterial {
       float nearDetail=1.-smoothstep(80.,420.,length(vViewPosition));
       float blades=gn(ground*vec2(16.,2.5));
       surface*=1.+nearDetail*surfaceDetail*((fine-.5)*.18+(blades-.5)*.12*(1.-cultivation));
+      // High adds damp/crumbly earth, compacted yards and litter depth. These
+      // use the physical cut/yard masks, not painted-on fake fortifications.
+      float clods=gn(ground*5.8),grain=gn(ground*27.);
+      float contact=cut*smoothstep(.83,.99,groundSlope)+forest*.24+fieldCover.z*.08;
+      surface*=1.-surfaceAtmosphere*contact*.22;
+      surface=mix(surface,surface*vec3(1.09,1.02,.94),surfaceAtmosphere*cut*(1.-smoothstep(.74,.96,groundSlope))*.7);
+      surface*=1.+surfaceAtmosphere*nearDetail*((clods-.5)*.15+(grain-.5)*.08)*(cut+fieldCover.z*.5);
       diffuseColor.rgb=surface;
     `);
     shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
@@ -57,7 +66,8 @@ export function groundMaterial():THREE.MeshStandardMaterial {
       normal=normalize(normal+mat3(viewMatrix)*vec3(-relief.x,0.,-relief.y)*reliefFade*.65);
     `);
     shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
-      roughnessFactor=mix(.97,.73,fieldCover.y*smoothstep(.9,.99,groundSlope));
+      float dampFloor=fieldCover.y*smoothstep(.9,.99,groundSlope);
+      roughnessFactor=mix(.97,.73-surfaceAtmosphere*.15,dampFloor);
     `);
   };
   return material;

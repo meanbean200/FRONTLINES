@@ -1,0 +1,17 @@
+
+> frontlines-battlefield-sandbox@0.1.0 test:packaging
+> node --test scripts/test-standalone.mjs
+
+✔ embeds runtime and styles without external entry references (0.8794ms)
+✔ does not expand dollar replacement tokens inside bundled code (0.2282ms)
+✔ closing tags inside strings cannot terminate an inline script or style (0.1435ms)
+✔ rejects remaining external scripts, preload links and CSS assets (0.8945ms)
+✔ accepts embedded and same-document CSS resources with or without quotes (0.2586ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 61.5581

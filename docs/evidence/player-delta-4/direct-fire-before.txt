@@ -1,0 +1,70 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+stdout | src/combat/DirectFireTerrain.test.ts > direct-fire terrain evidence matrix > level uses a clear real muzzle/body solution without systematic immediate ground hits
+DIRECT_FIRE_TERRAIN {"name":"level","muzzle":{"x":0.16,"y":1.48,"z":0.8},"aim":{"x":0,"y":0.8600000000000001,"z":70},"shots":1000,"hits":180,"terrainHits":176,"immediate":0,"failures":[]}
+
+stdout | src/combat/DirectFireTerrain.test.ts > direct-fire terrain evidence matrix > mild-uphill uses a clear real muzzle/body solution without systematic immediate ground hits
+DIRECT_FIRE_TERRAIN {"name":"mild-uphill","muzzle":{"x":0.16,"y":1.48,"z":0.8},"aim":{"x":0,"y":6.460000000000001,"z":70},"shots":1000,"hits":180,"terrainHits":174,"immediate":0,"failures":[]}
+
+stdout | src/combat/DirectFireTerrain.test.ts > direct-fire terrain evidence matrix > steep-uphill uses a clear real muzzle/body solution without systematic immediate ground hits
+DIRECT_FIRE_TERRAIN {"name":"steep-uphill","muzzle":{"x":0.16,"y":1.48,"z":0.8},"aim":{"x":0,"y":16.26,"z":70},"shots":1000,"hits":180,"terrainHits":166,"immediate":0,"failures":[]}
+
+stdout | src/combat/DirectFireTerrain.test.ts > direct-fire terrain evidence matrix > mild-downhill uses a clear real muzzle/body solution without systematic immediate ground hits
+DIRECT_FIRE_TERRAIN {"name":"mild-downhill","muzzle":{"x":0.16,"y":1.48,"z":0.8},"aim":{"x":0,"y":-4.74,"z":70},"shots":1000,"hits":181,"terrainHits":181,"immediate":0,"failures":[]}
+
+stdout | src/combat/DirectFireTerrain.test.ts > direct-fire terrain evidence matrix > trench-open-uphill uses a clear real muzzle/body solution without systematic immediate ground hits
+DIRECT_FIRE_TERRAIN {"name":"trench-open-uphill","muzzle":{"x":0.16,"y":0.9957280078125003,"z":3.644},"aim":{"x":0,"y":6.460000000000001,"z":70},"shots":1000,"hits":190,"terrainHits":134,"immediate":0,"failures":[]}
+
+stdout | src/combat/DirectFireTerrain.test.ts > direct-fire terrain evidence matrix > trench-opposing-trench uses a clear real muzzle/body solution without systematic immediate ground hits
+DIRECT_FIRE_TERRAIN {"name":"trench-opposing-trench","muzzle":{"x":0.16,"y":0.9388480078125002,"z":3.644},"aim":{"x":0,"y":4.877568007812491,"z":67.156},"shots":1000,"hits":68,"terrainHits":298,"immediate":0,"failures":[]}
+
+stdout | src/combat/DirectFireTerrain.test.ts > direct-fire terrain evidence matrix > mounted-uphill uses a clear real muzzle/body solution without systematic immediate ground hits
+DIRECT_FIRE_TERRAIN {"name":"mounted-uphill","muzzle":{"x":0,"z":4.244000000000001,"y":0.9957280078125003},"aim":{"x":0,"y":6.460000000000001,"z":70},"shots":1000,"hits":152,"terrainHits":163,"immediate":0,"failures":[]}
+
+stdout | src/combat/DirectFireTerrain.test.ts > direct-fire terrain evidence matrix > mounted-downhill uses a clear real muzzle/body solution without systematic immediate ground hits
+DIRECT_FIRE_TERRAIN {"name":"mounted-downhill","muzzle":{"x":0,"z":4.244000000000001,"y":0.5406880078125001},"aim":{"x":0,"y":-4.74,"z":70},"shots":1000,"hits":152,"terrainHits":174,"immediate":0,"failures":[]}
+
+stdout | src/combat/DirectFireTerrain.test.ts > direct-fire terrain evidence matrix > cratered uses a clear real muzzle/body solution without systematic immediate ground hits
+DIRECT_FIRE_TERRAIN {"name":"cratered","muzzle":{"x":0.16,"y":0.9388480078125002,"z":3.644},"aim":{"x":0,"y":5.0600000000000005,"z":70},"shots":1000,"hits":190,"terrainHits":134,"immediate":0,"failures":[]}
+
+ ❯ src/combat/DirectFireTerrain.test.ts (10 tests | 1 failed) 582ms
+   ✓ direct-fire terrain evidence matrix > level uses a clear real muzzle/body solution without systematic immediate ground hits 74ms
+   ✓ direct-fire terrain evidence matrix > mild-uphill uses a clear real muzzle/body solution without systematic immediate ground hits 61ms
+   ✓ direct-fire terrain evidence matrix > steep-uphill uses a clear real muzzle/body solution without systematic immediate ground hits 61ms
+   ✓ direct-fire terrain evidence matrix > mild-downhill uses a clear real muzzle/body solution without systematic immediate ground hits 46ms
+   ✓ direct-fire terrain evidence matrix > trench-open-uphill uses a clear real muzzle/body solution without systematic immediate ground hits 70ms
+   ✓ direct-fire terrain evidence matrix > trench-opposing-trench uses a clear real muzzle/body solution without systematic immediate ground hits 67ms
+   ✓ direct-fire terrain evidence matrix > mounted-uphill uses a clear real muzzle/body solution without systematic immediate ground hits 57ms
+   ✓ direct-fire terrain evidence matrix > mounted-downhill uses a clear real muzzle/body solution without systematic immediate ground hits 60ms
+   ✓ direct-fire terrain evidence matrix > cratered uses a clear real muzzle/body solution without systematic immediate ground hits 77ms
+   × direct-fire terrain evidence matrix > rejects a muzzle starting inside nearby earth, including a ray shorter than one trace step 7ms
+     → expected true to be false // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat/DirectFireTerrain.test.ts > direct-fire terrain evidence matrix > rejects a muzzle starting inside nearby earth, including a ray shorter than one trace step
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/combat/DirectFireTerrain.test.ts:55:68
+     53|     const {terrain}=fixture(0);vi.spyOn(terrain,'heightAt').mockImplem…
+     54|     const from={x:0,z:0},end={x:0,z:.3};
+     55|     expect(terrain.objects.trace(from,end,.8,.8,false,true).clear).toB…
+       |                                                                    ^
+     56|     expect(terrain.objects.trace(from,{x:0,z:20},.8,1.5,false,true).cl…
+     57|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  17:41:06
+   Duration  2.53s (transform 567ms, setup 0ms, collect 849ms, tests 582ms, environment 0ms, prepare 492ms)
+

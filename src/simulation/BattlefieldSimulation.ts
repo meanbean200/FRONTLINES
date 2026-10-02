@@ -37,8 +37,10 @@ import {observeTrenches,knownTrenchNetworks} from '../operations/TrenchIntellige
 import {prepareRaid,TrenchRaidSystem} from '../operations/TrenchRaid';
 import {previewAssault,sameAssaultPreview,commitAssault,assaultSquad,detachedFromFormation,type AssaultOptions} from '../operations/AssaultPlan';
 import {stepOpenFrontWorks} from '../operations/OpenFrontWorks';
+import {TickProfile} from '../diagnostics/TickProfile';
 
 export class BattlefieldSimulation {
+  readonly tickProfile=new TickProfile();
   readonly stepCosts={actions:0,movement:0,earthworks:0,garrison:0,combat:0,terrainIntel:0,support:0,total:0};
   prepareOrder(ids:number[],intent:TacticalIntent,target:Vec2,networkId?:number,includeWeaponCrews=false,sourcePositionIds?:number[],options?:AssaultOptions):number {
     if(this.commandsLocked||![target.x,target.z].every(Number.isFinite))return 0;
@@ -221,6 +223,7 @@ export class BattlefieldSimulation {
     stepSupport(this.state,this.terrain);
     reconcileSupplyDemands(this.state);
     this.stepCosts.support=performance.now()-phase;this.stepCosts.total=performance.now()-started;
+    if(this.tickProfile.enabled)this.tickProfile.record(this.state.elapsed,{...this.stepCosts,...this.operations.costs,...this.garrisons.costs});
   }
 
   issueMove(squadIds: number[], target: Vec2, enemyOrder = false): void {

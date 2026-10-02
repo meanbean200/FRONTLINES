@@ -2,6 +2,10 @@ import {distance,type BattlefieldState} from '../core/types';
 import type {ReplacementManifest} from '../operations/Replacements';
 export const TRANSPORT_STAGES=['Map edge','Convoy','Rear depot','Shuttle','Arrived'] as const;
 const stages=['edge','convoy','rear','shuttle','arrived'];
+export function reinforcementCountdown(seconds:number):string {
+  const rounded=Math.max(0,Math.ceil(seconds));
+  return `${Math.floor(rounded/60)}:${String(rounded%60).padStart(2,'0')}`;
+}
 /** ETA describes ONLY the current known truck leg, not promised end-to-end arrival. */
 export function reinforcementReadout(state:BattlefieldState,m:ReplacementManifest){
   const w=state.living!,truck=w.trucks.find(t=>t.id===m.truckId),q=state.squads.find(q=>q.id===m.squadId),g=w.garrisons.find(g=>g.id===m.garrisonId)??w.garrisons.find(g=>g.squadIds.includes(m.squadId));

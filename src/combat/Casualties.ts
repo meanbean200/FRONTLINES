@@ -9,6 +9,7 @@ import type {ShotEvent} from './types';
 import {beginBuildingTravel} from '../simulation/BuildingSystem';
 import {RESCUE_LIMITS,careRouteLength,nearbyAidPost,rescueExposed,treatmentSeconds} from './CasualtyTriage';
 import {insideWorld} from '../terrain/WorldLayout';
+import {smokeMovement} from '../navigation/SmokeMovement';
 import {recordDeath,type DamageOrigin} from '../simulation/DeathRecord';
 
 export interface Wound {severity:'legacy'|'minor'|'disabling'|'critical'|'fatal';at:number;bleedUntil?:number;stabilized:boolean;care:'untreated'|'stabilized'|'aid-post'|'awaiting-transport'|'transport'|'evacuated';returnAt?:number;origin?:DamageOrigin}
@@ -132,8 +133,10 @@ export function updateCasualtyCare(state:BattlefieldState,terrain:TerrainSystem,
     if(helper.building&&task.stage!=='treat'&&!(task.stage==='approach'&&patientInside)){task.buildingExit=true;continue;}
     if(task.buildingExit&&!helper.building){delete patient.building;task.route=navigation.plan(helper,task.destination);task.index=0;delete task.buildingExit;if(!task.route.length){c.pauseReason='Casualty route blocked';continue;}}
     if(task.index<task.route.length){
-      const target=task.route[task.index],d=distance(helper,target),amount=Math.min(d,dt*(task.stage==='carry'||task.stage==='evacuate'?.8:1.7));
+      const target=task.route[task.index],d=distance(helper,target);
       if(d<.25){task.index++;continue;}
+      const smoke=smokeMovement(state,helper,target);if(smoke===0)continue;
+      const amount=Math.min(d,dt*(task.stage==='carry'||task.stage==='evacuate'?.8:1.7)*smoke);
       const x=helper.x+(target.x-helper.x)/d*amount,z=helper.z+(target.z-helper.z)/d*amount;
       if(!insideWorld({x,z})||terrain.obstacleAt(x,z,.45)){
         task.blockedFor+=dt;helper.action='casualty route blocked';

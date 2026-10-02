@@ -1,0 +1,4211 @@
+{
+  "scope": "Synthetic authored 4 km mixed-combat operations; not ordinary-play acceptance or normal Open Front population changes.",
+  "url": "http://127.0.0.1:4183/",
+  "results": [
+    {
+      "count": 136,
+      "quality": "balanced",
+      "selectedSpeed": 1,
+      "fixtureSHA256": "3d20c7200ce91dc0ea6b41abca79d76f885bf32b12995989442c4a3bcb5b3858",
+      "wallSeconds": 15.006,
+      "advanced": 14.999999999999154,
+      "achievedSpeed": 0.9996001599359692,
+      "frames": 2360,
+      "frameIntervals": {
+        "mean": 6.3584745762711865,
+        "median": 6.099999999998545,
+        "p95": 6.200000000000728,
+        "worst": 30.400000000001455
+      },
+      "frameCosts": {
+        "simulation": {
+          "mean": 0.7674290555127341,
+          "median": 0,
+          "p95": 3.9000000059604645,
+          "worst": 26.700000017881393
+        },
+        "terrain": {
+          "mean": 0.07153748398057387,
+          "median": 0.09999999403953552,
+          "p95": 0.19999998807907104,
+          "worst": 0.5
+        },
+        "units": {
+          "mean": 0.33667937272032256,
+          "median": 0.30000001192092896,
+          "p95": 0.5,
+          "worst": 1.300000011920929
+        },
+        "trenches": {
+          "mean": 0.021516306654773793,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 3.7999999821186066
+        },
+        "tactical": {
+          "mean": 0.22837780635016594,
+          "median": 0.10000002384185791,
+          "p95": 0.5,
+          "worst": 5.4000000059604645
+        },
+        "living": {
+          "mean": 0.07755188479205402,
+          "median": 0,
+          "p95": 0.699999988079071,
+          "worst": 4.300000011920929
+        },
+        "positions": {
+          "mean": 0.0218551459452804,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 0.20000001788139343
+        },
+        "effects": {
+          "mean": 0.2883100383668469,
+          "median": 0.29999998211860657,
+          "p95": 0.4000000059604645,
+          "worst": 1.300000011920929
+        },
+        "webgl": {
+          "mean": 0.9412960610188755,
+          "median": 0.9000000059604645,
+          "p95": 1.199999988079071,
+          "worst": 3.2999999821186066
+        },
+        "hud": {
+          "mean": 0.0335874629571043,
+          "median": 0,
+          "p95": 0.5,
+          "worst": 1.7999999821186066
+        },
+        "total": {
+          "mean": 2.8478187210274064,
+          "median": 2,
+          "p95": 6.5,
+          "worst": 33.5
+        }
+      },
+      "ticks": 300,
+      "tickCosts": {
+        "actions": {
+          "mean": 0.48033333361148833,
+          "median": 0.4000000059604645,
+          "p95": 0.9000000059604645,
+          "worst": 2.5999999940395355
+        },
+        "movement": {
+          "mean": 0.16866666624943416,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.699999988079071
+        },
+        "earthworks": {
+          "mean": 0.051333334445953366,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.20000001788139343
+        },
+        "garrison": {
+          "mean": 0.7526666664083799,
+          "median": 0.6000000238418579,
+          "p95": 1.199999988079071,
+          "worst": 6
+        },
+        "combat": {
+          "mean": 1.7193333333730698,
+          "median": 1.300000011920929,
+          "p95": 3.2999999821186066,
+          "worst": 4.399999976158142
+        },
+        "terrainIntel": {
+          "mean": 2.792999999721845,
+          "median": 0,
+          "p95": 19.400000005960464,
+          "worst": 21.900000005960464
+        },
+        "support": {
+          "mean": 0.06133333325386047,
+          "median": 0.09999999403953552,
+          "p95": 0.10000002384185791,
+          "worst": 0.30000001192092896
+        },
+        "total": {
+          "mean": 6.027666667103768,
+          "median": 3.5,
+          "p95": 22.5,
+          "worst": 26.700000017881393
+        },
+        "visibility": {
+          "mean": 1.0719999996821086,
+          "median": 1,
+          "p95": 1.4000000059604645,
+          "worst": 2
+        },
+        "targeting": {
+          "mean": 0.5653333340088527,
+          "median": 0,
+          "p95": 2,
+          "worst": 2.7999999821186066
+        },
+        "ai": {
+          "mean": 0.009666666686534882,
+          "median": 0,
+          "p95": 0,
+          "worst": 1.199999988079071
+        },
+        "objectives": {
+          "mean": 0.058666666646798454,
+          "median": 0.09999999403953552,
+          "p95": 0.19999998807907104,
+          "worst": 0.20000001788139343
+        },
+        "network": {
+          "mean": 0.04733333299557368,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 2.800000011920929
+        },
+        "logistics": {
+          "mean": 0.16699999978144964,
+          "median": 0.19999998807907104,
+          "p95": 0.29999998211860657,
+          "worst": 0.5
+        },
+        "coordination": {
+          "mean": 0.0536666664481163,
+          "median": 0,
+          "p95": 0.29999998211860657,
+          "worst": 2.7999999821186066
+        },
+        "dutyMovement": {
+          "mean": 0.17399999996026358,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.5000000298023224
+        },
+        "needs": {
+          "mean": 0.06599999964237213,
+          "median": 0.09999999403953552,
+          "p95": 0.19999998807907104,
+          "worst": 0.20000001788139343
+        },
+        "demand": {
+          "mean": 0.0486666672428449,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.20000001788139343
+        }
+      },
+      "traces": {
+        "requests": 318155,
+        "traces": 127050,
+        "cacheHits": 191105,
+        "groundSamples": 3246610,
+        "treeCandidates": 740318,
+        "structureCandidates": 0
+      },
+      "paths": {
+        "requests": 1,
+        "expanded": 0
+      },
+      "heapStart": 123983517,
+      "heapEnd": 126504302,
+      "visual": {
+        "triangles": 1074200,
+        "drawCalls": 168,
+        "particles": 3,
+        "submittedSoldiers": 74,
+        "residentTrees": 5631,
+        "visibleTrees": 790,
+        "cameraTarget": {
+          "x": -540.0000000000002,
+          "z": -825.0000000000002
+        },
+        "zoomDistance": 460,
+        "generatedChunks": 64,
+        "detailedChunks": 15,
+        "visibleChunks": 15,
+        "coarseGenerationMs": 701.1999999880791,
+        "workerGenerationMs": 1458.4999999403954,
+        "workerJobs": 31
+      },
+      "shots": 29,
+      "requestedSpeed": 1,
+      "active": 131,
+      "smoke": 1,
+      "missions": 2,
+      "facilities": [
+        {
+          "id": 171,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 172,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 176,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 177,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 179,
+          "kind": "store",
+          "progress": 0.7016388888888864,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 183,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 184,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 186,
+          "kind": "store",
+          "progress": 0,
+          "connector": 0.8668333333333466,
+          "workers": 0
+        },
+        {
+          "id": 190,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 191,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 193,
+          "kind": "store",
+          "progress": 0,
+          "connector": 0.8643333333333465,
+          "workers": 1
+        }
+      ],
+      "trucks": [
+        "outbound",
+        "idle",
+        "idle",
+        "idle",
+        "returning",
+        "idle",
+        "idle",
+        "idle"
+      ],
+      "gc": {
+        "scope": "Top-level MinorGC/MajorGC events only, excluding nested V8 phases",
+        "events": 171,
+        "totalMs": 84.81299999999999,
+        "worstMs": 3.291
+      }
+    },
+    {
+      "count": 136,
+      "quality": "balanced",
+      "selectedSpeed": 5,
+      "fixtureSHA256": "3d20c7200ce91dc0ea6b41abca79d76f885bf32b12995989442c4a3bcb5b3858",
+      "wallSeconds": 15,
+      "advanced": 74.99999999999773,
+      "achievedSpeed": 4.999999999999848,
+      "frames": 2094,
+      "frameIntervals": {
+        "mean": 7.163323782234957,
+        "median": 6.099999999998545,
+        "p95": 12.200000000000728,
+        "worst": 42.5
+      },
+      "frameCosts": {
+        "simulation": {
+          "mean": 3.3273031022212955,
+          "median": 2.2999999821186066,
+          "p95": 9.799999982118607,
+          "worst": 32.5
+        },
+        "terrain": {
+          "mean": 0.06019093082742077,
+          "median": 0.09999999403953552,
+          "p95": 0.10000002384185791,
+          "worst": 0.30000001192092896
+        },
+        "units": {
+          "mean": 0.3551312650018205,
+          "median": 0.30000001192092896,
+          "p95": 0.5,
+          "worst": 1.2999999821186066
+        },
+        "trenches": {
+          "mean": 0.026730310362108,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 3.399999976158142
+        },
+        "tactical": {
+          "mean": 0.44548926019156465,
+          "median": 0.10000002384185791,
+          "p95": 1.800000011920929,
+          "worst": 6.600000023841858
+        },
+        "living": {
+          "mean": 0.08997613369422768,
+          "median": 0,
+          "p95": 0.800000011920929,
+          "worst": 4.0999999940395355
+        },
+        "positions": {
+          "mean": 0.02042959427776655,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 0.19999998807907104
+        },
+        "effects": {
+          "mean": 0.2846778041280824,
+          "median": 0.29999998211860657,
+          "p95": 0.5,
+          "worst": 1.9000000059604645
+        },
+        "webgl": {
+          "mean": 0.9948926016510529,
+          "median": 1,
+          "p95": 1.300000011920929,
+          "worst": 1.800000011920929
+        },
+        "hud": {
+          "mean": 0.03680190934770716,
+          "median": 0,
+          "p95": 0.5,
+          "worst": 1.0999999940395355
+        },
+        "total": {
+          "mean": 5.7049642005370735,
+          "median": 4.5,
+          "p95": 12.699999988079071,
+          "worst": 38.60000002384186
+        }
+      },
+      "ticks": 1500,
+      "tickCosts": {
+        "actions": {
+          "mean": 0.4225999997854233,
+          "median": 0.4000000059604645,
+          "p95": 0.7000000178813934,
+          "worst": 3.0999999940395355
+        },
+        "movement": {
+          "mean": 0.1537333334684372,
+          "median": 0.19999998807907104,
+          "p95": 0.29999998211860657,
+          "worst": 0.5999999940395355
+        },
+        "earthworks": {
+          "mean": 0.047866666356722515,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.20000001788139343
+        },
+        "garrison": {
+          "mean": 0.6460666662255923,
+          "median": 0.5999999940395355,
+          "p95": 1,
+          "worst": 5.799999982118607
+        },
+        "combat": {
+          "mean": 1.7548000003298123,
+          "median": 1.5999999940395355,
+          "p95": 3.100000023841858,
+          "worst": 11
+        },
+        "terrainIntel": {
+          "mean": 1.550866666873296,
+          "median": 0,
+          "p95": 6,
+          "worst": 24.5
+        },
+        "support": {
+          "mean": 0.06253333306312561,
+          "median": 0.09999999403953552,
+          "p95": 0.10000002384185791,
+          "worst": 0.5
+        },
+        "total": {
+          "mean": 4.6401333327889445,
+          "median": 3.199999988079071,
+          "p95": 10.300000011920929,
+          "worst": 29.19999998807907
+        },
+        "visibility": {
+          "mean": 0.9133333333730698,
+          "median": 0.9000000059604645,
+          "p95": 1.300000011920929,
+          "worst": 3.0999999940395355
+        },
+        "targeting": {
+          "mean": 0.760400000055631,
+          "median": 0,
+          "p95": 2,
+          "worst": 9.400000005960464
+        },
+        "ai": {
+          "mean": 0.008666666706403096,
+          "median": 0,
+          "p95": 0,
+          "worst": 0.9000000059604645
+        },
+        "objectives": {
+          "mean": 0.05786666675408681,
+          "median": 0.09999999403953552,
+          "p95": 0.10000002384185791,
+          "worst": 0.5
+        },
+        "network": {
+          "mean": 0.022866666456063587,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 2.5
+        },
+        "logistics": {
+          "mean": 0.15539999963839848,
+          "median": 0.19999998807907104,
+          "p95": 0.20000001788139343,
+          "worst": 1.4000000059604645
+        },
+        "coordination": {
+          "mean": 0.03953333334128062,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 2.6999999582767487
+        },
+        "dutyMovement": {
+          "mean": 0.13580000027020772,
+          "median": 0.10000002384185791,
+          "p95": 0.29999998211860657,
+          "worst": 0.800000011920929
+        },
+        "needs": {
+          "mean": 0.06153333310286204,
+          "median": 0.09999999403953552,
+          "p95": 0.10000002384185791,
+          "worst": 0.20000001788139343
+        },
+        "demand": {
+          "mean": 0.05206666632493337,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.5
+        }
+      },
+      "traces": {
+        "requests": 574776,
+        "traces": 333942,
+        "cacheHits": 240834,
+        "groundSamples": 8699568,
+        "treeCandidates": 2014596,
+        "structureCandidates": 0
+      },
+      "paths": {
+        "requests": 10,
+        "expanded": 0
+      },
+      "heapStart": 133244218,
+      "heapEnd": 143364022,
+      "visual": {
+        "triangles": 1081088,
+        "drawCalls": 167,
+        "particles": 9,
+        "submittedSoldiers": 76,
+        "residentTrees": 5630,
+        "visibleTrees": 790,
+        "cameraTarget": {
+          "x": -540.0000000000001,
+          "z": -825.0000000000001
+        },
+        "zoomDistance": 460,
+        "generatedChunks": 64,
+        "detailedChunks": 15,
+        "visibleChunks": 15,
+        "coarseGenerationMs": 697.5,
+        "workerGenerationMs": 1805.0000000298023,
+        "workerJobs": 37
+      },
+      "shots": 228,
+      "requestedSpeed": 5,
+      "active": 127,
+      "smoke": 0,
+      "missions": 2,
+      "facilities": [
+        {
+          "id": 171,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 172,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 176,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 177,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 179,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 183,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 184,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 186,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 190,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 191,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 193,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        }
+      ],
+      "trucks": [
+        "returning",
+        "unloading",
+        "outbound",
+        "idle",
+        "idle",
+        "idle",
+        "idle",
+        "idle"
+      ],
+      "gc": {
+        "scope": "Top-level MinorGC/MajorGC events only, excluding nested V8 phases",
+        "events": 387,
+        "totalMs": 195.903,
+        "worstMs": 6.021
+      }
+    },
+    {
+      "count": 300,
+      "quality": "balanced",
+      "selectedSpeed": 1,
+      "fixtureSHA256": "d5d6c7b4b1c33190dae0334843530aeee22580f6c202577a3d8471b8229b4cac",
+      "wallSeconds": 15.00009999999999,
+      "advanced": 15.049999999999152,
+      "achievedSpeed": 1.0033266444889808,
+      "frames": 1623,
+      "frameIntervals": {
+        "mean": 9.242205791743679,
+        "median": 6.099999999998545,
+        "p95": 24.30000000000291,
+        "worst": 85.20000000000437
+      },
+      "frameCosts": {
+        "simulation": {
+          "mean": 3.634852216583608,
+          "median": 0,
+          "p95": 18.30000001192093,
+          "worst": 84.10000002384186
+        },
+        "terrain": {
+          "mean": 0.07623152710093653,
+          "median": 0.09999999403953552,
+          "p95": 0.19999998807907104,
+          "worst": 0.30000001192092896
+        },
+        "units": {
+          "mean": 0.8182266007356456,
+          "median": 0.800000011920929,
+          "p95": 1,
+          "worst": 2.300000011920929
+        },
+        "trenches": {
+          "mean": 0.024384236394478183,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 3.5
+        },
+        "tactical": {
+          "mean": 0.40529556656852733,
+          "median": 0.19999998807907104,
+          "p95": 1,
+          "worst": 7
+        },
+        "living": {
+          "mean": 0.23749999995595716,
+          "median": 0,
+          "p95": 2,
+          "worst": 9.699999988079071
+        },
+        "positions": {
+          "mean": 0.023768473012840807,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.20000001788139343
+        },
+        "effects": {
+          "mean": 0.6995689658071901,
+          "median": 0.699999988079071,
+          "p95": 1.0999999940395355,
+          "worst": 3
+        },
+        "webgl": {
+          "mean": 1.0819581281669035,
+          "median": 1,
+          "p95": 1.4000000059604645,
+          "worst": 2.5
+        },
+        "hud": {
+          "mean": 0.07284482761189856,
+          "median": 0,
+          "p95": 0.800000011920929,
+          "worst": 1.4000000059604645
+        },
+        "total": {
+          "mean": 7.157758620627261,
+          "median": 3.100000023841858,
+          "p95": 24.80000001192093,
+          "worst": 87.5
+        }
+      },
+      "ticks": 301,
+      "tickCosts": {
+        "actions": {
+          "mean": 1.191362126028023,
+          "median": 1.0999999940395355,
+          "p95": 2,
+          "worst": 4.699999988079071
+        },
+        "movement": {
+          "mean": 0.3953488375063354,
+          "median": 0.4000000059604645,
+          "p95": 0.5,
+          "worst": 0.800000011920929
+        },
+        "earthworks": {
+          "mean": 0.18571428603112103,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.4000000059604645
+        },
+        "garrison": {
+          "mean": 1.6099667764977363,
+          "median": 1.399999976158142,
+          "p95": 2.699999988079071,
+          "worst": 15.300000011920929
+        },
+        "combat": {
+          "mean": 8.202657807506991,
+          "median": 6.199999988079071,
+          "p95": 14,
+          "worst": 18.599999994039536
+        },
+        "terrainIntel": {
+          "mean": 7.8524916945303795,
+          "median": 0,
+          "p95": 55.099999994039536,
+          "worst": 66.10000002384186
+        },
+        "support": {
+          "mean": 0.16411960016057342,
+          "median": 0.19999998807907104,
+          "p95": 0.29999998211860657,
+          "worst": 0.30000001192092896
+        },
+        "total": {
+          "mean": 19.60199335415498,
+          "median": 14.099999994039536,
+          "p95": 67.59999999403954,
+          "worst": 84.10000002384186
+        },
+        "visibility": {
+          "mean": 5.277408637774743,
+          "median": 5.199999988079071,
+          "p95": 6.5999999940395355,
+          "worst": 8.599999994039536
+        },
+        "targeting": {
+          "mean": 2.740863787474426,
+          "median": 0,
+          "p95": 8.5,
+          "worst": 10.699999988079071
+        },
+        "ai": {
+          "mean": 0.027242524877339105,
+          "median": 0,
+          "p95": 0,
+          "worst": 2.800000011920929
+        },
+        "objectives": {
+          "mean": 0.12591362167830483,
+          "median": 0.09999999403953552,
+          "p95": 0.20000001788139343,
+          "worst": 0.29999998211860657
+        },
+        "network": {
+          "mean": 0.06179402030979676,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 4.0999999940395355
+        },
+        "logistics": {
+          "mean": 0.3717607957778183,
+          "median": 0.3999999761581421,
+          "p95": 0.5,
+          "worst": 0.5999999940395355
+        },
+        "coordination": {
+          "mean": 0.19734219261182107,
+          "median": 0,
+          "p95": 1.0999999940395355,
+          "worst": 9.399999976158142
+        },
+        "dutyMovement": {
+          "mean": 0.370764120373615,
+          "median": 0.3999999761581421,
+          "p95": 0.5000000298023224,
+          "worst": 0.7000000178813934
+        },
+        "needs": {
+          "mean": 0.1215946839695357,
+          "median": 0.09999999403953552,
+          "p95": 0.20000001788139343,
+          "worst": 0.30000001192092896
+        },
+        "demand": {
+          "mean": 0.13621262488175073,
+          "median": 0.09999999403953552,
+          "p95": 0.20000001788139343,
+          "worst": 0.30000001192092896
+        }
+      },
+      "traces": {
+        "requests": 589024,
+        "traces": 295876,
+        "cacheHits": 293148,
+        "groundSamples": 12530998,
+        "treeCandidates": 3373507,
+        "structureCandidates": 0
+      },
+      "paths": {
+        "requests": 1,
+        "expanded": 0
+      },
+      "heapStart": 143556438,
+      "heapEnd": 218584271,
+      "visual": {
+        "triangles": 1313254,
+        "drawCalls": 169,
+        "particles": 15,
+        "submittedSoldiers": 180,
+        "residentTrees": 5625,
+        "visibleTrees": 790,
+        "cameraTarget": {
+          "x": -540,
+          "z": -825
+        },
+        "zoomDistance": 460,
+        "generatedChunks": 64,
+        "detailedChunks": 15,
+        "visibleChunks": 15,
+        "coarseGenerationMs": 702.3000000119209,
+        "workerGenerationMs": 1424.2999999523163,
+        "workerJobs": 27
+      },
+      "shots": 169,
+      "requestedSpeed": 1,
+      "active": 293,
+      "smoke": 1,
+      "missions": 2,
+      "facilities": [
+        {
+          "id": 361,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 362,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 366,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 367,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 369,
+          "kind": "store",
+          "progress": 0.6041944444444428,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 373,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 374,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 376,
+          "kind": "store",
+          "progress": 0.7041111111111086,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 380,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 381,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 383,
+          "kind": "store",
+          "progress": 0.07888888888888881,
+          "connector": 1,
+          "workers": 1
+        },
+        {
+          "id": 387,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 388,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 390,
+          "kind": "store",
+          "progress": 0.28777777777777713,
+          "connector": 1,
+          "workers": 2
+        },
+        {
+          "id": 394,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 395,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 397,
+          "kind": "store",
+          "progress": 0.3171944444444456,
+          "connector": 1,
+          "workers": 4
+        }
+      ],
+      "trucks": [
+        "outbound",
+        "idle",
+        "outbound",
+        "outbound",
+        "returning",
+        "idle",
+        "outbound",
+        "outbound"
+      ],
+      "gc": {
+        "scope": "Top-level MinorGC/MajorGC events only, excluding nested V8 phases",
+        "events": 389,
+        "totalMs": 164.49900000000002,
+        "worstMs": 4.973
+      }
+    },
+    {
+      "count": 300,
+      "quality": "balanced",
+      "selectedSpeed": 5,
+      "fixtureSHA256": "d5d6c7b4b1c33190dae0334843530aeee22580f6c202577a3d8471b8229b4cac",
+      "wallSeconds": 15.0425,
+      "advanced": 31.44999999999822,
+      "achievedSpeed": 2.090742895130345,
+      "frames": 628,
+      "frameIntervals": {
+        "mean": 23.953025477707005,
+        "median": 18.30000000000291,
+        "p95": 42.69999999999709,
+        "worst": 91
+      },
+      "frameCosts": {
+        "simulation": {
+          "mean": 17.877742448937155,
+          "median": 13.100000023841858,
+          "p95": 39.099999994039536,
+          "worst": 91.59999999403954
+        },
+        "terrain": {
+          "mean": 0.07821939565798057,
+          "median": 0.09999999403953552,
+          "p95": 0.19999998807907104,
+          "worst": 0.30000001192092896
+        },
+        "units": {
+          "mean": 0.8143084258172774,
+          "median": 0.800000011920929,
+          "p95": 1,
+          "worst": 1.4000000059604645
+        },
+        "trenches": {
+          "mean": 0.03767885525958148,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 3.9000000059604645
+        },
+        "tactical": {
+          "mean": 1.1332273446319592,
+          "median": 0.4000000059604645,
+          "p95": 3.7000000178813934,
+          "worst": 6.5999999940395355
+        },
+        "living": {
+          "mean": 0.6440381558407661,
+          "median": 0,
+          "p95": 2.7000000178813934,
+          "worst": 9.099999994039536
+        },
+        "positions": {
+          "mean": 0.029570747255710426,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.20000001788139343
+        },
+        "effects": {
+          "mean": 0.9270270273965948,
+          "median": 0.8999999761581421,
+          "p95": 1.5,
+          "worst": 2.7000000178813934
+        },
+        "webgl": {
+          "mean": 1.2117647058160204,
+          "median": 1.199999988079071,
+          "p95": 1.5999999940395355,
+          "worst": 2.0999999940395355
+        },
+        "hud": {
+          "mean": 0.18235294106275743,
+          "median": 0,
+          "p95": 0.9000000059604645,
+          "worst": 1.699999988079071
+        },
+        "total": {
+          "mean": 23.064387917423854,
+          "median": 18.599999994039536,
+          "p95": 43.400000005960464,
+          "worst": 95.89999997615814
+        }
+      },
+      "ticks": 629,
+      "tickCosts": {
+        "actions": {
+          "mean": 1.1416534182092912,
+          "median": 1,
+          "p95": 2,
+          "worst": 8.900000005960464
+        },
+        "movement": {
+          "mean": 0.41780604192297105,
+          "median": 0.4000000059604645,
+          "p95": 0.6000000238418579,
+          "worst": 1.2000000178813934
+        },
+        "earthworks": {
+          "mean": 0.14244833053200726,
+          "median": 0.10000002384185791,
+          "p95": 0.20000001788139343,
+          "worst": 0.699999988079071
+        },
+        "garrison": {
+          "mean": 1.5330683633045477,
+          "median": 1.399999976158142,
+          "p95": 2.4000000059604645,
+          "worst": 17.900000005960464
+        },
+        "combat": {
+          "mean": 8.499682033810593,
+          "median": 6.5999999940395355,
+          "p95": 13.699999988079071,
+          "worst": 27.799999982118607
+        },
+        "terrainIntel": {
+          "mean": 5.971383147758975,
+          "median": 0,
+          "p95": 23.5,
+          "worst": 63.60000002384186
+        },
+        "support": {
+          "mean": 0.16327504029524156,
+          "median": 0.19999998807907104,
+          "p95": 0.29999998211860657,
+          "worst": 0.4000000059604645
+        },
+        "total": {
+          "mean": 17.87042925339814,
+          "median": 13.099999994039536,
+          "p95": 39.099999994039536,
+          "worst": 91.59999999403954
+        },
+        "visibility": {
+          "mean": 5.314785373798425,
+          "median": 5.199999988079071,
+          "p95": 6.699999988079071,
+          "worst": 21
+        },
+        "targeting": {
+          "mean": 3.001271860446005,
+          "median": 0,
+          "p95": 8,
+          "worst": 10.200000017881393
+        },
+        "ai": {
+          "mean": 0.025596184362857256,
+          "median": 0,
+          "p95": 0,
+          "worst": 3.5999999940395355
+        },
+        "objectives": {
+          "mean": 0.12718600844919967,
+          "median": 0.09999999403953552,
+          "p95": 0.20000001788139343,
+          "worst": 0.6000000238418579
+        },
+        "network": {
+          "mean": 0.03418123977931012,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 5.299999982118607
+        },
+        "logistics": {
+          "mean": 0.3720190782330942,
+          "median": 0.4000000059604645,
+          "p95": 0.5,
+          "worst": 0.8999999761581421
+        },
+        "coordination": {
+          "mean": 0.14467408589793693,
+          "median": 0,
+          "p95": 1,
+          "worst": 11.299999952316284
+        },
+        "dutyMovement": {
+          "mean": 0.34467408596426957,
+          "median": 0.30000001192092896,
+          "p95": 0.5,
+          "worst": 0.7999999821186066
+        },
+        "needs": {
+          "mean": 0.13863275066278696,
+          "median": 0.10000002384185791,
+          "p95": 0.20000001788139343,
+          "worst": 0.5
+        },
+        "demand": {
+          "mean": 0.13577106547658888,
+          "median": 0.10000002384185791,
+          "p95": 0.20000001788139343,
+          "worst": 0.7999999821186066
+        }
+      },
+      "traces": {
+        "requests": 720894,
+        "traces": 476941,
+        "cacheHits": 243953,
+        "groundSamples": 20158622,
+        "treeCandidates": 5668938,
+        "structureCandidates": 0
+      },
+      "paths": {
+        "requests": 9,
+        "expanded": 0
+      },
+      "heapStart": 177918473,
+      "heapEnd": 176584153,
+      "visual": {
+        "triangles": 1334222,
+        "drawCalls": 169,
+        "particles": 18,
+        "submittedSoldiers": 190,
+        "residentTrees": 5625,
+        "visibleTrees": 790,
+        "cameraTarget": {
+          "x": -540,
+          "z": -825
+        },
+        "zoomDistance": 460,
+        "generatedChunks": 64,
+        "detailedChunks": 15,
+        "visibleChunks": 15,
+        "coarseGenerationMs": 698.6000000238419,
+        "workerGenerationMs": 1392.499999821186,
+        "workerJobs": 27
+      },
+      "shots": 356,
+      "requestedSpeed": 5,
+      "active": 288,
+      "smoke": 1,
+      "missions": 2,
+      "facilities": [
+        {
+          "id": 361,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 362,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 366,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 367,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 369,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 373,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 374,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 376,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 380,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 381,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 383,
+          "kind": "store",
+          "progress": 0.38722222222222136,
+          "connector": 1,
+          "workers": 3
+        },
+        {
+          "id": 387,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 388,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 390,
+          "kind": "store",
+          "progress": 0.671222222222205,
+          "connector": 1,
+          "workers": 3
+        },
+        {
+          "id": 394,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 395,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 397,
+          "kind": "store",
+          "progress": 0.8253611111111073,
+          "connector": 1,
+          "workers": 4
+        }
+      ],
+      "trucks": [
+        "outbound",
+        "idle",
+        "outbound",
+        "outbound",
+        "returning",
+        "idle",
+        "outbound",
+        "outbound"
+      ],
+      "gc": {
+        "scope": "Top-level MinorGC/MajorGC events only, excluding nested V8 phases",
+        "events": 544,
+        "totalMs": 246.43499999999977,
+        "worstMs": 7.628
+      }
+    },
+    {
+      "count": 512,
+      "quality": "balanced",
+      "selectedSpeed": 1,
+      "fixtureSHA256": "84e1f4e41ef06ecd7c772f1f43a42c8368b49926b33b4b6165b5e101c8937b36",
+      "wallSeconds": 15,
+      "advanced": 15.049999999999152,
+      "achievedSpeed": 1.0033333333332768,
+      "frames": 1105,
+      "frameIntervals": {
+        "mean": 13.574660633484163,
+        "median": 6.100000000005821,
+        "p95": 48.5,
+        "worst": 67
+      },
+      "frameCosts": {
+        "simulation": {
+          "mean": 7.5169077757577565,
+          "median": 0,
+          "p95": 42.900000005960464,
+          "worst": 61.599999994039536
+        },
+        "terrain": {
+          "mean": 0.07251356213368731,
+          "median": 0.09999999403953552,
+          "p95": 0.19999998807907104,
+          "worst": 0.30000001192092896
+        },
+        "units": {
+          "mean": 1.2937613026412442,
+          "median": 1.2999999821186066,
+          "p95": 1.5999999940395355,
+          "worst": 9.299999982118607
+        },
+        "trenches": {
+          "mean": 0.012567811859451624,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 0.30000001192092896
+        },
+        "tactical": {
+          "mean": 0.6636528026777408,
+          "median": 0.29999998211860657,
+          "p95": 4.299999982118607,
+          "worst": 8.099999994039536
+        },
+        "living": {
+          "mean": 0.34204339970300685,
+          "median": 0,
+          "p95": 2.4000000059604645,
+          "worst": 9.5
+        },
+        "positions": {
+          "mean": 0.02459312827203416,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.20000001788139343
+        },
+        "effects": {
+          "mean": 1.2861663650108288,
+          "median": 1.2000000178813934,
+          "p95": 1.800000011920929,
+          "worst": 3.100000023841858
+        },
+        "webgl": {
+          "mean": 1.0745027127522457,
+          "median": 1,
+          "p95": 1.4000000059604645,
+          "worst": 2
+        },
+        "hud": {
+          "mean": 0.17314647364465496,
+          "median": 0,
+          "p95": 1.4000000059604645,
+          "worst": 5.800000011920929
+        },
+        "total": {
+          "mean": 12.563924050891593,
+          "median": 4.5999999940395355,
+          "p95": 47.39999997615814,
+          "worst": 69.59999999403954
+        }
+      },
+      "ticks": 301,
+      "tickCosts": {
+        "actions": {
+          "mean": 2.086378737640539,
+          "median": 1.9000000059604645,
+          "p95": 3.5,
+          "worst": 6.299999982118607
+        },
+        "movement": {
+          "mean": 0.5601328903456463,
+          "median": 0.5,
+          "p95": 0.7000000178813934,
+          "worst": 1.199999988079071
+        },
+        "earthworks": {
+          "mean": 0.3126245843017616,
+          "median": 0.30000001192092896,
+          "p95": 0.4000000059604645,
+          "worst": 0.7999999821186066
+        },
+        "garrison": {
+          "mean": 2.191694353109974,
+          "median": 2,
+          "p95": 3.9000000059604645,
+          "worst": 7.800000011920929
+        },
+        "combat": {
+          "mean": 15.773089700164984,
+          "median": 11.199999988079071,
+          "p95": 26.599999994039536,
+          "worst": 32.099999994039536
+        },
+        "terrainIntel": {
+          "mean": 6.4950166122857915,
+          "median": 0,
+          "p95": 28.700000017881393,
+          "worst": 33.60000002384186
+        },
+        "support": {
+          "mean": 0.19501661066201043,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.5
+        },
+        "total": {
+          "mean": 27.615614618078816,
+          "median": 20.80000001192093,
+          "p95": 56.099999994039536,
+          "worst": 61.599999994039536
+        },
+        "visibility": {
+          "mean": 10.19833887059031,
+          "median": 10.099999994039536,
+          "p95": 11.600000023841858,
+          "worst": 15.900000005960464
+        },
+        "targeting": {
+          "mean": 5.26611295688984,
+          "median": 0,
+          "p95": 15.599999994039536,
+          "worst": 19.900000005960464
+        },
+        "ai": {
+          "mean": 0.05315614627841303,
+          "median": 0,
+          "p95": 0,
+          "worst": 6.0999999940395355
+        },
+        "objectives": {
+          "mean": 0.2089700985984549,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.699999988079071
+        },
+        "network": {
+          "mean": 0.02657807348574515,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.20000001788139343
+        },
+        "logistics": {
+          "mean": 0.5109634554861392,
+          "median": 0.5,
+          "p95": 0.6000000238418579,
+          "worst": 1.0999999940395355
+        },
+        "coordination": {
+          "mean": 0.19833887029327824,
+          "median": 0,
+          "p95": 2,
+          "worst": 5.699999988079071
+        },
+        "dutyMovement": {
+          "mean": 0.5345514954324576,
+          "median": 0.5000000298023224,
+          "p95": 0.7999999821186066,
+          "worst": 1.199999988079071
+        },
+        "needs": {
+          "mean": 0.2086378729026579,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.4000000059604645
+        },
+        "demand": {
+          "mean": 0.17176079750061035,
+          "median": 0.19999998807907104,
+          "p95": 0.29999998211860657,
+          "worst": 0.7999999821186066
+        }
+      },
+      "traces": {
+        "requests": 703871,
+        "traces": 319025,
+        "cacheHits": 384846,
+        "groundSamples": 12028087,
+        "treeCandidates": 2899541,
+        "structureCandidates": 0
+      },
+      "paths": {
+        "requests": 8,
+        "expanded": 0
+      },
+      "heapStart": 185533645,
+      "heapEnd": 180210610,
+      "visual": {
+        "triangles": 1523814,
+        "drawCalls": 170,
+        "particles": 12,
+        "submittedSoldiers": 303,
+        "residentTrees": 5623,
+        "visibleTrees": 790,
+        "cameraTarget": {
+          "x": -540,
+          "z": -825
+        },
+        "zoomDistance": 460,
+        "generatedChunks": 64,
+        "detailedChunks": 15,
+        "visibleChunks": 15,
+        "coarseGenerationMs": 703.8000000119209,
+        "workerGenerationMs": 993.3999999761581,
+        "workerJobs": 20
+      },
+      "shots": 276,
+      "requestedSpeed": 1,
+      "active": 495,
+      "smoke": 1,
+      "missions": 2,
+      "facilities": [
+        {
+          "id": 597,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 598,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 602,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 603,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 605,
+          "kind": "store",
+          "progress": 0.5571666666666655,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 609,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 610,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 612,
+          "kind": "store",
+          "progress": 0.6628888888888868,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 616,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 617,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 619,
+          "kind": "store",
+          "progress": 0.6413888888888868,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 623,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 624,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 626,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 630,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 631,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 633,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 637,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 638,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 640,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 644,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 645,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 647,
+          "kind": "store",
+          "progress": 0.9966666666666352,
+          "connector": 1,
+          "workers": 0
+        }
+      ],
+      "trucks": [
+        "outbound",
+        "outbound",
+        "outbound",
+        "outbound",
+        "returning",
+        "idle",
+        "outbound",
+        "outbound"
+      ],
+      "gc": {
+        "scope": "Top-level MinorGC/MajorGC events only, excluding nested V8 phases",
+        "events": 457,
+        "totalMs": 208.16099999999997,
+        "worstMs": 7.665
+      }
+    },
+    {
+      "count": 512,
+      "quality": "balanced",
+      "selectedSpeed": 5,
+      "fixtureSHA256": "84e1f4e41ef06ecd7c772f1f43a42c8368b49926b33b4b6165b5e101c8937b36",
+      "wallSeconds": 15.012300000000018,
+      "advanced": 20.599999999998836,
+      "achievedSpeed": 1.3722081226726626,
+      "frames": 411,
+      "frameIntervals": {
+        "mean": 36.52627737226282,
+        "median": 30.40000000000873,
+        "p95": 66.90000000000873,
+        "worst": 85
+      },
+      "frameCosts": {
+        "simulation": {
+          "mean": 28.237621359744118,
+          "median": 26.19999998807907,
+          "p95": 58.30000001192093,
+          "worst": 68.89999997615814
+        },
+        "terrain": {
+          "mean": 0.07985436916351318,
+          "median": 0.09999999403953552,
+          "p95": 0.19999998807907104,
+          "worst": 0.4000000059604645
+        },
+        "units": {
+          "mean": 1.2985436883076882,
+          "median": 1.2999999821186066,
+          "p95": 1.5999999940395355,
+          "worst": 2.0999999940395355
+        },
+        "trenches": {
+          "mean": 0.014077670148854117,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 0.30000001192092896
+        },
+        "tactical": {
+          "mean": 1.6364077671060284,
+          "median": 0.7999999821186066,
+          "p95": 5.300000011920929,
+          "worst": 6.9000000059604645
+        },
+        "living": {
+          "mean": 0.9614077669034884,
+          "median": 0,
+          "p95": 2.9000000059604645,
+          "worst": 10.099999994039536
+        },
+        "positions": {
+          "mean": 0.03592233034302887,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.20000001788139343
+        },
+        "effects": {
+          "mean": 1.5672330095351321,
+          "median": 1.5,
+          "p95": 2.0999999940395355,
+          "worst": 3.300000011920929
+        },
+        "webgl": {
+          "mean": 1.2500000001446714,
+          "median": 1.2000000178813934,
+          "p95": 1.5999999940395355,
+          "worst": 1.7000000178813934
+        },
+        "hud": {
+          "mean": 0.35703883515399637,
+          "median": 0,
+          "p95": 1.5,
+          "worst": 2
+        },
+        "total": {
+          "mean": 35.61626213651548,
+          "median": 31.19999998807907,
+          "p95": 67.39999997615814,
+          "worst": 82
+        }
+      },
+      "ticks": 412,
+      "tickCosts": {
+        "actions": {
+          "mean": 2.0512135924355497,
+          "median": 1.800000011920929,
+          "p95": 3.5,
+          "worst": 6.4000000059604645
+        },
+        "movement": {
+          "mean": 0.586650485118616,
+          "median": 0.5999999940395355,
+          "p95": 0.800000011920929,
+          "worst": 1.5
+        },
+        "earthworks": {
+          "mean": 0.3206310694657483,
+          "median": 0.30000001192092896,
+          "p95": 0.4000000059604645,
+          "worst": 0.9000000059604645
+        },
+        "garrison": {
+          "mean": 2.1143203871776755,
+          "median": 1.9000000059604645,
+          "p95": 3.7000000178813934,
+          "worst": 8.5
+        },
+        "combat": {
+          "mean": 16.335436892957944,
+          "median": 11.299999982118607,
+          "p95": 26.69999998807907,
+          "worst": 31.899999976158142
+        },
+        "terrainIntel": {
+          "mean": 6.634466019214936,
+          "median": 0,
+          "p95": 29.80000001192093,
+          "worst": 37.900000005960464
+        },
+        "support": {
+          "mean": 0.18640776774258289,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.5
+        },
+        "total": {
+          "mean": 28.229611651049655,
+          "median": 26.19999998807907,
+          "p95": 58.30000001192093,
+          "worst": 68.89999997615814
+        },
+        "visibility": {
+          "mean": 10.342475728068537,
+          "median": 10.300000011920929,
+          "p95": 11.900000005960464,
+          "worst": 17.69999998807907
+        },
+        "targeting": {
+          "mean": 5.689563106781649,
+          "median": 0,
+          "p95": 15.599999994039536,
+          "worst": 18.599999994039536
+        },
+        "ai": {
+          "mean": 0.05145631065067736,
+          "median": 0,
+          "p95": 0,
+          "worst": 5.5999999940395355
+        },
+        "objectives": {
+          "mean": 0.21383495173118647,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.800000011920929
+        },
+        "network": {
+          "mean": 0.025485436531525213,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 0.10000002384185791
+        },
+        "logistics": {
+          "mean": 0.5092233008551366,
+          "median": 0.5,
+          "p95": 0.699999988079071,
+          "worst": 1.2000000178813934
+        },
+        "coordination": {
+          "mean": 0.1973300972609844,
+          "median": 0,
+          "p95": 1.800000011920929,
+          "worst": 6.099999964237213
+        },
+        "dutyMovement": {
+          "mean": 0.505097087002495,
+          "median": 0.5,
+          "p95": 0.7000000178813934,
+          "worst": 1.0999999940395355
+        },
+        "needs": {
+          "mean": 0.216504854267662,
+          "median": 0.20000001788139343,
+          "p95": 0.30000001192092896,
+          "worst": 0.5
+        },
+        "demand": {
+          "mean": 0.15728155364399976,
+          "median": 0.19999998807907104,
+          "p95": 0.29999998211860657,
+          "worst": 0.5999999940395355
+        }
+      },
+      "traces": {
+        "requests": 742601,
+        "traces": 438472,
+        "cacheHits": 304129,
+        "groundSamples": 16545229,
+        "treeCandidates": 3989410,
+        "structureCandidates": 0
+      },
+      "paths": {
+        "requests": 9,
+        "expanded": 0
+      },
+      "heapStart": 191999109,
+      "heapEnd": 324217988,
+      "visual": {
+        "triangles": 1516678,
+        "drawCalls": 170,
+        "particles": 36,
+        "submittedSoldiers": 297,
+        "residentTrees": 5623,
+        "visibleTrees": 790,
+        "cameraTarget": {
+          "x": -540,
+          "z": -825
+        },
+        "zoomDistance": 460,
+        "generatedChunks": 64,
+        "detailedChunks": 15,
+        "visibleChunks": 15,
+        "coarseGenerationMs": 705.0999999940395,
+        "workerGenerationMs": 972.5999999344349,
+        "workerJobs": 20
+      },
+      "shots": 391,
+      "requestedSpeed": 5,
+      "active": 493,
+      "smoke": 1,
+      "missions": 2,
+      "facilities": [
+        {
+          "id": 597,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 598,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 602,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 603,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 605,
+          "kind": "store",
+          "progress": 0.7367777777777749,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 609,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 610,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 612,
+          "kind": "store",
+          "progress": 0.841888888888885,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 616,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 617,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 619,
+          "kind": "store",
+          "progress": 0.8180555555555518,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 623,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 624,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 626,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 630,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 631,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 633,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 637,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 638,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 640,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 644,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 645,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 647,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        }
+      ],
+      "trucks": [
+        "outbound",
+        "outbound",
+        "outbound",
+        "outbound",
+        "returning",
+        "idle",
+        "outbound",
+        "outbound"
+      ],
+      "gc": {
+        "scope": "Top-level MinorGC/MajorGC events only, excluding nested V8 phases",
+        "events": 540,
+        "totalMs": 244.57700000000006,
+        "worstMs": 6.755
+      }
+    },
+    {
+      "count": 512,
+      "quality": "high",
+      "selectedSpeed": 1,
+      "fixtureSHA256": "84e1f4e41ef06ecd7c772f1f43a42c8368b49926b33b4b6165b5e101c8937b36",
+      "wallSeconds": 15.030400000000023,
+      "advanced": 15.049999999999152,
+      "achievedSpeed": 1.0013040238449495,
+      "frames": 975,
+      "frameIntervals": {
+        "mean": 15.415794871794896,
+        "median": 6.100000000005821,
+        "p95": 48.60000000000582,
+        "worst": 72.89999999999418
+      },
+      "frameCosts": {
+        "simulation": {
+          "mean": 8.758913934688833,
+          "median": 0,
+          "p95": 45.80000001192093,
+          "worst": 65.80000001192093
+        },
+        "terrain": {
+          "mean": 0.09180327907937472,
+          "median": 0.09999999403953552,
+          "p95": 0.20000001788139343,
+          "worst": 7.300000011920929
+        },
+        "units": {
+          "mean": 1.333504098024769,
+          "median": 1.300000011920929,
+          "p95": 1.600000023841858,
+          "worst": 7.299999982118607
+        },
+        "trenches": {
+          "mean": 0.015573770479589213,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 0.19999998807907104
+        },
+        "tactical": {
+          "mean": 0.7688524588698247,
+          "median": 0.29999998211860657,
+          "p95": 4.899999976158142,
+          "worst": 8.699999988079071
+        },
+        "living": {
+          "mean": 0.4047131149067742,
+          "median": 0,
+          "p95": 2.5999999940395355,
+          "worst": 10
+        },
+        "positions": {
+          "mean": 0.02961065568274162,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.30000001192092896
+        },
+        "effects": {
+          "mean": 1.675102459114106,
+          "median": 1.5999999940395355,
+          "p95": 2.2999999821186066,
+          "worst": 3.399999976158142
+        },
+        "webgl": {
+          "mean": 1.2258196719540435,
+          "median": 1.199999988079071,
+          "p95": 1.699999988079071,
+          "worst": 2.300000011920929
+        },
+        "hud": {
+          "mean": 0.19979508196721313,
+          "median": 0,
+          "p95": 1.5,
+          "worst": 2.2999999821186066
+        },
+        "total": {
+          "mean": 14.614754098116375,
+          "median": 5.4000000059604645,
+          "p95": 51,
+          "worst": 74.09999999403954
+        }
+      },
+      "ticks": 301,
+      "tickCosts": {
+        "actions": {
+          "mean": 2.137209302860241,
+          "median": 1.9000000059604645,
+          "p95": 3.5,
+          "worst": 6.299999982118607
+        },
+        "movement": {
+          "mean": 0.5767441863237426,
+          "median": 0.5999999940395355,
+          "p95": 0.7999999821186066,
+          "worst": 1.0999999940395355
+        },
+        "earthworks": {
+          "mean": 0.3119601321180794,
+          "median": 0.30000001192092896,
+          "p95": 0.4000000059604645,
+          "worst": 0.5999999940395355
+        },
+        "garrison": {
+          "mean": 2.2202657807705015,
+          "median": 2,
+          "p95": 4.0999999940395355,
+          "worst": 8.099999994039536
+        },
+        "combat": {
+          "mean": 16.228903654900897,
+          "median": 11.5,
+          "p95": 27.30000001192093,
+          "worst": 33.80000001192093
+        },
+        "terrainIntel": {
+          "mean": 6.728239203113258,
+          "median": 0,
+          "p95": 29.5,
+          "worst": 43.599999994039536
+        },
+        "support": {
+          "mean": 0.18970099685596073,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.800000011920929
+        },
+        "total": {
+          "mean": 28.394352160517954,
+          "median": 25.19999998807907,
+          "p95": 57.80000001192093,
+          "worst": 65.80000001192093
+        },
+        "visibility": {
+          "mean": 10.5451827234406,
+          "median": 10.5,
+          "p95": 12,
+          "worst": 16.599999994039536
+        },
+        "targeting": {
+          "mean": 5.3631229241227,
+          "median": 0,
+          "p95": 16.19999998807907,
+          "worst": 20.5
+        },
+        "ai": {
+          "mean": 0.056810631011411594,
+          "median": 0,
+          "p95": 0,
+          "worst": 5.9000000059604645
+        },
+        "objectives": {
+          "mean": 0.20963455187125857,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.800000011920929
+        },
+        "network": {
+          "mean": 0.022259136470053283,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.10000002384185791
+        },
+        "logistics": {
+          "mean": 0.5245847180238198,
+          "median": 0.5,
+          "p95": 0.699999988079071,
+          "worst": 1
+        },
+        "coordination": {
+          "mean": 0.20398671098325735,
+          "median": 0,
+          "p95": 1.5999999940395355,
+          "worst": 5.899999976158142
+        },
+        "dutyMovement": {
+          "mean": 0.5594684384589972,
+          "median": 0.5000000298023224,
+          "p95": 0.7999999821186066,
+          "worst": 1.300000011920929
+        },
+        "needs": {
+          "mean": 0.22358804129286858,
+          "median": 0.20000001788139343,
+          "p95": 0.3999999761581421,
+          "worst": 0.5
+        },
+        "demand": {
+          "mean": 0.16810631217354555,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.699999988079071
+        }
+      },
+      "traces": {
+        "requests": 682400,
+        "traces": 319061,
+        "cacheHits": 363339,
+        "groundSamples": 12030025,
+        "treeCandidates": 2900098,
+        "structureCandidates": 0
+      },
+      "paths": {
+        "requests": 8,
+        "expanded": 0
+      },
+      "heapStart": 155880016,
+      "heapEnd": 199092319,
+      "visual": {
+        "triangles": 1664014,
+        "drawCalls": 176,
+        "particles": 58,
+        "submittedSoldiers": 303,
+        "residentTrees": 5623,
+        "visibleTrees": 790,
+        "cameraTarget": {
+          "x": -540,
+          "z": -825
+        },
+        "zoomDistance": 460,
+        "generatedChunks": 64,
+        "detailedChunks": 15,
+        "visibleChunks": 15,
+        "coarseGenerationMs": 721.3999999761581,
+        "workerGenerationMs": 1011,
+        "workerJobs": 20
+      },
+      "shots": 276,
+      "requestedSpeed": 1,
+      "active": 495,
+      "smoke": 1,
+      "missions": 2,
+      "facilities": [
+        {
+          "id": 597,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 598,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 602,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 603,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 605,
+          "kind": "store",
+          "progress": 0.5571666666666655,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 609,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 610,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 612,
+          "kind": "store",
+          "progress": 0.6628888888888868,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 616,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 617,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 619,
+          "kind": "store",
+          "progress": 0.6413888888888868,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 623,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 624,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 626,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 630,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 631,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 633,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 637,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 638,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 640,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 644,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 645,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 647,
+          "kind": "store",
+          "progress": 0.9966666666666352,
+          "connector": 1,
+          "workers": 0
+        }
+      ],
+      "trucks": [
+        "outbound",
+        "outbound",
+        "outbound",
+        "outbound",
+        "returning",
+        "idle",
+        "outbound",
+        "outbound"
+      ],
+      "gc": {
+        "scope": "Top-level MinorGC/MajorGC events only, excluding nested V8 phases",
+        "events": 453,
+        "totalMs": 226.97900000000007,
+        "worstMs": 8.437
+      }
+    },
+    {
+      "count": 512,
+      "quality": "high",
+      "selectedSpeed": 5,
+      "fixtureSHA256": "84e1f4e41ef06ecd7c772f1f43a42c8368b49926b33b4b6165b5e101c8937b36",
+      "wallSeconds": 15.0545,
+      "advanced": 19.64999999999889,
+      "achievedSpeed": 1.305257564183393,
+      "frames": 392,
+      "frameIntervals": {
+        "mean": 38.40433673469388,
+        "median": 36.30000000001746,
+        "p95": 72.89999999999418,
+        "worst": 79
+      },
+      "frameCosts": {
+        "simulation": {
+          "mean": 29.16870228980334,
+          "median": 22.30000001192093,
+          "p95": 60,
+          "worst": 66.19999998807907
+        },
+        "terrain": {
+          "mean": 0.0867684472153205,
+          "median": 0.09999999403953552,
+          "p95": 0.19999998807907104,
+          "worst": 0.3999999761581421
+        },
+        "units": {
+          "mean": 1.3147582705239302,
+          "median": 1.300000011920929,
+          "p95": 1.5999999940395355,
+          "worst": 2.100000023841858
+        },
+        "trenches": {
+          "mean": 0.01704834602564649,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 0.19999998807907104
+        },
+        "tactical": {
+          "mean": 1.7142493639131842,
+          "median": 0.7999999821186066,
+          "p95": 5.4000000059604645,
+          "worst": 7.0999999940395355
+        },
+        "living": {
+          "mean": 1.0221374050048169,
+          "median": 0,
+          "p95": 3,
+          "worst": 10.300000011920929
+        },
+        "positions": {
+          "mean": 0.03994910885359495,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 0.5999999940395355
+        },
+        "effects": {
+          "mean": 1.9475826970645187,
+          "median": 1.9000000059604645,
+          "p95": 2.5999999940395355,
+          "worst": 3.699999988079071
+        },
+        "webgl": {
+          "mean": 1.4860050889826912,
+          "median": 1.5,
+          "p95": 1.9000000059604645,
+          "worst": 2.800000011920929
+        },
+        "hud": {
+          "mean": 0.392620865321948,
+          "median": 0,
+          "p95": 1.5999999940395355,
+          "worst": 2.699999988079071
+        },
+        "total": {
+          "mean": 37.38753180626694,
+          "median": 33,
+          "p95": 69.39999997615814,
+          "worst": 80
+        }
+      },
+      "ticks": 393,
+      "tickCosts": {
+        "actions": {
+          "mean": 2.151908397447062,
+          "median": 1.9000000059604645,
+          "p95": 3.7000000178813934,
+          "worst": 6.4000000059604645
+        },
+        "movement": {
+          "mean": 0.6305343496587137,
+          "median": 0.5999999940395355,
+          "p95": 0.9000000059604645,
+          "worst": 1.5
+        },
+        "earthworks": {
+          "mean": 0.3264631051143617,
+          "median": 0.30000001192092896,
+          "p95": 0.4000000059604645,
+          "worst": 0.800000011920929
+        },
+        "garrison": {
+          "mean": 2.2615776081728267,
+          "median": 2,
+          "p95": 4,
+          "worst": 15.599999994039536
+        },
+        "combat": {
+          "mean": 16.828244274505828,
+          "median": 11.799999982118607,
+          "p95": 27.80000001192093,
+          "worst": 32.79999998211861
+        },
+        "terrainIntel": {
+          "mean": 6.764376590345956,
+          "median": 0,
+          "p95": 29.69999998807907,
+          "worst": 35.900000005960464
+        },
+        "support": {
+          "mean": 0.19847328267024675,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.7000000178813934
+        },
+        "total": {
+          "mean": 29.16386768426604,
+          "median": 22.30000001192093,
+          "p95": 60,
+          "worst": 66.19999998807907
+        },
+        "visibility": {
+          "mean": 10.739949109900088,
+          "median": 10.600000023841858,
+          "p95": 12.400000005960464,
+          "worst": 18.799999982118607
+        },
+        "targeting": {
+          "mean": 5.766412213558459,
+          "median": 0,
+          "p95": 16.099999994039536,
+          "worst": 20
+        },
+        "ai": {
+          "mean": 0.0473282441838097,
+          "median": 0,
+          "p95": 0,
+          "worst": 5.699999988079071
+        },
+        "objectives": {
+          "mean": 0.21832060980736148,
+          "median": 0.19999998807907104,
+          "p95": 0.30000001192092896,
+          "worst": 0.7000000178813934
+        },
+        "network": {
+          "mean": 0.026208651202325604,
+          "median": 0,
+          "p95": 0.09999999403953552,
+          "worst": 0.10000002384185791
+        },
+        "logistics": {
+          "mean": 0.5437659033533878,
+          "median": 0.5,
+          "p95": 0.7000000178813934,
+          "worst": 1.2999999821186066
+        },
+        "coordination": {
+          "mean": 0.2183206105656903,
+          "median": 0,
+          "p95": 1.9000000059604645,
+          "worst": 8.600000023841858
+        },
+        "dutyMovement": {
+          "mean": 0.5513994903813185,
+          "median": 0.5000000298023224,
+          "p95": 0.7999999821186066,
+          "worst": 4.0999999940395355
+        },
+        "needs": {
+          "mean": 0.22519083931549208,
+          "median": 0.20000001788139343,
+          "p95": 0.30000001192092896,
+          "worst": 0.800000011920929
+        },
+        "demand": {
+          "mean": 0.16513994995874304,
+          "median": 0.19999998807907104,
+          "p95": 0.29999998211860657,
+          "worst": 0.5
+        }
+      },
+      "traces": {
+        "requests": 713017,
+        "traces": 418950,
+        "cacheHits": 294067,
+        "groundSamples": 15838106,
+        "treeCandidates": 3828634,
+        "structureCandidates": 0
+      },
+      "paths": {
+        "requests": 9,
+        "expanded": 0
+      },
+      "heapStart": 335972058,
+      "heapEnd": 294459126,
+      "visual": {
+        "triangles": 1654810,
+        "drawCalls": 176,
+        "particles": 111,
+        "submittedSoldiers": 296,
+        "residentTrees": 5623,
+        "visibleTrees": 790,
+        "cameraTarget": {
+          "x": -540,
+          "z": -825
+        },
+        "zoomDistance": 460,
+        "generatedChunks": 64,
+        "detailedChunks": 15,
+        "visibleChunks": 15,
+        "coarseGenerationMs": 712.5,
+        "workerGenerationMs": 1000.1999999880791,
+        "workerJobs": 20
+      },
+      "shots": 371,
+      "requestedSpeed": 5,
+      "active": 494,
+      "smoke": 1,
+      "missions": 2,
+      "facilities": [
+        {
+          "id": 597,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 598,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 602,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 603,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 605,
+          "kind": "store",
+          "progress": 0.7029166666666641,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 609,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 610,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 612,
+          "kind": "store",
+          "progress": 0.8080277777777742,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 616,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 617,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 619,
+          "kind": "store",
+          "progress": 0.7871388888888854,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 623,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 624,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 626,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 630,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 631,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 633,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 637,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 638,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 640,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 644,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 645,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 647,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        }
+      ],
+      "trucks": [
+        "outbound",
+        "outbound",
+        "outbound",
+        "outbound",
+        "returning",
+        "idle",
+        "outbound",
+        "outbound"
+      ],
+      "gc": {
+        "scope": "Top-level MinorGC/MajorGC events only, excluding nested V8 phases",
+        "events": 517,
+        "totalMs": 247.34199999999964,
+        "worstMs": 7.275
+      }
+    },
+    {
+      "count": 1000,
+      "quality": "balanced",
+      "selectedSpeed": 1,
+      "fixtureSHA256": "5b61d0f4b63249fd639153a738d8f9e95327fc6db2bbfece5e6f62892e71821e",
+      "wallSeconds": 15.303699999999983,
+      "advanced": 6.099999999999653,
+      "achievedSpeed": 0.39859641785971106,
+      "frames": 121,
+      "frameIntervals": {
+        "mean": 126.4768595041321,
+        "median": 91.10000000000582,
+        "p95": 358.5,
+        "worst": 437.3999999999942
+      },
+      "frameCosts": {
+        "simulation": {
+          "mean": 106.53114754034847,
+          "median": 75.69999998807907,
+          "p95": 319.59999999403954,
+          "worst": 407.30000001192093
+        },
+        "terrain": {
+          "mean": 0.10983606537834542,
+          "median": 0.09999999403953552,
+          "p95": 0.20000001788139343,
+          "worst": 0.5999999940395355
+        },
+        "units": {
+          "mean": 2.65983606728374,
+          "median": 2.600000023841858,
+          "p95": 3,
+          "worst": 3.5999999940395355
+        },
+        "trenches": {
+          "mean": 0.15819672092062528,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 3.7000000178813934
+        },
+        "tactical": {
+          "mean": 4.411475409249791,
+          "median": 1.800000011920929,
+          "p95": 11.599999994039536,
+          "worst": 18.799999982118607
+        },
+        "living": {
+          "mean": 2.815573770003241,
+          "median": 3,
+          "p95": 9.600000023841858,
+          "worst": 10.200000017881393
+        },
+        "positions": {
+          "mean": 0.0967213118174037,
+          "median": 0,
+          "p95": 0.30000001192092896,
+          "worst": 0.5
+        },
+        "effects": {
+          "mean": 3.511475409152078,
+          "median": 3.2999999821186066,
+          "p95": 5.5999999940395355,
+          "worst": 7.5
+        },
+        "webgl": {
+          "mean": 1.5778688534361418,
+          "median": 1.5999999940395355,
+          "p95": 2,
+          "worst": 3
+        },
+        "hud": {
+          "mean": 2.232786884561914,
+          "median": 3.4000000059604645,
+          "p95": 3.9000000059604645,
+          "worst": 4.399999976158142
+        },
+        "total": {
+          "mean": 124.44344262265768,
+          "median": 89.5,
+          "p95": 346.30000001192093,
+          "worst": 436.30000001192093
+        }
+      },
+      "ticks": 122,
+      "tickCosts": {
+        "actions": {
+          "mean": 5.618852458772112,
+          "median": 5.199999988079071,
+          "p95": 8.600000023841858,
+          "worst": 15.799999982118607
+        },
+        "movement": {
+          "mean": 1.3090163931006291,
+          "median": 1.2999999821186066,
+          "p95": 1.7000000178813934,
+          "worst": 2.4000000059604645
+        },
+        "earthworks": {
+          "mean": 1.0163934426229508,
+          "median": 1,
+          "p95": 1.4000000059604645,
+          "worst": 1.9000000059604645
+        },
+        "garrison": {
+          "mean": 8.131967212577335,
+          "median": 5.800000011920929,
+          "p95": 15.599999994039536,
+          "worst": 76.80000001192093
+        },
+        "combat": {
+          "mean": 46.10163934333403,
+          "median": 35.5,
+          "p95": 73.7999999821186,
+          "worst": 92.09999999403954
+        },
+        "terrainIntel": {
+          "mean": 43.854098361290866,
+          "median": 0,
+          "p95": 254.59999999403954,
+          "worst": 290.69999998807907
+        },
+        "support": {
+          "mean": 0.48852459060364084,
+          "median": 0.5,
+          "p95": 0.6000000238418579,
+          "worst": 0.8999999761581421
+        },
+        "total": {
+          "mean": 106.52540983552815,
+          "median": 75.69999998807907,
+          "p95": 319.59999999403954,
+          "worst": 407.30000001192093
+        },
+        "visibility": {
+          "mean": 32.72704918047444,
+          "median": 32.599999994039536,
+          "p95": 37.400000005960464,
+          "worst": 39.80000001192093
+        },
+        "targeting": {
+          "mean": 12.654918033080023,
+          "median": 0,
+          "p95": 42.5,
+          "worst": 59.70000001788139
+        },
+        "ai": {
+          "mean": 0.1557377051623141,
+          "median": 0,
+          "p95": 0,
+          "worst": 13.700000017881393
+        },
+        "objectives": {
+          "mean": 0.44590163963739987,
+          "median": 0.4000000059604645,
+          "p95": 0.5999999940395355,
+          "worst": 1
+        },
+        "network": {
+          "mean": 0.35491803264031646,
+          "median": 0.09999999403953552,
+          "p95": 0.19999998807907104,
+          "worst": 14.900000005960464
+        },
+        "logistics": {
+          "mean": 1.2188524601400876,
+          "median": 1.199999988079071,
+          "p95": 1.5,
+          "worst": 1.9000000059604645
+        },
+        "coordination": {
+          "mean": 2.0016393426988945,
+          "median": 0,
+          "p95": 8.599999994039536,
+          "worst": 55.09999990463257
+        },
+        "dutyMovement": {
+          "mean": 2.4081967233634387,
+          "median": 2.399999976158142,
+          "p95": 3.0000000298023224,
+          "worst": 4.100000023841858
+        },
+        "needs": {
+          "mean": 0.47868852366189485,
+          "median": 0.5,
+          "p95": 0.699999988079071,
+          "worst": 0.9000000059604645
+        },
+        "demand": {
+          "mean": 0.4483606566171177,
+          "median": 0.4000000059604645,
+          "p95": 0.6000000238418579,
+          "worst": 1.300000011920929
+        }
+      },
+      "traces": {
+        "requests": 648357,
+        "traces": 540620,
+        "cacheHits": 107737,
+        "groundSamples": 21420410,
+        "treeCandidates": 5822346,
+        "structureCandidates": 52024143
+      },
+      "paths": {
+        "requests": 8,
+        "expanded": 0
+      },
+      "heapStart": 238618589,
+      "heapEnd": 271239744,
+      "visual": {
+        "triangles": 2109326,
+        "drawCalls": 170,
+        "particles": 72,
+        "submittedSoldiers": 639,
+        "residentTrees": 5610,
+        "visibleTrees": 790,
+        "cameraTarget": {
+          "x": -540,
+          "z": -825
+        },
+        "zoomDistance": 460,
+        "generatedChunks": 64,
+        "detailedChunks": 15,
+        "visibleChunks": 15,
+        "coarseGenerationMs": 715.5999999940395,
+        "workerGenerationMs": 1894.7000000476837,
+        "workerJobs": 34
+      },
+      "shots": 214,
+      "requestedSpeed": 1,
+      "active": 968,
+      "smoke": 1,
+      "missions": 2,
+      "facilities": [
+        {
+          "id": 1157,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1158,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1162,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1163,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1165,
+          "kind": "store",
+          "progress": 0.30663888888889,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1169,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1170,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1172,
+          "kind": "store",
+          "progress": 0.3533333333333342,
+          "connector": 1,
+          "workers": 2
+        },
+        {
+          "id": 1176,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1177,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1179,
+          "kind": "store",
+          "progress": 0.31819444444444567,
+          "connector": 1,
+          "workers": 3
+        },
+        {
+          "id": 1183,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1184,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1186,
+          "kind": "store",
+          "progress": 0.3153611111111122,
+          "connector": 1,
+          "workers": 3
+        },
+        {
+          "id": 1190,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1191,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1193,
+          "kind": "store",
+          "progress": 0.10319444444444496,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1197,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1198,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1200,
+          "kind": "store",
+          "progress": 0.33666666666666767,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1204,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1205,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1207,
+          "kind": "store",
+          "progress": 0.23875000000000177,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1211,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1212,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1214,
+          "kind": "store",
+          "progress": 0.27055555555555566,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1218,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1219,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1221,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1225,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1226,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1228,
+          "kind": "store",
+          "progress": 0,
+          "connector": 0.750166666666677,
+          "workers": 0
+        },
+        {
+          "id": 1232,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1233,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1235,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1239,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1240,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1242,
+          "kind": "store",
+          "progress": 0,
+          "connector": 0.9570547820457603,
+          "workers": 0
+        },
+        {
+          "id": 1246,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1247,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1249,
+          "kind": "store",
+          "progress": 0.9677777777777475,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1253,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1254,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1256,
+          "kind": "store",
+          "progress": 0.9966666666666352,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1260,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1261,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1263,
+          "kind": "store",
+          "progress": 0.9994444444444128,
+          "connector": 1,
+          "workers": 4
+        }
+      ],
+      "trucks": [
+        "outbound",
+        "outbound",
+        "outbound",
+        "outbound",
+        "returning",
+        "idle",
+        "outbound",
+        "outbound"
+      ],
+      "gc": {
+        "scope": "Top-level MinorGC/MajorGC events only, excluding nested V8 phases",
+        "events": 708,
+        "totalMs": 319.9939999999996,
+        "worstMs": 10.828
+      }
+    },
+    {
+      "count": 1000,
+      "quality": "balanced",
+      "selectedSpeed": 5,
+      "fixtureSHA256": "5b61d0f4b63249fd639153a738d8f9e95327fc6db2bbfece5e6f62892e71821e",
+      "wallSeconds": 15.030299999999988,
+      "advanced": 6.14999999999965,
+      "achievedSpeed": 0.4091734695914024,
+      "frames": 122,
+      "frameIntervals": {
+        "mean": 123.19918032786876,
+        "median": 91,
+        "p95": 352.4000000000233,
+        "worst": 437.29999999998836
+      },
+      "frameCosts": {
+        "simulation": {
+          "mean": 103.96991869879932,
+          "median": 70.80000001192093,
+          "p95": 320.5,
+          "worst": 406.2999999821186
+        },
+        "terrain": {
+          "mean": 0.11869918888177329,
+          "median": 0.09999999403953552,
+          "p95": 0.20000001788139343,
+          "worst": 0.699999988079071
+        },
+        "units": {
+          "mean": 2.6674796737791078,
+          "median": 2.5999999940395355,
+          "p95": 3.0999999940395355,
+          "worst": 3.7999999821186066
+        },
+        "trenches": {
+          "mean": 0.16016260225598405,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 4
+        },
+        "tactical": {
+          "mean": 4.295934958186576,
+          "median": 1.800000011920929,
+          "p95": 11,
+          "worst": 23.5
+        },
+        "living": {
+          "mean": 2.765040649631159,
+          "median": 2.9000000059604645,
+          "p95": 9.700000017881393,
+          "worst": 10.399999976158142
+        },
+        "positions": {
+          "mean": 0.0934959352016449,
+          "median": 0,
+          "p95": 0.30000001192092896,
+          "worst": 0.5
+        },
+        "effects": {
+          "mean": 3.4398373978409342,
+          "median": 3.2000000178813934,
+          "p95": 5.5,
+          "worst": 7.100000023841858
+        },
+        "webgl": {
+          "mean": 1.4902439035051238,
+          "median": 1.5,
+          "p95": 1.9000000059604645,
+          "worst": 2.4000000059604645
+        },
+        "hud": {
+          "mean": 2.092682927362318,
+          "median": 3.300000011920929,
+          "p95": 4,
+          "worst": 5.5
+        },
+        "total": {
+          "mean": 121.40487804960429,
+          "median": 85.19999998807907,
+          "p95": 349.5,
+          "worst": 441
+        }
+      },
+      "ticks": 123,
+      "tickCosts": {
+        "actions": {
+          "mean": 5.439024390001607,
+          "median": 5,
+          "p95": 8.699999988079071,
+          "worst": 12.200000017881393
+        },
+        "movement": {
+          "mean": 1.2910569099391378,
+          "median": 1.2999999821186066,
+          "p95": 1.699999988079071,
+          "worst": 2
+        },
+        "earthworks": {
+          "mean": 1.0016260159209491,
+          "median": 1,
+          "p95": 1.300000011920929,
+          "worst": 1.7999999821186066
+        },
+        "garrison": {
+          "mean": 7.777235773278446,
+          "median": 5.5,
+          "p95": 12.099999994039536,
+          "worst": 76.40000000596046
+        },
+        "combat": {
+          "mean": 45.81219512345345,
+          "median": 35.20000001788139,
+          "p95": 74.7999999821186,
+          "worst": 85
+        },
+        "terrainIntel": {
+          "mean": 42.20894308933398,
+          "median": 0,
+          "p95": 247.5,
+          "worst": 295.40000000596046
+        },
+        "support": {
+          "mean": 0.43008129892310476,
+          "median": 0.4000000059604645,
+          "p95": 0.5999999940395355,
+          "worst": 0.800000011920929
+        },
+        "total": {
+          "mean": 103.96260162533784,
+          "median": 70.69999998807907,
+          "p95": 320.5,
+          "worst": 406.2999999821186
+        },
+        "visibility": {
+          "mean": 32.8552845529909,
+          "median": 32.900000005960464,
+          "p95": 37.69999998807907,
+          "worst": 40.19999998807907
+        },
+        "targeting": {
+          "mean": 12.281300812717376,
+          "median": 0,
+          "p95": 40.099999994039536,
+          "worst": 47
+        },
+        "ai": {
+          "mean": 0.15609756063639632,
+          "median": 0,
+          "p95": 0,
+          "worst": 14.5
+        },
+        "objectives": {
+          "mean": 0.42276422788457174,
+          "median": 0.4000000059604645,
+          "p95": 0.5,
+          "worst": 0.7000000178813934
+        },
+        "network": {
+          "mean": 0.33739837446833043,
+          "median": 0,
+          "p95": 0.10000002384185791,
+          "worst": 15.800000011920929
+        },
+        "logistics": {
+          "mean": 1.1219512204813764,
+          "median": 1.0999999940395355,
+          "p95": 1.4000000059604645,
+          "worst": 1.7000000178813934
+        },
+        "coordination": {
+          "mean": 1.9268292685349782,
+          "median": 0,
+          "p95": 7.299999982118607,
+          "worst": 52
+        },
+        "dutyMovement": {
+          "mean": 2.4065040667367175,
+          "median": 2.3999999463558197,
+          "p95": 3.100000023841858,
+          "worst": 4.299999952316284
+        },
+        "needs": {
+          "mean": 0.43739837383836266,
+          "median": 0.4000000059604645,
+          "p95": 0.6000000238418579,
+          "worst": 0.800000011920929
+        },
+        "demand": {
+          "mean": 0.41056910811400993,
+          "median": 0.4000000059604645,
+          "p95": 0.5999999940395355,
+          "worst": 1
+        }
+      },
+      "traces": {
+        "requests": 634041,
+        "traces": 526125,
+        "cacheHits": 107916,
+        "groundSamples": 20839624,
+        "treeCandidates": 5620360,
+        "structureCandidates": 50670789
+      },
+      "paths": {
+        "requests": 8,
+        "expanded": 0
+      },
+      "heapStart": 247942533,
+      "heapEnd": 275011001,
+      "visual": {
+        "triangles": 2110866,
+        "drawCalls": 170,
+        "particles": 69,
+        "submittedSoldiers": 640,
+        "residentTrees": 5610,
+        "visibleTrees": 790,
+        "cameraTarget": {
+          "x": -540,
+          "z": -825
+        },
+        "zoomDistance": 460,
+        "generatedChunks": 64,
+        "detailedChunks": 15,
+        "visibleChunks": 15,
+        "coarseGenerationMs": 712.6999999880791,
+        "workerGenerationMs": 1889.7000001072884,
+        "workerJobs": 34
+      },
+      "shots": 214,
+      "requestedSpeed": 5,
+      "active": 968,
+      "smoke": 1,
+      "missions": 2,
+      "facilities": [
+        {
+          "id": 1157,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1158,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1162,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1163,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1165,
+          "kind": "store",
+          "progress": 0.30958333333333443,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1169,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1170,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1172,
+          "kind": "store",
+          "progress": 0.3550555555555564,
+          "connector": 1,
+          "workers": 2
+        },
+        {
+          "id": 1176,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1177,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1179,
+          "kind": "store",
+          "progress": 0.32052777777777897,
+          "connector": 1,
+          "workers": 3
+        },
+        {
+          "id": 1183,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1184,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1186,
+          "kind": "store",
+          "progress": 0.3176944444444455,
+          "connector": 1,
+          "workers": 3
+        },
+        {
+          "id": 1190,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1191,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1193,
+          "kind": "store",
+          "progress": 0.10613888888888943,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1197,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1198,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1200,
+          "kind": "store",
+          "progress": 0.3396111111111121,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1204,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1205,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1207,
+          "kind": "store",
+          "progress": 0.24169444444444624,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1211,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1212,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1214,
+          "kind": "store",
+          "progress": 0.27055555555555566,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1218,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1219,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1221,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1225,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1226,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1228,
+          "kind": "store",
+          "progress": 0,
+          "connector": 0.750166666666677,
+          "workers": 0
+        },
+        {
+          "id": 1232,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1233,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1235,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1239,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1240,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1242,
+          "kind": "store",
+          "progress": 0,
+          "connector": 0.9570547820457603,
+          "workers": 0
+        },
+        {
+          "id": 1246,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1247,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1249,
+          "kind": "store",
+          "progress": 0.9722222222221918,
+          "connector": 1,
+          "workers": 4
+        },
+        {
+          "id": 1253,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1254,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1256,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 3
+        },
+        {
+          "id": 1260,
+          "kind": "emplacement",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1261,
+          "kind": "mortar",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        },
+        {
+          "id": 1263,
+          "kind": "store",
+          "progress": 1,
+          "connector": 1,
+          "workers": 0
+        }
+      ],
+      "trucks": [
+        "outbound",
+        "outbound",
+        "outbound",
+        "outbound",
+        "returning",
+        "idle",
+        "outbound",
+        "outbound"
+      ],
+      "gc": {
+        "scope": "Top-level MinorGC/MajorGC events only, excluding nested V8 phases",
+        "events": 697,
+        "totalMs": 321.3030000000001,
+        "worstMs": 12.17
+      }
+    }
+  ],
+  "errors": []
+}

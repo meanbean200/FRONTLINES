@@ -2,6 +2,7 @@ import {distance,type BattlefieldState,type Vec2} from '../core/types';
 import {commandEnemy,observeEnemy} from './EnemyCommander';
 import {requestSupport} from '../combat/SupportWeapons';
 import type {TerrainSystem} from '../terrain/TerrainSystem';
+import {buildingUtility} from '../terrain/BuildingUtility';
 
 export interface CampaignPlan {
   phase:'scout'|'prepare'|'commit'|'reassess'|'consolidate'|'withdraw'|'recover';
@@ -56,7 +57,7 @@ export function commandCampaign(state:BattlefieldState,terrain:TerrainSystem,mov
     else change('withdraw','No sustainable progress; withdraw and recover before another plan',180);
   }
   if(plan.phase==='consolidate'){
-    const guard=force.find(q=>!q.working&&!q.supportBusy&&q.able>=3),building=terrain.buildings.filter(b=>distance(b,objective)<40).sort((a,b)=>distance(a,objective)-distance(b,objective))[0];
+    const guard=force.find(q=>!q.working&&!q.supportBusy&&q.able>=3),building=terrain.buildings.filter(b=>distance(b,objective)<40).map(b=>{const u=buildingUtility(b);return {b,value:u.places+u.elevation*2-distance(b,objective)*.3-u.road*.08};}).sort((a,b)=>b.value-a.value)[0]?.b;
     if(guard){const q=state.squads.find(q=>q.id===guard.id)!;if(!q.order.building)issue([guard.id],building??objective);}
     const returning=plan.forceIds.filter(id=>id!==guard?.id);issue(returning,home.entrance);
     for(const id of returning)if(byId.get(id)&&distance(byId.get(id)!,home.entrance)<80&&!home.squadIds.includes(id))occupy([id],c.enemyTrench);

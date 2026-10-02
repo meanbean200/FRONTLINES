@@ -24,6 +24,7 @@ export interface SoldierState extends Vec2 {
   selfCare?:import('../simulation/SelfPreservation').SelfCare;
   nextSelfCareReview?:number;
   survivalReason?:string;
+  smokeAwareness?:import('../navigation/SmokeMovement').SmokeAwareness;
   posture?:'standing'|'crouched'|'prone';
   equipment?:import('../combat/Equipment').InfantryEquipment;
   building?:{id:number;floor:0|1;vertical:number;route:Vec2[];index:number;stage:'approach'|'inside'|'stairs'|'station'|'exit';target:Vec2;targetFloor:0|1;stairTime:number;stairFrom?:Vec2;exitRequested?:boolean;recovering?:boolean;routeReviewAt?:number};

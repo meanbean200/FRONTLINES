@@ -34,6 +34,9 @@ export function validPositionState(state:BattlefieldState):boolean {
     if(f.workOrder){
       const o=f.workOrder;if(typeof o.explicit!=='boolean'||!Number.isFinite(o.createdAt)||o.createdAt<0||!Array.isArray(o.workerIds)||o.workerIds.length>16)return false;
       if(o.autoWorkers!==undefined&&typeof o.autoWorkers!=='boolean')return false;
+      if(o.priority!==undefined&&!['low','normal','high','critical'].includes(o.priority))return false;
+      if(o.lastProgressAt!==undefined&&(!Number.isFinite(o.lastProgressAt)||o.lastProgressAt<o.createdAt||o.lastProgressAt>state.elapsed))return false;
+      if(o.accessIssue&&(!Number.isFinite(o.accessIssue.at)||o.accessIssue.at<o.createdAt||o.accessIssue.at>state.elapsed||!['WORK FACE OCCUPIED','ACCESS BLOCKED'].includes(o.accessIssue.reason)))return false;
       if(o.pausedByAssault!==undefined&&typeof o.pausedByAssault!=='boolean')return false;
       if(o.cancelledAt!==undefined&&(!Number.isFinite(o.cancelledAt)||o.cancelledAt<o.createdAt||o.cancelledAt>state.elapsed||o.workerIds.length>0))return false;
       for(const id of o.workerIds){const s=state.soldiers.find(s=>s.id===id),q=state.squads.find(q=>q.id===s?.squadId);if(!s||!q||workers.has(id)||(q.faction??'player')!==(g.faction??'player'))return false;workers.add(id);}

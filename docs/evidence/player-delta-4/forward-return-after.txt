@@ -1,0 +1,17 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ✓ src/garrison/ForwardReturn.test.ts (1 test) 20ms
+ ✓ src/garrison/SupplyDemand.test.ts (17 tests) 1814ms
+   ✓ explicit supply demand and reservation accounting > never automatically plans player structures over twelve campaign hours with stocked materials  1677ms
+ ✓ src/construction/ConstructionAutonomy.test.ts (6 tests) 44ms
+ ✓ src/garrison/SupplyRecovery.test.ts (6 tests) 3174ms
+   ✓ player-ordered physical supply recovery > finishes a return when its recoverable cargo was consumed en route instead of waiting for nonexistent stock  314ms
+   ✓ player-ordered physical supply recovery > routes from distant prepared sectors to secured Saint-Martin on actual generated terrain  2030ms
+   ✓ player-ordered physical supply recovery > walks, loads a finite sack and delivers recovered ammunition rather than silently keeping it as personal rounds  312ms
+
+ Test Files  4 passed (4)
+      Tests  30 passed (30)
+   Start at  18:37:43
+   Duration  4.46s (transform 674ms, setup 0ms, collect 2.51s, tests 5.05s, environment 1ms, prepare 404ms)
+

@@ -1,0 +1,83 @@
+{
+  "elapsed": 860.3999999997652,
+  "removed": 7,
+  "rows": [
+    {
+      "q": 332,
+      "k": "constructionQueue",
+      "before": [
+        {
+          "kind": "facility",
+          "id": 492
+        }
+      ],
+      "after": []
+    },
+    {
+      "q": 341,
+      "k": "constructionQueue",
+      "before": [
+        {
+          "kind": "facility",
+          "id": 492
+        }
+      ],
+      "after": []
+    },
+    {
+      "q": 359,
+      "k": "constructionQueue",
+      "before": [
+        {
+          "kind": "facility",
+          "id": 492
+        }
+      ],
+      "after": []
+    },
+    {
+      "q": 368,
+      "k": "constructionQueue",
+      "before": [
+        {
+          "kind": "facility",
+          "id": 484
+        }
+      ],
+      "after": []
+    },
+    {
+      "q": 377,
+      "k": "constructionQueue",
+      "before": [
+        {
+          "kind": "facility",
+          "id": 484
+        }
+      ],
+      "after": []
+    },
+    {
+      "q": 386,
+      "k": "constructionQueue",
+      "before": [
+        {
+          "kind": "facility",
+          "id": 484
+        }
+      ],
+      "after": []
+    },
+    {
+      "q": 395,
+      "k": "constructionQueue",
+      "before": [
+        {
+          "kind": "facility",
+          "id": 484
+        }
+      ],
+      "after": []
+    }
+  ]
+}

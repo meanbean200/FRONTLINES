@@ -112,8 +112,8 @@ describe('V1 position management command boundary',()=>{
     Object.assign(s,f.g.entrance);s.duty={kind:'haul',stage:'pickup',facilityId:f.p.id,destination:{...f.g.entrance},route:[{...f.g.entrance}],routeIndex:1,since:0,until:100,arrivedAt:0,reason:'Empty pickup',blockedFor:0};
     run(f.sim,.1);expect(s.duty?.facilityId).not.toBe(f.p.id);expect(s.carried!.materials).toBe(0);expect(f.p.progress).toBe(0);
   });
-  it('combat interrupts work without losing the work order, then resumes',()=>{
-    const f=post();fund(f);for(const id of f.p.workOrder!.workerIds){const s=f.state.soldiers.find(s=>s.id===id)!;s.suppression=100;s.combat={shotSequence:0,owner:'reaction',reaction:'pinned'};}run(f.sim,2);expect(f.p.progress).toBe(0);expect(workReadout(f.state,f.p).status).toBe('INTERRUPTED BY COMBAT');
+  it('combat interrupts manually staffed work without losing the work order, then resumes',()=>{
+    const f=post();fund(f);f.p.workOrder!.autoWorkers=false;for(const id of f.p.workOrder!.workerIds){const s=f.state.soldiers.find(s=>s.id===id)!;s.suppression=100;s.combat={shotSequence:0,owner:'reaction',reaction:'pinned'};}run(f.sim,2);expect(f.p.progress).toBe(0);expect(workReadout(f.state,f.p).status).toBe('INTERRUPTED BY COMBAT');
     for(const id of f.p.workOrder!.workerIds){const s=f.state.soldiers.find(s=>s.id===id)!;s.suppression=0;s.combat={shotSequence:0,owner:'duty',reaction:'steady'};}run(f.sim,160);expect(f.p.progress).toBe(1);
   });
   it('does not cancel a casualty rescue or a carried delivery to assign a worker',()=>{

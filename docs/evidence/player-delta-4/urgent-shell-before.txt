@@ -1,0 +1,35 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ❯ src/garrison/ForwardReturn.test.ts (2 tests | 1 failed) 26ms
+   × loaded forward carriers after a failed return plan > does not leave urgently claimed gun rounds behind on an ammunition run 18ms
+     → expected +0 to be 2 // Object.is equality
+   ✓ loaded forward carriers after a failed return plan > explains the blocked return and retains one physical pickup across retries and save/load 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/garrison/ForwardReturn.test.ts > loaded forward carriers after a failed return plan > does not leave urgently claimed gun rounds behind on an ammunition run
+AssertionError: expected +0 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 0
+
+ ❯ src/garrison/ForwardReturn.test.ts:26:32
+     24|     const denied=vi.spyOn(internal,'assignDuty').mockReturnValue(false…
+     25|     internal.execute(p,g,.05);
+     26|     expect(p.carried.mortarHE).toBe(2);expect(p.carried.mortarSmoke).t…
+       |                                ^
+     27|     expect(g.forwardStock.mortarHE).toBe(2);expect(g.forwardStock.mort…
+     28|     expect(balance(s)).toEqual(accounting);denied.mockRestore();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  19:17:09
+   Duration  1.35s (transform 630ms, setup 0ms, collect 1.01s, tests 26ms, environment 0ms, prepare 108ms)
+

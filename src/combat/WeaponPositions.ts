@@ -4,14 +4,15 @@ import type {Facility,Resource} from '../garrison/types';
 import {excavatedPoints} from '../core/TrenchGeometry';
 import {WEAPON_POSITIONS} from '../construction/PositionDefinitions';
 import {transfer} from '../garrison/Inventory';
+import {soldierById} from '../core/EntityLookup';
 
 export type WeaponPositionKind='emplacement'|'mortar';
 export const isMountedGun=(state:BattlefieldState,s:SoldierState)=>['mg42','crew-mg'].includes(equipmentOf(state,s).weapon);
 export const carriesPositionWeapon=(state:BattlefieldState,s:SoldierState,kind:WeaponPositionKind)=>kind==='mortar'?equipmentOf(state,s).mortar:isMountedGun(state,s);
 export function positionOperator(state:BattlefieldState,squadId:number,kind:WeaponPositionKind){return state.soldiers.find(s=>s.squadId===squadId&&s.needs?.life==='active'&&carriesPositionWeapon(state,s,kind));}
-export function crewAt(state:BattlefieldState,f:Facility):SoldierState[]{return (f.weaponCrewIds??[]).flatMap(id=>{const s=state.soldiers.find(s=>s.id===id);return s?[s]:[];});}
-export function crewOperator(state:BattlefieldState,f:Facility){return crewAt(state,f).find(s=>s.needs?.life==='active');}
-export function operatedPosition(state:BattlefieldState,s:SoldierState,kind:WeaponPositionKind){return state.living?.facilities.find(f=>f.kind===kind&&f.installation&&crewOperator(state,f)?.id===s.id);}
+export function crewAt(state:BattlefieldState,f:Facility):SoldierState[]{const crew:SoldierState[]=[];for(const id of f.weaponCrewIds??[]){const s=soldierById(state,id);if(s)crew.push(s);}return crew;}
+export function crewOperator(state:BattlefieldState,f:Facility){for(const id of f.weaponCrewIds??[]){const s=soldierById(state,id);if(s?.needs?.life==='active')return s;}}
+export function operatedPosition(state:BattlefieldState,s:SoldierState,kind:WeaponPositionKind){return state.living?.facilities.find(f=>f.kind===kind&&f.installation&&f.weaponCrewIds?.includes(s.id)&&crewOperator(state,f)?.id===s.id);}
 export const weaponStock=(state:BattlefieldState,s:SoldierState)=>operatedPosition(state,s,'emplacement')?.stock??s.carried;
 /** Read-only access for support coordination, diagnostics and presentation. */
 export const currentWeapon=(state:BattlefieldState,s:SoldierState)=>operatedPosition(state,s,'emplacement')?.installation?.weapon??s.combat?.weapon;

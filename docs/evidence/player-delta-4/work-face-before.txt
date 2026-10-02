@@ -1,0 +1,33 @@
+
+ RUN  v3.2.7 C:/Users/Will/OneDrive/Documents/ChatGPT/FRONTLINES
+
+ ❯ src/construction/ConstructionAutonomy.test.ts (7 tests | 1 failed) 48ms
+   × persistent construction staffing after startup > does not let ordinary idle friendlies permanently reserve both starting work faces 18ms
+     → expected undefined to be defined
+   ✓ persistent construction staffing after startup > defaults both explicitly ordered field guns to persistent automatic workers 5ms
+   ✓ persistent construction staffing after startup > replaces an exhausted reserved tool carrier instead of counting them as useful labor forever 4ms
+   ✓ persistent construction staffing after startup > replaces a pinned automatic worker without overwriting the reaction or commandeering another gun crew 3ms
+   ✓ persistent construction staffing after startup > gives a critical site scarce uncommitted material and an idle tool carrier, without creating stock 8ms
+   ✓ persistent construction staffing after startup > leaves an already loaded lower-priority delivery, worker and cargo at their physical location 4ms
+   ✓ persistent construction staffing after startup > person orders preserve auto staffing; the explicit OFF choice and old saves remain manual 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/construction/ConstructionAutonomy.test.ts > persistent construction staffing after startup > does not let ordinary idle friendlies permanently reserve both starting work faces
+AssertionError: expected undefined to be defined
+ ❯ src/construction/ConstructionAutonomy.test.ts:23:54
+     21|     const internal=sim.garrisons as unknown as {workPoint:(a:Vec2,b:Ve…
+     22|     const before=idle.map(p=>({x:p.x,z:p.z}));
+     23|     expect(internal.workPoint(t.points[0],f,0,tool)).toBeDefined();
+       |                                                      ^
+     24|     expect(idle.map(p=>({x:p.x,z:p.z}))).toEqual(before);
+     25|     // Actual work reservations remain exclusive, even when a worker i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 passed (7)
+   Start at  18:44:48
+   Duration  1.34s (transform 616ms, setup 0ms, collect 999ms, tests 48ms, environment 0ms, prepare 103ms)
+

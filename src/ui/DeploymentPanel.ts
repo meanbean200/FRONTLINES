@@ -5,7 +5,7 @@ import {requestReserveSquad,reserveDispatchAt} from '../operations/Replacements'
 import {connectedName} from './TrenchReadout';
 import {TrenchNetwork} from '../garrison/TrenchNetwork';
 import {networkCapacity} from '../garrison/NetworkCapacity';
-import {reinforcementReadout,TRANSPORT_STAGES} from './ReinforcementReadout';
+import {reinforcementReadout,reinforcementCountdown,TRANSPORT_STAGES} from './ReinforcementReadout';
 import {calendarHoursPerSecond} from '../simulation/Calendar';
 import {endlessDeficit} from '../operations/EndlessEconomy';
 
@@ -46,7 +46,6 @@ export class DeploymentPanel {
     this.element.querySelector<HTMLElement>('.deployment-status')!.hidden=!text;
     this.element.querySelector<HTMLElement>('.deployment-choices')!.hidden=Boolean(op);
     const section=this.element.querySelector<HTMLElement>('.reinforcement-orders')!;section.hidden=!pool;if(!pool)return;
-    section.querySelector('.reinforcement-totals')!.innerHTML=`<span><b>${pool.reserve.player}</b>RESERVE</span><span><b>${pool.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length}</b>INCOMING</span>`;
     this.network.sync(state.trenches);
     const w=state.living!,select=section.querySelector<HTMLSelectElement>('select')!,seen=new Set<number>(),networks=w.garrisons.filter(g=>{
       const anchor=this.network.anchor(g.trenchId);if(g.faction==='enemy'||g.cutoff==='withdraw'||!g.squadIds.length||seen.has(anchor))return false;seen.add(anchor);return true;
@@ -56,9 +55,11 @@ export class DeploymentPanel {
     const delay=Math.max(0,reserveDispatchAt(pool,'player')-(pool.clock==='simulation'?state.elapsed:w.campaignHours)),request=section.querySelector<HTMLButtonElement>('[data-request-reserves]')!;
     const destination=networks.find(g=>g.id===Number(select.value)),space=destination&&networkCapacity(state,this.network,destination.trenchId);
     request.disabled=this.button.disabled||pool.reserve.player<8||!networks.length||delay>0||!space||space.free<8;
-    section.querySelector('.dispatch-reason')!.textContent=delay?`Next release in ${Math.ceil(delay/calendarHoursPerSecond(state)/60)} simulation min · ${state.simSpeed||'paused'}${state.simSpeed?'×':''}`:pool.reserve.player<8?'Reserve below 8. Remaining personnel replace losses.':!space?'Defend a completed trench to establish a destination.':space.free<8?`POSITION FULL · ${space.free} free places; 8 needed.`:`${space.free} places free · transport available on request`;
+    const seconds=pool.clock==='simulation'?delay:delay/calendarHoursPerSecond(state),ready=delay?0:Math.min(8,pool.reserve.player);
+    section.querySelector('.reinforcement-totals')!.innerHTML=`<span><b>${ready}</b>RELEASE READY</span><span><b>${pool.reserve.player-ready}</b>LATER RESERVE</span><span><b>${pool.manifests.filter(m=>m.side==='player'&&m.stage!=='arrived').length}</b>INCOMING</span>`;
+    section.querySelector('.dispatch-reason')!.textContent=delay?`Next release in ${reinforcementCountdown(seconds)} simulation time · ${state.simSpeed||'paused'}${state.simSpeed?'×':''} · convoy travel is separate`:pool.reserve.player<8?'Reserve below 8. Remaining personnel replace losses.':!space?'Defend a completed trench to establish a destination.':space.free<8?`POSITION FULL · ${space.free} free places; 8 needed.`:`${space.free} places free · release ready, then physical transport`;
     request.textContent=op?.endless?'Request loss replacements':'Request 8 personnel';
-    section.querySelector('details p')!.textContent=op?.endless?`${op.endless.options.reinforcements} rear policy. Rifle replacements fill losses up to ${op.endless.targetStrength.player}; no new heavy equipment. People travel by convoy and shuttle. Automatic replacement dispatch remains active.`:'Finite reserve. Up to 8 new personnel per campaign day, shared with casualty replacements. Troops arrive on real trucks; a request does not spawn them.';
+    section.querySelector('details p')!.textContent=op?.endless?`${op.endless.options.reinforcements} rear policy. Rifle replacements fill losses up to ${op.endless.targetStrength.player}; no new heavy equipment. People travel by convoy and shuttle. Automatic replacement dispatch remains active.`:pool.releaseIntervalSeconds?`Finite reserve. Up to 8 personnel every ${pool.releaseIntervalSeconds/60} simulation minutes, shared with casualty replacements. Release is not arrival: convoy, shuttle and the final walk remain physical.`:'Finite reserve. Up to 8 new personnel per campaign day, shared with casualty replacements. Troops arrive on real trucks; a request does not spawn them.';
     if(op?.endless){
       const deficit=endlessDeficit(state,'player');request.disabled=this.button.disabled||pool.reserve.player===0||!networks.length||delay>0||deficit===0;
       section.querySelector('.dispatch-reason')!.textContent=delay?`Next dispatch in ${Math.ceil(delay)} simulation sec`:pool.reserve.player===0?'Reserve empty.':!networks.length?'Assign a formation to a completed trench for arrivals.':deficit===0?'At force cap, or replacements already inbound.':`${deficit} losses not yet replaced · requests fill losses at the selected position`;
