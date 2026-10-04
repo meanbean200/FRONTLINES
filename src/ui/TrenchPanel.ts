@@ -24,8 +24,8 @@ import {raidEligibility} from '../operations/RaidEligibility';
 import {deathDescription} from '../simulation/DeathRecord';
 import {manpowerPools} from '../garrison/Manpower';
 import {readyDefender} from '../garrison/PersonnelRoles';
-import {activeSupportMission,supportPositionStatus} from './WeaponReadout';
-import {crateVisible,crateAccess,crateAnchors,factionSeesStock,stockPiles,stockPileAnchors} from '../garrison/SupplyAccess';
+import {activeSupportMission,supportPositionStatus,crewReliefStatus} from './WeaponReadout';
+import {crateVisible,crateAccess,crateOrderAccess,cratePresenceStatus,crateAnchors,factionSeesStock,stockPiles,stockPileAnchors} from '../garrison/SupplyAccess';
 import {controlReadout,controlZone} from '../operations/ObjectiveControl';
 import {RESOURCES} from '../garrison/types';
 import {FRONT_DIRECTIONS,frontDirection,sameFacing} from './FrontDirection';
@@ -144,9 +144,11 @@ export class TrenchPanel {
         html+='<details><summary>Delivery details</summary><p>Uses the existing regional fleet. Current shipments finish before a change; old stock remains physically recoverable. This does not add transport or refill the town.</p></details>';
       }
       if(visible&&crate){
-        const blocked=crateAccess(state,this.sim.terrain,crate,'player');
+        const blocked=crateOrderAccess(state,this.sim.terrain,crate,'player'),physical=crateAccess(state,this.sim.terrain,crate,'player');
         primary+=`<div class="position-actions"><button data-recover-crate="${crate.id}" ${blocked||!destinations.length||this.locked()?'disabled':''}>Recover supplies</button>${!objective?'<button data-stock-locate>Locate stock</button>':''}</div>`;
         if(blocked)primary+=`<p class="command-issue">${esc(blocked)}</p>`;
+        else if(physical)primary+=`<p class="command-issue">${esc(physical==='AREA CONTESTED'?physical:cratePresenceStatus(state,crate,'player'))}</p>`;
+        else primary+=`<p>${esc(cratePresenceStatus(state,crate,'player'))}</p>`;
         const carriers=state.soldiers.filter(s=>s.duty?.crateId===crate.id);
         if(carriers.length)html+=`<p>${carriers.filter(s=>s.duty?.stage==='pickup').length} approaching · ${carriers.filter(s=>s.duty?.stage==='deliver').length} returning</p>`;
         html+='<details><summary>Recovery details</summary><p>One carrier load per order. Stock transfers on physical arrival.</p></details>';
@@ -326,7 +328,7 @@ export class TrenchPanel {
         const ids=this.workParty.ids,chosen=state.soldiers.filter(s=>ids.includes(s.id)),formations=[...new Set(chosen.map(s=>state.squads.find(q=>q.id===s.squadId)?.name??'Unknown'))];
         html+='<section class="work-party-selection" aria-label="Selected work party"><div data-command-primary><strong>'+esc(this.workParty.name)+' · '+chosen.length+'</strong><div class="position-actions">'+btn('data-party-assault '+(!chosen.length?'disabled':''),'Prepare assault')+btn('data-party-clear','Clear group')+'</div></div><details><summary>Selected people</summary><p>'+formations.map(esc).join(' / ')+'</p>'+chosen.map(s=>'<p>'+esc(personName(s.id))+' · '+esc(s.survivalReason??s.duty?.reason??s.action)+'</p>').join('')+'</details></section>';
       }
-      if(person){const equipment=equipmentOf(state,person);html='<section class="trench-person-detail"><small>PERSON SELECTED</small><h3>'+esc(personName(person.id))+'</h3><p>'+esc(personnelActivity(person))+' · '+esc(WEAPONS[equipment.weapon].name)+'</p><p>'+esc(deathDescription(person)||person.survivalReason||person.combat?.pauseReason||person.duty?.reason||'Formation order')+'</p><p>Energy '+Math.round(person.needs?.energy??0)+' · hunger '+Math.round(person.needs?.hunger??0)+' · thirst '+Math.round(person.needs?.thirst??0)+'</p><div class="person-orders" data-command-primary>'+[['move','Move here'],['watch','Watch here'],['rest','Rest'],['meal','Eat / drink'],['auto','Automatic duties']].map(([id,label])=>btn('data-order="'+id+'" '+(person.needs?.life!=='active'?'disabled':''),label)).join('')+'</div><details><summary>Assignment</summary><p>Click a completed weapon position to man it.</p></details></section>';}
+      if(person){const equipment=equipmentOf(state,person),material=person.carried?.materials??0,materialCapacity=person.duty?.facilityId!==undefined&&person.duty.kind==='haul'?40:state.living!.logistics!.carrierCapacity;html='<section class="trench-person-detail"><small>PERSON SELECTED</small><h3>'+esc(personName(person.id))+'</h3><p>'+esc(personnelActivity(person))+' · '+esc(WEAPONS[equipment.weapon].name)+'</p><p>'+esc(deathDescription(person)||person.survivalReason||person.combat?.pauseReason||person.duty?.reason||'Formation order')+'</p><p>Energy '+Math.round(person.needs?.energy??0)+' · hunger '+Math.round(person.needs?.hunger??0)+' · thirst '+Math.round(person.needs?.thirst??0)+'</p>'+(material>0?'<p>Materials '+Math.floor(material)+' / '+materialCapacity+'</p>':'')+'<div class="person-orders" data-command-primary>'+[['move','Move here'],['watch','Watch here'],['rest','Rest'],['meal','Eat / drink'],['auto','Automatic duties']].map(([id,label])=>btn('data-order="'+id+'" '+(person.needs?.life!=='active'?'disabled':''),label)).join('')+'</div><details><summary>Assignment</summary><p>Click a completed weapon position to man it.</p></details></section>';}
       html+='<h3>Local personnel · '+people.length+'</h3><div class="trench-person-list">'+people.map(s=>btn('data-person="'+s.id+'" aria-pressed="'+(s.id===this.personId||Boolean(this.workParty?.ids.includes(s.id)))+'"','<strong>'+esc(personName(s.id))+'</strong><span>'+esc(equipmentOf(state,s).tools?'Tools':equipmentOf(state,s).mortar?'Mortar kit':WEAPONS[equipmentOf(state,s).weapon].name)+' · '+esc(personnelActivity(s))+'</span>')).join('')+'</div>';
       const fallen=state.soldiers.filter(s=>s.needs?.life==='dead'&&state.squads.some(q=>q.id===s.squadId&&q.faction!=='enemy')&&(groupIds.has(s.garrisonId!)||connected.some(t=>distanceToPolyline(s,t.points).distance<t.width/2+3)));
       if(fallen.length)html+='<details><summary>Fallen here · '+fallen.length+'</summary><div class="trench-person-list">'+fallen.map(s=>btn('data-person="'+s.id+'"','<strong>'+esc(personName(s.id))+'</strong><span>'+esc(deathDescription(s))+'</span>')).join('')+'</div></details>';
@@ -342,13 +344,14 @@ export class TrenchPanel {
           commands=choices.map(c=>btn('data-fire="'+c.kind+'" title="'+esc(c.reason||'Choose target area')+'" '+(c.reason?'disabled':''),c.kind==='mortarHE'?'Fire HE':'Fire smoke')).join('')+commands;
           if(f.artillery&&f.artillery.size>1)commands+=btn('data-fire="mortarHE" data-battery','Battery salvo');
         }
-        html='<div data-command-primary><strong class="position-status">'+esc(status==='READY'&&issue?'UNAVAILABLE':status)+'</strong><p>'+rounds+' · '+crew.length+' / 2 crew</p><div class="position-actions">'+commands+'</div>'+(issue?'<p class="weapon-blocker">'+esc(issue)+'</p>':'')+'</div>';
+        const relief=crewReliefStatus(state,f);
+        html='<div data-command-primary><strong class="position-status">'+esc(status==='READY'&&issue?'UNAVAILABLE':status)+'</strong><p>'+rounds+' · '+crew.length+' / 2 crew</p>'+(relief?'<p class="command-issue">'+esc(relief)+'</p>':'')+'<div class="position-actions">'+commands+'</div>'+(issue?'<p class="weapon-blocker">'+esc(issue)+'</p>':'')+'</div>';
         if(f.artillery){
           const facing=f.facing??0,directions:[number,string][]=[[0,'South'],[Math.PI/2,'East'],[Math.PI,'North'],[-Math.PI/2,'West']];
           if(!directions.some(([a])=>a===facing))directions.unshift([facing,'Current · '+Math.round(facing*180/Math.PI)+'°']);
           html+='<label>Facing<select data-artillery-front>'+directions.map(([v,n])=>'<option value="'+v+'" '+(facing===v?'selected':'')+'>'+n+'</option>').join('')+'</select></label>';
         }
-        html+='<details><summary>Crew · '+crew.length+' / 2</summary><div class="crew-slots">'+crew.map(s=>'<div>'+esc(personName(s.id))+' · '+(s===operator?'Gunner':'Assistant')+btn('data-remove="'+s.id+'"','Remove')+'</div>').join('')+'</div><div class="position-actions">'+btn('data-assign="crew"','Choose person')+btn('data-remove-all','Release crew')+'</div>'+btn('data-replace-crew aria-pressed="'+Boolean(f.autoReplaceCrew)+'"','Replacement: '+(f.autoReplaceCrew?'automatic':'manual'))+'</details>';
+        html+='<details><summary>Crew · '+crew.length+' / 2</summary><div class="crew-slots">'+crew.map(s=>'<div>'+esc(personName(s.id))+' · '+(s===operator?'Gunner':'Assistant')+' · energy '+Math.round(s.needs?.energy??0)+btn('data-remove="'+s.id+'"','Remove')+'</div>').join('')+'</div><div class="position-actions">'+btn('data-assign="crew"','Choose person')+btn('data-remove-all','Release crew')+'</div>'+btn('data-replace-crew aria-pressed="'+Boolean(f.autoReplaceCrew)+'"','Replacement: '+(f.autoReplaceCrew?'automatic':'manual'))+'</details>';
         html+='<details><summary>Ammunition / weapon details</summary><dl>'+line('Installation',f.installation?'Installed':'Existing kit needed')+line('Network stores',kind==='mortar'?Math.floor(supply.local.mortarHE)+' HE / '+Math.floor(supply.local.mortarSmoke)+' smoke':Math.floor(supply.local.ammo)+' rounds')+line('Activity',esc(activeSupportMission(state,f)?supportPositionStatus(state,f,''):operator?.action??'No crew'))+'</dl>';
         for(const d of state.living!.supplyDemands?.filter(d=>d.consumer==='weapon'&&d.consumerId===f.id)??[])html+='<p>'+SUPPLY_LABELS[d.resource]+' · '+Math.floor(claimed(d))+' reserved / inbound · '+Math.ceil(unfulfilled(d))+' needed</p>';
         html+='<p>'+(f.artillery?'Field gun · 100–1600 m · forward 120° sector':kind==='emplacement'?'Automatically engages observed enemies inside its traverse. Cover blocks fire.':'Legacy mortar · ordered area fire')+'</p></details>';

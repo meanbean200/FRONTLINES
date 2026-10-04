@@ -6,6 +6,9 @@ export function transfer(from:Inventory,to:Inventory,key:Resource,amount:number)
 export function total(stock:Inventory):number{return RESOURCES.reduce((sum,key)=>sum+stock[key],0);}
 /** Rifle ammunition lives in the personal bandolier, not the carrier's supply sack. */
 export function carrierCapacity(stock:Inventory,sackCapacity:number):number{return sackCapacity+Math.min(60,stock.ammo);}
+/** Dedicated construction hauling uses a framed material load instead of the
+ * ordinary mixed-supply sack. Personal rifle ammunition remains separate. */
+export function constructionCarrierCapacity(stock:Inventory,sackCapacity:number):number{return Math.max(40,sackCapacity)+Math.min(60,stock.ammo);}
 export function transferBounded(from:Inventory,to:Inventory,key:Resource,amount:number,capacity:number):number {
   return transfer(from,to,key,Math.min(amount,Math.max(0,capacity-total(to))));
 }

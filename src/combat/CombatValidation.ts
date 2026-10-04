@@ -55,7 +55,7 @@ export function validCombatSystems(state:BattlefieldState):boolean {
     const q=state.squads.find(q=>q.id===request.squadId);
     if(!q||request.side!==(q.faction??'player')||!storedSupportSource(request.side,request.source,op.authored?.controllers[request.side]))return false;
   }
-  if(op.smokeFields!==undefined&&(!Array.isArray(op.smokeFields)||!op.smokeFields.every(s=>s&&point(s)&&Number.isInteger(s.id)&&[s.radius,s.until,s.born].every(nonnegative)&&s.until>=s.born)))return false;
+  if(op.smokeFields!==undefined&&(!Array.isArray(op.smokeFields)||!op.smokeFields.every(s=>s&&point(s)&&Number.isInteger(s.id)&&[s.radius,s.until,s.born].every(nonnegative)&&s.until>=s.born&&(s.side===undefined||['player','enemy'].includes(s.side))&&(s.source===undefined||['PLAYER','ENEMY_AI','CAMPAIGN_AI','AUTHORED_AI','SCRIPTED_SCENARIO','LEGACY_UNKNOWN'].includes(s.source)))))return false;
   if(op.blastEvents!==undefined&&(!Array.isArray(op.blastEvents)||!op.blastEvents.every(b=>b&&point(b)&&[b.at,b.radius].every(nonnegative))))return false;
   return true;
 }

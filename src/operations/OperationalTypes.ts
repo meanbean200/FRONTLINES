@@ -25,7 +25,17 @@ export interface OperationDefinition {
   enemyIntent:'defend'|'penetrate'|'contest'; prepared:readonly Faction[]; deployment:Record<Faction,number>;
   forces:Record<Faction,StartingForce>; persistent:boolean; defenseSeconds:number;
 }
-export interface OperationalCommandMemory {phase:'scouting'|'consolidating'|'committing'|'holding'|'withdrawing'; since:number; startingAble:number; reason:string; nextSupport?:number}
+export type ArmyPlanPhase='establishing-front'|'probing'|'assessing'|'preparing-attack'|'assaulting'|'consolidating'|'holding'|'reinforcing'|'counterattacking'|'withdrawing'|'forming-fallback'|'resupplying';
+export type OperationalSectorId='left'|'center'|'right'|'rear';
+export interface OperationalSectorMemory {id:OperationalSectorId;friendly:number;ready:number;contacts:number;suppression:number;ammo:number;prepared:number;support:number;exposed:boolean;center:Vec2}
+export interface FailedApproach {sector:Exclude<OperationalSectorId,'rear'>;at:number;loss:number;progress:number;heavyResistance:boolean;support:'none'|'he'|'smoke';cooldownUntil:number}
+export interface OperationalCommandMemory {
+  /** Compatibility phase used by existing physical construction/occupation. */
+  phase:'scouting'|'consolidating'|'committing'|'holding'|'withdrawing';since:number;startingAble:number;reason:string;nextSupport?:number;
+  planPhase?:ArmyPlanPhase;planSince?:number;reviewAt?:number;activeSector?:Exclude<OperationalSectorId,'rear'>;reserveIds?:number[];
+  sectors?:OperationalSectorMemory[];failedApproaches?:FailedApproach[];transitions?:{phase:ArmyPlanPhase;at:number;reason:string;sector?:Exclude<OperationalSectorId,'rear'>}[];
+  attack?:{sector:Exclude<OperationalSectorId,'rear'>;since:number;startingAble:number;startingDepth:number;support:'none'|'he'|'smoke'};
+}
 /** Plain serialized state only. Rules are versioned independently of unchanged combat rules. */
 export interface OperationRuntime {
   openFront?:{version:1;nextWorks:number;works:{side:Faction;trenchId:number;squadIds:number[];stage:'building'|'occupying'}[]};

@@ -46,6 +46,15 @@ export function validOperationalRuntime(state:BattlefieldState):boolean {
   if(!r.progress.every(p=>p&&r.objectives.some(o=>o.id===p.id)&&[p.heldFor,p.pressureFor].every(n=>nonnegative(n)&&n<=op.elapsed+.001)&&[p.satisfied,p.complete,p.failed].every(v=>typeof v==='boolean')&&typeof p.reason==='string'))return false;
   if(r.commander&&(!['scouting','consolidating','committing','holding','withdrawing'].includes(r.commander.phase)||!nonnegative(r.commander.since)||r.commander.since>state.elapsed+.001||!nonnegative(r.commander.startingAble)||typeof r.commander.reason!=='string'))return false;
   if(r.commander?.nextSupport!==undefined&&!nonnegative(r.commander.nextSupport))return false;
+  if(r.commander){
+    const c=r.commander,plans=['establishing-front','probing','assessing','preparing-attack','assaulting','consolidating','holding','reinforcing','counterattacking','withdrawing','forming-fallback','resupplying'],sectors=['left','center','right','rear'];
+    if(c.planPhase!==undefined&&!plans.includes(c.planPhase)||c.planSince!==undefined&&!nonnegative(c.planSince)||c.reviewAt!==undefined&&!nonnegative(c.reviewAt)||c.activeSector!==undefined&&!['left','center','right'].includes(c.activeSector))return false;
+    if(c.reserveIds!==undefined&&(!Array.isArray(c.reserveIds)||new Set(c.reserveIds).size!==c.reserveIds.length||!c.reserveIds.every(id=>state.squads.some(q=>q.id===id&&q.faction==='enemy'))))return false;
+    if(c.sectors!==undefined&&(!Array.isArray(c.sectors)||c.sectors.length!==4||new Set(c.sectors.map(s=>s.id)).size!==4||!c.sectors.every(s=>s&&sectors.includes(s.id)&&[s.friendly,s.ready,s.contacts,s.suppression,s.ammo,s.prepared,s.support].every(nonnegative)&&typeof s.exposed==='boolean'&&Number.isFinite(s.center.x)&&Number.isFinite(s.center.z))))return false;
+    if(c.failedApproaches!==undefined&&(!Array.isArray(c.failedApproaches)||c.failedApproaches.length>6||!c.failedApproaches.every(f=>f&&['left','center','right'].includes(f.sector)&&[f.at,f.loss,f.progress,f.cooldownUntil].every(nonnegative)&&typeof f.heavyResistance==='boolean'&&['none','he','smoke'].includes(f.support))))return false;
+    if(c.transitions!==undefined&&(!Array.isArray(c.transitions)||c.transitions.length>32||!c.transitions.every(t=>t&&plans.includes(t.phase)&&nonnegative(t.at)&&typeof t.reason==='string'&&(t.sector===undefined||['left','center','right'].includes(t.sector)))))return false;
+    if(c.attack!==undefined&&(!['left','center','right'].includes(c.attack.sector)||![c.attack.since,c.attack.startingAble].every(nonnegative)||!Number.isFinite(c.attack.startingDepth)||!['none','he','smoke'].includes(c.attack.support)))return false;
+  }
   if(op.objectives.length!==r.locations.length||!r.locations.every(l=>op.objectives.some(o=>o.id===l.id&&state.living?.crates.some(c=>c.id===o.cacheId))))return false;
   return r.reinforcements.every(source=>{const supply=source.side==='player'?state.living:state.living?.enemySupply;return supply&&JSON.stringify(supply.rear)===JSON.stringify(source.rear)&&JSON.stringify(supply.entry)===JSON.stringify(source.entry);});
 }

@@ -3,12 +3,12 @@ import type { TerrainSystem } from '../terrain/TerrainSystem';
 import type { SquadNavigation } from '../navigation/SquadNavigation';
 import type { TrenchSystem } from '../construction/TrenchSystem';
 import { TrenchNetwork } from './TrenchNetwork';
-import {crateAccess} from './SupplyAccess';
+import {crateAccess,crateOrderAccess} from './SupplyAccess';
 import { initializeLiving, LogisticsSystem } from './LogisticsSystem';
 import { CAMPAIGN_HOURS_PER_SECOND, dropCargo, freshNeeds, updateNeeds } from './NeedsSystem';
 import {calendarHoursPerSecond} from '../simulation/Calendar';
 import {readyWatch} from './Manpower';
-import { consume, localInventory, total, transfer, transferBounded,carrierCapacity } from './Inventory';
+import { consume, localInventory, total, transfer, transferBounded,carrierCapacity,constructionCarrierCapacity } from './Inventory';
 import { observation, RulePolicy } from './GarrisonPolicy';
 import { effectiveReadiness, inventory, RESOURCES, type DutyKind, type Facility, type Garrison, type Readiness, type Resource, type PersonalOrder } from './types';
 import { GarrisonJobBoard } from './GarrisonJobBoard';
@@ -131,7 +131,7 @@ export class GarrisonSystem {
     const w=this.state.living!,g=w.garrisons.find(g=>g.id===garrisonId&&g.faction!=='enemy'),c=w.crates.find(c=>c.id===crateId);
     const reject=(reason:string)=>({accepted:false,reason});
     if(!g||!c||this.state.operation&&this.state.operation.status!=='active')return reject('Choose an active friendly supply destination');
-    const reason=crateAccess(this.state,this.terrain,c,'player');if(reason)return reject(reason);
+    const reason=crateOrderAccess(this.state,this.terrain,c,'player');if(reason)return reject(reason);
     if(total(g.cache)>=w.logistics!.cacheCapacity)return reject('STORAGE FULL');
     if(this.state.soldiers.some(s=>s.duty?.crateId===c.id))return reject('RESERVED · recovery carrier already assigned');
     const candidates=this.people(g).filter(s=>s.needs?.life==='active'&&s.needs.energy>35&&!s.selfCare&&!s.combat?.careTask&&s.suppression<60&&!this.personalDuty(s)&&!w.facilities.some(f=>f.weaponCrewIds?.includes(s.id))&&(!s.duty||['rest','patrol'].includes(s.duty.kind))).sort((a,b)=>distance(a,c)-distance(b,c)||a.id-b.id);
@@ -311,7 +311,8 @@ export class GarrisonSystem {
     if(!outgoing)return;
     const busy=new Set(this.state.living!.facilities.flatMap(p=>[...(p.weaponCrewIds??[]),...(p.crewRelief?[p.crewRelief.incomingId]:[])]));
     const urgent=effectiveReadiness(g,this.state.elapsed)==='stand-to';
-    const candidates=active.filter(s=>!busy.has(s.id)&&!this.personBlock(s,g)&&!s.duty?.playerOrdered&&!s.combat?.careTask&&!hasEquipment(this.state,s,'medicalKit')&&s.needs!.energy>=65&&(!s.duty||['rest','patrol'].includes(s.duty.kind)||urgent&&(s.duty.kind==='construct'||s.duty.kind==='watch'&&s.duty.relieving===undefined&&!active.some(p=>p.duty?.relieving===s.id))))
+    const noncriticalWorker=(s:SoldierState)=>s.duty?.kind==='construct'&&this.state.living!.facilities.find(p=>p.id===s.duty?.facilityId)?.workOrder?.priority!=='critical';
+    const candidates=active.filter(s=>!busy.has(s.id)&&!this.personBlock(s,g)&&!s.duty?.playerOrdered&&!s.combat?.careTask&&!hasEquipment(this.state,s,'medicalKit')&&s.needs!.energy>=65&&(!s.duty||['rest','patrol'].includes(s.duty.kind)||urgent&&(noncriticalWorker(s)||s.duty.kind==='watch'&&s.duty.relieving===undefined&&!active.some(p=>p.duty?.relieving===s.id))))
       // Prefer a reserve or worker, then ordinary watch. Existing crew,
       // medical tasks, named handovers and explicit player posts stay protected.
       .sort((a,b)=>Number(a.duty?.kind==='watch')-Number(b.duty?.kind==='watch')||distance(a,f)-distance(b,f)||a.id-b.id);
@@ -942,7 +943,8 @@ export class GarrisonSystem {
       if(distanceLeft<arrival){d.routeIndex++;return;}
       const smoke=smokeMovement(this.state,s,target);if(smoke===0)return;
       const entering=d.entryPending&&distance(s,d.entryPoint??g.entrance)<4;
-      const movement=Math.min(distanceLeft,dt*2.1*postureSpeed(s)*(.6+s.needs!.energy*.004)*(.75+s.morale*.0025)*(entering?.55:1)*(this.state.operation?Math.max(.15,1-s.suppression/115):1)*smoke),dx=(target.x-s.x)/distanceLeft,dz=(target.z-s.z)/distanceLeft;
+      const materialLoad=s.duty?.kind==='haul'?(s.carried?.materials??0):0,heavyLoad=1-Math.min(.18,Math.max(0,materialLoad-16)/24*.18);
+      const movement=Math.min(distanceLeft,dt*2.1*postureSpeed(s)*(.6+s.needs!.energy*.004)*(.75+s.morale*.0025)*(entering?.55:1)*(this.state.operation?Math.max(.15,1-s.suppression/115):1)*smoke*heavyLoad),dx=(target.x-s.x)/distanceLeft,dz=(target.z-s.z)/distanceLeft;
       // Right-side lanes inside the corridor; destinations remain on the berm, clear of through traffic.
       const final=d.routeIndex===d.route.length-1,offset=final||detouring?0:.42;
       const aim={x:target.x+dz*offset,z:target.z-dx*offset};const ad=distance(s,aim)||1;
@@ -1091,7 +1093,7 @@ export class GarrisonSystem {
           reconcileSupplyDemands(this.state);
           const inbound=constructionDemand(this.state,construction.id)?.claims.filter(c=>c.source==='carrier'&&c.id!==s.id).reduce((n,c)=>n+c.amount,0)??0;
           const reserved=crate?Math.max(0,construction.materialCost-construction.stock.materials-inbound):claimedAt(this.state,constructionKey(construction.id),d.pickupStoreId?'store':'local',d.pickupStoreId??g.id);
-          transferBounded(source,carried,'materials',Math.min(8-carried.materials,reserved),carrierCapacity(carried,w.logistics!.carrierCapacity));
+          transferBounded(source,carried,'materials',Math.min(Math.max(0,40-carried.materials),reserved),constructionCarrierCapacity(carried,w.logistics!.carrierCapacity));
         }
         else if(!d.pickupLoaded&&source&&!d.recoveryLoad){let space=Math.max(0,carrierCapacity(carried,w.logistics!.carrierCapacity)-total(carried));const local=localInventory(this.state,g),count=this.people(g).filter(p=>p.needs!.life!=='dead').length;
           if(!d.patientId&&!d.crateId){reconcileSupplyDemands(this.state);for(const demand of forwardClaims(this.state,g.id)){

@@ -51,7 +51,13 @@ export function supportMissionText(m:SupportMission,now:number):string{
   return m.stage==='preparing'?`Preparing · ${Math.max(0,Math.ceil(m.launchAt-now))} s to fire`:m.stage==='flight'?`Round in flight · ${Math.max(0,Math.ceil(m.impactAt-now))} s to impact`:m.stage==='complete'?'Impact complete':m.reason;
 }
 export interface SupportMission {id:number;squadId:number;positionId?:number;weapon?:'field-gun';kind:SupportKind;target:Vec2;impact:Vec2;requestedAt:number;launchAt:number;impactAt:number;stage:'preparing'|'flight'|'complete'|'cancelled';reason:string;dangerRadius:number;confirmedRisk:boolean;source?:SupportSource;side?:'player'|'enemy';ammoConsumed?:number;crewIds?:number[]}
-export interface SmokeField extends Vec2 {id:number;radius:number;until:number;born:number}
+export interface SmokeField extends Vec2 {
+  id:number;radius:number;until:number;born:number;
+  /** Command provenance is presentation knowledge, never targeting authority.
+   * It lets the renderer keep a player's own smoke visible without revealing
+   * an unobserved opposing launch. */
+  side?:'player'|'enemy';source?:SupportSource;
+}
 export interface BlastEvent extends Vec2 {id:number;at:number;radius:number}
 export function migrateSupportPositions(state:BattlefieldState):void{
   for(const m of state.operation?.supportMissions??[]){
@@ -142,7 +148,7 @@ export function stepSupport(state:BattlefieldState,terrain:TerrainSystem):void {
     }
     if(mission.stage==='flight'&&state.elapsed>=mission.impactAt){
       mission.stage='complete';mission.reason='Mission complete';
-      if(mission.kind!=='mortarHE'){op.smokeFields.push({id:mission.id,...mission.impact,radius:mission.kind==='smokeGrenades'?11:18,born:state.elapsed,until:state.elapsed+60});continue;}
+      if(mission.kind!=='mortarHE'){op.smokeFields.push({id:mission.id,...mission.impact,radius:mission.kind==='smokeGrenades'?11:18,born:state.elapsed,until:state.elapsed+60,side:mission.side??state.squads.find(q=>q.id===mission.squadId)?.faction??'player',source:mission.source??'LEGACY_UNKNOWN'});continue;}
       const heavy=mission.weapon==='field-gun',pressureRadius=heavy?65:40,woundRadius=heavy?28:18;
       op.blastEvents.push({id:mission.id,...mission.impact,at:state.elapsed,radius:heavy?34:18});
       for(const s of state.soldiers){

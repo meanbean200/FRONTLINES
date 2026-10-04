@@ -4,6 +4,7 @@ import {pointOnRoad,ROADS} from '../terrain/WorldLayout';
 import {balance,total,transfer} from './Inventory';
 import {SaveSystem} from '../persistence/SaveSystem';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
+import {inventory} from './types';
 
 function cutRoad(){
   const sim=createStudyScenario(),s=sim.state,w=s.living!,g=w.garrisons[0];
@@ -35,5 +36,19 @@ describe('physical roadhead clearance',()=>{
     transfer(g.forwardStock,w.rearStock,'materials',1);
     s.soldiers[0].duty={kind:'haul',stage:'pickup',destination:point,route:[point],routeIndex:0,since:0,until:100,reason:'Collect physical forward shipment',blockedFor:0};
     sim.garrisons.logistics.step(.05);expect(g.forward).toEqual(point);
+  });
+  it('serializes one unload slot and a spaced three-truck queue, then clears every finite load',()=>{
+    const sim=createStudyScenario(),s=sim.state,w=s.living!,g=w.garrisons[0],shuttles=w.trucks.filter(t=>t.role==='shuttle');
+    w.nextDelivery=1e9;g.forwardStock=inventory();w.logistics!.forwardCapacity=400;
+    const road=ROADS[1];g.forward=pointOnRoad(road,180);
+    shuttles.forEach((t,i)=>{Object.assign(t,pointOnRoad(road,150-i*8));t.garrisonId=g.id;t.state='outbound';t.route=[{...g.forward}];t.routeIndex=0;t.destination={...g.forward};t.cargo=inventory();transfer(w.rearStock,t.cargo,'materials',20);});
+    sim.garrisons.logistics.step(.05);
+    expect(shuttles.filter(t=>t.roadhead?.role==='unloading')).toHaveLength(1);
+    expect(shuttles.filter(t=>t.roadhead?.role==='queued').map(t=>t.roadhead!.rank).sort()).toEqual([1,2]);
+    expect(new Set(shuttles.map(t=>JSON.stringify(t.roadhead!.wait))).size).toBe(3);
+    const copy=new BattlefieldSimulation(new SaveSystem().parse(JSON.stringify(s)));
+    for(let i=0;i<2400&&g.forwardStock.materials<60;i++){s.elapsed+=.05;copy.state.elapsed+=.05;sim.garrisons.logistics.step(.05);copy.garrisons.logistics.step(.05);}
+    expect(copy.state).toEqual(s);expect(g.forwardStock.materials).toBe(60);expect(shuttles.every(t=>t.state==='returning'||t.state==='idle')).toBe(true);
+    for(const n of Object.values(balance(s)))expect(Math.abs(n)).toBeLessThan(1e-7);
   });
 });

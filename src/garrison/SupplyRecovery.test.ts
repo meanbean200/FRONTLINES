@@ -5,10 +5,21 @@ import {balance,total,transfer,consume} from './Inventory';
 import {SaveSystem} from '../persistence/SaveSystem';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {createOperationalBattle} from '../operations/createOperationalBattle';
+import {createOperation} from '../operations/createOperation';
 import {defaultBattleSetup,resolveBattleSetup} from '../operations/BattleSetup';
 import {defaultEndlessOptions} from '../operations/EndlessTypes';
 import {distance} from '../core/types';
+import {crateAccess,crateOrderAccess,cratePresenceStatus} from './SupplyAccess';
 describe('player-ordered physical supply recovery',()=>{
+ it('accepts an observed recovery intent before friendly presence exists and still transfers only after arrival',()=>{
+  const state=createOperation('campaign'),sim=new BattlefieldSimulation(state),w=state.living!,g=w.garrisons.find(g=>g.faction!=='enemy')!,friends=state.soldiers.filter(p=>state.squads.find(q=>q.id===p.squadId)?.faction!=='enemy');
+  const observer=friends[0],crate={id:state.nextEntityId++,x:observer.x+45,z:observer.z,stock:inventory()};w.crates.push(crate);transfer(w.rearStock,crate.stock,'materials',16);
+  expect(crateOrderAccess(state,sim.terrain,crate,'player')).toBe('');expect(crateAccess(state,sim.terrain,crate,'player')).toContain('friendly presence required within 30 m');expect(cratePresenceStatus(state,crate,'player')).toContain('nearest 45 m');
+  const before=crate.stock.materials,result=sim.garrisons.recoverSupplies(crate.id,g.id);expect(result.accepted,result.reason).toBe(true);expect(crate.stock.materials).toBe(before);
+  const carrier=state.soldiers.find(p=>p.duty?.crateId===crate.id)!;expect(carrier).toBeDefined();for(let i=0;i<2400&&!carrier.duty?.recoveryLoad;i++)sim.step(.05);expect(carrier.duty?.recoveryLoad?.materials).toBeGreaterThan(0);expect(crate.stock.materials).toBeLessThan(before);
+  const hostile=state.soldiers.find(p=>state.squads.find(q=>q.id===p.squadId)?.faction==='enemy')!;Object.assign(hostile,crate);expect(crateAccess(state,sim.terrain,crate,'player')).toBe('AREA CONTESTED');
+  expect(Object.values(balance(state)).every(n=>Math.abs(n)<1e-6)).toBe(true);
+ });
  it('finishes a return when its recoverable cargo was consumed en route instead of waiting for nonexistent stock',()=>{
   const sim=createStudyScenario(),s=sim.state,w=s.living!,g=w.garrisons[0];g.nextSupport=1e9;
   for(let i=0;i<600;i++)sim.step(.05);

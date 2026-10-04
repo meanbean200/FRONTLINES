@@ -22,6 +22,16 @@ export function supportPositionStatus(state:BattlefieldState,f:Facility,reason:s
   }
   return reason.replace('No indirect he ammunition','No HE shells').replace('No indirect smoke ammunition','No smoke shells');
 }
+export function crewReliefStatus(state:BattlefieldState,f:Facility):string|undefined {
+  const crew=crewAt(state,f).filter(p=>p.needs?.life==='active'),tired=crew.slice().sort((a,b)=>(a.needs?.energy??100)-(b.needs?.energy??100)||a.id-b.id)[0];
+  const relief=f.crewRelief;
+  if(relief){const incoming=state.soldiers.find(p=>p.id===relief.incomingId);return relief.phase==='handover'?'HANDOVER':incoming?`Relief approaching · ${Math.round(distance(incoming,incoming.duty?.destination??f))} m`:'Relief requested';}
+  if(tired&&tired.needs!.energy<45){const busy=new Set(state.living?.facilities.flatMap(p=>p.weaponCrewIds??[])??[]),side=state.living?.garrisons.find(g=>g.id===f.garrisonId)?.faction??'player';
+    const available=state.soldiers.some(p=>p.needs?.life==='active'&&(state.squads.find(q=>q.id===p.squadId)?.faction??'player')===side&&!busy.has(p.id)&&p.needs!.energy>=65&&!p.combat?.careTask&&p.duty?.kind!=='haul');
+    return available?`Gunner energy ${Math.round(tired.needs!.energy)} · relief requested`:'NO RESTED RELIEF AVAILABLE';
+  }
+  if(crew.some(p=>p.duty?.kind==='sleep'||p.action==='sleeping'))return 'Crew resting';
+}
 
 /** Presentation only: the gun never gains crew, targets or readiness from this readout. */
 export function crewWeaponReadout(state:BattlefieldState,q:SquadState):string|undefined{

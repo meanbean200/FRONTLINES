@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {createOperation} from '../operations/createOperation';
 import {equipWeapon} from '../combat/Weapons';
-import {crewWeaponReadout,actionableWeaponReason,supportPositionStatus} from './WeaponReadout';
+import {crewWeaponReadout,actionableWeaponReason,supportPositionStatus,crewReliefStatus} from './WeaponReadout';
 import {selectionReadout} from './FieldReadout';
 import {createPlayableSandbox} from '../simulation/createBattlefield';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
@@ -18,6 +18,12 @@ describe('honest crew weapon feedback',()=>{
     helper.suppression=80;expect(supportPositionStatus(state,f,'Need 2 ready crew within 12 m · regroup the team')).toContain('heavy suppression');helper.suppression=0;
     state.operation!.supportMissions=[{id:999,squadId:q.id,positionId:f.id,kind:'mortarHE',target:{x:0,z:100},impact:{x:0,z:100},requestedAt:0,launchAt:10,impactAt:15,stage:'flight',reason:'Round in flight',dangerRadius:40,confirmedRisk:false,ammoConsumed:1}];state.elapsed=11;
     const before=JSON.stringify(state);expect(supportPositionStatus(state,f,'READY')).toBe('Round in flight · 4 s to impact');expect(JSON.stringify(state)).toBe(before);
+  });
+  it('shows requested, approaching and handover crew-relief states without changing the assignment',()=>{
+    const state=createOperation('meeting'),q=state.squads.find(q=>q.faction==='player')!;state.soldiers.find(s=>s.squadId===q.id)!.equipment!.mortar=true;const f=preparedPosition(state,q.id,'mortar'),crew=state.soldiers.filter(s=>f.weaponCrewIds!.includes(s.id)),incoming=state.soldiers.find(s=>s.squadId===q.id&&!f.weaponCrewIds!.includes(s.id))!;
+    crew[0].needs!.energy=40;expect(crewReliefStatus(state,f)).toContain('relief requested');
+    incoming.duty={kind:'watch',destination:{x:f.x,z:f.z},route:[],routeIndex:0,since:0,until:100,reason:'Relief approaching weapon post',blockedFor:0,facilityId:f.id};f.crewRelief={incomingId:incoming.id,outgoingId:crew[0].id,since:0,reason:'rest',phase:'approaching'};
+    expect(crewReliefStatus(state,f)).toContain('Relief approaching');f.crewRelief.phase='handover';expect(crewReliefStatus(state,f)).toBe('HANDOVER');
   });
   it('distinguishes travel, setup, crew loss and ready observation without changing state',()=>{
     const state=createOperation('meeting'),q=state.squads.find(q=>q.faction!=='enemy'&&state.soldiers.some(s=>s.squadId===q.id&&s.equipment?.weapon==='crew-mg'))!;

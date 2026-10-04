@@ -32,14 +32,29 @@ export function ownsCrate(state:BattlefieldState,c:Crate,side:Faction):boolean {
 export function crateVisible(state:BattlefieldState,terrain:TerrainSystem,c:Crate,side:Faction='player'):boolean {
   return ownsCrate(state,c,side)||factionSeesStock(state,terrain,c,side);
 }
+/** An observed pile may receive an intent before local control exists. The
+ * carrier still has to walk there and crateAccess rechecks physical authority
+ * before a single unit is transferred. */
+export function crateOrderAccess(state:BattlefieldState,terrain:TerrainSystem,c:Crate,side:Faction):string {
+  if(total(c.stock)<.001)return 'EMPTY';
+  if(!crateVisible(state,terrain,c,side))return 'NO CURRENT OBSERVATION';
+  return '';
+}
+export function cratePresenceStatus(state:BattlefieldState,c:Crate,side:Faction):string {
+  const friendly=state.soldiers.filter(s=>s.health>0&&s.needs?.life==='active'&&(state.squads.find(q=>q.id===s.squadId)?.faction??'player')===side)
+    .sort((a,b)=>distance(a,c)-distance(b,c)||a.id-b.id)[0];
+  if(!friendly)return 'Friendly presence required within 30 m';
+  const metres=Math.round(distance(friendly,c));
+  return metres<=30?`Friendly presence: ${metres} m`:`Friendly presence required within 30 m · nearest ${metres} m`;
+}
 /** Authority checks presence; feedback never identifies or locates hidden defenders. */
 export function crateAccess(state:BattlefieldState,terrain:TerrainSystem,c:Crate,side:Faction):string {
   if(total(c.stock)<.001)return 'EMPTY';
   if(!crateVisible(state,terrain,c,side))return 'NO CURRENT OBSERVATION';
   const site=state.operation?.objectives.find(o=>o.cacheId===c.id);
-  if(site&&(site.owner!==side||site.contested))return 'AREA NOT SECURED';
-  if(state.soldiers.some(s=>s.health>0&&s.needs?.life==='active'&&(state.squads.find(q=>q.id===s.squadId)?.faction??'player')!==side&&distance(s,c)<25))return 'AREA NOT SECURED';
-  if(!ownsCrate(state,c,side)&&state.operation&&!state.soldiers.some(s=>s.needs?.life==='active'&&(state.squads.find(q=>q.id===s.squadId)?.faction??'player')===side&&distance(s,c)<30))return 'AREA NOT SECURED · bring personnel to the stock';
+  if(site&&(site.owner!==side||site.contested))return 'AREA CONTESTED';
+  if(state.soldiers.some(s=>s.health>0&&s.needs?.life==='active'&&(state.squads.find(q=>q.id===s.squadId)?.faction??'player')!==side&&distance(s,c)<25))return 'AREA CONTESTED';
+  if(!ownsCrate(state,c,side)&&state.operation&&!state.soldiers.some(s=>s.needs?.life==='active'&&(state.squads.find(q=>q.id===s.squadId)?.faction??'player')===side&&distance(s,c)<30))return 'AREA NOT SECURED · friendly presence required within 30 m';
   return '';
 }
 /** Click anchors are the same physical boxes used by LivingRenderer. */

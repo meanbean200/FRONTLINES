@@ -2,13 +2,19 @@ import {describe,it,expect,vi} from 'vitest';
 import {createOperation} from '../operations/createOperation';
 import {BattlefieldSimulation} from './BattlefieldSimulation';
 import {stepBuildings} from './BuildingSystem';
-import {doorPoint,firingPoints,floorHeight,stairPoint} from '../terrain/BuildingGeometry';
+import {buildingFloors,doorPoint,firingPoints,floorHeight,stairPoint,structureBoxes} from '../terrain/BuildingGeometry';
 import {SaveSystem} from '../persistence/SaveSystem';
 import {bodyFloor} from '../operations/Visibility';
 import {distance} from '../core/types';
 import {updateNeeds} from '../garrison/NeedsSystem';
 import {clearAimPoint,resolveShot} from '../combat/Ballistics';
 describe('shared usable building geometry',()=>{
+  it('turns a ruined upper storey into physical rubble and evacuates surviving occupants through the exit route',()=>{
+    const sim=new BattlefieldSimulation(createOperation('advance',1944)),s=sim.state,q=s.squads[0],p=s.soldiers[0],id=sim.terrain.buildings.findIndex(b=>buildingFloors(b)===2),b=sim.terrain.buildings[id],target=firingPoints(b)[0];
+    s.buildingChanges=[{id,condition:'ruined',damage:140}];q.order={type:'hold',issuedAt:0,building:{id,floor:1}};Object.assign(p,target);p.building={id,floor:1,vertical:floorHeight(b),route:[],index:0,stage:'station',target,targetFloor:1,stairTime:0};
+    sim.terrain.syncModifications();const boxes=structureBoxes(b,'ruined');expect(boxes.some(box=>box.role==='rubble')).toBe(true);expect(boxes.some(box=>box.role==='roof'||box.layer>0)).toBe(false);
+    stepBuildings(s,sim.terrain,sim.navigation,.05);expect(p.building?.exitRequested).toBe(true);expect(p.building?.targetFloor).toBe(0);expect(new SaveSystem().parse(JSON.stringify(s)).buildingChanges).toEqual(s.buildingChanges);
+  });
   it.each([false,true])('cancels an exterior approach without routing through the house, including saved bad exits (%s)',savedExit=>{
     const sim=new BattlefieldSimulation(createOperation('advance',1944)),s=sim.state,q=s.squads[0],p=s.soldiers[0],id=48,b=sim.terrain.buildings[id];
     for(const other of s.soldiers){other.x=1800;other.z=1800;if(other!==p&&other.squadId===q.id)other.needs!.life='incapacitated';}

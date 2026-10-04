@@ -1539,3 +1539,94 @@ player acceptance gates pass. Failed experiments and working runs are retained.
   artillery barrages; longer combined-fire/GC acceptance also remains open.
 - Only scoped delta-4 implementation, tests, package and selected evidence belong
   to this delivery. No original campaign save or failed run was overwritten.
+
+### Player Playtest Delta 5 — army planning and battlefield readability
+
+Baseline rechecked on 2026-10-04: `master` at
+`20dbf91a65ae21814f8acc43c1ccb9b62f78b0fc`. Delta 4 is preserved. These were
+the required initial status boundaries before Delta-5 implementation:
+
+- **Enemy AI quality:** `PLAYER-REJECTED / EXISTING STRATEGIC FOUNDATION PRESENT / MAJOR P0 OVERHAUL OPEN`
+- **Material carry throughput:** `PLAYER-REJECTED / CURRENT GENERIC CARRIER CAPACITY 16 SOURCE-CONFIRMED / OPEN`
+- **Truck pileup at roadhead:** `USER-REPORTED WITH SCREENSHOT / MOVING ROAD QUEUE EXISTS / DESTINATION-LEVEL QUEUE NOT ESTABLISHED / EXACT ROOT CAUSE UNKNOWN / P0 OPEN`
+- **Automatic weapon crew rotation:** `EXISTING PHYSICAL CREW-RELIEF FOUNDATION VERIFIED / PLAYER REQUESTS RELIABLE MG + FIELD-GUN AUTOMATIC ROTATION / ACCEPTANCE OPEN`
+- **Loose supply recovery:** `USER-REPORTED / CURRENT 30 M FRIENDLY-PRESENCE SECURITY GATE SOURCE-CONFIRMED / UX PLAYER-REJECTED / OPEN`
+- **House damage models:** `PLAYER REQUESTED / DAMAGE STATE + ALTERED STRUCTURE FOUNDATION EXISTS / VISUAL-PHYSICAL DAMAGE MODEL INCOMPLETE / OPEN`
+- **Smoke visibility:** `PLAYER-REJECTED AFTER DELTA 4 / SMOKE RENDERING EXISTS / VISUAL READABILITY FAILED / P0 OPEN`
+- **Large population:** `MEASURED FAILED AT 512/1000 / P0 OPEN`
+- **Original uphill direct fire:** `CONTROLLED FIXES EXIST / ORIGINAL USER INCIDENT NOT REPRODUCED / PLAYER ACCEPTANCE OPEN`
+
+#### Delta-5 implementation evidence and claim ceiling
+
+- **Army-level commander — IMPLEMENTED / focused deterministic verification;
+  long seeded player acceptance OPEN.** The observation firewall now supplies
+  only own formations, own prepared positions/logistics, public terrain and
+  delivered reports. The commander stores bounded left/centre/right/rear sector
+  summaries, a movable one- or two-formation reserve, plan transitions and
+  reasons, an active sector, physical support choice, and failed-approach
+  cooldown records. Plans can establish, probe, assess, prepare, assault,
+  consolidate, reinforce, counterattack, hold, withdraw/form fallback, or
+  resupply. Low ammunition and blocked own transport reduce offensive ambition.
+  HE/smoke requests still require real crew, ammunition, readiness, range and a
+  recent delivered report. This is deterministic adaptation, not learning.
+- **Roadhead traffic — destination queue IMPLEMENTED / controlled 3-truck
+  save-load and conservation VERIFIED / original screenshot cause UNKNOWN.** A
+  roadhead serializes one unload owner and ranked physical wait points. Followers
+  stop on the road, advance after the head departs, and retain finite cargo.
+  Bounded stalled-approach retries select another nearby road apron without
+  teleporting truck or stock. Reproduction of the exact player incident remains
+  required before assigning its root cause.
+- **Construction hauling — 40-unit dedicated material load IMPLEMENTED / focused
+  conservation verification; calibration acceptance OPEN.** Ordinary mixed sacks
+  remain 16. Dedicated construction runs may carry 40 materials plus the separate
+  rifle bandolier. Loads above 16 receive at most an 18% movement reduction, so
+  increased capacity cannot be cancelled by an equal speed penalty. Inspectors
+  show `Materials n / 40`; works show material quantity and carrier count en route.
+- **Weapon relief — shared MG/field-gun mechanism RETAINED AND EXPOSED / focused
+  repeated-handover persistence VERIFIED / player acceptance OPEN.** Installed
+  MGs and field guns use the same one-person-at-a-time physical approach and
+  handover. Active casualty care, loaded haul duties, medical personnel, other
+  weapon crews and critical construction stay protected. UI reports gunner
+  energy, requested/approaching distance, handover, rest, and no-rested-relief.
+- **Loose stock — observed recovery intent IMPLEMENTED / physical pickup and
+  save-load VERIFIED / player acceptance OPEN.** An observed pile can receive a
+  recovery order before a friendly is inside the old hidden radius. A selected
+  person walks there; the authoritative 30 m control and generic contested-area
+  checks run again before pickup. The panel states the required 30 m presence or
+  nearest friendly distance without revealing a hidden opponent. No command-time
+  transfer occurs.
+- **Buildings — stronger shared damaged/ruined geometry IMPLEMENTED / focused
+  simulation and persistence VERIFIED / visual player acceptance OPEN.** Damaged
+  roofs and wall breaches already shared render/LOS/ballistic authority. Ruins now
+  delete upper floors/roof, reduce firing capacity, add deterministic physical
+  masonry piles, and route surviving upper-storey occupants out instead of leaving
+  them embedded in removed geometry. Artillery remains the damage authority.
+- **Smoke — all-quality footprint pass IMPLEMENTED / renderer footprint tests +
+  automated Edge screenshots VERIFIED / player acceptance OPEN.** Low uses 18 large volumes,
+  Balanced 28, and High 40, including dense low skirts. Puff centres spread over
+  the simulation radius rather than a faint central knot. Player-ordered smoke is
+  visible from command provenance even without current friendly LOS; unobserved
+  enemy smoke still reveals nothing. Graphics quality never changes simulation
+  opacity. The automated capture used a real finite player smoke-grenade order,
+  preserved one active field at every setting, emitted 18/28/40 particles, and
+  produced no page errors; that is visual evidence, not subjective player approval.
+- **Large population — active-AI ladder MEASURED FAILED / P0 OPEN.** A production
+  2.4 km Open Front state was deliberately scaled to 512 people for profiling only,
+  passed save validation, and ran normal fixed ticks. It recorded a live enemy
+  building work, two unloading supply convoys, 859 shots, a player smoke order,
+  and commander transitions from establishing to reinforcing before browser load.
+  During each 15-second Edge sample the commander remained active with a two-squad
+  reserve, the work remained physical, and another 470–489 shots were fired.
+  Balanced 1x/5x measured **66.8/66.7 ms p95** and achieved **0.974x/0.986x**;
+  High 1x/5x measured **66.8/60.8 ms p95** and achieved **0.975x/1.010x**.
+  Combat dominated fixed-tick cost at roughly **50.5–53.2 ms p95**. This stronger
+  workload fails both the 16.7 ms p95 target and requested 5x; lowering quality is
+  not a fix. Sector summaries still use the bounded three-second cadence and no
+  new whole-army pairwise planner was added.
+- **Original uphill direct fire — P0 / PLAYER ACCEPTANCE OPEN.** Delta 5 does not
+  relabel the prior controlled fixes as reproduction of the original incident.
+
+Delta-5 code regression after these changes is **1059/1059 PASS across 163 files**.
+The standalone production build passes. Long seeded sessions, the original truck
+screenshot reproduction, original uphill-fire reproduction, player visual judgment,
+and ordinary-play 512-person acceptance remain explicitly open.

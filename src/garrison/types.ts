@@ -110,6 +110,9 @@ export interface Truck extends Vec2 {
   garrisonId?: number; reason: string; resume?: 'outbound' | 'returning';
   destination?:Vec2;blockedSince?:number;nextRepath?:number;
   abandoned?:boolean;interdictedSince?:number;salvageId?:number;
+  /** Serialized destination traffic reservation. Cargo remains on this truck;
+   * queue points are physical road positions, never remote handoffs. */
+  roadhead?:{role:'unloading'|'queued';rank:number;since:number;apron:Vec2;wait:Vec2;progressAt:number;last:Vec2;retries:number};
 }
 export interface Crate extends Vec2 { id: number; stock: Inventory; droppedBy?:number; faction?:'player'|'enemy'; truckId?:number }
 /** Accounting claims, never another inventory. Sources refer to physical holders. */

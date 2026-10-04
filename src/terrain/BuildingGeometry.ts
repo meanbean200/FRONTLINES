@@ -2,7 +2,7 @@ import type {BuildingSite} from './WorldFeatures';
 import type {Vec2} from '../core/types';
 export type BuildingCondition='intact'|'damaged'|'ruined';
 export interface BuildingChange {id:number;condition:BuildingCondition;damage:number}
-export interface StructureBox {x:number;y:number;z:number;rx:number;ry:number;rz:number;pitch?:number;material:'masonry'|'timber';layer:number;role:'wall'|'floor'|'roof'|'stair'|'trim'|'foundation'}
+export interface StructureBox {x:number;y:number;z:number;rx:number;ry:number;rz:number;pitch?:number;material:'masonry'|'timber';layer:number;role:'wall'|'floor'|'roof'|'stair'|'trim'|'foundation'|'rubble'}
 /** Stable architectural variety without moving saved doors, stairs or occupants. */
 export function buildingStyle(b:BuildingSite){
   const variant=Math.abs(Math.round(b.x*13+b.z*7+b.width*31))%4;
@@ -18,7 +18,8 @@ export const stairPoint=(b:BuildingSite):Vec2=>({x:b.x+b.width/2-2,z:b.z});
 export function structureBoxes(b:BuildingSite,condition:BuildingCondition='intact'):StructureBox[]{
   const out:StructureBox[]=[],floors=buildingFloors(b),fh=floorHeight(b);
   const add=(x:number,y:number,z:number,w:number,h:number,d:number,layer:number,role:StructureBox['role'],material:StructureBox['material']='masonry')=>{if(w>.001&&h>.001&&d>.001)out.push({x:b.x+x,y,z:b.z+z,rx:w/2,ry:h/2,rz:d/2,layer,role,material});};
-  for(let level=0;level<floors;level++){
+  const usableFloors=condition==='ruined'?1:floors;
+  for(let level=0;level<usableFloors;level++){
     const base=level*fh;
     // Upper floor has a real stair opening, rather than a renderer-only stair.
     if(level===0)add(0,.07,0,b.width,.14,b.depth,level,'floor','timber');
@@ -35,7 +36,13 @@ export function structureBoxes(b:BuildingSite,condition:BuildingCondition='intac
       add(face*b.width/2,base+Math.min(low,wallHeight)/2,0,.42,Math.min(low,wallHeight),half*2,level,'wall');if(wallHeight>high)add(face*b.width/2,base+(high+wallHeight)/2,0,.42,wallHeight-high,half*2,level,'wall');
     }
   }
-  if(floors===2)for(let step=0;step<12;step++){const h=(step+1)/12*fh;add(b.width/2-2,h/2,-2+(step+.5)/12*4,1.25,h,4/12,0,'stair','timber');}
+  if(condition==='ruined'){
+    // Low, deterministic masonry piles change both the silhouette and physical
+    // passages. They use the same boxes as rendering, bullets and collision.
+    const piles=[[-.31,-.22,.23,.18],[.27,.18,.19,.25],[-.05,.31,.28,.14],[.34,-.29,.15,.20]] as const;
+    for(const [x,z,w,d] of piles)add(x*b.width,.24,z*b.depth,w*b.width,.48,d*b.depth,0,'rubble');
+  }
+  if(condition!=='ruined'&&floors===2)for(let step=0;step<12;step++){const h=(step+1)/12*fh;add(b.width/2-2,h/2,-2+(step+.5)/12*4,1.25,h,4/12,0,'stair','timber');}
   // Sills, lintels and folded-open shutters frame the actual firing apertures.
   for(let level=0;level<floors;level++)for(const side of [-1,1]){
     if(condition==='ruined')continue;
@@ -70,6 +77,7 @@ export function structureBoxes(b:BuildingSite,condition:BuildingCondition='intac
   }
   return out;
 }
-export function firingPoints(b:BuildingSite):Vec2[]{
-  return [-1,1].flatMap(side=>[-1,0,1].map(col=>({x:b.x+col*b.width*.28,z:b.z+side*(b.depth/2-.8)}))).concat([-1,1].map(side=>({x:b.x+side*(b.width/2-.8),z:b.z})));
+export function firingPoints(b:BuildingSite,condition:BuildingCondition='intact'):Vec2[]{
+  const all=[-1,1].flatMap(side=>[-1,0,1].map(col=>({x:b.x+col*b.width*.28,z:b.z+side*(b.depth/2-.8)}))).concat([-1,1].map(side=>({x:b.x+side*(b.width/2-.8),z:b.z})));
+  return condition==='ruined'?[all[0],all[2],all[5],all[7]]:condition==='damaged'?all.filter((_,i)=>i!==5):all;
 }

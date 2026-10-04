@@ -31,7 +31,7 @@ function exteriorApproach(from:Vec2,id:number,terrain:TerrainSystem,nav:SquadNav
 }
 
 export function beginBuildingTravel(s:SoldierState,id:number,level:0|1,target:Vec2,terrain:TerrainSystem,nav:SquadNavigation):boolean {
-  const site=terrain.buildings[id];if(!site||level>=buildingFloors(site))return false;
+  const site=terrain.buildings[id];if(!site)return false;const floors=terrain.buildingCondition(id)==='ruined'?1:buildingFloors(site);if(level>=floors)return false;
   const entrance=doorPoint(site,8),approach=exteriorApproach(s,id,terrain,nav);if(!approach.length)return false;
   s.building={id,floor:0,vertical:0,route:[...approach,entrance,doorPoint(site,-1),...(level?[{...stairPoint(site),z:site.z-2}]:[{x:site.x,z:site.z},target])],index:0,stage:'approach',target:{...target},targetFloor:level,stairTime:0};return true;
 }
@@ -45,7 +45,7 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
     const people=state.soldiers.filter(s=>s.squadId===q.id&&s.needs?.life==='active');
     if(site&&order)for(const s of people){
       if(detachedFromFormation(state,s)||s.building||s.combat?.owner==='reaction'||s.combat?.owner==='casualty'||s.selfCare&&s.selfCare.stage!=='return')continue;
-      const points=firingPoints(site),level=Math.min(order.floor,buildingFloors(site)-1) as 0|1;
+      const condition=terrain.buildingCondition(order.id),points=firingPoints(site,condition),level=Math.min(order.floor,condition==='ruined'?0:buildingFloors(site)-1) as 0|1;
       const occupied=state.soldiers.filter(p=>p!==s&&p.needs?.life==='active'&&sides.get(p.squadId)===(q.faction??'player')).flatMap(p=>p.selfCare?.home.building?.id===order.id&&p.selfCare.home.building.floor===level?[p.selfCare.home.building.target]:p.building?.id===order.id&&p.building.targetFloor===level&&!p.building.exitRequested?[p.building.target]:[]);
       const reserved=s.selfCare?.home.building;
       const target=reserved?.id===order.id?reserved.target:points.find(p=>!occupied.some(o=>distance(p,o)<.8));
@@ -55,13 +55,18 @@ export function stepBuildings(state:BattlefieldState,terrain:TerrainSystem,nav:S
     for(const s of people){
       const inside=s.building;if(!inside)continue;
       const b=terrain.buildings[inside.id],c=s.combat??={shotSequence:0};if(!b){delete s.building;continue;}
+      if(terrain.buildingCondition(inside.id)==='ruined'&&(inside.floor>0||inside.targetFloor>0)){
+        // Surviving occupants descend through the collapsing stair route; no
+        // one remains embedded in a deleted upper floor after the geometry refresh.
+        inside.targetFloor=0;inside.exitRequested=true;
+      }
       if(c.owner==='self-care')continue;
       const exitRoute=()=>{const i=q.soldierIds.indexOf(s.id),out=doorPoint(b,8);return [{x:b.x,z:b.z-2},doorPoint(b,-1),doorPoint(b,4),{x:out.x+(i%4-1.5)*1.6,z:out.z-Math.floor(i/4)*1.6}];};
       const task=c.careTask,patient=task?state.soldiers.find(p=>p.id===task.patientId):undefined;
       if(c.owner==='support'||c.owner==='casualty'&&(!task||task.stage==='treat')||c.reaction==='pinned')continue;
       const patientInside=patient?.building&&terrain.buildingAt(patient)===patient.building.id;
       const personalOrder=task?(task.stage==='approach'&&patientInside?{id:patient.building!.id,floor:patient.building!.floor}:undefined):s.selfCare?.stage==='exit'||detachedFromFormation(state,s)?undefined:order;
-      const leaving=!personalOrder||personalOrder.id!==inside.id||c.reaction==='broken';
+      const leaving=Boolean(inside.exitRequested)||!personalOrder||personalOrder.id!==inside.id||c.reaction==='broken';
       // An Occupy reservation exists during the exterior approach. Cancelling
       // it for aid/withdrawal is not an indoor exit: walking to the hall first
       // would drive a flank arrival into masonry and block every other arrival.

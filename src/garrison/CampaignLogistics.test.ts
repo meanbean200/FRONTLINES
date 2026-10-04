@@ -1,11 +1,12 @@
 import {describe,it,expect} from 'vitest';
 import {createOperation} from '../operations/createOperation';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
-import {carrierCapacity,transfer,balance,total} from './Inventory';
+import {carrierCapacity,constructionCarrierCapacity,transfer,balance,total} from './Inventory';
 import {inventory} from './types';
 import {SaveSystem} from '../persistence/SaveSystem';
 describe('campaign logistics',()=>{
   it('allows an armed rifleman to carry a sack without treating his bandolier as cargo space',()=>{const stock=inventory({ammo:60,food:2,water:3});expect(carrierCapacity(stock,16)-total(stock)).toBe(11);expect(carrierCapacity(inventory({ammo:100}),16)).toBe(76);});
+  it('gives a dedicated construction hauler forty material units without enlarging an ordinary sack',()=>{expect(constructionCarrierCapacity(inventory(),16)).toBe(40);expect(carrierCapacity(inventory(),16)).toBe(16);expect(constructionCarrierCapacity(inventory({ammo:60}),16)).toBe(100);});
   it('starts within physical storage capacities and conserves faction stock',()=>{const sim=new BattlefieldSimulation(createOperation('campaign'));for(const g of sim.state.living!.garrisons)expect(total(g.cache)).toBeLessThanOrEqual(sim.state.living!.logistics!.cacheCapacity);for(const n of Object.values(balance(sim.state)))expect(Math.abs(n)).toBeLessThan(1e-7);});
   it('returns a cancelled shipment physically without remote unloading or cargo loss',()=>{
     const sim=new BattlefieldSimulation(createOperation('campaign')),w=sim.state.living!,g=w.garrisons[0],t=w.trucks.find(t=>t.role==='shuttle'&&t.faction!=='enemy')!;

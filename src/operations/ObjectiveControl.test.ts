@@ -13,7 +13,7 @@ describe('town control and physical stock authority',()=>{
   for(const p of friends){p.x=0;p.z=-80;}
   expect(Math.hypot(o.x,o.z+80)).toBeGreaterThan(o.radius); // failed old circle
   expect(insideObjective(s,o,friends[0])).toBe(true);expect(controlBoundary(s,o).length).toBeGreaterThan(4);
-  expect(crateAccess(s,terrain,crate,'player')).toContain('AREA NOT SECURED');
+  expect(crateAccess(s,terrain,crate,'player')).toBe('AREA CONTESTED');
   for(let i=0;i<701;i++)advanceControl(s,o,.05);
   expect(o.owner).toBe('player');expect(controlReadout(s,o).status).toBe('FRIENDLY CONTROL');expect(crateAccess(s,terrain,crate,'player')).toBe('');
   const loaded=new SaveSystem().parse(JSON.stringify(s));expect(loaded.operation!.objectives.find(v=>v.id==='village')).toEqual(o);

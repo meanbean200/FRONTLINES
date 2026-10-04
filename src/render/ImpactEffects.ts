@@ -16,9 +16,10 @@ export class ImpactEffects {
   private identity?:object;
   private previous=-Infinity;
   private high=false;
+  private quality:VisualQuality='balanced';
   private readonly motion=new Map<string,{x:number;z:number;at:number;movingUntil:number;heading:number}>();
   constructor(){this.setQuality('balanced');}
-  setQuality(q:VisualQuality):void{this.high=q==='high';this.particles.limit=VISUAL_QUALITY[q].particles;this.particles.setVolume(this.high);}
+  setQuality(q:VisualQuality):void{this.quality=q;this.high=q==='high';this.particles.limit=VISUAL_QUALITY[q].particles;this.particles.setVolume(this.high);}
   update(state:BattlefieldState,terrain:TerrainSystem,arrivals?:ShotEvent[]):void{
     const op=state.operation,now=state.elapsed,pool=this.particles;
     pool.setAmbientLight(.22+.78*Math.min(1,environmentDaylight(state.living?.campaignHours??12)*2));
@@ -41,11 +42,20 @@ export class ImpactEffects {
     // Only simulation smoke fields get a sustained smoke column. Dust below never
     // modifies concealment, collision or the serialized battlefield.
     for(const c of op?.smokeFields??[]){
-      if(!visible(c))continue;const life=Math.min(1,(now-c.born+1)/4,(c.until-now)/10);if(life<=0)continue;
+      const playerKnown=c.side==='player'&&(c.source==='PLAYER'||c.source==='LEGACY_UNKNOWN');
+      if(!playerKnown&&!visible(c))continue;const life=Math.min(1,(now-c.born+1)/4,(c.until-now)/10);if(life<=0)continue;
       const floor=terrain.heightAt(c.x,c.z),age=now-c.born;
-      const puffs=this.high?22:14;
-      for(let n=0;n<puffs;n++){const a=n*2.399,r=c.radius*.50*Math.sqrt((n+.5)/puffs)*life,drift=Math.sin(age*.12+n)*.2*life;
-        pool.add(c.x+Math.cos(a)*r+drift,floor+1.7+n%4*1.1*life,c.z+Math.sin(a)*r,c.radius*(this.high?.74:.90)*life,(4.5+n%3)*life,0xb7b7a9,(this.high?.66:.7)*life);}
+      // Gameplay smoke fills essentially the same footprint used by
+      // smokeTransmission. Performance uses fewer, larger volumes; it never
+      // makes the concealment disappear. A low skirt makes trench smoke read
+      // as occupying the ground instead of hovering over one faint centre.
+      const puffs=this.quality==='low'?18:this.high?40:28;
+      for(let n=0;n<puffs;n++){const a=n*2.399,r=c.radius*.86*Math.sqrt((n+.5)/puffs)*life,drift=Math.sin(age*.12+n)*.32*life;
+        const low=n%3===0,height=low?.7:1.35+n%5*.9*life,width=Math.max(11,c.radius*(this.high?.52:this.quality==='balanced'?.62:.74))*life;
+        // Smoke is gameplay information. Keep its pale body independent of
+        // shadow quality and ambient-light multiplication; concealment must
+        // never become a handful of faint grey flecks on low settings.
+        pool.add(c.x+Math.cos(a)*r+drift,floor+height,c.z+Math.sin(a)*r,width,(low?5.5:10.5+n%3)*life,low?0xbfc1b8:0xd0d1c8,(this.high?.88:.94)*life,true);}
     }
     for(const i of this.impacts){const age=Math.max(0,now-i.at);if(!visible(i))continue;
       if(i.blast){

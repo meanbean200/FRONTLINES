@@ -328,6 +328,7 @@ function validLiving(state:BattlefieldState):boolean {
   for(const c of w.crates)if(!point(c)||!stock(c.stock)||c.droppedBy!==undefined&&!sIds.has(c.droppedBy))return false;
   for(const t of w.trucks){
     if(t.destination!==undefined&&!point(t.destination)||[t.blockedSince,t.nextRepath,t.interdictedSince].some(n=>n!==undefined&&!nonnegative(n)))return false;
+    if(t.roadhead&&(!['unloading','queued'].includes(t.roadhead.role)||!Number.isInteger(t.roadhead.rank)||t.roadhead.rank<0||!nonnegative(t.roadhead.since)||!nonnegative(t.roadhead.progressAt)||!Number.isInteger(t.roadhead.retries)||t.roadhead.retries<0||![t.roadhead.apron,t.roadhead.wait,t.roadhead.last].every(point)))return false;
     if(t.abandoned!==undefined&&typeof t.abandoned!=='boolean'||t.abandoned&&(t.state!=='blocked'||Object.values(t.cargo).some(n=>n!==0)||!w.crates.some(c=>c.id===t.salvageId&&c.truckId===t.id)))return false;
     if(t.salvageId!==undefined&&!crateIds.has(t.salvageId))return false;
   }

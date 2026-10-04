@@ -81,7 +81,31 @@ export class LogisticsSystem {
       if(this.terrain.obstacleAt(p.x,p.z,1.6)||this.terrain.groundTypeAt(p.x,p.z)==='river'||this.terrain.deformationAt(p.x,p.z)<-.35)return false;
     }return true;
   }
-  private depart(t:Truck,destination:Vec2,state:'outbound'|'returning'):void{t.destination={...destination};t.route=roadRoute(t,destination,undefined,this.terrain.worldSize);t.routeIndex=0;t.state=state;delete t.resume;delete t.blockedSince;t.reason=state==='outbound'?'En route':'Returning to depot';}
+  private depart(t:Truck,destination:Vec2,state:'outbound'|'returning'):void{t.destination={...destination};t.route=roadRoute(t,destination,undefined,this.terrain.worldSize);t.routeIndex=0;t.state=state;if(state==='returning')delete t.roadhead;delete t.resume;delete t.blockedSince;t.reason=state==='outbound'?'En route':'Returning to depot';}
+  private coordinateRoadheads():void {
+    const w=this.state.living!,now=this.state.elapsed;
+    for(const g of w.garrisons){
+      const side=g.faction??'player',rear=side==='enemy'?w.enemySupply?.rear??w.rear:w.rear,near=nearestRoad(g.forward,this.terrain.worldSize);
+      const plus=pointOnRoad(ROADS[near.road],near.t+10),minus=pointOnRoad(ROADS[near.road],near.t-10),towardRear=distance(plus,rear)<distance(minus,rear)?1:-1;
+      const trucks=w.trucks.filter(t=>!t.abandoned&&t.role==='shuttle'&&t.garrisonId===g.id&&(t.faction??'player')===side&&(t.state==='outbound'||t.state==='unloading'||t.state==='blocked'&&t.resume==='outbound'))
+        .sort((a,b)=>Number(b.state==='unloading')-Number(a.state==='unloading')||Number(b.roadhead?.role==='unloading')-Number(a.roadhead?.role==='unloading')||distance(a,g.forward)-distance(b,g.forward)||(a.roadhead?.since??now)-(b.roadhead?.since??now)||a.id-b.id);
+      for(const [index,t] of trucks.entries()){
+        const role=index===0?'unloading':'queued',rank=index,previous=t.roadhead,retries=previous?.retries??0;
+        const apron=role==='unloading'&&previous?.role==='unloading'&&distance(previous.apron,g.forward)<=20&&this.clear(previous.apron,previous.apron)?previous.apron:pointOnRoad(ROADS[near.road],near.t+towardRear*(role==='unloading'?Math.min(16,retries*6):0));
+        const wait=role==='queued'?pointOnRoad(ROADS[near.road],near.t+towardRear*(12+rank*11+retries*4)):apron;
+        const moved=previous?distance(t,previous.last):Infinity,progressAt=moved>.5?now:previous?.progressAt??now;
+        t.roadhead={role,rank,since:previous?.role===role?previous.since:now,apron,wait,progressAt,last:{x:t.x,z:t.z},retries};
+        const target=role==='unloading'?apron:wait;
+        if(t.state!=='unloading'&&t.state!=='blocked'&&(!previous||previous.role!==role||!t.destination||distance(t.destination,target)>1))this.depart(t,target,'outbound');
+        if(t.state!=='blocked'&&t.state!=='unloading'&&distance(t,target)>2&&now-progressAt>=18){
+          t.roadhead.retries++;t.roadhead.progressAt=now;
+          const retry=role==='unloading'?pointOnRoad(ROADS[near.road],near.t+towardRear*Math.min(16,t.roadhead.retries*6)):pointOnRoad(ROADS[near.road],near.t+towardRear*(12+rank*11+t.roadhead.retries*4));
+          if(role==='unloading')t.roadhead.apron=retry;else t.roadhead.wait=retry;
+          this.depart(t,retry,'outbound');t.reason=role==='unloading'?'Roadhead approach retry · alternate apron':'Roadhead queue repositioning';
+        }
+      }
+    }
+  }
   private recoverRoute(t:Truck):void {
     const now=this.state.elapsed;t.blockedSince??=now;
     if(now-t.blockedSince<2||now<(t.nextRepath??0))return;
@@ -124,6 +148,7 @@ export class LogisticsSystem {
     const w=this.state.living!,config=w.logistics!;
     stepEndlessAvailability(this.state);
     for(const g of w.garrisons)changeSupplyPoint(this.state,g,p=>this.clear(p,p));
+    this.coordinateRoadheads();
     for(const g of w.garrisons){
       if(g.supplyTownId||g.pendingSupplyPoint)continue;
       if(g.cutoff==='withdraw'||total(g.forwardStock)>0||this.clear(g.forward,g.forward))continue;
@@ -197,7 +222,7 @@ export class LogisticsSystem {
         this.depart(t,t.role==='convoy'?rear:assigned?.forward??rear,'outbound');
       }else if(t.state==='unloading'){
         if(this.blockade(t))continue;
-        const destination=t.role==='convoy'?rear:assigned?.forward??rear;
+        const destination=t.role==='convoy'?rear:t.roadhead?.apron??t.destination??assigned?.forward??rear;
         if(distance(t,nearestRoad(destination,this.terrain.worldSize).point)>5){this.depart(t,destination,'outbound');t.reason='Destination moved · travelling with cargo';continue;}
         t.timer-=dt;if(t.timer>0)continue;
         const stock=t.role==='convoy'?rearStock:assigned?.forwardStock??rearStock;
@@ -214,8 +239,9 @@ export class LogisticsSystem {
         if(this.blockade(t))continue;
         const target=t.route[t.routeIndex];
         if(!target){
-          const returning=t.state==='returning'||t.resume==='returning',destination=t.destination??(returning?t.role==='convoy'?edge:rear:t.role==='convoy'?rear:assigned?.forward??rear);
+          const returning=t.state==='returning'||t.resume==='returning',destination=t.destination??(returning?t.role==='convoy'?edge:rear:t.role==='convoy'?rear:t.roadhead?.apron??assigned?.forward??rear);
           t.destination??={...destination};
+          if(!returning&&t.roadhead?.role==='queued'){t.reason=`Roadhead queue · QUEUED ${t.roadhead.rank}`;continue;}
           if(distance(t,nearestRoad(destination,this.terrain.worldSize).point)>3){t.resume=returning?'returning':'outbound';t.state='blocked';t.reason='ROUTE BLOCKED · route incomplete · cargo retained';this.recoverRoute(t);continue;}
           if(returning){t.state='idle';delete t.resume;delete t.garrisonId;t.reason='At depot';}
           else {t.state='unloading';t.timer=6;t.reason='Unloading at destination';}
