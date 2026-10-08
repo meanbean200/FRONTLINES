@@ -12,6 +12,7 @@ import {mountedGeometry} from '../combat/MountedGeometry';
 import {fieldGunGeometry} from './FieldGunVisual';
 import {loadWeaponAssets,type WeaponAssets} from './WeaponAssets';
 import {fieldGunPresentation} from './FieldGunPresentation';
+import {mountedGunPresentation} from './MountedGunPresentation';
 import {weaponGeometry} from './SoldierVisual';
 import type {Facility,Truck} from '../garrison/types';
 import {playerCanSeeObject} from '../operations/ObjectSight';
@@ -34,19 +35,24 @@ export class LivingRenderer {
   private readonly fieldGuns=new THREE.InstancedMesh(fieldGunGeometry('carriage'),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.88}),256);
   private readonly fieldTubes=new THREE.InstancedMesh(fieldGunGeometry('upper'),this.fieldGuns.material,256);
   private readonly mountedGuns=new THREE.InstancedMesh(weaponGeometry('machinegun'),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.78,metalness:.18}),256);
+  private readonly mountBases=new THREE.InstancedMesh(new THREE.BufferGeometry(),this.mountedGuns.material,256);
+  private readonly mountHeads=new THREE.InstancedMesh(new THREE.BufferGeometry(),this.mountedGuns.material,256);
+  private readonly mountRisers=new THREE.InstancedMesh(new THREE.CylinderGeometry(.048,.055,1,8),new THREE.MeshStandardMaterial({color:0x56614d,roughness:.8,metalness:.18}),256);
   private equipment?:WeaponAssets;
   private activeGuns:{facility:Facility;height:number}[]=[];
   private activeMounts:Facility[]=[];
+  private detailedMounts=new Set<number>();
   private identity?:object;
   private readonly frustum=new THREE.Frustum();
   private readonly projection=new THREE.Matrix4();
   private readonly sphere=new THREE.Sphere(new THREE.Vector3(),25);
   constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem,equipment?:WeaponAssets|null,trucks?:TruckAssets|null){
-    this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes,this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes,this.mountedGuns);
+    this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes,this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes,this.mountedGuns,this.mountBases,this.mountHeads,this.mountRisers);
     this.fieldGuns.name='Field gun carriages';this.fieldTubes.name='Field gun barrels';this.mountedGuns.name='Mounted machine guns';
+    this.mountBases.name='MG mount bases';this.mountHeads.name='MG mount cradles';this.mountRisers.name='MG mount risers';
     this.vehicles.name='Logistics truck bodies';this.wheels.name='Distant truck wheels';
-    for(const mesh of [this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes,this.mountedGuns]){mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;mesh.count=0;}
-    const install=(a:WeaponAssets)=>{this.equipment=a;this.fieldGuns.geometry.dispose();this.fieldTubes.geometry.dispose();this.mountedGuns.geometry.dispose();this.fieldGuns.geometry=a.cannonCarriage;this.fieldTubes.geometry=a.cannonBarrel;this.mountedGuns.geometry=a.machinegun;this.last=-Infinity;};
+    for(const mesh of [this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes,this.mountedGuns,this.mountBases,this.mountHeads,this.mountRisers]){mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;mesh.count=0;}
+    const install=(a:WeaponAssets)=>{this.equipment=a;this.fieldGuns.geometry.dispose();this.fieldTubes.geometry.dispose();this.mountedGuns.geometry.dispose();this.mountBases.geometry.dispose();this.mountHeads.geometry.dispose();this.fieldGuns.geometry=a.cannonCarriage;this.fieldTubes.geometry=a.cannonBarrel;this.mountedGuns.geometry=a.machinegun;this.mountBases.geometry=a.mgMountBase;this.mountHeads.geometry=a.mgMountHead;this.last=-Infinity;};
     if(equipment)install(equipment);else if(equipment!==null&&typeof window!=='undefined')void loadWeaponAssets().then(install).catch(e=>console.warn('Support models unavailable; using procedural weapons.',e));
     const installTrucks=(a:TruckAssets)=>{this.truckAssets=a;this.detailedWheels=a.wheels.map((w,i)=>{const mesh=new THREE.InstancedMesh(w.geometry,this.wheels.material,64);mesh.name=`Logistics truck wheel ${i}`;mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;mesh.count=0;this.group.add(mesh);return mesh;});this.last=-Infinity;};
     if(trucks)installTrucks(trucks);else if(trucks!==null&&typeof window!=='undefined')void loadTruckAssets().then(installTrucks).catch(e=>console.warn('Truck model unavailable; using procedural lorries.',e));
@@ -74,27 +80,26 @@ export class LivingRenderer {
     for(const mesh of this.detailedWheels){mesh.count=asset?this.activeTrucks.length:0;mesh.instanceMatrix.needsUpdate=true;}
   }
   private animateGuns(state:BattlefieldState):void{
+    this.mountBases.count=this.mountHeads.count=this.mountRisers.count=0;
     if(!this.activeGuns.length&&!this.activeMounts.length)return;
     this.activeGuns.forEach(({facility,height},i)=>this.fieldTubes.setMatrixAt(i,fieldGunPresentation(state,facility,height,this.equipment).barrel));
     this.fieldTubes.instanceMatrix.needsUpdate=true;
     if(!this.activeMounts.length)return;
     const shots=new Map((state.operation?.shotEvents??[]).filter(s=>state.elapsed-s.at>=0&&state.elapsed-s.at<.065).map(s=>[s.shooterId,s]));
-    const q=new THREE.Quaternion(),p=new THREE.Vector3(),direction=new THREE.Vector3(),matrix=new THREE.Matrix4(),scale=new THREE.Vector3(1,1,1),forward=new THREE.Vector3(0,0,1);
+    let mountCount=0;
     this.activeMounts.forEach((f,i)=>{
-      const shot=shots.get(crewOperator(state,f)?.id??-1),geometry=mountedGeometry(state,this.terrain,f,f.traverse?.yaw??f.facing??0);
-      const muzzle=shot?.from??geometry.muzzle;
-      if(shot)direction.set(shot.to.x-muzzle.x,shot.to.y-muzzle.y,shot.to.z-muzzle.z).normalize();
-      else direction.set(muzzle.x-geometry.pivot.x,muzzle.y-geometry.pivot.y,muzzle.z-geometry.pivot.z).normalize();
-      q.setFromUnitVectors(forward,direction);p.set(muzzle.x,muzzle.y,muzzle.z).addScaledVector(direction,-.6);
-      this.mountedGuns.setMatrixAt(i,matrix.compose(p,q,scale));
+      const shot=shots.get(crewOperator(state,f)?.id??-1),pose=mountedGunPresentation(state,this.terrain,f,this.detailedMounts.has(f.id)?this.equipment:undefined,shot);
+      this.mountedGuns.setMatrixAt(i,pose.gun);
+      if(pose.base&&pose.head&&pose.riser){this.mountBases.setMatrixAt(mountCount,pose.base);this.mountHeads.setMatrixAt(mountCount,pose.head);this.mountRisers.setMatrixAt(mountCount++,pose.riser);}
     });this.mountedGuns.instanceMatrix.needsUpdate=true;
+    for(const mesh of [this.mountBases,this.mountHeads,this.mountRisers]){mesh.count=mountCount;mesh.instanceMatrix.needsUpdate=true;}
   }
   update(now:number,showRoutes:boolean,view?:Vec2&{zoom:number},camera?:THREE.Camera):void {
     const state=this.getState(),w=state.living;
     if(this.identity!==w){this.identity=w;this.lastTrucks.clear();this.activeTrucks=[];this.activeGuns=[];this.activeMounts=[];this.last=-Infinity;}
     this.detailedTrucks=Boolean(this.truckAssets&&(!view||view.zoom<(this.detailedTrucks?235:205)));
     this.routes.visible=showRoutes;if(now-this.last<80){this.animateGuns(state);this.animateTrucks();return;}this.last=now;
-    if(!w){this.activeGuns=[];this.activeTrucks=[];this.boxes.count=this.vehicles.count=this.wheels.count=this.mortars.count=this.fieldGuns.count=this.fieldTubes.count=this.mountedGuns.count=0;for(const mesh of this.detailedWheels)mesh.count=0;return;}
+    if(!w){this.activeGuns=[];this.activeMounts=[];this.activeTrucks=[];this.boxes.count=this.vehicles.count=this.wheels.count=this.mortars.count=this.fieldGuns.count=this.fieldTubes.count=this.mountedGuns.count=this.mountBases.count=this.mountHeads.count=this.mountRisers.count=0;for(const mesh of this.detailedWheels)mesh.count=0;return;}
     if(camera)this.frustum.setFromProjectionMatrix(this.projection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
     // Reject only presentation outside the real camera frustum, with a generous
     // bound for structures and their cast shadow. Knowledge still uses full LOS.
@@ -114,7 +119,7 @@ export class LivingRenderer {
       for(let i=0;i<passengers;i++){const x=(i%2?1:-1)*.72,z=-.6-Math.floor(i/2)*.52,px=t.x+x*Math.cos(angle)+z*Math.sin(angle),pz=t.z-x*Math.sin(angle)+z*Math.cos(angle);box(px,h+1.85,pz,.4,.65,.4,0x616744,angle);box(px,h+2.27,pz,.3,.19,.3,0x4c543b,angle);}
     }
     for(const pile of stockPiles(state,this.terrain,this.spectator,inView))for(const [i,p] of stockPileAnchors(pile).entries())box(p.x,this.terrain.heightAt(p.x,p.z)+.35,p.z,.9,.65,.8,i%2?0x80734c:0x686e49);
-    let mortarCount=0,gunCount=0,mountedCount=0;this.activeGuns=[];this.activeMounts=[];
+    let mortarCount=0,gunCount=0,mountedCount=0;this.activeGuns=[];this.activeMounts=[];this.detailedMounts.clear();
     for(const f of w.facilities){
       if(!inView(f))continue;
       if(!this.spectator&&w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!playerCanSeeObject(state,this.terrain,f,f.artillery&&f.progress===1?'field-gun':'position'))continue;
@@ -136,8 +141,11 @@ export class LivingRenderer {
             const shells=f.stock.mortarHE;
             if(shells>0)box(f.x+1.15,h+.17,f.z-.5,.7,.3,1,0x817758,angle);
           }else{
-            const {pivot}=mountedGeometry(state,this.terrain,f,angle),bx=pivot.x,bz=pivot.z,base=this.terrain.heightAt(bx,bz),height=Math.max(.3,pivot.y-base);
-            box(bx,base+height/2,bz,.13,height,.13,0x414739,angle);box(bx,base+.12,bz,.8,.13,.65,0x454b3c,angle);
+            if(this.equipment&&detail)this.detailedMounts.add(f.id);
+            else{
+              const {pivot}=mountedGeometry(state,this.terrain,f,angle),bx=pivot.x,bz=pivot.z,base=this.terrain.heightAt(bx,bz),height=Math.max(.3,pivot.y-base);
+              box(bx,base+height/2,bz,.13,height,.13,0x414739,angle);box(bx,base+.12,bz,.8,.13,.65,0x454b3c,angle);
+            }
             if(mountedCount<256){this.activeMounts.push(f);mountedCount++;}
           }
         }

@@ -10,6 +10,7 @@ import {createOperation} from '../operations/createOperation';
 import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {inventory,type Facility} from '../garrison/types';
 import {mountedGeometry} from '../combat/MountedGeometry';
+import {mountedGunPresentation} from './MountedGunPresentation';
 import {releaseLostContextResources} from './ContextRecovery';
 import {parseSoldierAsset,type SoldierAsset} from './SoldierAsset';
 import {RiggedSoldiers} from './RiggedSoldiers';
@@ -33,7 +34,8 @@ describe('supplied rifle, MG, SMG, BAR and cannon presentation',()=>{
     expect(triangles(assets.submachinegun)).toBe(2100);
     expect(triangles(assets.automaticRifle)).toBe(2100);expect(triangles(assets.automaticRifleDeployed)).toBe(2100);
     expect(triangles(assets.cannonBarrel)+triangles(assets.cannonCarriage)).toBe(4100);
-    for(const g of [assets.rifle,assets.submachinegun,assets.automaticRifle,assets.automaticRifleDeployed,assets.machinegun,assets.machinegunDeployed,assets.cannonCarriage,assets.cannonBarrel])for(const name of ['position','normal','color'])expect(Array.from(g.getAttribute(name).array).every(Number.isFinite)).toBe(true);
+    expect(triangles(assets.mgMountBase)+triangles(assets.mgMountHead)).toBe(4100);
+    for(const g of [assets.rifle,assets.submachinegun,assets.automaticRifle,assets.automaticRifleDeployed,assets.machinegun,assets.machinegunDeployed,assets.mgMountBase,assets.mgMountHead,assets.cannonCarriage,assets.cannonBarrel])for(const name of ['position','normal','color'])expect(Array.from(g.getAttribute(name).array).every(Number.isFinite)).toBe(true);
   });
   it('sets metre scale, +Z muzzle sockets and a lower-profile folded bipod',()=>{
     expect(assets.rifle.boundingBox!.getSize(new THREE.Vector3()).z).toBeCloseTo(1.1,4);
@@ -47,6 +49,8 @@ describe('supplied rifle, MG, SMG, BAR and cannon presentation',()=>{
     expect(assets.machinegun.boundingBox!.max.z).toBeCloseTo(.6,5);
     expect(assets.machinegun.boundingBox!.min.y).toBeGreaterThan(assets.machinegunDeployed.boundingBox!.min.y);
     expect(assets.cannonCarriage.boundingBox!.min.y).toBeCloseTo(0,5);
+    expect(assets.mgMountBase.boundingBox!.min.y).toBeCloseTo(0,5);
+    expect(assets.mgMountBase.boundingBox!.getSize(new THREE.Vector3()).z).toBeCloseTo(1.4,4);
     expect(assets.cannonMuzzle.y).toBeGreaterThan(1.4);expect(assets.cannonMuzzle.y).toBeLessThan(1.7);
   });
   it('uses close instanced equipment, preserves muzzle/shot alignment and distant fallback',()=>{
@@ -110,6 +114,43 @@ describe('supplied rifle, MG, SMG, BAR and cannon presentation',()=>{
     const deployed=r.group.getObjectByName('Bipod machine guns') as THREE.InstancedMesh;
     expect(deployed.count).toBe(1);expect(deployed.geometry).toBe(assets.machinegunDeployed);expect(JSON.stringify(state)).toBe(before);
     s.posture='standing';r.update(new Set(),1/60,20);expect(deployed.count).toBe(0);
+  });
+  it('keeps the mount feet stationary through traverse, elevation, crew movement and shot error',()=>{
+    const {state,sim,s,f}=fixture();f.kind='emplacement';f.artillery=undefined;f.installation!.kind='crew-mg';state.elapsed=3;
+    s.combat={shotSequence:0};const original=mountedGunPresentation(state,sim.terrain,f,assets);
+    for(const yaw of [-.7,.4,1.1])for(const height of [-10,4,18]){
+      f.traverse={yaw} as typeof f.traverse;s.combat!.aim={point:{x:f.x+40,y:height,z:f.z+60}} as typeof s.combat.aim;
+      s.x+=.2;s.z-=.1;const before=JSON.stringify(state),pose=mountedGunPresentation(state,sim.terrain,f,assets),geometry=mountedGeometry(state,sim.terrain,f,yaw);
+      expect(pose.base!.elements).toEqual(original.base!.elements);expect(pose.head!.elements).toEqual(pose.gun.elements);
+      expect(new THREE.Vector3(0,0,.6).applyMatrix4(pose.gun).distanceTo(new THREE.Vector3(geometry.muzzle.x,geometry.muzzle.y,geometry.muzzle.z))).toBeLessThan(.001);
+      const bottom=assets.mgMountBaseNeck.clone().applyMatrix4(pose.base!),top=assets.mgMountHeadNeck.clone().applyMatrix4(pose.head!);
+      expect(new THREE.Vector3(0,-.5,0).applyMatrix4(pose.riser!).distanceTo(bottom)).toBeLessThan(.001);
+      expect(new THREE.Vector3(0,.5,0).applyMatrix4(pose.riser!).distanceTo(top)).toBeLessThan(.001);
+      expect(pose.riser!.elements.every(Number.isFinite)).toBe(true);expect(JSON.stringify(state)).toBe(before);
+      const shot={from:geometry.muzzle,to:{x:f.x+48,y:height+4,z:f.z+66}},fired=mountedGunPresentation(state,sim.terrain,f,assets,shot);
+      expect(fired.base!.elements).toEqual(original.base!.elements);
+      expect(new THREE.Vector3(0,0,.6).applyMatrix4(fired.gun).distanceTo(new THREE.Vector3(shot.from.x,shot.from.y,shot.from.z))).toBeLessThan(.001);
+    }
+  });
+  it('renders one installed mount without ammo or crew, falls back at distance, and clears stale instances',()=>{
+    const {state,sim,f}=fixture();f.kind='emplacement';f.artillery=undefined;f.installation!.kind='crew-mg';f.weaponCrewIds=[];
+    const r=new LivingRenderer(()=>state,sim.terrain,assets,null);r.spectator=true;
+    const meshes=['MG mount bases','MG mount cradles','MG mount risers'].map(n=>r.group.getObjectByName(n) as THREE.InstancedMesh);
+    const before=JSON.stringify(state);r.update(100,false,{x:f.x,z:f.z,zoom:20});expect(meshes.map(m=>m.count)).toEqual([1,1,1]);expect(meshes[0].geometry).toBe(assets.mgMountBase);expect(meshes[1].geometry).toBe(assets.mgMountHead);
+    releaseLostContextResources(r.group);r.update(200,false);expect(meshes.map(m=>m.count)).toEqual([1,1,1]);
+    r.update(300,false,{x:f.x,z:f.z,zoom:700});expect(meshes.map(m=>m.count)).toEqual([0,0,0]);expect((r.group.getObjectByName('Mounted machine guns') as THREE.InstancedMesh).count).toBe(1);
+    r.update(400,false,{x:f.x,z:f.z,zoom:20});expect(meshes.map(m=>m.count)).toEqual([1,1,1]);expect(JSON.stringify(state)).toBe(before);
+    f.progress=.9;r.update(500,false);expect(meshes.map(m=>m.count)).toEqual([0,0,0]);f.progress=1;f.installation=undefined;r.update(600,false);expect(meshes.map(m=>m.count)).toEqual([0,0,0]);
+    state.living=undefined;r.update(700,false);r.update(716,false);expect(meshes.map(m=>m.count)).toEqual([0,0,0]);
+    const fallback=new LivingRenderer(()=>state,sim.terrain,null,null);fallback.update(100,false);expect((fallback.group.getObjectByName('MG mount bases') as THREE.InstancedMesh).count).toBe(0);
+  });
+  it('does not expose a hidden enemy mount or duplicate the operator weapon',()=>{
+    const {state,sim,s,f}=fixture();f.kind='emplacement';f.artillery=undefined;f.installation!.kind='crew-mg';s.equipment!.weapon='mg42';s.duty={kind:'watch',facilityId:f.id,arrivedAt:0} as typeof s.duty;state.soldiers=[s];
+    const units=new UnitRenderer(state,sim.terrain,null,assets);units.update(new Set(),1/60,20);
+    expect((units.group.getObjectByName('Held machinegun') as THREE.InstancedMesh).count).toBe(0);
+    const renderer=new LivingRenderer(()=>state,sim.terrain,assets,null);renderer.update(100,false);expect((renderer.group.getObjectByName('MG mount bases') as THREE.InstancedMesh).count).toBe(1);
+    state.squads.find(q=>q.id===s.squadId)!.faction='enemy';state.living!.garrisons.find(g=>g.id===f.garrisonId)!.faction='enemy';state.operation!.contacts={player:[],enemy:[]};renderer.update(200,false);
+    expect((renderer.group.getObjectByName('MG mount bases') as THREE.InstancedMesh).count).toBe(0);expect((renderer.group.getObjectByName('Mounted machine guns') as THREE.InstancedMesh).count).toBe(0);
   });
   it('animates only ammunition-consuming discharges on simulation time, including throttled render frames',()=>{
     const {state,sim,f}=fixture();state.elapsed=10;

@@ -10,6 +10,7 @@ import {inventory} from '../src/garrison/types';
 import type {TerrainSystem} from '../src/terrain/TerrainSystem';
 import type {Facility} from '../src/garrison/types';
 import {initializeEquipment} from '../src/combat/Equipment';
+import {weaponCrewPoint} from '../src/construction/PositionDefinitions';
 
 const [assets,soldier]=await Promise.all([loadWeaponAssets(),loadSoldierAsset()]);
 const state=createOperation('campaign');initializeEquipment(state);const original=structuredClone(state.soldiers[0]);
@@ -25,7 +26,9 @@ for(let i=0;i<9;i++){
   state.soldiers.push(s);label(prone?'BAR · PRONE':['RIFLE','MACHINE GUN','SMG','BAR'][i%4],s.x,s.z,prone?1.1:2.1);
 }
 const gun={id:991,garrisonId:1,kind:'mortar',x:3,z:-1,progress:1,facing:.3,stock:inventory(),artillery:{},installation:{kind:'field-gun'},weaponCrewIds:[]} as unknown as Facility;
-state.living!.facilities=[gun];state.living!.trucks=[];state.living!.crates=[];state.living!.garrisons=[];
+const mount={id:992,garrisonId:1,kind:'emplacement',x:8,z:2,progress:1,facing:0,stock:inventory(),installation:{kind:'crew-mg'},weaponCrewIds:[10]} as unknown as Facility;
+const operator=structuredClone(original),crewPoint=weaponCrewPoint(state,mount,0);Object.assign(operator,{id:10,squadId:state.squads[0].id,x:crewPoint.x,z:crewPoint.z,heading:0,action:'watching',aimTargetId:999,cover:'open',trenchId:undefined,garrisonId:1,personalArea:undefined});operator.needs!.life='active';operator.equipment!.weapon='mg42';operator.combat={shotSequence:0};operator.duty={kind:'watch',facilityId:mount.id,arrivedAt:0} as typeof operator.duty;state.soldiers.push(operator);
+state.living!.facilities=[gun,mount];state.living!.trucks=[];state.living!.crates=[];state.living!.garrisons=[];
 const terrain={heightAt:()=>0,baseHeightAt:()=>0} as unknown as TerrainSystem;
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x232a21);
 scene.add(new THREE.HemisphereLight(0xe0e2ce,0x625947,2));const sun=new THREE.DirectionalLight(0xffe8c5,2.5);sun.position.set(6,14,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-15,right:15,top:15,bottom:-15});sun.shadow.normalBias=.015;scene.add(sun);
@@ -49,6 +52,11 @@ document.querySelector('#bar')!.addEventListener('click',()=>{showFormation();ca
 document.querySelector('#bar-prone')!.addEventListener('click',()=>{showFormation();camera.position.set(4.4,1.1,4.2);controls.target.set(2,.4,3.3);controls.update();});
 document.querySelector('#bar-model')!.addEventListener('click',()=>{showFormation();barModel.visible=true;camera.position.set(1.8,1.65,1.2);controls.target.set(0,1,0);controls.update();});
 document.querySelector('#bar-bipod')!.addEventListener('click',()=>{barModel.geometry=barModel.geometry===assets.automaticRifle?assets.automaticRifleDeployed:assets.automaticRifle;showFormation();barModel.visible=true;camera.position.set(1.8,1.65,1.2);controls.target.set(0,1,0);controls.update();});
+function showMount(){showFormation();camera.position.set(11.5,2.8,4.9);controls.target.set(8.7,.85,1.8);controls.update();}
+document.querySelector('#mount')!.addEventListener('click',showMount);
+let mountYaw=0,mountRaised=false;
+document.querySelector('#mount-turn')!.addEventListener('click',()=>{mountYaw=mountYaw===0?.65:0;mount.traverse={yaw:mountYaw} as typeof mount.traverse;operator.heading=mountYaw;showMount();});
+document.querySelector('#mount-aim')!.addEventListener('click',()=>{mountRaised=!mountRaised;operator.combat!.aim={point:{x:8.7+Math.sin(mountYaw)*30,y:mountRaised?10:1.48,z:1.8+Math.cos(mountYaw)*30},targetId:999,since:0,lastSeen:0,lastHeading:0,lastPosition:{x:operator.x,z:operator.z},settlingUntil:0};showMount();});
 document.querySelector('#wide')!.addEventListener('click',()=>{showFormation();camera.position.set(10,9,17);controls.target.set(0,.6,1);controls.update();});
 function frame(now:number){const dt=Math.min(.05,(now-last)/1000);last=now;if(playing)state.elapsed+=dt;units.update(new Set(),dt,20);living.update(now,false);const modelOnly=smgModel.visible||barModel.visible;units.group.visible=living.group.visible=!modelOnly;controls.update();renderer.render(scene,camera);
   for(const l of labels){const p=l.p.clone().project(camera);l.el.style.display=modelOnly?'none':'';l.el.style.left=(p.x*.5+.5)*innerWidth+'px';l.el.style.top=(-p.y*.5+.5)*innerHeight+'px';}

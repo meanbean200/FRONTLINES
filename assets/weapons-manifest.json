@@ -1,7 +1,7 @@
 {
   "version": 1,
   "runtime": "src/assets/weapons.glb",
-  "bytes": 702540,
+  "bytes": 909120,
   "materials": 1,
   "textures": 0,
   "sources": [
@@ -29,6 +29,11 @@
       "source": "source/bar.obj",
       "sourceSha256": "9c0de41cbef0dc065c80e91d7ed75c9f3ba119b53c5dcffb5625c96617b9726a",
       "triangles": 2100
+    },
+    {
+      "source": "source/mg-mount.obj",
+      "sourceSha256": "3c12eab521450d16f78561053071df5b91acf50172b3845996c319604e604d88",
+      "triangles": 4100
     }
   ],
   "sockets": {
@@ -130,6 +135,19 @@
         0.02091490388563205,
         -0.03516128769178721,
         0.4191449318217849
+      ]
+    },
+    "mgMount": {
+      "footprint": 1.4,
+      "baseNeck": [
+        0,
+        0.22708043221935156,
+        0
+      ],
+      "headNeck": [
+        0,
+        -0.40929931773893163,
+        -0.18
       ]
     }
   }

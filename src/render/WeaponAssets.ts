@@ -10,6 +10,10 @@ export interface WeaponAssets {
   automaticRifleDeployed:THREE.BufferGeometry;
   machinegun:THREE.BufferGeometry;
   machinegunDeployed:THREE.BufferGeometry;
+  mgMountBase:THREE.BufferGeometry;
+  mgMountHead:THREE.BufferGeometry;
+  mgMountBaseNeck:THREE.Vector3;
+  mgMountHeadNeck:THREE.Vector3;
   cannonCarriage:THREE.BufferGeometry;
   cannonBarrel:THREE.BufferGeometry;
   rifleGrip:THREE.Vector3;
@@ -31,7 +35,7 @@ export async function parseWeaponAssets(buffer:ArrayBuffer):Promise<WeaponAssets
   });
   const take=(name:string)=>{const p=parts.get(name);if(!p)throw Error(`Equipment asset missing ${name}.`);return p;};
   const sockets=gltf.userData.sockets;
-  if(gltf.userData.version!==1||!sockets?.cannon?.muzzle||!sockets?.smg?.grip||!sockets?.bar?.grip||!sockets?.barBipods)throw Error('Incompatible equipment asset.');
+  if(gltf.userData.version!==1||!sockets?.cannon?.muzzle||!sockets?.smg?.grip||!sockets?.bar?.grip||!sockets?.barBipods||!sockets?.mgMount?.headNeck)throw Error('Incompatible equipment asset.');
   const merge=(names:string[])=>{const g=mergeGeometries(names.map(take),false);if(!g)throw Error('Incompatible equipment geometry.');return g;};
   const deployed=merge(['mg','mgLegL','mgLegR']);
   // Fold the two source bipod legs rearward for carried/tripod weapons. This is
@@ -47,9 +51,9 @@ export async function parseWeaponAssets(buffer:ArrayBuffer):Promise<WeaponAssets
     g.translate(-pivot.x,-pivot.y,-pivot.z);g.rotateZ(side*.32);g.rotateX(1.45);g.translate(pivot.x,pivot.y,pivot.z);
   }
   const automaticRifle=merge(['bar','barLegL','barLegR']);
-  const asset:WeaponAssets={rifle:take('rifle'),submachinegun:take('smg'),automaticRifle,automaticRifleDeployed,machinegun,machinegunDeployed:deployed,cannonCarriage:carriage,cannonBarrel:take('cannonBarrel'),rifleGrip:new THREE.Vector3(...sockets.rifle.grip),submachinegunGrip:new THREE.Vector3(...sockets.smg.grip),automaticRifleGrip:new THREE.Vector3(...sockets.bar.grip),machinegunGrip:new THREE.Vector3(...sockets.mg.grip),cannonPivot:new THREE.Vector3(...sockets.cannon.pivot),cannonMuzzle:new THREE.Vector3(...sockets.cannon.muzzle),cannonElevation:sockets.cannon.elevation};
+  const asset:WeaponAssets={rifle:take('rifle'),submachinegun:take('smg'),automaticRifle,automaticRifleDeployed,machinegun,machinegunDeployed:deployed,mgMountBase:take('mgMountBase'),mgMountHead:take('mgMountHead'),mgMountBaseNeck:new THREE.Vector3(...sockets.mgMount.baseNeck),mgMountHeadNeck:new THREE.Vector3(...sockets.mgMount.headNeck),cannonCarriage:carriage,cannonBarrel:take('cannonBarrel'),rifleGrip:new THREE.Vector3(...sockets.rifle.grip),submachinegunGrip:new THREE.Vector3(...sockets.smg.grip),automaticRifleGrip:new THREE.Vector3(...sockets.bar.grip),machinegunGrip:new THREE.Vector3(...sockets.mg.grip),cannonPivot:new THREE.Vector3(...sockets.cannon.pivot),cannonMuzzle:new THREE.Vector3(...sockets.cannon.muzzle),cannonElevation:sockets.cannon.elevation};
   for(const key of ['mg','mgLegL','mgLegR','bar','barLegL','barLegR','cannonCarriage','cannonWheelL','cannonWheelR'])take(key).dispose();
-  for(const g of [asset.rifle,asset.submachinegun,automaticRifle,automaticRifleDeployed,machinegun,deployed,carriage,asset.cannonBarrel]){g.computeBoundingBox();g.computeBoundingSphere();}
+  for(const g of [asset.rifle,asset.submachinegun,automaticRifle,automaticRifleDeployed,machinegun,deployed,asset.mgMountBase,asset.mgMountHead,carriage,asset.cannonBarrel]){g.computeBoundingBox();g.computeBoundingSphere();}
   return asset;
 }
 let pending:Promise<WeaponAssets>|undefined;

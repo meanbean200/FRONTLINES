@@ -19,19 +19,20 @@ function mesh(name:string,positions:number[],colors:number[]){
   const node=doc.createNode(name).setMesh(doc.createMesh(name).addPrimitive(primitive));scene.addChild(node);geometry.dispose();return node;
 }
 const sockets:Record<string,unknown>={};
-for(const name of ['rifle','mg','cannon','smg','bar']){
+for(const name of ['rifle','mg','cannon','smg','bar','mg-mount']){
   const source=await readFile(new URL(`../assets/source/${name}.obj`,import.meta.url)),obj=new OBJLoader().parse(source.toString()),geometry=(obj.children[0] as THREE.Mesh).geometry;
   const p=geometry.getAttribute('position');geometry.computeBoundingBox();const bounds=geometry.boundingBox!;
   manifest.push({source:`source/${name}.obj`,sourceSha256:createHash('sha256').update(source).digest('hex'),triangles:p.count/3});
-  const length=name==='cannon'?6.4:name==='smg'?.82:name==='bar'?1.20:name==='rifle'?1.10:1.23;
+  const length=name==='cannon'?6.4:name==='mg-mount'?1.4:name==='smg'?.82:name==='bar'?1.20:name==='rifle'?1.10:1.23;
   const scale=length/((name==='cannon'||name==='smg'||name==='bar')?bounds.max.z-bounds.min.z:bounds.max.x-bounds.min.x);
   // +Z fire; preserve existing muzzle contracts (.29 for SMG, .6 for rifle/MG).
   const cannonTransform=new THREE.Matrix4().makeRotationX(.028);
   let cannonFloor=Infinity;for(let i=0;i<p.count;i++){point.fromBufferAttribute(p,i).applyMatrix4(cannonTransform);cannonFloor=Math.min(cannonFloor,point.y);}
-  function transform(x:number,y:number,z:number){
+  function transform(x:number,y:number,z:number,part=name){
     if(name==='cannon'){point.set(x,y,z).applyMatrix4(cannonTransform);return [(point.x+.004)*scale,(point.y-cannonFloor)*scale,(point.z-.34)*scale];}
     if(name==='smg')return [(x+.0032)*scale,(y-.153)*scale,.29+(z-bounds.max.z)*scale];
     if(name==='bar')return [-(x+.0035)*scale,(y-.142)*scale,.6+(bounds.min.z-z)*scale];
+    if(name==='mg-mount')return [-(z+.335)*scale,(y-(part==='mgMountHead'?bounds.max.y:bounds.min.y))*scale-(part==='mgMountHead'?.07:0),(x-.04)*scale-(part==='mgMountHead'?.18:0)];
     return [-(z+(name==='rifle'?.027:0))*scale,(y-(name==='rifle'?.103:.095))*scale,.6+(x-bounds.max.x)*scale];
   }
   const parts=new Map<string,{p:number[];c:number[]}>();
@@ -51,6 +52,9 @@ for(const name of ['rifle','mg','cannon','smg','bar']){
       if(z<-.60&&y<.084)part=x>-.0035?'barLegL':'barLegR';
       const stock=z>.46&&y<.13,grip=z>.20&&z<.46&&y<.03,forestock=z>-.59&&z<-.10&&y<.105;
       tint=stock||grip||forestock?0x795737:part!=='bar'?0x505850:y>.185?0x62695f:y<.025?0x353d39:0x454d47;
+    }else if(name==='mg-mount'){
+      part=y>-.085?'mgMountHead':'mgMountBase';
+      tint=y<-.345?0x424b3e:y>-.03&&x>.30?0x656d58:part==='mgMountHead'?0x4c5748:0x59634e;
     }else{
       const barrel=Math.abs(x)<.065&&z>.055&&Math.abs(y-(.09+.215*(z-.4)))<.053;
       const wheel=Math.abs(x)>.235&&z>.08&&z<.61&&y<.19;
@@ -61,7 +65,7 @@ for(const name of ['rifle','mg','cannon','smg','bar']){
     if(!parts.has(part))parts.set(part,{p:[],c:[]});const target=parts.get(part)!;
     // Per-face material regions avoid rainbow interpolation across wood/steel edges.
     color.setHex(tint);
-    for(let j=0;j<3;j++){target.p.push(...transform(p.getX(i+j),p.getY(i+j),p.getZ(i+j)));target.c.push(color.r,color.g,color.b);}
+    for(let j=0;j<3;j++){target.p.push(...transform(p.getX(i+j),p.getY(i+j),p.getZ(i+j),part));target.c.push(color.r,color.g,color.b);}
   }
   const nodes=new Map<string,ReturnType<typeof mesh>>();
   for(const [part,data] of parts)nodes.set(part,mesh(part,data.p,data.c));
@@ -73,6 +77,8 @@ for(const name of ['rifle','mg','cannon','smg','bar']){
   }else if(name==='bar'){
     sockets.bar={muzzle:[0,0,.6],grip:transform(-.0035,-.025,.35),length};
     sockets.barBipods={left:transform(.031,.084,-.699),right:transform(-.038,.084,-.699)};
+  }else if(name==='mg-mount'){
+    sockets.mgMount={footprint:length,baseNeck:transform(.04,-.085,-.335,'mgMountBase'),headNeck:transform(.04,-.085,-.335,'mgMountHead')};
   }else{
     const pivot=transform(0,.069,.32),muzzle=transform(0,.214,.982),elevation=Math.atan2(muzzle[1]-pivot[1],muzzle[2]-pivot[2]);
     sockets.cannon={pivot,muzzle,elevation,length:6.4,wheelLeft:transform(-.30,-.028,.34),wheelRight:transform(.30,-.028,.34)};

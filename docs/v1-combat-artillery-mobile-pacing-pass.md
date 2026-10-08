@@ -1727,3 +1727,26 @@ materials and lack of terrain-conforming bipod/two-hand IK remain explicit art
 limitations. See `docs/bar-model-integration.md`. Overall status remains PARTIAL;
 the earlier performance/reproduction/long-session/player-acceptance gates remain
 open. No simulation rewrite, neural training or automation was started.
+
+## 2026-10-08 — User-supplied MG mount
+
+**IMPLEMENTED / EDGE AND OFFLINE RENDER VERIFIED / PLAYER ART ACCEPTANCE OPEN.**
+Preserved the 4,100-triangle source and paired it with installed MGs through
+shared instancing. Fixed feet, articulated cradle and an adjustable visual
+riser preserve the authoritative muzzle and actual shot direction. Empty or
+uncrewed posts remain physical; visibility, distant fallback, construction,
+equipment, combat and saves are unchanged.
+
+**1084/1084 tests across 166 files**, 25 focused renderer tests, production/offline
+builds and packaging 5/5 passed. Repeated asset generation is byte-identical.
+Edge controls verified model articulation, context recovery and a player-built
+trench MG receiving 16 real materials. Network-disabled standalone launch
+inspected a published-title MG and entered Sandbox with zero errors/HTTP calls.
+Workshop articulation and offline title inspection are not full-combat gates.
+
+Weapon GLB is 909,120 bytes; standalone approximately 4,405 KiB. Source, screenshots
+and failed inspection/test attempts are retained. Shared hand poses, steep-ground
+foot fit and the visual riser are explicit limitations. See
+`docs/mg-mount-model-integration.md`. Overall status remains PARTIAL; performance,
+original bug reproduction, physical-mobile and player-believability gates remain
+open. No simulation rewrite, neural training or automation was started.
