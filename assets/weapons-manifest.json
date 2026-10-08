@@ -1,7 +1,7 @@
 {
   "version": 1,
   "runtime": "src/assets/weapons.glb",
-  "bytes": 480248,
+  "bytes": 598344,
   "materials": 1,
   "textures": 0,
   "sources": [
@@ -19,6 +19,11 @@
       "source": "source/cannon.obj",
       "sourceSha256": "04c661dce4e8361e7325ad3132f08858a1dfe198127803803a300637c2952877",
       "triangles": 4100
+    },
+    {
+      "source": "source/smg.obj",
+      "sourceSha256": "1b905034524184a6e0d0e167600320f9034b680cd3af83077c78371f747fc200",
+      "triangles": 2100
     }
   ],
   "sockets": {
@@ -83,6 +88,19 @@
         0.8016951651014738,
         -0.0029494615454351654
       ]
+    },
+    "smg": {
+      "muzzle": [
+        0,
+        0,
+        0.29
+      ],
+      "grip": [
+        0,
+        -0.0948902639131328,
+        -0.21758391503889835
+      ],
+      "length": 0.82
     }
   }
 }

@@ -1,4 +1,4 @@
-/** Reproducible, non-destructive preparation of the user's three OBJ sources. */
+/** Reproducible, non-destructive preparation of the user's equipment sources. */
 import {readFile,writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
@@ -19,16 +19,18 @@ function mesh(name:string,positions:number[],colors:number[]){
   const node=doc.createNode(name).setMesh(doc.createMesh(name).addPrimitive(primitive));scene.addChild(node);geometry.dispose();return node;
 }
 const sockets:Record<string,unknown>={};
-for(const name of ['rifle','mg','cannon']){
+for(const name of ['rifle','mg','cannon','smg']){
   const source=await readFile(new URL(`../assets/source/${name}.obj`,import.meta.url)),obj=new OBJLoader().parse(source.toString()),geometry=(obj.children[0] as THREE.Mesh).geometry;
   const p=geometry.getAttribute('position');geometry.computeBoundingBox();const bounds=geometry.boundingBox!;
   manifest.push({source:`source/${name}.obj`,sourceSha256:createHash('sha256').update(source).digest('hex'),triangles:p.count/3});
-  const scale=name==='cannon'?6.4/(bounds.max.z-bounds.min.z):(name==='rifle'?1.10:1.23)/(bounds.max.x-bounds.min.x);
-  // Shared runtime contract: +Z fire, handheld muzzle [0,0,.6]. Cannon axle at Z=0.
+  const length=name==='cannon'?6.4:name==='smg'?.82:name==='rifle'?1.10:1.23;
+  const scale=length/((name==='cannon'||name==='smg')?bounds.max.z-bounds.min.z:bounds.max.x-bounds.min.x);
+  // +Z fire; preserve existing muzzle contracts (.29 for SMG, .6 for rifle/MG).
   const cannonTransform=new THREE.Matrix4().makeRotationX(.028);
   let cannonFloor=Infinity;for(let i=0;i<p.count;i++){point.fromBufferAttribute(p,i).applyMatrix4(cannonTransform);cannonFloor=Math.min(cannonFloor,point.y);}
   function transform(x:number,y:number,z:number){
     if(name==='cannon'){point.set(x,y,z).applyMatrix4(cannonTransform);return [(point.x+.004)*scale,(point.y-cannonFloor)*scale,(point.z-.34)*scale];}
+    if(name==='smg')return [(x+.0032)*scale,(y-.153)*scale,.29+(z-bounds.max.z)*scale];
     return [-(z+(name==='rifle'?.027:0))*scale,(y-(name==='rifle'?.103:.095))*scale,.6+(x-bounds.max.x)*scale];
   }
   const parts=new Map<string,{p:number[];c:number[]}>();
@@ -41,6 +43,9 @@ for(const name of ['rifle','mg','cannon']){
     }else if(name==='mg'){
       if(x>.61&&y<.035){part=z<0?'mgLegR':'mgLegL';}
       tint=x<-.72||(x<-.42&&y<-.07)?0x65503a:x>.06&&y<.11?0x39413c:0x505850;
+    }else if(name==='smg'){
+      const stock=z<-.46&&y<.081,pistolGrip=z>-.36&&z<-.11&&y<.035,forestock=z>.20&&z<.58&&y<.135;
+      tint=stock||pistolGrip||forestock?0x795737:y>.19?0x60665e:y<.05?0x353d39:0x49514b;
     }else{
       const barrel=Math.abs(x)<.065&&z>.055&&Math.abs(y-(.09+.215*(z-.4)))<.053;
       const wheel=Math.abs(x)>.235&&z>.08&&z<.61&&y<.19;
@@ -58,6 +63,8 @@ for(const name of ['rifle','mg','cannon']){
   if(name==='rifle'||name==='mg'){
     sockets[name]={muzzle:[0,0,.6],grip:transform(name==='rifle'?-.51:-.52,name==='rifle'?-.055:-.09,name==='rifle'?-.025:0),length:name==='rifle'?1.1:1.23};
     if(name==='mg')sockets.mgBipods={left:transform(.70,.04,.028),right:transform(.70,.04,-.028)};
+  }else if(name==='smg'){
+    sockets.smg={muzzle:[0,0,.29],grip:transform(-.0032,-.077,-.24),length};
   }else{
     const pivot=transform(0,.069,.32),muzzle=transform(0,.214,.982),elevation=Math.atan2(muzzle[1]-pivot[1],muzzle[2]-pivot[2]);
     sockets.cannon={pivot,muzzle,elevation,length:6.4,wheelLeft:transform(-.30,-.028,.34),wheelRight:transform(.30,-.028,.34)};

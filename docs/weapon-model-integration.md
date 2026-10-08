@@ -1,5 +1,9 @@
 # Supplied rifle, machine gun and artillery
 
+This records the original three-model milestone and its measurements. The later
+SMG addition and current combined equipment size are recorded separately in
+[`smg-model-integration.md`](smg-model-integration.md).
+
 **IMPLEMENTED / focused renderer and Edge inspection verified / player art acceptance OPEN.**
 
 This is a presentation-only continuation of the supplied soldier integration.

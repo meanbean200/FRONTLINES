@@ -1683,3 +1683,24 @@ attempts are preserved. See `docs/truck-model-integration.md`.
 This asset integration does not close the earlier full-combat performance,
 long-session, original bug-reproduction, mobile or player-believability gates.
 Overall status remains PARTIAL. No neural training or automation was started.
+
+## 2026-10-08 — User-supplied submachine gun
+
+**IMPLEMENTED / EDGE AND OFFLINE RENDER VERIFIED / PLAYER ART ACCEPTANCE OPEN.**
+Preserved the user's 2,100-triangle source, prepared a 0.82-metre wood/steel model
+with grip/muzzle sockets, and connected it to the existing instanced SMG slot.
+Carrying follows the soldier's animated hand; firing remains aligned with the
+actual shot. Distant fallback, equipment ownership and all simulation/save rules
+are unchanged. The shared weapon GLB is now 598,344 bytes with no textures.
+
+**1078/1078 tests across 166 files**, 25 focused renderer tests, production/offline
+builds and packaging 5/5 passed. Asset regeneration is deterministic. Actual Edge
+controls verified close inspection, context restoration and a drawn game route.
+Network-disabled standalone launch found an existing SMG bearer with zero page
+errors or HTTP requests. The workshop remains an explicit art fixture; no new
+combat, mobile or large-population performance acceptance is claimed.
+
+Original files and local visual evidence are preserved. First-pass materials and
+shared handling animations still require player art review. See
+`docs/smg-model-integration.md`. Overall gameplay/release status remains PARTIAL;
+no neural training or automation was started.

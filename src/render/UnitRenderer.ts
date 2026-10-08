@@ -88,13 +88,14 @@ export class UnitRenderer {
       this.body.castShadow=this.engineers.castShadow=this.enemies.castShadow=this.legs.castShadow=true;
       this.rings.renderOrder=4;
       this.group.add(this.arms,this.hands,this.tools);this.arms.castShadow=true;
-      this.variants.clear();for(const [kind,geometry]of Object.entries(this.variantGeometries)){const mesh=new THREE.InstancedMesh(geometry,this.weaponMaterial,this.count);mesh.frustumCulled=false;mesh.castShadow=true;this.variants.set(kind as WeaponVisualKind,mesh);this.group.add(mesh);}
+      this.variants.clear();for(const [kind,geometry]of Object.entries(this.variantGeometries)){const mesh=new THREE.InstancedMesh(geometry,this.weaponMaterial,this.count);mesh.name=`Held ${kind}`;mesh.frustumCulled=false;mesh.castShadow=true;this.variants.set(kind as WeaponVisualKind,mesh);this.group.add(mesh);}
       this.deployedMG=new THREE.InstancedMesh(this.variantGeometries.machinegun,this.weaponMaterial,this.count);this.deployedMG.name='Bipod machine guns';this.deployedMG.frustumCulled=false;this.deployedMG.castShadow=true;this.group.add(this.deployedMG);
       this.group.add(this.rigged.group);
     }
     const close=zoomDistance<VISUAL_QUALITY[this.quality].soldierDetail;
     const equipment=close?this.equipment:undefined;
     this.weapons!.geometry=equipment?.rifle??this.weaponGeometry;
+    this.variants.get('smg')!.geometry=equipment?.submachinegun??this.variantGeometries.smg;
     this.variants.get('machinegun')!.geometry=equipment?.machinegun??this.variantGeometries.machinegun;
     this.deployedMG!.geometry=equipment?.machinegunDeployed??this.variantGeometries.machinegun;
     const useRig=this.rigged.begin(capacity,close);
@@ -147,7 +148,8 @@ export class UnitRenderer {
       const mount=operatedPosition(this.state,soldier,'emplacement'),weapon=mount?.installation?.kind??soldier.equipment?.weapon??soldier.combat?.weapon?.id,kind=weapon==='crew-mg'||weapon==='mg42'?'machinegun':weapon==='bar'?'automatic':weapon==='smg'?'smg':'rifle';
       if(useRig&&!aiming&&!firing&&!lying){
         this.rigged.attachment('HandR',weaponPosition);
-        if(equipment&&(kind==='rifle'||kind==='machinegun'))local.copy(kind==='rifle'?equipment.rifleGrip:equipment.machinegunGrip);else local.set(0,-.04,-.1);
+        const grip=equipment&&(kind==='rifle'?equipment.rifleGrip:kind==='machinegun'?equipment.machinegunGrip:kind==='smg'?equipment.submachinegunGrip:undefined);
+        if(grip)local.copy(grip);else local.set(0,-.04,-.1);
         local.applyQuaternion(weaponRotation);weaponPosition.sub(local);
       }
       if(useRig&&!aiming&&!firing&&(lying||['resting','eating','drinking'].includes(soldier.action))){
