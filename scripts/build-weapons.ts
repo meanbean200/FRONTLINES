@@ -19,11 +19,11 @@ function mesh(name:string,positions:number[],colors:number[]){
   const node=doc.createNode(name).setMesh(doc.createMesh(name).addPrimitive(primitive));scene.addChild(node);geometry.dispose();return node;
 }
 const sockets:Record<string,unknown>={};
-for(const name of ['rifle','mg','cannon','smg','bar','mg-mount']){
+for(const name of ['rifle','mg','cannon','smg','bar','mg-mount','shovel']){
   const source=await readFile(new URL(`../assets/source/${name}.obj`,import.meta.url)),obj=new OBJLoader().parse(source.toString()),geometry=(obj.children[0] as THREE.Mesh).geometry;
   const p=geometry.getAttribute('position');geometry.computeBoundingBox();const bounds=geometry.boundingBox!;
   manifest.push({source:`source/${name}.obj`,sourceSha256:createHash('sha256').update(source).digest('hex'),triangles:p.count/3});
-  const length=name==='cannon'?6.4:name==='mg-mount'?1.4:name==='smg'?.82:name==='bar'?1.20:name==='rifle'?1.10:1.23;
+  const length=name==='cannon'?6.4:name==='shovel'?1.05:name==='mg-mount'?1.4:name==='smg'?.82:name==='bar'?1.20:name==='rifle'?1.10:1.23;
   const scale=length/((name==='cannon'||name==='smg'||name==='bar')?bounds.max.z-bounds.min.z:bounds.max.x-bounds.min.x);
   // +Z fire; preserve existing muzzle contracts (.29 for SMG, .6 for rifle/MG).
   const cannonTransform=new THREE.Matrix4().makeRotationX(.028);
@@ -33,6 +33,7 @@ for(const name of ['rifle','mg','cannon','smg','bar','mg-mount']){
     if(name==='smg')return [(x+.0032)*scale,(y-.153)*scale,.29+(z-bounds.max.z)*scale];
     if(name==='bar')return [-(x+.0035)*scale,(y-.142)*scale,.6+(bounds.min.z-z)*scale];
     if(name==='mg-mount')return [-(z+.335)*scale,(y-(part==='mgMountHead'?bounds.max.y:bounds.min.y))*scale-(part==='mgMountHead'?.07:0),(x-.04)*scale-(part==='mgMountHead'?.18:0)];
+    if(name==='shovel')return [-(z+.004)*scale,-.55+(x-bounds.min.x)*scale,-(y-.01)*scale];
     return [-(z+(name==='rifle'?.027:0))*scale,(y-(name==='rifle'?.103:.095))*scale,.6+(x-bounds.max.x)*scale];
   }
   const parts=new Map<string,{p:number[];c:number[]}>();
@@ -55,6 +56,8 @@ for(const name of ['rifle','mg','cannon','smg','bar','mg-mount']){
     }else if(name==='mg-mount'){
       part=y>-.085?'mgMountHead':'mgMountBase';
       tint=y<-.345?0x424b3e:y>-.03&&x>.30?0x656d58:part==='mgMountHead'?0x4c5748:0x59634e;
+    }else if(name==='shovel'){
+      tint=x<-.26?(x<-.88?0x6a7065:0x4a534d):x>.80?0x695237:0x8b6d47;
     }else{
       const barrel=Math.abs(x)<.065&&z>.055&&Math.abs(y-(.09+.215*(z-.4)))<.053;
       const wheel=Math.abs(x)>.235&&z>.08&&z<.61&&y<.19;
@@ -79,6 +82,8 @@ for(const name of ['rifle','mg','cannon','smg','bar','mg-mount']){
     sockets.barBipods={left:transform(.031,.084,-.699),right:transform(-.038,.084,-.699)};
   }else if(name==='mg-mount'){
     sockets.mgMount={footprint:length,baseNeck:transform(.04,-.085,-.335,'mgMountBase'),headNeck:transform(.04,-.085,-.335,'mgMountHead')};
+  }else if(name==='shovel'){
+    sockets.shovel={length,grip:[0,.10,0],bladeTip:transform(bounds.min.x,.028,-.004),shaftAxis:'+Y'};
   }else{
     const pivot=transform(0,.069,.32),muzzle=transform(0,.214,.982),elevation=Math.atan2(muzzle[1]-pivot[1],muzzle[2]-pivot[2]);
     sockets.cannon={pivot,muzzle,elevation,length:6.4,wheelLeft:transform(-.30,-.028,.34),wheelRight:transform(.30,-.028,.34)};

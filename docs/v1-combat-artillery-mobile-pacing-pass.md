@@ -1750,3 +1750,27 @@ foot fit and the visual riser are explicit limitations. See
 `docs/mg-mount-model-integration.md`. Overall status remains PARTIAL; performance,
 original bug reproduction, physical-mobile and player-believability gates remain
 open. No simulation rewrite, neural training or automation was started.
+
+## 2026-10-08 — User-supplied shovel
+
+**IMPLEMENTED / EDGE AND OFFLINE RENDER VERIFIED / PLAYER ART ACCEPTANCE OPEN.**
+Preserved the 700-triangle source and prepared a 1.05-metre wooden-handle/steel
+shovel. Its rigid transform follows both sampled hand attachments and body
+facing. Digging and spoil-clearing use the existing tool instance batch; distant
+and failed-load behavior remain. Inactive people do not retain working shovels.
+No construction-rate, worker-allocation, equipment, supply, simulation or save
+changes were made.
+
+**1086/1086 tests across 166 files**, 25 focused renderer tests, production/offline
+builds and packaging 5/5 passed. Repeated asset generation is byte-identical.
+Actual Edge controls verified the art fixture, graphics-context recovery and
+a fresh Sandbox trench ordered with the engineer selection and mouse drawing.
+The network-disabled standalone repeated real excavation with eight active,
+tool-equipped workers, zero page/console errors and zero HTTP requests.
+
+Weapon GLB is 937,312 bytes; standalone approximately 4,442 KiB. Original source,
+screenshots and first-pass evidence remain preserved. Existing digging clips and
+terrain contact are not a new IK or earth-scooping simulation. See
+`docs/shovel-model-integration.md`. Overall status remains PARTIAL; full-combat
+performance, original reproductions, physical mobile and player art acceptance
+remain open. No neural training or automation was started.

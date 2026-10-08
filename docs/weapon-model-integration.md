@@ -2,8 +2,9 @@
 
 This records the original three-model milestone and its measurements. Later
 additions are recorded in [`smg-model-integration.md`](smg-model-integration.md),
-[`bar-model-integration.md`](bar-model-integration.md), and
-[`mg-mount-model-integration.md`](mg-mount-model-integration.md). The current combined
+[`bar-model-integration.md`](bar-model-integration.md),
+[`mg-mount-model-integration.md`](mg-mount-model-integration.md), and
+[`shovel-model-integration.md`](shovel-model-integration.md). The current combined
 equipment inventory and size are in `assets/weapons-manifest.json`.
 
 **IMPLEMENTED / focused renderer and Edge inspection verified / player art acceptance OPEN.**

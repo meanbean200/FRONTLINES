@@ -13,6 +13,7 @@ import {renderedPersonnel} from './PersonnelVisibility';
 import {RiggedSoldiers} from './RiggedSoldiers';
 import type {SoldierAsset} from './SoldierAsset';
 import {loadWeaponAssets,type WeaponAssets} from './WeaponAssets';
+import {shovelPresentation} from './ShovelPresentation';
 
 export class UnitRenderer {
   spectator=false;
@@ -85,6 +86,7 @@ export class UnitRenderer {
       this.arms=new THREE.InstancedMesh(this.armGeometry,this.armMaterial,this.count*4);
       this.hands=new THREE.InstancedMesh(this.handGeometry,this.handMaterial,this.count*2);
       this.tools=new THREE.InstancedMesh(this.toolGeometry,this.toolMaterial,this.count);
+      this.tools.name='Working shovels';this.tools.castShadow=true;
       for(const mesh of [this.body,this.engineers,this.enemies,this.legs,this.rings,this.weapons,this.flashes]){mesh.frustumCulled=false;this.group.add(mesh);}
       this.body.castShadow=this.engineers.castShadow=this.enemies.castShadow=this.legs.castShadow=true;
       this.rings.renderOrder=4;
@@ -96,6 +98,7 @@ export class UnitRenderer {
     }
     const close=zoomDistance<VISUAL_QUALITY[this.quality].soldierDetail;
     const equipment=close?this.equipment:undefined;
+    this.tools!.geometry=equipment?.shovel??this.toolGeometry;
     this.weapons!.geometry=equipment?.rifle??this.weaponGeometry;
     this.variants.get('smg')!.geometry=equipment?.submachinegun??this.variantGeometries.smg;
     this.variants.get('automatic')!.geometry=equipment?.automaticRifle??this.variantGeometries.automatic;
@@ -191,16 +194,16 @@ export class UnitRenderer {
         if(lying&&!aiming&&!firing){elbow=[side*.30,1.12,.03];hand=[side*.14,1.45,.05];}
         if(sleeping){elbow=[side*.18,1.15,.17];hand=[side*.07,1.5,.19];}
         if(dead){elbow=[side*.40,1.02,.03];hand=[side*.52,.83,side*.12];}
-        if(digging){const reach=Math.sin(this.state.elapsed*4+i)*.17;elbow=[side*.23,1.10,.18];hand=[side*.08,1.0+reach,.46];}
+        if(digging){const reach=Math.sin(this.state.elapsed*4+i)*.15;elbow=[side*.23,1.10,.18];hand=side<0?[-.005,.56+reach,.50]:[.06,.88+reach,.40];}
         if(care||soldier.action==='eating'){elbow=[side*.22,1.02,.22];hand=[side*.12,care?.89:1.40,.37];}
         const points=[[side*.23,1.33,0],elbow,hand];
         for(let n=0;n<2;n++){a.fromArray(points[n]).applyMatrix4(bodyMatrix);b.fromArray(points[n+1]).applyMatrix4(bodyMatrix);p.copy(a).add(b).multiplyScalar(.5);b.sub(a);const length=b.length();jointRotation.setFromUnitVectors(axis,b.normalize());scale.set(1,length/.28,1);matrix.compose(p,jointRotation,scale);this.arms!.setMatrixAt(arms,matrix);this.arms!.setColorAt(arms++,tint.setHex(cloth));}
         if(close){p.fromArray(hand).applyMatrix4(bodyMatrix);scale.setScalar(1);matrix.compose(p,rotation,scale);this.hands!.setMatrixAt(hands++,matrix);}
       }
-      if(soldier.action==='digging'&&close){
-        if(useRig){this.rigged.attachment('HandL',a);this.rigged.attachment('HandR',b);b.sub(a).normalize();jointRotation.setFromUnitVectors(axis,b);p.copy(a).addScaledVector(b,-.10);}
-        else{p.set(.03,.70,.48).applyMatrix4(bodyMatrix);jointRotation.copy(rotation).multiply(new THREE.Quaternion().setFromAxisAngle(axis,.15));}
-        scale.setScalar(1);matrix.compose(p,jointRotation,scale);this.tools!.setMatrixAt(tools++,matrix);
+      if(digging&&close&&(!soldier.needs||soldier.needs.life==='active')){
+        if(useRig){this.rigged.attachment('HandL',a);this.rigged.attachment('HandR',b);}
+        else{const reach=Math.sin(this.state.elapsed*4+i)*.15;a.set(-.005,.56+reach,.50).applyMatrix4(bodyMatrix);b.set(.06,.88+reach,.40).applyMatrix4(bodyMatrix);}
+        this.tools!.setMatrixAt(tools++,shovelPresentation(a,b,soldier.heading,equipment?.shovelGrip));
       }
       scale.setScalar(1);
       if(selected.has(soldier.squadId)&&soldier.needs?.life==='active'&&soldier.cover!=='trench') {p.copy(position);p.y+=.1;matrix.compose(p,new THREE.Quaternion(),scale);this.rings!.setMatrixAt(ringCount++,matrix);}

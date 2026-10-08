@@ -1,7 +1,7 @@
 {
   "version": 1,
   "runtime": "src/assets/weapons.glb",
-  "bytes": 909120,
+  "bytes": 937312,
   "materials": 1,
   "textures": 0,
   "sources": [
@@ -34,6 +34,11 @@
       "source": "source/mg-mount.obj",
       "sourceSha256": "3c12eab521450d16f78561053071df5b91acf50172b3845996c319604e604d88",
       "triangles": 4100
+    },
+    {
+      "source": "source/shovel.obj",
+      "sourceSha256": "a387a7e274f0acae62ab17438837d694ca555e0ed70e0f27987554e11b7afdf0",
+      "triangles": 700
     }
   ],
   "sockets": {
@@ -149,6 +154,20 @@
         -0.40929931773893163,
         -0.18
       ]
+    },
+    "shovel": {
+      "length": 1.05,
+      "grip": [
+        0,
+        0.1,
+        0
+      ],
+      "bladeTip": [
+        0,
+        -0.55,
+        -0.009503280162034108
+      ],
+      "shaftAxis": "+Y"
     }
   }
 }

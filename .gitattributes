@@ -7,4 +7,5 @@ assets/source/truck.obj -text whitespace=-blank-at-eof
 assets/source/smg.obj -text whitespace=-blank-at-eof
 assets/source/bar.obj -text whitespace=-blank-at-eof
 assets/source/mg-mount.obj -text whitespace=-blank-at-eof
+assets/source/shovel.obj -text whitespace=-blank-at-eof
 src/assets/*.glb binary

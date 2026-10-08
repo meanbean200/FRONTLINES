@@ -11,6 +11,7 @@ import {BattlefieldSimulation} from '../simulation/BattlefieldSimulation';
 import {inventory,type Facility} from '../garrison/types';
 import {mountedGeometry} from '../combat/MountedGeometry';
 import {mountedGunPresentation} from './MountedGunPresentation';
+import {shovelPresentation} from './ShovelPresentation';
 import {releaseLostContextResources} from './ContextRecovery';
 import {parseSoldierAsset,type SoldierAsset} from './SoldierAsset';
 import {RiggedSoldiers} from './RiggedSoldiers';
@@ -35,7 +36,8 @@ describe('supplied rifle, MG, SMG, BAR and cannon presentation',()=>{
     expect(triangles(assets.automaticRifle)).toBe(2100);expect(triangles(assets.automaticRifleDeployed)).toBe(2100);
     expect(triangles(assets.cannonBarrel)+triangles(assets.cannonCarriage)).toBe(4100);
     expect(triangles(assets.mgMountBase)+triangles(assets.mgMountHead)).toBe(4100);
-    for(const g of [assets.rifle,assets.submachinegun,assets.automaticRifle,assets.automaticRifleDeployed,assets.machinegun,assets.machinegunDeployed,assets.mgMountBase,assets.mgMountHead,assets.cannonCarriage,assets.cannonBarrel])for(const name of ['position','normal','color'])expect(Array.from(g.getAttribute(name).array).every(Number.isFinite)).toBe(true);
+    expect(triangles(assets.shovel)).toBe(700);expect(assets.shovel.boundingBox!.getSize(new THREE.Vector3()).y).toBeCloseTo(1.05,5);
+    for(const g of [assets.rifle,assets.submachinegun,assets.automaticRifle,assets.automaticRifleDeployed,assets.machinegun,assets.machinegunDeployed,assets.mgMountBase,assets.mgMountHead,assets.shovel,assets.cannonCarriage,assets.cannonBarrel])for(const name of ['position','normal','color'])expect(Array.from(g.getAttribute(name).array).every(Number.isFinite)).toBe(true);
   });
   it('sets metre scale, +Z muzzle sockets and a lower-profile folded bipod',()=>{
     expect(assets.rifle.boundingBox!.getSize(new THREE.Vector3()).z).toBeCloseTo(1.1,4);
@@ -165,5 +167,33 @@ describe('supplied rifle, MG, SMG, BAR and cannon presentation',()=>{
     const a=fieldGunPresentation(state,f,0,assets);mission.impact={x:-900,z:-900};expect(fieldGunPresentation(state,f,0,assets).barrel.elements).toEqual(a.barrel.elements);
     releaseLostContextResources(r.group);r.update(250,false);expect(tube.count).toBe(1);
     const restored=JSON.parse(JSON.stringify(state));expect(fieldGunPresentation(restored,restored.living.facilities[0],0,assets).barrel.elements).toEqual(a.barrel.elements);
+  });
+  it('attaches the shovel grip to the GPU-sampled lower hand and keeps the shaft through both hands',()=>{
+    const {state,sim,s}=fixture();state.soldiers=[s];s.garrisonId=undefined;s.duty=undefined;s.action='digging';s.posture='standing';s.combat=undefined;s.aimTargetId=undefined;
+    const r=new UnitRenderer(state,sim.terrain,soldierAsset,assets),rig=new RiggedSoldiers(soldierAsset),m=new THREE.Matrix4();
+    for(const heading of [0,.7,Math.PI,-Math.PI/2])for(const t of [.2,.6,1,1.4]){
+      s.heading=heading;state.elapsed=t;const before=JSON.stringify(state);r.update(new Set(),1/60,20);
+      const tool=r.group.getObjectByName('Working shovels') as THREE.InstancedMesh;expect(tool.count).toBe(1);expect(tool.geometry).toBe(assets.shovel);tool.getMatrixAt(0,m);
+      rig.begin(1,true);rig.add(s,new THREE.Vector3(s.x,sim.terrain.heightAt(s.x,s.z),s.z),t,false,0,new THREE.Color());
+      const lower=rig.attachment('HandL',new THREE.Vector3()),upper=rig.attachment('HandR',new THREE.Vector3());
+      expect(assets.shovelGrip.clone().applyMatrix4(m).distanceTo(lower)).toBeLessThan(.001);
+      const local=upper.clone().applyMatrix4(m.clone().invert());expect(Math.abs(local.x)).toBeLessThan(.001);expect(Math.abs(local.z)).toBeLessThan(.001);expect(local.y).toBeGreaterThan(.1);expect(local.y).toBeLessThan(.51);
+      const pos=new THREE.Vector3(),q=new THREE.Quaternion(),scale=new THREE.Vector3();m.decompose(pos,q,scale);expect(scale.distanceTo(new THREE.Vector3(1,1,1))).toBeLessThan(.0001);
+      expect(JSON.stringify(state)).toBe(before);r.update(new Set(),1/60,20);const paused=new THREE.Matrix4();tool.getMatrixAt(0,paused);expect(paused.elements).toEqual(m.elements);
+    }
+    for(const upper of [new THREE.Vector3(),new THREE.Vector3(0,0,1)])expect(shovelPresentation(new THREE.Vector3(),upper,0).elements.every(Number.isFinite)).toBe(true);
+  });
+  it('shows working tools only for active digging/spoil work and preserves hiding, fallback and context recovery',()=>{
+    const {state,sim,s}=fixture();state.soldiers=[s];s.garrisonId=undefined;s.duty=undefined;s.action='digging';s.posture='standing';
+    const r=new UnitRenderer(state,sim.terrain,soldierAsset,assets);r.update(new Set(),1/60,20);
+    const tool=r.group.getObjectByName('Working shovels') as THREE.InstancedMesh,rifle=r.group.children[5] as THREE.InstancedMesh;
+    expect(tool.count).toBe(1);expect(rifle.count).toBe(0);s.action='clearing spoil';r.update(new Set(),1/60,20);expect(tool.count).toBe(1);expect(rifle.count).toBe(0);
+    releaseLostContextResources(r.group);r.update(new Set(),1/60,20);expect(tool.geometry).toBe(assets.shovel);expect(tool.count).toBe(1);
+    r.update(new Set(),1/60,700);expect(tool.count).toBe(0);expect(tool.geometry).not.toBe(assets.shovel);
+    for(const action of ['holding','walking','sleeping','resting','treating','building support']){s.action=action;r.update(new Set(),1/60,20);expect(tool.count).toBe(0);}
+    s.action='digging';for(const life of ['dead','incapacitated'] as const){s.needs!.life=life;r.update(new Set(),1/60,20);expect(tool.count).toBe(0);}
+    s.needs!.life='active';const fallback=new UnitRenderer(state,sim.terrain,null,null);fallback.update(new Set(),1/60,20);const old=fallback.group.getObjectByName('Working shovels') as THREE.InstancedMesh;expect(old.count).toBe(1);expect(old.geometry).not.toBe(assets.shovel);
+    state.squads.find(q=>q.id===s.squadId)!.faction='enemy';state.operation!.contacts={player:[],enemy:[]};r.update(new Set(),1/60,20);expect(tool.count).toBe(0);
+    state.squads.find(q=>q.id===s.squadId)!.faction='player';const saved=JSON.stringify(state);r.replaceState(JSON.parse(saved));r.update(new Set(),1/60,20);expect((r.group.getObjectByName('Working shovels') as THREE.InstancedMesh).count).toBe(1);expect(JSON.stringify(state)).toBe(saved);
   });
 });

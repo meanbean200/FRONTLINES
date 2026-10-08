@@ -29,6 +29,7 @@ const gun={id:991,garrisonId:1,kind:'mortar',x:3,z:-1,progress:1,facing:.3,stock
 const mount={id:992,garrisonId:1,kind:'emplacement',x:8,z:2,progress:1,facing:0,stock:inventory(),installation:{kind:'crew-mg'},weaponCrewIds:[10]} as unknown as Facility;
 const operator=structuredClone(original),crewPoint=weaponCrewPoint(state,mount,0);Object.assign(operator,{id:10,squadId:state.squads[0].id,x:crewPoint.x,z:crewPoint.z,heading:0,action:'watching',aimTargetId:999,cover:'open',trenchId:undefined,garrisonId:1,personalArea:undefined});operator.needs!.life='active';operator.equipment!.weapon='mg42';operator.combat={shotSequence:0};operator.duty={kind:'watch',facilityId:mount.id,arrivedAt:0} as typeof operator.duty;state.soldiers.push(operator);
 state.living!.facilities=[gun,mount];state.living!.trucks=[];state.living!.crates=[];state.living!.garrisons=[];
+const digger=structuredClone(original);Object.assign(digger,{id:11,squadId:state.squads[0].id,x:12,z:-3,heading:.1,action:'digging',posture:'standing',garrisonId:undefined,duty:undefined,personalArea:undefined,trenchId:undefined,cover:'open',aimTargetId:undefined});digger.needs!.life='active';digger.combat={shotSequence:0};state.soldiers.push(digger);
 const terrain={heightAt:()=>0,baseHeightAt:()=>0} as unknown as TerrainSystem;
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x232a21);
 scene.add(new THREE.HemisphereLight(0xe0e2ce,0x625947,2));const sun=new THREE.DirectionalLight(0xffe8c5,2.5);sun.position.set(6,14,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-15,right:15,top:15,bottom:-15});sun.shadow.normalBias=.015;scene.add(sun);
@@ -36,7 +37,8 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(120,120),new THREE.MeshStanda
 const units=new UnitRenderer(state,terrain,soldier,assets),living=new LivingRenderer(()=>state,terrain,assets);units.spectator=living.spectator=true;scene.add(units.group,living.group);
 const smgModel=new THREE.Mesh(assets.submachinegun,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.82}));smgModel.position.y=1;smgModel.visible=false;smgModel.castShadow=true;scene.add(smgModel);
 const barModel=new THREE.Mesh(assets.automaticRifle,smgModel.material);barModel.position.y=1;barModel.visible=false;barModel.castShadow=true;scene.add(barModel);
-function showFormation(){smgModel.visible=barModel.visible=false;}
+const shovelModel=new THREE.Mesh(assets.shovel,smgModel.material);shovelModel.position.y=1;shovelModel.visible=false;shovelModel.castShadow=true;scene.add(shovelModel);
+function showFormation(){smgModel.visible=barModel.visible=shovelModel.visible=false;}
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(1.5,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.append(renderer.domElement);
 const camera=new THREE.PerspectiveCamera(37,innerWidth/innerHeight,.02,200);camera.position.set(10,9,17);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.6,1);controls.update();
 label('FIELD ARTILLERY',3,4.5);let playing=true,far=false,other=false,last=performance.now();
@@ -57,8 +59,10 @@ document.querySelector('#mount')!.addEventListener('click',showMount);
 let mountYaw=0,mountRaised=false;
 document.querySelector('#mount-turn')!.addEventListener('click',()=>{mountYaw=mountYaw===0?.65:0;mount.traverse={yaw:mountYaw} as typeof mount.traverse;operator.heading=mountYaw;showMount();});
 document.querySelector('#mount-aim')!.addEventListener('click',()=>{mountRaised=!mountRaised;operator.combat!.aim={point:{x:8.7+Math.sin(mountYaw)*30,y:mountRaised?10:1.48,z:1.8+Math.cos(mountYaw)*30},targetId:999,since:0,lastSeen:0,lastHeading:0,lastPosition:{x:operator.x,z:operator.z},settlingUntil:0};showMount();});
+document.querySelector('#shovel')!.addEventListener('click',()=>{showFormation();shovelModel.visible=true;camera.position.set(1.4,1.4,2.2);controls.target.set(0,.95,0);controls.update();});
+document.querySelector('#dig')!.addEventListener('click',()=>{showFormation();camera.position.set(14.8,2.1,.3);controls.target.set(12,.75,-2.65);controls.update();});
 document.querySelector('#wide')!.addEventListener('click',()=>{showFormation();camera.position.set(10,9,17);controls.target.set(0,.6,1);controls.update();});
-function frame(now:number){const dt=Math.min(.05,(now-last)/1000);last=now;if(playing)state.elapsed+=dt;units.update(new Set(),dt,20);living.update(now,false);const modelOnly=smgModel.visible||barModel.visible;units.group.visible=living.group.visible=!modelOnly;controls.update();renderer.render(scene,camera);
+function frame(now:number){const dt=Math.min(.05,(now-last)/1000);last=now;if(playing)state.elapsed+=dt;units.update(new Set(),dt,20);living.update(now,false);const modelOnly=smgModel.visible||barModel.visible||shovelModel.visible;units.group.visible=living.group.visible=!modelOnly;controls.update();renderer.render(scene,camera);
   for(const l of labels){const p=l.p.clone().project(camera);l.el.style.display=modelOnly?'none':'';l.el.style.left=(p.x*.5+.5)*innerWidth+'px';l.el.style.top=(-p.y*.5+.5)*innerHeight+'px';}
   document.querySelector('#status')!.textContent=`Supplied models · ${renderer.info.render.calls} draw calls · ${renderer.info.render.triangles.toLocaleString()} triangles · no campaign state`;
   requestAnimationFrame(frame);
