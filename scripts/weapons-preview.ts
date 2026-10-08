@@ -1,0 +1,49 @@
+// Isolated art fixture. Uses production loaders/renderer; never reads/writes saves.
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {loadWeaponAssets} from '../src/render/WeaponAssets';
+import {loadSoldierAsset} from '../src/render/SoldierAsset';
+import {UnitRenderer} from '../src/render/UnitRenderer';
+import {LivingRenderer} from '../src/render/LivingRenderer';
+import {createOperation} from '../src/operations/createOperation';
+import {inventory} from '../src/garrison/types';
+import type {TerrainSystem} from '../src/terrain/TerrainSystem';
+import type {Facility} from '../src/garrison/types';
+import {initializeEquipment} from '../src/combat/Equipment';
+
+const [assets,soldier]=await Promise.all([loadWeaponAssets(),loadSoldierAsset()]);
+const state=createOperation('campaign');initializeEquipment(state);const original=structuredClone(state.soldiers[0]);
+state.trenches=[];state.craters=[];state.operation!.shotEvents=[];state.operation!.contacts={player:[],enemy:[]};state.elapsed=0;
+state.squads=state.squads.slice(0,1);state.squads[0].faction='player';state.soldiers=[];
+const labels:{el:HTMLDivElement;p:THREE.Vector3}[]=[];
+function label(text:string,x:number,z:number){const el=document.createElement('div');el.className='label';el.textContent=text;document.body.append(el);labels.push({el,p:new THREE.Vector3(x,0,z)});}
+for(let i=0;i<4;i++){
+  const s=structuredClone(original);s.id=i+1;s.squadId=state.squads[0].id;s.x=-6+i*1.9;s.z=3;s.heading=.1;s.action='holding';s.garrisonId=undefined;s.duty=undefined;s.personalArea=undefined;s.cover='open';s.trenchId=undefined;
+  s.needs!.life='active';s.equipment!.weapon=i%2?'mg42':'m1';s.combat={shotSequence:0};
+  if(i>1){s.action='watching';s.aimTargetId=999;s.combat.aim={point:{x:s.x,y:1.52,z:103},targetId:999,since:0,lastSeen:0,lastHeading:0,lastPosition:{x:s.x,z:s.z},settlingUntil:0};}
+  state.soldiers.push(s);label(i%2?'MACHINE GUN':'RIFLE',s.x,s.z+1.4);
+}
+const gun={id:991,garrisonId:1,kind:'mortar',x:3,z:-1,progress:1,facing:.3,stock:inventory(),artillery:{},installation:{kind:'field-gun'},weaponCrewIds:[]} as unknown as Facility;
+state.living!.facilities=[gun];state.living!.trucks=[];state.living!.crates=[];state.living!.garrisons=[];
+const terrain={heightAt:()=>0,baseHeightAt:()=>0} as unknown as TerrainSystem;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x232a21);
+scene.add(new THREE.HemisphereLight(0xe0e2ce,0x625947,2));const sun=new THREE.DirectionalLight(0xffe8c5,2.5);sun.position.set(6,14,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-15,right:15,top:15,bottom:-15});sun.shadow.normalBias=.015;scene.add(sun);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(120,120),new THREE.MeshStandardMaterial({color:0x515d43,roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.03;floor.receiveShadow=true;scene.add(floor);
+const units=new UnitRenderer(state,terrain,soldier,assets),living=new LivingRenderer(()=>state,terrain,assets);units.spectator=living.spectator=true;scene.add(units.group,living.group);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(1.5,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.append(renderer.domElement);
+const camera=new THREE.PerspectiveCamera(37,innerWidth/innerHeight,.02,200);camera.position.set(10,9,17);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.6,1);controls.update();
+label('FIELD ARTILLERY',3,4.5);let playing=true,far=false,other=false,last=performance.now();
+document.querySelector('#pause')!.addEventListener('click',()=>{playing=!playing;document.querySelector('#pause')!.textContent=playing?'Pause':'Play';});
+document.querySelector('#fire')!.addEventListener('click',()=>{playing=true;state.operation!.supportMissions=[{id:1001,squadId:state.squads[0].id,positionId:gun.id,weapon:'field-gun',kind:'mortarHE',target:{x:gun.x+Math.sin(.3)*(far?1800:250),z:gun.z+Math.cos(.3)*(far?1800:250)},impact:{x:0,z:0},requestedAt:state.elapsed,launchAt:state.elapsed,impactAt:state.elapsed+4,stage:'flight',reason:'Art animation sample only',dangerRadius:0,confirmedRisk:false,ammoConsumed:1}];});
+document.querySelector('#aim')!.addEventListener('click',()=>{far=!far;const m=state.operation!.supportMissions?.[0];if(m){m.target={x:gun.x+Math.sin(.3)*(far?1800:250),z:gun.z+Math.cos(.3)*(far?1800:250)};}});
+document.querySelector('#turn')!.addEventListener('click',()=>{other=!other;camera.position.set(other?-10:10,7,other?-14:17);controls.target.set(0,.6,1);controls.update();});
+document.querySelector('#close')!.addEventListener('click',()=>{camera.position.set(-2,3.8,11);controls.target.set(-3.1,.95,3.1);controls.update();});
+document.querySelector('#gun')!.addEventListener('click',()=>{camera.position.set(11,4,3);controls.target.set(3,.9,-1);controls.update();});
+document.querySelector('#wide')!.addEventListener('click',()=>{camera.position.set(10,9,17);controls.target.set(0,.6,1);controls.update();});
+function frame(now:number){const dt=Math.min(.05,(now-last)/1000);last=now;if(playing)state.elapsed+=dt;units.update(new Set(),dt,20);living.update(now,false);controls.update();renderer.render(scene,camera);
+  for(const l of labels){const p=l.p.clone().project(camera);l.el.style.left=(p.x*.5+.5)*innerWidth+'px';l.el.style.top=(-p.y*.5+.5)*innerHeight+'px';}
+  document.querySelector('#status')!.textContent=`Supplied models · ${renderer.info.render.calls} draw calls · ${renderer.info.render.triangles.toLocaleString()} triangles · no campaign state`;
+  requestAnimationFrame(frame);
+}requestAnimationFrame(frame);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+Object.assign(window,{weaponPreview:{assets,state,units,living,renderer,camera}});

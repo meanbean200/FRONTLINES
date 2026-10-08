@@ -7,6 +7,8 @@ import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
 import {environmentDaylight} from './EnvironmentLighting';
 import {latestGunDischarge} from './SupportAnimation';
 import type {ShotEvent} from '../combat/types';
+import {currentWeaponAssets} from './WeaponAssets';
+import {fieldGunPresentation} from './FieldGunPresentation';
 
 interface Impact {key:string;id:number;at:number;x:number;y:number;z:number;blast:boolean;stone:boolean;heavy?:boolean}
 export class ImpactEffects {
@@ -36,8 +38,8 @@ export class ImpactEffects {
     for(const f of state.living?.facilities??[]){
       if(!f.artillery||state.living!.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!playerCanSeePoint(state,terrain,f))continue;
       const shot=latestGunDischarge(state,f.id);if(!shot)continue;const age=now-shot.launchAt;if(age>2)continue;
-      const a=Math.atan2(shot.target.x-f.x,shot.target.z-f.z),x=f.x+Math.sin(a)*3.3,z=f.z+Math.cos(a)*3.3;
-      for(let i=0;i<3;i++)pool.add(x+Math.sin(a)*age*(i+1)*.5,terrain.heightAt(f.x,f.z)+2.1+age*.5,z+Math.cos(a)*age*(i+1)*.5,.4+age*1.1,.35+age*.6,0xa49d89,(1-age/2)*.38);
+      const {muzzle,yaw:a}=fieldGunPresentation(state,f,terrain.heightAt(f.x,f.z),currentWeaponAssets());
+      for(let i=0;i<3;i++)pool.add(muzzle.x+Math.sin(a)*age*(i+1)*.5,muzzle.y+age*.5,muzzle.z+Math.cos(a)*age*(i+1)*.5,.4+age*1.1,.35+age*.6,0xa49d89,(1-age/2)*.38);
     }
     // Only simulation smoke fields get a sustained smoke column. Dust below never
     // modifies concealment, collision or the serialized battlefield.

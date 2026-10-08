@@ -9,7 +9,10 @@ import {mortarGeometry} from './WeaponPositionVisual';
 import {weaponCrewPoint} from '../construction/PositionDefinitions';
 import {mountedGeometry} from '../combat/MountedGeometry';
 import {fieldGunGeometry} from './FieldGunVisual';
-import {gunRecoil,latestGunDischarge} from './SupportAnimation';
+import {loadWeaponAssets,type WeaponAssets} from './WeaponAssets';
+import {fieldGunPresentation} from './FieldGunPresentation';
+import {weaponGeometry} from './SoldierVisual';
+import type {Facility} from '../garrison/types';
 import {playerCanSeeObject} from '../operations/ObjectSight';
 import {crateVisible,stockPiles,stockPileAnchors} from '../garrison/SupplyAccess';
 export class LivingRenderer {
@@ -24,15 +27,42 @@ export class LivingRenderer {
   private readonly mortars=new THREE.InstancedMesh(mortarGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.72}),128);
   private readonly fieldGuns=new THREE.InstancedMesh(fieldGunGeometry('carriage'),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.88}),256);
   private readonly fieldTubes=new THREE.InstancedMesh(fieldGunGeometry('upper'),this.fieldGuns.material,256);
+  private readonly mountedGuns=new THREE.InstancedMesh(weaponGeometry('machinegun'),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.78,metalness:.18}),256);
+  private equipment?:WeaponAssets;
+  private activeGuns:{facility:Facility;height:number}[]=[];
+  private activeMounts:Facility[]=[];
   private identity?:object;
   private readonly frustum=new THREE.Frustum();
   private readonly projection=new THREE.Matrix4();
   private readonly sphere=new THREE.Sphere(new THREE.Vector3(),25);
-  constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem){this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes,this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes);for(const mesh of [this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes]){mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;mesh.count=0;}}
+  constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem,equipment?:WeaponAssets|null){
+    this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes,this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes,this.mountedGuns);
+    this.fieldGuns.name='Field gun carriages';this.fieldTubes.name='Field gun barrels';this.mountedGuns.name='Mounted machine guns';
+    for(const mesh of [this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes,this.mountedGuns]){mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;mesh.count=0;}
+    const install=(a:WeaponAssets)=>{this.equipment=a;this.fieldGuns.geometry.dispose();this.fieldTubes.geometry.dispose();this.mountedGuns.geometry.dispose();this.fieldGuns.geometry=a.cannonCarriage;this.fieldTubes.geometry=a.cannonBarrel;this.mountedGuns.geometry=a.machinegun;this.last=-Infinity;};
+    if(equipment)install(equipment);else if(equipment!==null&&typeof window!=='undefined')void loadWeaponAssets().then(install).catch(e=>console.warn('Support models unavailable; using procedural weapons.',e));
+  }
+  private animateGuns(state:BattlefieldState):void{
+    if(!this.activeGuns.length&&!this.activeMounts.length)return;
+    this.activeGuns.forEach(({facility,height},i)=>this.fieldTubes.setMatrixAt(i,fieldGunPresentation(state,facility,height,this.equipment).barrel));
+    this.fieldTubes.instanceMatrix.needsUpdate=true;
+    if(!this.activeMounts.length)return;
+    const shots=new Map((state.operation?.shotEvents??[]).filter(s=>state.elapsed-s.at>=0&&state.elapsed-s.at<.065).map(s=>[s.shooterId,s]));
+    const q=new THREE.Quaternion(),p=new THREE.Vector3(),direction=new THREE.Vector3(),matrix=new THREE.Matrix4(),scale=new THREE.Vector3(1,1,1),forward=new THREE.Vector3(0,0,1);
+    this.activeMounts.forEach((f,i)=>{
+      const shot=shots.get(crewOperator(state,f)?.id??-1),geometry=mountedGeometry(state,this.terrain,f,f.traverse?.yaw??f.facing??0);
+      const muzzle=shot?.from??geometry.muzzle;
+      if(shot)direction.set(shot.to.x-muzzle.x,shot.to.y-muzzle.y,shot.to.z-muzzle.z).normalize();
+      else direction.set(muzzle.x-geometry.pivot.x,muzzle.y-geometry.pivot.y,muzzle.z-geometry.pivot.z).normalize();
+      q.setFromUnitVectors(forward,direction);p.set(muzzle.x,muzzle.y,muzzle.z).addScaledVector(direction,-.6);
+      this.mountedGuns.setMatrixAt(i,matrix.compose(p,q,scale));
+    });this.mountedGuns.instanceMatrix.needsUpdate=true;
+  }
   update(now:number,showRoutes:boolean,view?:Vec2&{zoom:number},camera?:THREE.Camera):void {
-    this.routes.visible=showRoutes;if(now-this.last<80)return;this.last=now;
-    const state=this.getState(),w=state.living;if(!w){this.boxes.count=this.vehicles.count=this.wheels.count=this.mortars.count=this.fieldGuns.count=this.fieldTubes.count=0;return;}
-    if(this.identity!==w){this.identity=w;this.lastTrucks.clear();}
+    const state=this.getState(),w=state.living;
+    if(this.identity!==w){this.identity=w;this.lastTrucks.clear();this.activeGuns=[];this.activeMounts=[];this.last=-Infinity;}
+    this.routes.visible=showRoutes;if(now-this.last<80){this.animateGuns(state);return;}this.last=now;
+    if(!w){this.activeGuns=[];this.boxes.count=this.vehicles.count=this.wheels.count=this.mortars.count=this.fieldGuns.count=this.fieldTubes.count=this.mountedGuns.count=0;return;}
     if(camera)this.frustum.setFromProjectionMatrix(this.projection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
     // Reject only presentation outside the real camera frustum, with a generous
     // bound for structures and their cast shadow. Knowledge still uses full LOS.
@@ -54,7 +84,7 @@ export class LivingRenderer {
     }
     this.vehicles.count=vehicleCount;this.wheels.count=wheelCount;this.vehicles.instanceMatrix.needsUpdate=this.wheels.instanceMatrix.needsUpdate=true;
     for(const pile of stockPiles(state,this.terrain,this.spectator,inView))for(const [i,p] of stockPileAnchors(pile).entries())box(p.x,this.terrain.heightAt(p.x,p.z)+.35,p.z,.9,.65,.8,i%2?0x80734c:0x686e49);
-    let mortarCount=0,gunCount=0;
+    let mortarCount=0,gunCount=0,mountedCount=0;this.activeGuns=[];this.activeMounts=[];
     for(const f of w.facilities){
       if(!inView(f))continue;
       if(!this.spectator&&w.garrisons.find(g=>g.id===f.garrisonId)?.faction==='enemy'&&!playerCanSeeObject(state,this.terrain,f,f.artillery&&f.progress===1?'field-gun':'position'))continue;
@@ -69,17 +99,16 @@ export class LivingRenderer {
           const angle=f.kind==='emplacement'?(f.traverse?.yaw??f.facing??0):present?operator.heading:f.facing??0,at=present?operator:weaponCrewPoint(state,f,0);
           const x=at.x+Math.sin(angle)*.55,z=at.z+Math.cos(angle)*.55;
           if(f.artillery){
-            const mission=state.operation?.supportMissions?.find(m=>m.positionId===f.id&&['preparing','flight'].includes(m.stage)),aim=mission?Math.atan2(mission.target.x-f.x,mission.target.z-f.z):f.facing??0;
-            if(gunCount<256){q.setFromAxisAngle(axis,f.facing??0);matrix.compose(position.set(f.x,h,f.z),q,scale.setScalar(1));this.fieldGuns.setMatrixAt(gunCount,matrix);q.setFromAxisAngle(axis,aim);const shot=latestGunDischarge(state,f.id),recoil=shot?gunRecoil(state.elapsed-shot.launchAt):0;position.x-=Math.sin(aim)*recoil;position.z-=Math.cos(aim)*recoil;matrix.compose(position,q,scale);this.fieldTubes.setMatrixAt(gunCount++,matrix);}
+            if(gunCount<256){q.setFromAxisAngle(axis,f.facing??0);matrix.compose(position.set(f.x,h,f.z),q,scale.setScalar(1));this.fieldGuns.setMatrixAt(gunCount++,matrix);this.activeGuns.push({facility:f,height:h});}
             if(f.stock.mortarHE>0)box(f.x+2,h+.24,f.z-.8,.65,.45,1.4,0x756b4b,f.facing??0);
           }else if(f.kind==='mortar'){
             if(mortarCount<128){q.setFromAxisAngle(axis,angle);matrix.compose(position.set(x,this.terrain.heightAt(x,z)+.02,z),q,scale.setScalar(1));this.mortars.setMatrixAt(mortarCount++,matrix);}
             const shells=f.stock.mortarHE;
             if(shells>0)box(f.x+1.15,h+.17,f.z-.5,.7,.3,1,0x817758,angle);
           }else{
-            const {muzzle,pivot,pitch}=mountedGeometry(state,this.terrain,f,angle),bx=pivot.x,bz=pivot.z,base=this.terrain.heightAt(bx,bz),height=Math.max(.3,pivot.y-base);
+            const {pivot}=mountedGeometry(state,this.terrain,f,angle),bx=pivot.x,bz=pivot.z,base=this.terrain.heightAt(bx,bz),height=Math.max(.3,pivot.y-base);
             box(bx,base+height/2,bz,.13,height,.13,0x414739,angle);box(bx,base+.12,bz,.8,.13,.65,0x454b3c,angle);
-            box(bx,pivot.y-.035,bz,.19,.18,.45,0x343a35,angle,-pitch);box(muzzle.x-Math.sin(angle)*Math.cos(pitch)*.30,muzzle.y-Math.sin(pitch)*.30,muzzle.z-Math.cos(angle)*Math.cos(pitch)*.30,.065,.065,.60,0x292e2b,angle,-pitch);
+            if(mountedCount<256){this.activeMounts.push(f);mountedCount++;}
           }
         }
         continue;
@@ -87,6 +116,7 @@ export class LivingRenderer {
     }
     this.mortars.count=mortarCount;this.mortars.instanceMatrix.needsUpdate=true;
     this.fieldGuns.count=this.fieldTubes.count=gunCount;this.fieldGuns.instanceMatrix.needsUpdate=this.fieldTubes.instanceMatrix.needsUpdate=true;
+    this.mountedGuns.count=mountedCount;this.mountedGuns.instanceMatrix.needsUpdate=true;this.animateGuns(state);
     for(const s of state.soldiers){if(s.needs?.life!=='active'||s.duty?.kind!=='haul'||!inView(s)||hidden(s))continue;const n=Object.values(s.carried??{}).reduce((a,b)=>a+b,0);if(n>0)box(s.x+Math.sin(s.heading)*.45,this.terrain.heightAt(s.x,s.z)+1,s.z+Math.cos(s.heading)*.45,.5,.42,.42,0xa18b5b,s.heading);}
     for(const c of w.crates)if(Object.values(c.stock).some(n=>n>0)){
       if(!inView(c))continue;

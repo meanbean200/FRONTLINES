@@ -1642,3 +1642,25 @@ baseline, final 25 focused renderer tests, production/offline builds and packagi
 Render-layer 512-person measurements improved batching and update cost, but are
 not a substitute for the still-open full-combat performance gate. Source and
 earlier failed visual evidence remain intact. See `docs/soldier-model-integration.md`.
+
+## User-supplied rifle, MG and field artillery
+
+**IMPLEMENTED / EDGE ART INSPECTION VERIFIED / PLAYER ART ACCEPTANCE OPEN.**
+Prepared the user's three meshes as a 480,248-byte embedded GLB with source
+provenance, metre scale, wood/steel/olive colours, stable grip/muzzle sockets,
+folded/deployed MG bipods and separate cannon carriage/barrel articulation.
+Instanced rendering preserves shot origins, equipment ownership, visibility and
+all simulation/save rules. Cannon recoil is real-discharge-driven and pause-safe;
+geometry and discharge dust share one presentation pose.
+
+Full regression **1070/1070 across 165 files** passed; the final deployed-bipod
+addition passed **29 focused renderer tests**. Production/offline build and
+packaging 5/5 passed. Actual Edge controls verified Open Front selection/drawn
+movement, workshop inspection and context restoration; a network-disabled
+standalone launch had no page errors or HTTP requests. The workshop is explicitly
+an art fixture, not a player-built artillery combat acceptance scenario.
+
+Rendering-only 300/512/1000-person samples remained batched, but full-combat
+performance and all earlier open reproductions/long-session/player acceptance
+gates remain open. No neural training, automation, simulation rewrite or save
+mutation. See `docs/weapon-model-integration.md` for exact evidence and limits.

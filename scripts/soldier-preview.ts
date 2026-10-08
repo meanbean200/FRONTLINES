@@ -14,7 +14,7 @@ const sky=new THREE.HemisphereLight(0xdce2d4,0x6a644e,2);scene.add(sky);
 const sun=new THREE.DirectionalLight(0xffecd0,2.3);sun.position.set(5,12,6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-35;sun.shadow.camera.right=35;sun.shadow.camera.top=35;sun.shadow.camera.bottom=-35;sun.shadow.normalBias=.02;scene.add(sun);
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:0x4c5540,roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.02;floor.receiveShadow=true;scene.add(floor);
 const terrain={heightAt:()=>0} as unknown as TerrainSystem;
-const model=new UnitRenderer(state,terrain,asset),original=new UnitRenderer(state,terrain,null);scene.add(model.group,original.group);
+const model=new UnitRenderer(state,terrain,asset),original=new UnitRenderer(state,terrain,null,null);scene.add(model.group,original.group);
 let useOriginal=false,playing=true,last=performance.now(),labels:{el:HTMLElement;x:number;z:number}[]=[];
 const rows=[['READY','holding','standing','active'],['WALK','walking','standing','active'],['AIM','watching','standing','active'],['DIG','digging','standing','active'],['FIELD REST','resting','crouched','active'],['EAT / DRINK','eating','crouched','active'],['CROUCH','holding','crouched','active'],['TREAT','treating','crouched','active'],['CARRY','carrying casualty','standing','active'],['PRONE','holding','prone','active'],['SLEEP','sleeping','prone','active'],['DEAD','holding','prone','dead']] as const;
 function setCount(count:number){
