@@ -1,1 +1,3 @@
 FRONTLINES.html text eol=lf linguist-generated=true
+assets/source/troops.obj -text whitespace=-blank-at-eof
+src/assets/*.glb binary

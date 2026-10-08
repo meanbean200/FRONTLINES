@@ -10,6 +10,8 @@ import {armyFor} from '../operations/BattleSetup';
 import {postureOf} from '../combat/Posture';
 import {operatedPosition} from '../combat/WeaponPositions';
 import {renderedPersonnel} from './PersonnelVisibility';
+import {RiggedSoldiers} from './RiggedSoldiers';
+import type {SoldierAsset} from './SoldierAsset';
 
 export class UnitRenderer {
   spectator=false;
@@ -49,10 +51,11 @@ export class UnitRenderer {
   private readonly flashMaterial=new THREE.MeshBasicMaterial({color:0xffdfa1});
   private readonly carriedWeaponTilt=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-1.15);
   private displayed=new Map<number,THREE.Vector3>();
-  constructor(private state:BattlefieldState,private readonly terrain:TerrainSystem){}
+  private readonly rigged:RiggedSoldiers;
+  constructor(private state:BattlefieldState,private readonly terrain:TerrainSystem,asset?:SoldierAsset|null){this.rigged=new RiggedSoldiers(asset);}
   setQuality(quality:VisualQuality):void{this.quality=quality;}
   get visibleCount():number{return this.group.visible?(this.body?.count??0)+(this.engineers?.count??0)+(this.enemies?.count??0):0;}
-  replaceState(state:BattlefieldState):void {this.state=state;this.count=-1;this.displayed.clear();}
+  replaceState(state:BattlefieldState):void {this.state=state;this.count=-1;this.displayed.clear();this.rigged.reset();}
   update(selected:Set<number>,dt=1/60,zoomDistance=0):void {
     const detail=Math.max(0,Math.min(1,(1500-zoomDistance)/450));
     this.group.visible=detail>0;
@@ -79,8 +82,11 @@ export class UnitRenderer {
       this.rings.renderOrder=4;
       this.group.add(this.arms,this.hands,this.tools);this.arms.castShadow=true;
       this.variants.clear();for(const [kind,geometry]of Object.entries(this.variantGeometries)){const mesh=new THREE.InstancedMesh(geometry,this.weaponMaterial,this.count);mesh.frustumCulled=false;mesh.castShadow=true;this.variants.set(kind as WeaponVisualKind,mesh);this.group.add(mesh);}
+      this.group.add(this.rigged.group);
     }
     const close=zoomDistance<VISUAL_QUALITY[this.quality].soldierDetail;
+    const useRig=this.rigged.begin(capacity,close);
+    for(const mesh of [this.body,this.engineers,this.enemies,this.legs,this.arms,this.hands])mesh!.visible=!useRig;
     this.body!.geometry=close?this.rifleGeometry:this.lodBodies[0];this.engineers!.geometry=close?this.engineerGeometry:this.lodBodies[1];this.enemies!.geometry=close?this.enemyGeometry:this.lodBodies[2];
     const engineerIds=new Set(this.state.squads.filter(s=>s.kind==='engineer').map(s=>s.id));
     const enemyIds=new Set(this.state.squads.filter(s=>s.faction==='enemy').map(s=>s.id));
@@ -120,12 +126,19 @@ export class UnitRenderer {
       const shot=freshShots.get(soldier.id);
       const firing=Boolean(shot);
       const aiming=!moving&&soldier.needs?.life==='active'&&soldier.aimTargetId!==undefined&&(!soldier.duty||soldier.duty.kind==='watch');
+      if(useRig){p.copy(position);if(soldier.action==='being carried')p.y+=1;this.rigged.add(soldier,p,this.state.elapsed,aiming||firing,german?1:engineerIds.has(soldier.squadId)?2:0,tint);}
       weaponRotation.copy(rotation);
       if(!aiming&&!firing)weaponRotation.multiply(this.carriedWeaponTilt);
       local.set(.16,(aiming||firing?1.24:1.05)-(seated?.43:0),.24).applyQuaternion(rotation);
       weaponPosition.copy(position).add(local);
       if(lying){weaponRotation.setFromAxisAngle(axis,soldier.heading);local.set(.14,.33,.53).applyQuaternion(weaponRotation);weaponPosition.copy(position).add(local);}
       const mount=operatedPosition(this.state,soldier,'emplacement'),weapon=mount?.installation?.kind??soldier.equipment?.weapon??soldier.combat?.weapon?.id,kind=weapon==='crew-mg'||weapon==='mg42'?'machinegun':weapon==='bar'?'automatic':weapon==='smg'?'smg':'rifle';
+      if(useRig&&!aiming&&!firing&&!lying){
+        this.rigged.attachment('HandR',weaponPosition);local.set(0,-.04,-.1).applyQuaternion(weaponRotation);weaponPosition.sub(local);
+      }
+      if(useRig&&!aiming&&!firing&&(lying||['resting','eating','drinking'].includes(soldier.action))){
+        weaponRotation.setFromAxisAngle(axis,soldier.heading);local.set(.42,.08,.10).applyQuaternion(weaponRotation);weaponPosition.copy(position).add(local);
+      }
       if(aiming||firing){
         const muzzle=shot?.from??muzzlePoint(this.terrain,soldier,this.state),to=shot?.to??soldier.combat?.aim?.point;
         const direction=to?new THREE.Vector3(to.x-muzzle.x,to.y-muzzle.y,to.z-muzzle.z).normalize():new THREE.Vector3(Math.sin(soldier.heading),0,Math.cos(soldier.heading));
@@ -136,7 +149,7 @@ export class UnitRenderer {
       const digging=soldier.action==='digging'||soldier.action==='clearing spoil',care=soldier.action.startsWith('treating')||soldier.action==='carrying casualty';
       if(!mount&&weapon!=='unarmed'&&!care&&!digging&&soldier.action!=='being carried'){if(kind==='rifle')this.weapons!.setMatrixAt(weapons++,matrix);else this.variants.get(kind)!.setMatrixAt(variantCounts[kind]++,matrix);}
       if(shot){p.set(shot.from.x,shot.from.y,shot.from.z);matrix.compose(p,weaponRotation,scale);this.flashes!.setMatrixAt(flashes++,matrix);}
-      for(let leg=0;leg<2;leg++) {
+      if(!useRig)for(let leg=0;leg<2;leg++) {
         const phase=moving?Math.sin(this.state.elapsed*8+i*.37+leg*Math.PI)*.2:0;
         const localX=leg===0?-.12:.12;
         p.set(position.x+Math.cos(soldier.heading)*localX+Math.sin(soldier.heading)*phase,position.y+.35,position.z-Math.sin(soldier.heading)*localX+Math.cos(soldier.heading)*phase);
@@ -145,7 +158,7 @@ export class UnitRenderer {
         matrix.compose(p,jointRotation,scale);this.legs!.setMatrixAt(legs,matrix);this.legs!.setColorAt(legs++,tint.setHex(german?0x646a60:0x65654b));
       }
       const cloth=german?UNIFORMS.enemy:engineerIds.has(soldier.squadId)?UNIFORMS.engineer:UNIFORMS.rifle;
-      for(const side of [-1,1]){
+      if(!useRig)for(const side of [-1,1]){
         const swing=moving?Math.sin(this.state.elapsed*8+i*.37)*side*.17:0;
         let elbow=[side*.255,1.10,swing],hand=[side*.24,.9,-swing];
         if(mount&&!moving&&!lying){elbow=[side*.27,1.24,.15];hand=[side*.10,1.44,.42];}
@@ -159,7 +172,11 @@ export class UnitRenderer {
         for(let n=0;n<2;n++){a.fromArray(points[n]).applyMatrix4(bodyMatrix);b.fromArray(points[n+1]).applyMatrix4(bodyMatrix);p.copy(a).add(b).multiplyScalar(.5);b.sub(a);const length=b.length();jointRotation.setFromUnitVectors(axis,b.normalize());scale.set(1,length/.28,1);matrix.compose(p,jointRotation,scale);this.arms!.setMatrixAt(arms,matrix);this.arms!.setColorAt(arms++,tint.setHex(cloth));}
         if(close){p.fromArray(hand).applyMatrix4(bodyMatrix);scale.setScalar(1);matrix.compose(p,rotation,scale);this.hands!.setMatrixAt(hands++,matrix);}
       }
-      if(soldier.action==='digging'&&close){p.set(.03,.70,.48).applyMatrix4(bodyMatrix);jointRotation.copy(rotation).multiply(new THREE.Quaternion().setFromAxisAngle(axis,.15));scale.setScalar(1);matrix.compose(p,jointRotation,scale);this.tools!.setMatrixAt(tools++,matrix);}
+      if(soldier.action==='digging'&&close){
+        if(useRig){this.rigged.attachment('HandL',a);this.rigged.attachment('HandR',b);b.sub(a).normalize();jointRotation.setFromUnitVectors(axis,b);p.copy(a).addScaledVector(b,-.10);}
+        else{p.set(.03,.70,.48).applyMatrix4(bodyMatrix);jointRotation.copy(rotation).multiply(new THREE.Quaternion().setFromAxisAngle(axis,.15));}
+        scale.setScalar(1);matrix.compose(p,jointRotation,scale);this.tools!.setMatrixAt(tools++,matrix);
+      }
       scale.setScalar(1);
       if(selected.has(soldier.squadId)&&soldier.needs?.life==='active'&&soldier.cover!=='trench') {p.copy(position);p.y+=.1;matrix.compose(p,new THREE.Quaternion(),scale);this.rings!.setMatrixAt(ringCount++,matrix);}
     });
@@ -170,5 +187,6 @@ export class UnitRenderer {
     for(const mesh of [this.body!,this.engineers!,this.enemies!])if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
     for(const mesh of [this.arms!,this.hands!,this.tools!]){mesh.frustumCulled=false;mesh.instanceMatrix.needsUpdate=true;}
     if(this.arms!.instanceColor)this.arms!.instanceColor.needsUpdate=true;if(this.legs!.instanceColor)this.legs!.instanceColor.needsUpdate=true;
+    this.rigged.end();
   }
 }

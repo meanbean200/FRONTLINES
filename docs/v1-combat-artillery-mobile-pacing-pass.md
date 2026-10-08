@@ -1630,3 +1630,15 @@ Delta-5 code regression after these changes is **1059/1059 PASS across 163 files
 The standalone production build passes. Long seeded sessions, the original truck
 screenshot reproduction, original uphill-fire reproduction, player visual judgment,
 and ordinary-play 512-person acceptance remain explicitly open.
+
+## 2026-10-07 — User-supplied soldier model
+
+**IMPLEMENTED / EDGE RENDER VERIFIED / PLAYER ART ACCEPTANCE OPEN.** Added the
+user's 1,700-triangle mesh, uniform vertex colours, a 17-joint rig and 17 action
+clips. Shared instanced animation retains simulation/save/visibility authority,
+actual shot origins and existing distant representations. Verified real drawn
+movement and excavation through Edge controls, context restoration, full 1,065-test
+baseline, final 25 focused renderer tests, production/offline builds and packaging.
+Render-layer 512-person measurements improved batching and update cost, but are
+not a substitute for the still-open full-combat performance gate. Source and
+earlier failed visual evidence remain intact. See `docs/soldier-model-integration.md`.

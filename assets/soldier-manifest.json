@@ -1,0 +1,31 @@
+{
+  "source": "source/troops.obj",
+  "sourceSha256": "e76aa501aa434a052a5696c922e09ecedb0d72eab0eec5300486b0411be0a07b",
+  "runtime": "src/assets/soldier.glb",
+  "bytes": 465056,
+  "triangles": 1700,
+  "bones": 17,
+  "clips": [
+    "idle",
+    "unarmed",
+    "walk",
+    "aim",
+    "crouch",
+    "crouchWalk",
+    "crouchAim",
+    "dig",
+    "rest",
+    "eat",
+    "treat",
+    "carry",
+    "prone",
+    "crawl",
+    "sleep",
+    "wounded",
+    "dead"
+  ],
+  "height": 1.8,
+  "forward": "+Z",
+  "materials": 1,
+  "textures": 0
+}
