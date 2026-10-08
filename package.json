@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "assets:house": "tsx scripts/build-house.ts",
+    "assets:house-two": "tsx scripts/build-two-story-house.ts",
     "assets:truck": "tsx scripts/build-truck.ts",
     "assets:weapons": "tsx scripts/build-weapons.ts",
     "assets:soldier": "tsx scripts/build-soldier.ts",

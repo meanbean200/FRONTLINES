@@ -1798,3 +1798,33 @@ facade integration needs a separate save-compatible architectural variant; steep
 terrain/floor intersection remains visible and unresolved. See
 `docs/house-model-integration.md` for exact scope and evidence. Overall status
 remains PARTIAL. No simulation rewrite, neural training or automation.
+
+## 2026-10-08 — User-supplied two-story house
+
+**ADAPTED SURFACE INTEGRATION IMPLEMENTED / EDGE ART AND OFFLINE OCCUPATION
+VERIFIED / PLAYER ART ACCEPTANCE OPEN.** Preserved the complete 13,100-triangle
+source and adapted its roof, stone and shutter surfaces to intact two-floor
+production houses. This is not a literal import of the closed facade. Shared
+doors, stairs, both floors, firing apertures, cover, damage, capacity and saved
+layouts remain authoritative. Existing one-floor asset bytes are unchanged.
+
+**1098/1098 tests across 168 files**, 38 focused tests, production/standalone,
+packaging 5/5, builder/workshop typechecks and reproducible generation passed.
+Headed Edge inspected original/adapted forms, two cutaway levels, damage/ruins,
+fallback and context recovery. Network-disabled headless Edge used normal
+selection/occupation controls to station eight soldiers upstairs by 285.4
+simulation seconds, with zero page/console errors or HTTP requests. No solved
+runtime-state injection or campaign-save mutation.
+
+The separate headed live occupation timed out while scheduling about one
+frame/second (0.50x achieved despite 5x requested, profiled work 6–9 ms). Cause is
+unproven; this is not a headed performance/occupation pass. The headless offline
+path completed for both the two-floor and existing one-floor houses. Retained
+incomplete headed evidence is linked in the model document.
+
+Runtime surface kit: 85,840 bytes; standalone 4,817,530 bytes. Five or fewer added
+batches per near intact two-floor house, with independent floor cutaways and
+distance detail. See `docs/two-story-house-model-integration.md` for exact scope,
+retained failed attempts and evidence. Full source-facade variants, detailed
+interiors, full-battle/physical-phone performance and player art approval remain
+open. Overall release remains PARTIAL; no unrelated simulation changes.

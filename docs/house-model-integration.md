@@ -1,5 +1,9 @@
 # Supplied small one-floor house
 
+Follow-up: the separate two-floor asset is documented in
+`docs/two-story-house-model-integration.md`. Results below describe this original
+one-floor milestone; its source and generated asset remain unchanged.
+
 **ADAPTED SURFACE INTEGRATION IMPLEMENTED / EDGE AND OFFLINE VERIFIED /
 PLAYER ART ACCEPTANCE OPEN.**
 

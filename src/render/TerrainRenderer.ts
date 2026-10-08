@@ -9,7 +9,7 @@ import {excavationBoundsKey} from '../core/TrenchGeometry';
 import {VISUAL_QUALITY,type VisualQuality} from './VisualQuality';
 import {setVegetationDetail} from './Vegetation';
 import {GroundDressing} from './GroundDressing';
-import {loadHouseAssets,type HouseAssets} from './HouseAssets';
+import {loadHouseAssets,loadTwoStoreyHouseAssets,type HouseAssets} from './HouseAssets';
 
 interface Chunk { cx:number; cz:number; mesh:THREE.Mesh; detail:boolean; revision:number; modified:boolean; vegetation?:THREE.Group; key?:string;candidateKey?:string;candidateRevision?:number;candidateDetail?:boolean }
 
@@ -19,6 +19,7 @@ export class TerrainRenderer {
   private material = groundMaterial();
   private infrastructure?: THREE.Group;
   private house?:HouseAssets;
+  private twoStoreyHouse?:HouseAssets;
   private buildingView={x:0,z:0,zoom:0,detail:350};
   private seed = -1;
   private readonly worker=new Worker(new URL('./GroundWorker.ts',import.meta.url),{type:'module'});
@@ -52,6 +53,7 @@ export class TerrainRenderer {
     // Immutable assets may finish across a session transition. They never attach
     // to a captured old world; the current infrastructure consumes them next frame.
     void loadHouseAssets().then(asset=>{this.house=asset;}).catch(e=>console.warn('House asset unavailable; retaining built-in buildings.',e));
+    void loadTwoStoreyHouseAssets().then(asset=>{this.twoStoreyHouse=asset;}).catch(e=>console.warn('Two-story house asset unavailable; retaining built-in buildings.',e));
   }
   reset(): void {
     // Detach the previous generation before new work is queued. Late responses cannot claim a new chunk.
@@ -69,7 +71,7 @@ export class TerrainRenderer {
       this.group.add(mesh);this.chunks.push(chunk);
     }
     this.coarseGenerationMs=performance.now()-begin;
-    this.infrastructure=createInfrastructure(this.terrain,this.house);this.group.add(this.infrastructure);
+    this.infrastructure=createInfrastructure(this.terrain,this.house,this.twoStoreyHouse);this.group.add(this.infrastructure);
   }
   update(cameraX:number,cameraZ:number,zoom=0):void {
     this.buildingView={x:cameraX,z:cameraZ,zoom,detail:this.quality==='low'?180:this.quality==='high'?500:350};
@@ -110,7 +112,7 @@ export class TerrainRenderer {
   }
   setChunkDebug(visible:boolean):void {this.chunkDebugVisible=visible;this.material.wireframe=visible;}
   setQuality(quality:VisualQuality):void{this.quality=quality;this.material.userData.detail.value=VISUAL_QUALITY[quality].groundDetail;this.material.userData.atmosphere.value=quality==='high'?1:0;this.dressing.setQuality(quality);}
-  showInteriors(cutaways:Map<number,number>):void{if(this.infrastructure)refreshBuildingMeshes(this.infrastructure,this.terrain,cutaways,this.house,this.buildingView);}
+  showInteriors(cutaways:Map<number,number>):void{if(this.infrastructure)refreshBuildingMeshes(this.infrastructure,this.terrain,cutaways,this.house,this.buildingView,this.twoStoreyHouse);}
   get visibleChunkCount():number {return this.chunks.filter(c=>c.detail).length;}
   stats(camera:THREE.Camera){
     const frustum=new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));

@@ -9,4 +9,5 @@ assets/source/bar.obj -text whitespace=-blank-at-eof
 assets/source/mg-mount.obj -text whitespace=-blank-at-eof
 assets/source/shovel.obj -text whitespace=-blank-at-eof
 assets/source/small-one-floor-house.obj -text whitespace=-blank-at-eof
+assets/source/2-story-house.obj -text whitespace=-blank-at-eof
 src/assets/*.glb binary

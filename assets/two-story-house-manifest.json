@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "source": "source/2-story-house.obj",
+  "sourceSha256": "7a87738d4faaea9a3b10f03d0234efccd48d50eb36fa4cd6080e0eecdf32c5ce",
+  "sourceTriangles": 13100,
+  "runtime": "src/assets/two-story-house.glb",
+  "roofCoordinates": "XZ normalized to eaves; Y is metre-scale relief",
+  "trimBounds": [
+    -0.5,
+    0.5
+  ],
+  "parts": [
+    {
+      "name": "houseRoof",
+      "triangles": 2516
+    },
+    {
+      "name": "houseStone",
+      "triangles": 39
+    },
+    {
+      "name": "houseShutter",
+      "triangles": 16
+    }
+  ],
+  "materials": 1,
+  "textures": 0,
+  "adaptation": "Source roof, sill and shutter surfaces fitted to shared two-floor building volumes. Closed facade, glass and doors are not imported as gameplay geometry.",
+  "bytes": 85840
+}
