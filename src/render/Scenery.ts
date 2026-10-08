@@ -2,13 +2,14 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TerrainSystem } from '../terrain/TerrainSystem';
 import {buildingMaterial} from './BuildingMaterials';
-import {buildingStyle} from '../terrain/BuildingGeometry';
+import {buildingStyle,buildingFloors} from '../terrain/BuildingGeometry';
+import {houseRoofGeometry,type HouseAssets} from './HouseAssets';
 import {CHUNK_SIZE,clamp} from '../core/types';
 import {ROADS,pointOnRoad} from '../terrain/WorldLayout';
 
 export {createVegetation,refreshVegetationClearance} from './Vegetation';
 
-export function createInfrastructure(terrain: TerrainSystem): THREE.Group {
+export function createInfrastructure(terrain: TerrainSystem,house?:HouseAssets): THREE.Group {
   const group = new THREE.Group();
   const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x8c826d, roughness: 1, side: THREE.DoubleSide });
   roadMaterial.onBeforeCompile=shader=>{
@@ -30,7 +31,7 @@ export function createInfrastructure(terrain: TerrainSystem): THREE.Group {
   const paths = ROADS.map(road=>({path:(t:number)=>pointOnRoad(road,t),width:road.width}));
   for (const { path, width } of paths) group.add(ribbon(terrain, path, width, roadMaterial, false));
   group.add(ribbon(terrain, t => ({ x: t, z: terrain.riverCenter(t) }), 27, waterMaterial, true));
-  group.add(createBuildingMeshes(terrain));
+  group.add(createBuildingMeshes(terrain,house));
   return group;
 }
 
@@ -75,31 +76,48 @@ export function refreshRoadCuts(group:THREE.Group,terrain:TerrainSystem,x:number
   }
 }
 
-function createBuildingMeshes(terrain:TerrainSystem):THREE.Group {
-  const group=new THREE.Group();group.name='buildings';group.userData.key=JSON.stringify(terrain.snapshot.buildingChanges);
+export function createBuildingMeshes(terrain:TerrainSystem,house?:HouseAssets):THREE.Group {
+  const group=new THREE.Group();group.name='buildings';group.userData.key=JSON.stringify(terrain.snapshot.buildingChanges);group.userData.houseAsset=!!house;
   const plaster=[buildingMaterial(0xbab4a0,'plaster'),buildingMaterial(0xc6bd9f,'plaster'),buildingMaterial(0x90725d,'brick'),buildingMaterial(0xa7a393,'stone')];
   const wood=buildingMaterial(0x7b674e,'wood'),roofs=[0x535d61,0x856851,0x72685b,0x59615c].map(color=>buildingMaterial(color,'roof'));
   const shutters=[0x5a6357,0x536265,0x685b47,0x635f4d].map(color=>buildingMaterial(color,'wood'));
+  const carvedStone=house?buildingMaterial(0xb4aa92,'stone'):undefined;
   terrain.buildings.forEach((b,id)=>{
     if(Math.abs(b.x)+b.width/2>terrain.worldHalf||Math.abs(b.z)+b.depth/2>terrain.worldHalf)return;
-    const root=new THREE.Group();root.userData.buildingId=id;const floor=terrain.baseHeightAt(b.x,b.z),style=buildingStyle(b);
+    const root=new THREE.Group();root.userData.buildingId=id;root.userData.center={x:b.x,z:b.z};const floor=terrain.baseHeightAt(b.x,b.z),style=buildingStyle(b);
+    const cottage=house&&buildingFloors(b)===1&&terrain.buildingCondition(id)==='intact',stone:THREE.BufferGeometry[]=[];
     const parts=new Map<string,{material:THREE.Material;layer:number;geometries:THREE.BufferGeometry[]}>();
     for(const box of terrain.structure(id)){
       const material=box.role==='roof'?roofs[style.variant]:box.material==='timber'?(box.role==='trim'?shutters[style.variant]:wood):plaster[style.variant];
       const key=box.layer+':'+material.uuid;
       const row=parts.get(key)??{material,layer:box.layer,geometries:[]};
-      const geometry=new THREE.BoxGeometry(box.rx*2,box.ry*2,box.rz*2);if(box.pitch)geometry.rotateX(box.pitch);geometry.translate(box.x,floor+box.y,box.z);row.geometries.push(geometry);parts.set(key,row);
+      const carved=cottage&&box.role==='trim'&&box.material==='masonry'&&box.layer===0;
+      // A shallow backing avoids coplanar fighting with the supplied relief.
+      const geometry=new THREE.BoxGeometry(box.rx*2-(carved?.025:0),box.ry*2-(carved?.015:0),box.rz*2-(carved?.025:0));if(box.pitch)geometry.rotateX(box.pitch);geometry.translate(box.x,floor+box.y,box.z);row.geometries.push(geometry);parts.set(key,row);
+      if(cottage&&box.role==='trim'&&box.material==='masonry'&&box.layer===0){
+        // All sourced stone detail stays within the existing solid trim volume.
+        // No copied closed glass/door faces are placed across firing apertures.
+        for(const angle of [0,Math.PI]){const detail=house.stone.clone().rotateY(angle).scale(box.rx*2,box.ry*2,box.rz*2);detail.translate(box.x,floor+box.y,box.z);stone.push(detail);}
+      }
     }
     for(const row of parts.values()){const geometry=mergeGeometries(row.geometries);row.geometries.forEach(g=>g.dispose());const mesh=new THREE.Mesh(geometry,row.material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.layer=row.layer;root.add(mesh);}
+    if(cottage){
+      const roof=new THREE.Mesh(houseRoofGeometry(house,b,floor),roofs[style.variant]);roof.name='Supplied cottage roof';roof.userData.layer=2;roof.userData.houseDetail=true;roof.castShadow=roof.receiveShadow=true;root.add(roof);
+      if(stone.length){const geometry=mergeGeometries(stone);stone.forEach(g=>g.dispose());const mesh=new THREE.Mesh(geometry,carvedStone);mesh.name='Supplied cottage stone';mesh.userData.layer=0;mesh.userData.houseDetail=true;mesh.receiveShadow=true;root.add(mesh);}
+    }
     group.add(root);
   });
   return group;
 }
-export function refreshBuildingMeshes(infrastructure:THREE.Group,terrain:TerrainSystem,cutaways:Map<number,number>):void {
+export function refreshBuildingMeshes(infrastructure:THREE.Group,terrain:TerrainSystem,cutaways:Map<number,number>,house?:HouseAssets,view?:{x:number;z:number;zoom:number;detail:number}):void {
   let group=infrastructure.getObjectByName('buildings') as THREE.Group|undefined;
-  if(group?.userData.key!==JSON.stringify(terrain.snapshot.buildingChanges)){
+  if(group?.userData.key!==JSON.stringify(terrain.snapshot.buildingChanges)||group?.userData.houseAsset!==!!house){
     if(group){const materials=new Set<THREE.Material>();group.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])materials.add(m);}});materials.forEach(m=>m.dispose());infrastructure.remove(group);}
-    group=createBuildingMeshes(terrain);infrastructure.add(group);
+    group=createBuildingMeshes(terrain,house);infrastructure.add(group);
   }
-  for(const building of group!.children){const level=cutaways.get(building.userData.buildingId);for(const mesh of building.children)mesh.visible=level===undefined||mesh.userData.layer<=level;}
+  for(const building of group!.children){
+    const level=cutaways.get(building.userData.buildingId),c=building.userData.center;
+    const detailed=!view||Math.hypot(c.x-view.x,c.z-view.z,view.zoom*.8)<view.detail;
+    for(const mesh of building.children)mesh.visible=(level===undefined||mesh.userData.layer<=level)&&(!mesh.userData.houseDetail||detailed);
+  }
 }

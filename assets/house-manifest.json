@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "source": "source/small-one-floor-house.obj",
+  "sourceSha256": "5b43cb65b05728b5796c2bb29fc52813219131880c4b9e01cf3c5ae82be75d54",
+  "sourceTriangles": 15100,
+  "runtime": "src/assets/house.glb",
+  "roofCoordinates": "XZ normalized to eaves; Y is metre-scale relief",
+  "stoneBounds": [
+    -0.5,
+    0.5
+  ],
+  "parts": [
+    {
+      "name": "houseRoof",
+      "triangles": 3267
+    },
+    {
+      "name": "houseStone",
+      "triangles": 79
+    }
+  ],
+  "materials": 1,
+  "textures": 0,
+  "adaptation": "Source roof courses and carved stone, fitted to production roofs and trim. Closed facade, doors, glass and interior are not collision geometry.",
+  "bytes": 113336
+}

@@ -1774,3 +1774,27 @@ terrain contact are not a new IK or earth-scooping simulation. See
 `docs/shovel-model-integration.md`. Overall status remains PARTIAL; full-combat
 performance, original reproductions, physical mobile and player art acceptance
 remain open. No neural training or automation was started.
+
+## 2026-10-08 — User-supplied small one-floor house
+
+**ADAPTED SURFACE INTEGRATION IMPLEMENTED / EDGE AND OFFLINE VERIFIED /
+PLAYER ART ACCEPTANCE OPEN.** The complete 15,100-triangle source is preserved.
+Its closed facade does not match the existing usable entrances/windows, so this
+is explicitly a roof/stone-detail adaptation to existing intact one-floor
+buildings, not a literal whole-mesh replacement. Shared physical building layout,
+occupants, orders and saves remain unchanged; damaged/ruined and two-floor forms
+retain existing representations. Near detail adds two bounded batches per house.
+
+**1091/1091 tests across 167 files**, 31 focused tests, production/standalone builds,
+packaging 5/5 and builder/workshop typechecks passed. Source copy and repeated
+asset generation verified. Edge controls checked cutaways, damage, ruins, distant
+fallback and context recovery. A real Sandbox occupation placed eight soldiers
+in the building through the doorway; the single-file offline repeat reached a
+firing station with no page/console errors or HTTP requests.
+
+Runtime kit is 113,336 bytes; standalone approximately 4,592 KiB. Full source,
+original-versus-adapted workshop and local evidence are preserved. Complete source
+facade integration needs a separate save-compatible architectural variant; steep
+terrain/floor intersection remains visible and unresolved. See
+`docs/house-model-integration.md` for exact scope and evidence. Overall status
+remains PARTIAL. No simulation rewrite, neural training or automation.
