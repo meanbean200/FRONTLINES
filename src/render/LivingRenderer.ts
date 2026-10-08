@@ -4,6 +4,7 @@ import type {TerrainSystem} from '../terrain/TerrainSystem';
 import {playerVisibleEnemies} from '../operations/Visibility';
 import {supportAppearance} from './SupportAppearance';
 import {truckGeometry,truckWheelGeometry} from './VehicleVisual';
+import {loadTruckAssets,type TruckAssets} from './TruckAssets';
 import {crewOperator} from '../combat/WeaponPositions';
 import {mortarGeometry} from './WeaponPositionVisual';
 import {weaponCrewPoint} from '../construction/PositionDefinitions';
@@ -12,7 +13,7 @@ import {fieldGunGeometry} from './FieldGunVisual';
 import {loadWeaponAssets,type WeaponAssets} from './WeaponAssets';
 import {fieldGunPresentation} from './FieldGunPresentation';
 import {weaponGeometry} from './SoldierVisual';
-import type {Facility} from '../garrison/types';
+import type {Facility,Truck} from '../garrison/types';
 import {playerCanSeeObject} from '../operations/ObjectSight';
 import {crateVisible,stockPiles,stockPileAnchors} from '../garrison/SupplyAccess';
 export class LivingRenderer {
@@ -23,6 +24,11 @@ export class LivingRenderer {
   private last=-1;
   private readonly vehicles=new THREE.InstancedMesh(truckGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.88,side:THREE.DoubleSide}),64);
   private readonly wheels=new THREE.InstancedMesh(truckWheelGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95}),384);
+  private readonly distantTruckBody=this.vehicles.geometry;
+  private truckAssets?:TruckAssets;
+  private detailedWheels:THREE.InstancedMesh[]=[];
+  private activeTrucks:Truck[]=[];
+  private detailedTrucks=false;
   private readonly lastTrucks=new Map<number,{x:number;z:number;angle:number;roll:number}>();
   private readonly mortars=new THREE.InstancedMesh(mortarGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.72}),128);
   private readonly fieldGuns=new THREE.InstancedMesh(fieldGunGeometry('carriage'),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.88}),256);
@@ -35,12 +41,37 @@ export class LivingRenderer {
   private readonly frustum=new THREE.Frustum();
   private readonly projection=new THREE.Matrix4();
   private readonly sphere=new THREE.Sphere(new THREE.Vector3(),25);
-  constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem,equipment?:WeaponAssets|null){
+  constructor(private getState:()=>BattlefieldState,private terrain:TerrainSystem,equipment?:WeaponAssets|null,trucks?:TruckAssets|null){
     this.boxes.frustumCulled=false;this.boxes.castShadow=true;this.boxes.receiveShadow=true;this.group.add(this.boxes,this.routes,this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes,this.mountedGuns);
     this.fieldGuns.name='Field gun carriages';this.fieldTubes.name='Field gun barrels';this.mountedGuns.name='Mounted machine guns';
+    this.vehicles.name='Logistics truck bodies';this.wheels.name='Distant truck wheels';
     for(const mesh of [this.vehicles,this.wheels,this.mortars,this.fieldGuns,this.fieldTubes,this.mountedGuns]){mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;mesh.count=0;}
     const install=(a:WeaponAssets)=>{this.equipment=a;this.fieldGuns.geometry.dispose();this.fieldTubes.geometry.dispose();this.mountedGuns.geometry.dispose();this.fieldGuns.geometry=a.cannonCarriage;this.fieldTubes.geometry=a.cannonBarrel;this.mountedGuns.geometry=a.machinegun;this.last=-Infinity;};
     if(equipment)install(equipment);else if(equipment!==null&&typeof window!=='undefined')void loadWeaponAssets().then(install).catch(e=>console.warn('Support models unavailable; using procedural weapons.',e));
+    const installTrucks=(a:TruckAssets)=>{this.truckAssets=a;this.detailedWheels=a.wheels.map((w,i)=>{const mesh=new THREE.InstancedMesh(w.geometry,this.wheels.material,64);mesh.name=`Logistics truck wheel ${i}`;mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;mesh.count=0;this.group.add(mesh);return mesh;});this.last=-Infinity;};
+    if(trucks)installTrucks(trucks);else if(trucks!==null&&typeof window!=='undefined')void loadTruckAssets().then(installTrucks).catch(e=>console.warn('Truck model unavailable; using procedural lorries.',e));
+  }
+  /** Presentation follows physical displacement, including between facility-detail updates. */
+  private animateTrucks():void{
+    if(!this.activeTrucks.length){this.vehicles.count=this.wheels.count=0;for(const mesh of this.detailedWheels)mesh.count=0;return;}
+    const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),wheelRotation=new THREE.Quaternion(),spin=new THREE.Quaternion(),position=new THREE.Vector3(),scale=new THREE.Vector3(1,1,1),axis=new THREE.Vector3(0,1,0),wheelAxis=new THREE.Vector3(1,0,0);
+    const asset=this.detailedTrucks?this.truckAssets:undefined;
+    this.vehicles.geometry=asset?.body??this.distantTruckBody;let wheelCount=0;
+    for(const [i,t] of this.activeTrucks.entries()){
+      const next=t.route[t.routeIndex],last=this.lastTrucks.get(t.id),angle=next&&Math.hypot(next.x-t.x,next.z-t.z)>.1?Math.atan2(next.x-t.x,next.z-t.z):last?.angle??Math.PI/2,h=this.terrain.heightAt(t.x,t.z);
+      // Keep phase in metres, so an LOD swap cannot change wheel direction or speed.
+      const roll=(last?.roll??0)+(last?Math.min(4,Math.hypot(t.x-last.x,t.z-last.z)):0);this.lastTrucks.set(t.id,{x:t.x,z:t.z,angle,roll});
+      q.setFromAxisAngle(axis,angle);matrix.compose(position.set(t.x,h,t.z),q,scale);this.vehicles.setMatrixAt(i,matrix);
+      wheelRotation.copy(q).multiply(spin.setFromAxisAngle(wheelAxis,roll/(asset?.wheelRadius??.5)));
+      if(asset){
+        for(const [j,w] of asset.wheels.entries()){position.copy(w.pivot).applyQuaternion(q);position.x+=t.x;position.y+=h;position.z+=t.z;this.detailedWheels[j].setMatrixAt(i,matrix.compose(position,wheelRotation,scale));}
+      }else{
+        for(const side of [-1,1])for(const z of [-2.23,-1.28,1.9]){position.set(side*1.04,.52,z).applyQuaternion(q);position.x+=t.x;position.y+=h;position.z+=t.z;this.wheels.setMatrixAt(wheelCount++,matrix.compose(position,wheelRotation,scale));}
+      }
+    }
+    this.vehicles.count=this.activeTrucks.length;this.wheels.count=wheelCount;
+    this.vehicles.instanceMatrix.needsUpdate=this.wheels.instanceMatrix.needsUpdate=true;
+    for(const mesh of this.detailedWheels){mesh.count=asset?this.activeTrucks.length:0;mesh.instanceMatrix.needsUpdate=true;}
   }
   private animateGuns(state:BattlefieldState):void{
     if(!this.activeGuns.length&&!this.activeMounts.length)return;
@@ -60,9 +91,10 @@ export class LivingRenderer {
   }
   update(now:number,showRoutes:boolean,view?:Vec2&{zoom:number},camera?:THREE.Camera):void {
     const state=this.getState(),w=state.living;
-    if(this.identity!==w){this.identity=w;this.lastTrucks.clear();this.activeGuns=[];this.activeMounts=[];this.last=-Infinity;}
-    this.routes.visible=showRoutes;if(now-this.last<80){this.animateGuns(state);return;}this.last=now;
-    if(!w){this.activeGuns=[];this.boxes.count=this.vehicles.count=this.wheels.count=this.mortars.count=this.fieldGuns.count=this.fieldTubes.count=this.mountedGuns.count=0;return;}
+    if(this.identity!==w){this.identity=w;this.lastTrucks.clear();this.activeTrucks=[];this.activeGuns=[];this.activeMounts=[];this.last=-Infinity;}
+    this.detailedTrucks=Boolean(this.truckAssets&&(!view||view.zoom<(this.detailedTrucks?235:205)));
+    this.routes.visible=showRoutes;if(now-this.last<80){this.animateGuns(state);this.animateTrucks();return;}this.last=now;
+    if(!w){this.activeGuns=[];this.activeTrucks=[];this.boxes.count=this.vehicles.count=this.wheels.count=this.mortars.count=this.fieldGuns.count=this.fieldTubes.count=this.mountedGuns.count=0;for(const mesh of this.detailedWheels)mesh.count=0;return;}
     if(camera)this.frustum.setFromProjectionMatrix(this.projection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
     // Reject only presentation outside the real camera frustum, with a generous
     // bound for structures and their cast shadow. Knowledge still uses full LOS.
@@ -72,17 +104,15 @@ export class LivingRenderer {
     const trucks=w.trucks.filter(t=>inView(t)&&(this.spectator||t.faction!=='enemy'||playerCanSeeObject(state,this.terrain,t,'truck')));
     const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),color=new THREE.Color(),position=new THREE.Vector3(),scale=new THREE.Vector3();let count=0;
     const box=(x:number,y:number,z:number,sx:number,sy:number,sz:number,tint:number,angle=0,pitch=0)=>{if(count>=8192)return;position.set(x,y,z);scale.set(sx,sy,sz);q.setFromEuler(new THREE.Euler(pitch,angle,0,'YXZ'));matrix.compose(position,q,scale);this.boxes.setMatrixAt(count,matrix);this.boxes.setColorAt(count++,color.setHex(tint));};
-    let vehicleCount=0,wheelCount=0;const axis=new THREE.Vector3(0,1,0),wheelAxis=new THREE.Vector3(1,0,0),wheelRotation=new THREE.Quaternion();
-    for(const t of trucks.slice(0,64)){
-      const next=t.route[t.routeIndex],last=this.lastTrucks.get(t.id),angle=next&&Math.hypot(next.x-t.x,next.z-t.z)>.1?Math.atan2(next.x-t.x,next.z-t.z):last?.angle??Math.PI/2,h=this.terrain.heightAt(t.x,t.z);
-      const roll=(last?.roll??0)+(last?Math.min(4,Math.hypot(t.x-last.x,t.z-last.z))/.5:0);this.lastTrucks.set(t.id,{x:t.x,z:t.z,angle,roll});
-      q.setFromAxisAngle(axis,angle);matrix.compose(position.set(t.x,h,t.z),q,scale.setScalar(1));this.vehicles.setMatrixAt(vehicleCount++,matrix);
-      wheelRotation.copy(q).multiply(new THREE.Quaternion().setFromAxisAngle(wheelAxis,roll));
-      for(const side of [-1,1])for(const z of [-2.23,-1.28,1.9]){position.set(side*1.04,.52,z).applyQuaternion(q).add(new THREE.Vector3(t.x,h,t.z));matrix.compose(position,wheelRotation,scale);this.wheels.setMatrixAt(wheelCount++,matrix);}
+    const axis=new THREE.Vector3(0,1,0);this.activeTrucks=trucks.slice(0,64);this.animateTrucks();
+    const existing=new Set(w.trucks.map(t=>t.id));for(const id of this.lastTrucks.keys())if(!existing.has(id))this.lastTrucks.delete(id);
+    for(const t of this.activeTrucks){
+      // The supplied canvas body is closed; do not place proxy heads through it.
+      if(this.detailedTrucks)continue;
+      const angle=this.lastTrucks.get(t.id)!.angle,h=this.terrain.heightAt(t.x,t.z);
       const passengers=state.operation?.campaign?.replacements?.manifests.filter(m=>m.truckId===t.id&&['convoy','shuttle'].includes(m.stage)).length??0;
       for(let i=0;i<passengers;i++){const x=(i%2?1:-1)*.72,z=-.6-Math.floor(i/2)*.52,px=t.x+x*Math.cos(angle)+z*Math.sin(angle),pz=t.z-x*Math.sin(angle)+z*Math.cos(angle);box(px,h+1.85,pz,.4,.65,.4,0x616744,angle);box(px,h+2.27,pz,.3,.19,.3,0x4c543b,angle);}
     }
-    this.vehicles.count=vehicleCount;this.wheels.count=wheelCount;this.vehicles.instanceMatrix.needsUpdate=this.wheels.instanceMatrix.needsUpdate=true;
     for(const pile of stockPiles(state,this.terrain,this.spectator,inView))for(const [i,p] of stockPileAnchors(pile).entries())box(p.x,this.terrain.heightAt(p.x,p.z)+.35,p.z,.9,.65,.8,i%2?0x80734c:0x686e49);
     let mortarCount=0,gunCount=0,mountedCount=0;this.activeGuns=[];this.activeMounts=[];
     for(const f of w.facilities){

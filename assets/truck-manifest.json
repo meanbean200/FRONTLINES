@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "source": "source/truck.obj",
+  "sourceSha256": "56a00fc3db0fc07c91653a1f71ec3cea1e6a253751f49e29a297e214a0c6d767",
+  "runtime": "src/assets/truck.glb",
+  "metres": 1,
+  "forward": "+Z",
+  "length": 6.5,
+  "triangles": 15100,
+  "materials": 1,
+  "textures": 0,
+  "wheelRadius": 0.481394832455055,
+  "wheelPivots": [
+    [
+      -0.8285230789872715,
+      0.4831984351048507,
+      2.376560052621625
+    ],
+    [
+      -0.8285230789872715,
+      0.4831984351048507,
+      -0.9277078789916438
+    ],
+    [
+      -0.8285230789872715,
+      0.4831984351048507,
+      -2.1295575627399783
+    ],
+    [
+      0.8285230789872715,
+      0.4831984351048507,
+      2.376560052621625
+    ],
+    [
+      0.8285230789872715,
+      0.4831984351048507,
+      -0.9277078789916438
+    ],
+    [
+      0.8285230789872715,
+      0.4831984351048507,
+      -2.1295575627399783
+    ]
+  ],
+  "parts": [
+    {
+      "name": "truckBody",
+      "triangles": 13180
+    },
+    {
+      "name": "truckWheel0",
+      "triangles": 301
+    },
+    {
+      "name": "truckWheel1",
+      "triangles": 334
+    },
+    {
+      "name": "truckWheel2",
+      "triangles": 323
+    },
+    {
+      "name": "truckWheel3",
+      "triangles": 310
+    },
+    {
+      "name": "truckWheel4",
+      "triangles": 349
+    },
+    {
+      "name": "truckWheel5",
+      "triangles": 303
+    }
+  ],
+  "bytes": 751520
+}

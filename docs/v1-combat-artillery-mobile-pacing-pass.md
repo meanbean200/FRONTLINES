@@ -1664,3 +1664,22 @@ Rendering-only 300/512/1000-person samples remained batched, but full-combat
 performance and all earlier open reproductions/long-session/player acceptance
 gates remain open. No neural training, automation, simulation rewrite or save
 mutation. See `docs/weapon-model-integration.md` for exact evidence and limits.
+
+## User-supplied logistics truck
+
+**IMPLEMENTED / EDGE AND OFFLINE RENDER VERIFIED / PLAYER ART ACCEPTANCE OPEN.**
+Preserved the supplied 15,100-triangle source and prepared a 6.5-metre, 751,520-byte
+GLB with olive/canvas/rubber/glazing colours and six rotating source wheels.
+Close-view instancing, movement-driven animation, distant fallback and embedded
+offline delivery retain all simulation, cargo, fuel, visibility and save authority.
+
+**1076/1076 tests across 166 files**, focused renderer checks, production/offline
+build and packaging 5/5 passed. Actual Edge controls located and followed real
+delivery trucks; a standalone HTML-only, network-disabled Edge run located a
+loading truck with zero page errors or HTTP requests. Workshop/context-restoration
+evidence is separate from gameplay acceptance. Originals and failed inspection
+attempts are preserved. See `docs/truck-model-integration.md`.
+
+This asset integration does not close the earlier full-combat performance,
+long-session, original bug-reproduction, mobile or player-believability gates.
+Overall status remains PARTIAL. No neural training or automation was started.

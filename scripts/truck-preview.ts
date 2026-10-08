@@ -1,0 +1,33 @@
+// Isolated art inspection using the production loader and logistics renderer.
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {loadTruckAssets} from '../src/render/TruckAssets';
+import {LivingRenderer} from '../src/render/LivingRenderer';
+import {createOperation} from '../src/operations/createOperation';
+import {inventory,type Truck} from '../src/garrison/types';
+import type {TerrainSystem} from '../src/terrain/TerrainSystem';
+
+const asset=await loadTruckAssets(),state=createOperation('campaign');
+const truck:Truck={id:9001,x:0,z:0,role:'shuttle',state:'idle',route:[{x:0,z:10}],routeIndex:0,cargo:inventory(),fuel:100,timer:0,reason:'Art fixture',faction:'player'};
+state.soldiers=[];state.trenches=[];state.living!.trucks=[truck];state.living!.facilities=[];state.living!.garrisons=[];state.living!.crates=[];
+const terrain={heightAt:()=>0,baseHeightAt:()=>0} as unknown as TerrainSystem;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x232a21);scene.add(new THREE.HemisphereLight(0xe0e2ce,0x625947,2));
+const sun=new THREE.DirectionalLight(0xffe8c5,2.5);sun.position.set(6,14,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-15,right:15,top:15,bottom:-15});sun.shadow.normalBias=.015;scene.add(sun);scene.add(sun.target);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(2000,2000),new THREE.MeshStandardMaterial({color:0x515d43,roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.025;floor.receiveShadow=true;scene.add(floor);
+const living=new LivingRenderer(()=>state,terrain,null,asset);living.spectator=true;scene.add(living.group);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(1.5,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.append(renderer.domElement);
+const camera=new THREE.PerspectiveCamera(37,innerWidth/innerHeight,.05,2200),controls=new OrbitControls(camera,renderer.domElement);
+const view=(x:number,y:number,z:number)=>{camera.position.set(x,y,z+truck.z);controls.target.set(0,1.1,truck.z);controls.update();};view(9,5,10);
+let moving=false,far=false,last=performance.now();
+document.querySelector('#drive')!.addEventListener('click',()=>{moving=!moving;document.querySelector('#drive')!.textContent=moving?'Park truck':'Inspect wheel movement';});
+document.querySelector('#front')!.addEventListener('click',()=>view(9,5,10));
+document.querySelector('#rear')!.addEventListener('click',()=>view(-9,4,-10));
+document.querySelector('#side')!.addEventListener('click',()=>view(12,2,0));
+document.querySelector('#lod')!.addEventListener('click',()=>{far=!far;document.querySelector('#lod')!.textContent=far?'Show supplied model':'Compare distant model';});
+function frame(now:number){const dt=Math.min(.05,(now-last)/1000);last=now;if(moving){state.elapsed+=dt;truck.z+=dt*2;truck.route[0].z=truck.z+10;camera.position.z+=dt*2;controls.target.z+=dt*2;}sun.position.z=truck.z+7;sun.target.position.z=truck.z;
+  living.update(now,false,{x:0,z:truck.z,zoom:far?300:20});controls.update();renderer.render(scene,camera);
+  document.querySelector('#status')!.textContent=`${far?'Distant fallback':'Supplied model'} · ${moving?'Moving at 2 m/s':'Parked'} · ${renderer.info.render.calls} draw calls · ${renderer.info.render.triangles.toLocaleString()} triangles`;
+  requestAnimationFrame(frame);
+}requestAnimationFrame(frame);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+Object.assign(window,{truckPreview:{asset,state,living,renderer,camera,pick:(x:number,y:number)=>{const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(x/innerWidth*2-1,1-y/innerHeight*2),camera);return ray.intersectObjects(living.group.children).map(h=>({point:h.point.toArray(),part:h.object.name}));}}});

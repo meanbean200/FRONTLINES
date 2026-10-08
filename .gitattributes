@@ -3,4 +3,5 @@ assets/source/troops.obj -text whitespace=-blank-at-eof
 assets/source/rifle.obj -text whitespace=-blank-at-eof
 assets/source/mg.obj -text whitespace=-blank-at-eof
 assets/source/cannon.obj -text whitespace=-blank-at-eof
+assets/source/truck.obj -text whitespace=-blank-at-eof
 src/assets/*.glb binary
