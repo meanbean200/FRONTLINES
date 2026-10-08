@@ -1,8 +1,9 @@
 # Supplied rifle, machine gun and artillery
 
-This records the original three-model milestone and its measurements. The later
-SMG addition and current combined equipment size are recorded separately in
-[`smg-model-integration.md`](smg-model-integration.md).
+This records the original three-model milestone and its measurements. Later
+additions are recorded in [`smg-model-integration.md`](smg-model-integration.md)
+and [`bar-model-integration.md`](bar-model-integration.md). The current combined
+equipment inventory and size are in `assets/weapons-manifest.json`.
 
 **IMPLEMENTED / focused renderer and Edge inspection verified / player art acceptance OPEN.**
 

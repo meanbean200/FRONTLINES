@@ -23,7 +23,7 @@ function fixture(){
   state.living!.facilities=[f];state.living!.trucks=[];state.living!.crates=[];
   return {state,sim,s,f};
 }
-describe('supplied rifle, MG, SMG and cannon presentation',()=>{
+describe('supplied rifle, MG, SMG, BAR and cannon presentation',()=>{
   it('retains source hashes and every triangle in a bounded offline-friendly asset',()=>{
     const m=JSON.parse(readFileSync('assets/weapons-manifest.json','utf8'));
     expect(m.bytes).toBeLessThan(1_000_000);expect(m.materials).toBe(1);expect(m.textures).toBe(0);
@@ -31,8 +31,9 @@ describe('supplied rifle, MG, SMG and cannon presentation',()=>{
     const triangles=(g:THREE.BufferGeometry)=>(g.index?.count??g.getAttribute('position').count)/3;
     expect(triangles(assets.rifle)).toBe(850);expect(triangles(assets.machinegun)).toBe(2500);
     expect(triangles(assets.submachinegun)).toBe(2100);
+    expect(triangles(assets.automaticRifle)).toBe(2100);expect(triangles(assets.automaticRifleDeployed)).toBe(2100);
     expect(triangles(assets.cannonBarrel)+triangles(assets.cannonCarriage)).toBe(4100);
-    for(const g of [assets.rifle,assets.submachinegun,assets.machinegun,assets.machinegunDeployed,assets.cannonCarriage,assets.cannonBarrel])for(const name of ['position','normal','color'])expect(Array.from(g.getAttribute(name).array).every(Number.isFinite)).toBe(true);
+    for(const g of [assets.rifle,assets.submachinegun,assets.automaticRifle,assets.automaticRifleDeployed,assets.machinegun,assets.machinegunDeployed,assets.cannonCarriage,assets.cannonBarrel])for(const name of ['position','normal','color'])expect(Array.from(g.getAttribute(name).array).every(Number.isFinite)).toBe(true);
   });
   it('sets metre scale, +Z muzzle sockets and a lower-profile folded bipod',()=>{
     expect(assets.rifle.boundingBox!.getSize(new THREE.Vector3()).z).toBeCloseTo(1.1,4);
@@ -40,39 +41,57 @@ describe('supplied rifle, MG, SMG and cannon presentation',()=>{
     expect(assets.rifle.boundingBox!.max.z).toBeCloseTo(.6,5);
     expect(assets.submachinegun.boundingBox!.getSize(new THREE.Vector3()).z).toBeCloseTo(.82,4);
     expect(assets.submachinegun.boundingBox!.max.z).toBeCloseTo(.29,5);
+    expect(assets.automaticRifle.boundingBox!.getSize(new THREE.Vector3()).z).toBeCloseTo(1.2,4);
+    expect(assets.automaticRifle.boundingBox!.max.z).toBeCloseTo(.6,5);
+    expect(assets.automaticRifle.boundingBox!.min.y).toBeGreaterThan(assets.automaticRifleDeployed.boundingBox!.min.y);
     expect(assets.machinegun.boundingBox!.max.z).toBeCloseTo(.6,5);
     expect(assets.machinegun.boundingBox!.min.y).toBeGreaterThan(assets.machinegunDeployed.boundingBox!.min.y);
     expect(assets.cannonCarriage.boundingBox!.min.y).toBeCloseTo(0,5);
     expect(assets.cannonMuzzle.y).toBeGreaterThan(1.4);expect(assets.cannonMuzzle.y).toBeLessThan(1.7);
   });
   it('uses close instanced equipment, preserves muzzle/shot alignment and distant fallback',()=>{
-    for(const weapon of ['m1','mg42','smg'] as const){
+    for(const weapon of ['m1','mg42','smg','bar'] as const){
       const {state,sim,s}=fixture();state.soldiers=[s];s.equipment!.weapon=weapon;s.duty=undefined;s.garrisonId=undefined;s.heading=.3;state.elapsed=4;
       const from={x:s.x+.5,y:10,z:s.z+.8},to={x:from.x+30,y:from.y+15,z:from.z+40};
       state.operation!.shotEvents=[{id:17,shooterId:s.id,squadId:s.squadId,at:4,from,to,energy:1}];
       const before=JSON.stringify(state),r=new UnitRenderer(state,sim.terrain,null,assets);r.update(new Set(),1/60,20);
-      const geometry=weapon==='m1'?assets.rifle:weapon==='smg'?assets.submachinegun:assets.machinegun,mesh=r.group.children.find(o=>o instanceof THREE.InstancedMesh&&o.geometry===geometry) as THREE.InstancedMesh;
+      const geometry=weapon==='m1'?assets.rifle:weapon==='smg'?assets.submachinegun:weapon==='bar'?assets.automaticRifle:assets.machinegun,mesh=r.group.children.find(o=>o instanceof THREE.InstancedMesh&&o.geometry===geometry) as THREE.InstancedMesh;
       expect(mesh.count).toBe(1);const matrix=new THREE.Matrix4();mesh.getMatrixAt(0,matrix);
       const muzzle=new THREE.Vector3(0,0,weapon==='smg'?.29:.6).applyMatrix4(matrix);expect(muzzle.distanceTo(new THREE.Vector3(from.x,from.y,from.z))).toBeLessThan(.001);
       r.update(new Set(),1/60,700);expect(mesh.geometry).not.toBe(geometry);expect(JSON.stringify(state)).toBe(before);
     }
   });
-  it('attaches the supplied SMG grip to the animated carrying hand without changing equipment or saves',()=>{
+  it.each(['smg','bar'] as const)('attaches the supplied %s grip to the animated carrying hand without changing equipment or saves',weapon=>{
     for(const action of ['holding','following drawn path']){
-      const {state,sim,s}=fixture();state.soldiers=[s];s.equipment!.weapon='smg';s.duty=undefined;s.garrisonId=undefined;s.action=action;s.heading=.4;state.elapsed=4;
+      const {state,sim,s}=fixture();state.soldiers=[s];s.equipment!.weapon=weapon;s.duty=undefined;s.garrisonId=undefined;s.action=action;s.heading=.4;state.elapsed=4;
       const before=JSON.stringify(state),r=new UnitRenderer(state,sim.terrain,soldierAsset,assets);r.update(new Set(),1/60,20);
-      const mesh=r.group.getObjectByName('Held smg') as THREE.InstancedMesh,matrix=new THREE.Matrix4();expect(mesh.count).toBe(1);expect(mesh.geometry).toBe(assets.submachinegun);mesh.getMatrixAt(0,matrix);
+      const mesh=r.group.getObjectByName(weapon==='smg'?'Held smg':'Held automatic') as THREE.InstancedMesh,matrix=new THREE.Matrix4();expect(mesh.count).toBe(1);expect(mesh.geometry).toBe(weapon==='smg'?assets.submachinegun:assets.automaticRifle);mesh.getMatrixAt(0,matrix);
       const rig=new RiggedSoldiers(soldierAsset);rig.begin(1,true);rig.add(s,new THREE.Vector3(s.x,sim.terrain.heightAt(s.x,s.z),s.z),state.elapsed,false,0,new THREE.Color(0xffffff));
-      const grip=assets.submachinegunGrip.clone().applyMatrix4(matrix);expect(grip.distanceTo(rig.attachment('HandR',new THREE.Vector3()))).toBeLessThan(.001);
+      const grip=(weapon==='smg'?assets.submachinegunGrip:assets.automaticRifleGrip).clone().applyMatrix4(matrix);expect(grip.distanceTo(rig.attachment('HandR',new THREE.Vector3()))).toBeLessThan(.001);
       expect(JSON.stringify(state)).toBe(before);r.update(new Set(),1/60,20);expect(JSON.stringify(state)).toBe(before);
     }
   });
-  it('uses the SMG slot only for actual SMG equipment and retains the fallback after context restore',()=>{
-    const {state,sim,s}=fixture();state.soldiers=[s];s.equipment!.weapon='smg';s.duty=undefined;s.garrisonId=undefined;
-    const r=new UnitRenderer(state,sim.terrain,null,assets);r.update(new Set(),1/60,20);const mesh=r.group.getObjectByName('Held smg') as THREE.InstancedMesh;expect(mesh.count).toBe(1);
-    releaseLostContextResources(r.group);r.update(new Set(),1/60,20);expect(mesh.geometry).toBe(assets.submachinegun);expect(mesh.count).toBe(1);
+  it.each(['smg','bar'] as const)('uses the %s slot only for matching equipment and retains the fallback after context restore',weapon=>{
+    const {state,sim,s}=fixture();state.soldiers=[s];s.equipment!.weapon=weapon;s.duty=undefined;s.garrisonId=undefined;
+    const name=weapon==='smg'?'Held smg':'Held automatic',geometry=weapon==='smg'?assets.submachinegun:assets.automaticRifle;
+    const r=new UnitRenderer(state,sim.terrain,null,assets);r.update(new Set(),1/60,20);const mesh=r.group.getObjectByName(name) as THREE.InstancedMesh;expect(mesh.count).toBe(1);
+    releaseLostContextResources(r.group);r.update(new Set(),1/60,20);expect(mesh.geometry).toBe(geometry);expect(mesh.count).toBe(1);
     s.equipment!.weapon='unarmed';r.update(new Set(),1/60,20);expect(mesh.count).toBe(0);s.equipment!.weapon='m1';r.update(new Set(),1/60,20);expect(mesh.count).toBe(0);
-    s.equipment!.weapon='smg';const fallback=new UnitRenderer(state,sim.terrain,null,null);fallback.update(new Set(),1/60,20);const old=fallback.group.getObjectByName('Held smg') as THREE.InstancedMesh;expect(old.count).toBe(1);expect(old.geometry).not.toBe(assets.submachinegun);
+    s.equipment!.weapon=weapon;const fallback=new UnitRenderer(state,sim.terrain,null,null);fallback.update(new Set(),1/60,20);const old=fallback.group.getObjectByName(name) as THREE.InstancedMesh;expect(old.count).toBe(1);expect(old.geometry).not.toBe(geometry);
+  });
+  it('deploys the BAR only while active and stationary prone, with shot alignment and no duplicate gun',()=>{
+    const {state,sim,s}=fixture();state.soldiers=[s];s.equipment!.weapon='bar';s.posture='prone';s.duty=undefined;s.garrisonId=undefined;s.action='watching';state.elapsed=4;
+    const from={x:s.x,y:1,z:s.z},to={x:s.x+20,y:2,z:s.z+50};state.operation!.shotEvents=[{id:19,shooterId:s.id,squadId:s.squadId,at:4,from,to,energy:1}];
+    const before=JSON.stringify(state),r=new UnitRenderer(state,sim.terrain,soldierAsset,assets);r.update(new Set(),1/60,20);
+    const deployed=r.group.getObjectByName('Bipod automatic rifles') as THREE.InstancedMesh,held=r.group.getObjectByName('Held automatic') as THREE.InstancedMesh,m=new THREE.Matrix4();
+    expect(deployed.count).toBe(1);expect(held.count).toBe(0);expect(deployed.geometry).toBe(assets.automaticRifleDeployed);deployed.getMatrixAt(0,m);
+    expect(new THREE.Vector3(0,0,.6).applyMatrix4(m).distanceTo(new THREE.Vector3(from.x,from.y,from.z))).toBeLessThan(.001);expect(JSON.stringify(state)).toBe(before);
+    releaseLostContextResources(r.group);r.update(new Set(),1/60,20);expect(deployed.count).toBe(1);
+    state.operation!.shotEvents=[];
+    for(const action of ['crawling to cover','sleeping']){s.action=action;r.update(new Set(),1/60,20);expect(deployed.count).toBe(0);expect(held.count).toBe(1);}
+    s.action='watching';s.needs!.life='incapacitated';r.update(new Set(),1/60,20);expect(deployed.count).toBe(0);
+    s.needs!.life='active';s.posture='standing';r.update(new Set(),1/60,20);expect(deployed.count).toBe(0);expect(held.count).toBe(1);
+    s.posture='prone';r.update(new Set(),1/60,700);expect(deployed.count).toBe(1);expect(deployed.geometry).not.toBe(assets.automaticRifleDeployed);
   });
   it('keeps a mounted MG physical without a crew and aligns it with real mounted shots',()=>{
     const {state,sim,s,f}=fixture();f.kind='emplacement';f.artillery=undefined;f.installation!.kind='crew-mg';state.elapsed=3;

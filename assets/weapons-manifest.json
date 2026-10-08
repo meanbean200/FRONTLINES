@@ -1,7 +1,7 @@
 {
   "version": 1,
   "runtime": "src/assets/weapons.glb",
-  "bytes": 598344,
+  "bytes": 702540,
   "materials": 1,
   "textures": 0,
   "sources": [
@@ -23,6 +23,11 @@
     {
       "source": "source/smg.obj",
       "sourceSha256": "1b905034524184a6e0d0e167600320f9034b680cd3af83077c78371f747fc200",
+      "triangles": 2100
+    },
+    {
+      "source": "source/bar.obj",
+      "sourceSha256": "9c0de41cbef0dc065c80e91d7ed75c9f3ba119b53c5dcffb5625c96617b9726a",
       "triangles": 2100
     }
   ],
@@ -101,6 +106,31 @@
         -0.21758391503889835
       ],
       "length": 0.82
+    },
+    "bar": {
+      "muzzle": [
+        0,
+        0,
+        0.6
+      ],
+      "grip": [
+        0,
+        -0.10124025938842181,
+        -0.2167893921210563
+      ],
+      "length": 1.2
+    },
+    "barBipods": {
+      "left": [
+        -0.020914903885632056,
+        -0.03516128769178721,
+        0.4191449318217849
+      ],
+      "right": [
+        0.02091490388563205,
+        -0.03516128769178721,
+        0.4191449318217849
+      ]
     }
   }
 }

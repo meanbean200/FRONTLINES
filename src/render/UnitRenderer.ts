@@ -28,6 +28,7 @@ export class UnitRenderer {
   private hands?:THREE.InstancedMesh;
   private tools?:THREE.InstancedMesh;
   private deployedMG?:THREE.InstancedMesh;
+  private deployedBAR?:THREE.InstancedMesh;
   private readonly variants=new Map<WeaponVisualKind,THREE.InstancedMesh>();
   private quality:VisualQuality='balanced';
   private count=-1;
@@ -90,14 +91,17 @@ export class UnitRenderer {
       this.group.add(this.arms,this.hands,this.tools);this.arms.castShadow=true;
       this.variants.clear();for(const [kind,geometry]of Object.entries(this.variantGeometries)){const mesh=new THREE.InstancedMesh(geometry,this.weaponMaterial,this.count);mesh.name=`Held ${kind}`;mesh.frustumCulled=false;mesh.castShadow=true;this.variants.set(kind as WeaponVisualKind,mesh);this.group.add(mesh);}
       this.deployedMG=new THREE.InstancedMesh(this.variantGeometries.machinegun,this.weaponMaterial,this.count);this.deployedMG.name='Bipod machine guns';this.deployedMG.frustumCulled=false;this.deployedMG.castShadow=true;this.group.add(this.deployedMG);
+      this.deployedBAR=new THREE.InstancedMesh(this.variantGeometries.automatic,this.weaponMaterial,this.count);this.deployedBAR.name='Bipod automatic rifles';this.deployedBAR.frustumCulled=false;this.deployedBAR.castShadow=true;this.group.add(this.deployedBAR);
       this.group.add(this.rigged.group);
     }
     const close=zoomDistance<VISUAL_QUALITY[this.quality].soldierDetail;
     const equipment=close?this.equipment:undefined;
     this.weapons!.geometry=equipment?.rifle??this.weaponGeometry;
     this.variants.get('smg')!.geometry=equipment?.submachinegun??this.variantGeometries.smg;
+    this.variants.get('automatic')!.geometry=equipment?.automaticRifle??this.variantGeometries.automatic;
     this.variants.get('machinegun')!.geometry=equipment?.machinegun??this.variantGeometries.machinegun;
     this.deployedMG!.geometry=equipment?.machinegunDeployed??this.variantGeometries.machinegun;
+    this.deployedBAR!.geometry=equipment?.automaticRifleDeployed??this.variantGeometries.automatic;
     const useRig=this.rigged.begin(capacity,close);
     for(const mesh of [this.body,this.engineers,this.enemies,this.legs,this.arms,this.hands])mesh!.visible=!useRig;
     this.body!.geometry=close?this.rifleGeometry:this.lodBodies[0];this.engineers!.geometry=close?this.engineerGeometry:this.lodBodies[1];this.enemies!.geometry=close?this.enemyGeometry:this.lodBodies[2];
@@ -109,7 +113,7 @@ export class UnitRenderer {
     const matrix=new THREE.Matrix4(),rotation=new THREE.Quaternion(),scale=new THREE.Vector3(1,1,1),p=new THREE.Vector3();
     const weaponRotation=new THREE.Quaternion(),weaponPosition=new THREE.Vector3(),local=new THREE.Vector3(),tint=new THREE.Color();
     const bodyMatrix=new THREE.Matrix4(),a=new THREE.Vector3(),b=new THREE.Vector3(),axis=new THREE.Vector3(0,1,0),jointRotation=new THREE.Quaternion();
-    let rifles=0,engineers=0,enemies=0,ringCount=0,legs=0,weapons=0,flashes=0,arms=0,hands=0,tools=0,deployed=0;
+    let rifles=0,engineers=0,enemies=0,ringCount=0,legs=0,weapons=0,flashes=0,arms=0,hands=0,tools=0,deployed=0,deployedBAR=0;
     const variantCounts={smg:0,automatic:0,machinegun:0};
     people.forEach((soldier,i)=>{
       if(soldier.combat?.wound?.care==='evacuated'||soldier.combat?.wound?.care==='transport'){this.displayed.delete(soldier.id);return;}
@@ -148,7 +152,7 @@ export class UnitRenderer {
       const mount=operatedPosition(this.state,soldier,'emplacement'),weapon=mount?.installation?.kind??soldier.equipment?.weapon??soldier.combat?.weapon?.id,kind=weapon==='crew-mg'||weapon==='mg42'?'machinegun':weapon==='bar'?'automatic':weapon==='smg'?'smg':'rifle';
       if(useRig&&!aiming&&!firing&&!lying){
         this.rigged.attachment('HandR',weaponPosition);
-        const grip=equipment&&(kind==='rifle'?equipment.rifleGrip:kind==='machinegun'?equipment.machinegunGrip:kind==='smg'?equipment.submachinegunGrip:undefined);
+        const grip=equipment&&(kind==='rifle'?equipment.rifleGrip:kind==='machinegun'?equipment.machinegunGrip:kind==='smg'?equipment.submachinegunGrip:equipment.automaticRifleGrip);
         if(grip)local.copy(grip);else local.set(0,-.04,-.1);
         local.applyQuaternion(weaponRotation);weaponPosition.sub(local);
       }
@@ -163,7 +167,12 @@ export class UnitRenderer {
       }
       scale.setScalar(1);matrix.compose(weaponPosition,weaponRotation,scale);
       const digging=soldier.action==='digging'||soldier.action==='clearing spoil',care=soldier.action.startsWith('treating')||soldier.action==='carrying casualty';
-      if(!mount&&weapon!=='unarmed'&&!care&&!digging&&soldier.action!=='being carried'){if(kind==='rifle')this.weapons!.setMatrixAt(weapons++,matrix);else if(kind==='machinegun'&&lying&&soldier.needs?.life==='active')this.deployedMG!.setMatrixAt(deployed++,matrix);else this.variants.get(kind)!.setMatrixAt(variantCounts[kind]++,matrix);}
+      if(!mount&&weapon!=='unarmed'&&!care&&!digging&&soldier.action!=='being carried'){
+        if(kind==='rifle')this.weapons!.setMatrixAt(weapons++,matrix);
+        else if(kind==='machinegun'&&lying&&soldier.needs?.life==='active')this.deployedMG!.setMatrixAt(deployed++,matrix);
+        else if(kind==='automatic'&&lying&&!moving&&!sleeping&&soldier.needs?.life==='active')this.deployedBAR!.setMatrixAt(deployedBAR++,matrix);
+        else this.variants.get(kind)!.setMatrixAt(variantCounts[kind]++,matrix);
+      }
       if(shot){p.set(shot.from.x,shot.from.y,shot.from.z);matrix.compose(p,weaponRotation,scale);this.flashes!.setMatrixAt(flashes++,matrix);}
       if(!useRig)for(let leg=0;leg<2;leg++) {
         const phase=moving?Math.sin(this.state.elapsed*8+i*.37+leg*Math.PI)*.2:0;
@@ -199,6 +208,7 @@ export class UnitRenderer {
     this.body!.count=rifles;this.engineers!.count=engineers;this.enemies!.count=enemies;this.legs!.count=legs;this.rings!.count=ringCount;this.weapons!.count=weapons;this.flashes!.count=flashes;
     this.arms!.count=arms;this.hands!.count=hands;this.tools!.count=tools;
     this.deployedMG!.count=deployed;this.deployedMG!.instanceMatrix.needsUpdate=true;
+    this.deployedBAR!.count=deployedBAR;this.deployedBAR!.instanceMatrix.needsUpdate=true;
     for(const [kind,mesh]of this.variants){mesh.count=variantCounts[kind as keyof typeof variantCounts];mesh.instanceMatrix.needsUpdate=true;}
     for(const mesh of [this.body!,this.engineers!,this.enemies!,this.legs!,this.rings!,this.weapons!,this.flashes!])mesh.instanceMatrix.needsUpdate=true;
     for(const mesh of [this.body!,this.engineers!,this.enemies!])if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;

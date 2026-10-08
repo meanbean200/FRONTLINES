@@ -1704,3 +1704,26 @@ Original files and local visual evidence are preserved. First-pass materials and
 shared handling animations still require player art review. See
 `docs/smg-model-integration.md`. Overall gameplay/release status remains PARTIAL;
 no neural training or automation was started.
+
+## 2026-10-08 — User-supplied BAR
+
+**IMPLEMENTED / EDGE AND OFFLINE RENDER VERIFIED / PLAYER ART ACCEPTANCE OPEN.**
+Preserved the 2,100-triangle source and prepared a 1.20-metre wood/steel automatic
+rifle. Carrying uses its grip socket; actual shot origins retain authority. The
+source bipod folds for carrying/crawling and deploys for active stationary prone
+bearers, using shared geometry and bounded instancing. Existing BAR ownership,
+combat rules, saves and distant/failed-load representations are preserved.
+
+**1081/1081 tests across 166 files**, 28 focused renderer tests, production/offline
+builds and packaging 5/5 passed. Asset regeneration produced identical hashes.
+Edge controls verified model/bipod inspection, standing/prone presentation,
+context recovery and an existing BAR bearer's drawn movement order. Standalone
+HTML-only launch with networking disabled had zero page errors or HTTP requests.
+Workshop poses remain art fixtures, not full-combat or physical-mobile evidence.
+
+Combined weapon GLB is 702,540 bytes; standalone is approximately 4,134 KiB.
+Originals and local screenshots are preserved. Shared handling poses, first-pass
+materials and lack of terrain-conforming bipod/two-hand IK remain explicit art
+limitations. See `docs/bar-model-integration.md`. Overall status remains PARTIAL;
+the earlier performance/reproduction/long-session/player-acceptance gates remain
+open. No simulation rewrite, neural training or automation was started.
